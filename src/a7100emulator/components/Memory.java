@@ -14,29 +14,29 @@ import java.util.logging.Logger;
  */
 public class Memory {
 
-    private byte[] memory = new byte[10485764];
+    private byte[] memory = new byte[1048576];
 
-    public void writeByte(int address, byte value) {
-        memory[address] = value;
+    public void writeByte(int address, int value) {
+        memory[address] = (byte)value;
     }
 
-    public byte readByte(int address) {
-        return memory[address];
+    public int readByte(int address) {
+        return memory[address]&0xFF;
     }
 
-    public void writeWord(int address, short value) {
+    public void writeWord(int address, int value) {
         byte hb = (byte) (value >> 8);
         byte lb = (byte) value;
         memory[address] = lb;
         memory[address + 1] = hb;
     }
 
-    public short readWord(int address) {
+    public int readWord(int address) {
         short result = 0;
         byte lb = memory[address];
         byte hb = memory[address + 1];
         result = (short) (((short) hb << 8) | lb);
-        return result;
+        return result&0xFFFF;
     }
 
     public void dump() {

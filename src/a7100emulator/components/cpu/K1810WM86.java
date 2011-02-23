@@ -6,6 +6,11 @@ package a7100emulator.components.cpu;
 
 import a7100emulator.components.Memory;
 import a7100emulator.components.Ports;
+import java.io.FileOutputStream;
+import java.io.PrintStream;
+import java.io.RandomAccessFile;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  *
@@ -137,6 +142,8 @@ public class K1810WM86 {
     private static final int XLAT = 0xD7;
     private static final int IN_IMM_AL = 0xE4;
     private static final int IN_IMM_AX = 0xE5;
+    private static final int OUT_IMM_AL = 0xE6;
+    private static final int OUT_IMM_AX = 0xE7;
     private static final int IN_DX_AL = 0xEC;
     private static final int IN_DX_AX = 0xED;
     private static final int OUT_DX_AL = 0xEE;
@@ -261,6 +268,7 @@ public class K1810WM86 {
     private static final int RET_IN_SEG = 0xC3;
     private static final int RET_INTER_SEG_IMM = 0xCA;
     private static final int RET_INTER_SEG = 0xCB;
+    private static final int INT3 = 0xCC;
     private static final int INT_IMM = 0xCD;
     private static final int INTO = 0xCE;
     private static final int IRET = 0xCF;
@@ -555,11 +563,26 @@ public class K1810WM86 {
      * Statistik
      */
     private byte[] opCodeStatistic = new byte[256];
+    /**
+     * Debugger
+     */
+    private PrintStream debugFile = null;
+    private final boolean debug = true;
+
+    public K1810WM86() {
+        try {
+            debugFile = new PrintStream(new FileOutputStream("debug.log"));
+        } catch (Exception ex) {
+            Logger.getLogger(K1810WM86.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
 
     private void executeNextInstruction() {
 
-        int opcode1 = memory.readByte(ip++);
+        int opcode1 = memory.readByte(cs * 16 + (ip++)) ;
 
+
+        System.out.println(Integer.toHexString(cs) + ":" + (ip - 1) + "   " + opcode1);
         opCodeStatistic[opcode1]++;
 
         switch (opcode1) {
@@ -567,354 +590,581 @@ public class K1810WM86 {
              * Datentransfer
              */
             case MOV_REG_MODRM_8: {
-                int opcode2 = memory.readByte(ip++);
+                int opcode2 = memory.readByte(cs * 16 + (ip++));
                 setMODRM8(opcode2 & TEST_MOD, opcode2 & TEST_RM, getReg8(opcode2 & TEST_REG));
+                if (debug) {
+                    debugFile.println("MOV " + getMODRM8String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + "," + getReg8String(opcode2 & TEST_REG));
+                }
             }
             break;
             case MOV_REG_MODRM_16: {
-                int opcode2 = memory.readByte(ip++);
+                int opcode2 = memory.readByte(cs * 16 + (ip++));
                 setMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM, getReg16(opcode2 & TEST_REG));
+                if (debug) {
+                    debugFile.println("MOV " + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + "," + getReg16String(opcode2 & TEST_REG));
+                }
             }
             break;
             case MOV_MODRM_REG_8: {
-                int opcode2 = memory.readByte(ip++);
+                int opcode2 = memory.readByte(cs * 16 + (ip++));
                 setReg8(opcode2 & TEST_REG, getMODRM8(opcode2 & TEST_MOD, opcode2 & TEST_RM));
+                if (debug) {
+                    debugFile.println("MOV " + getReg8String(opcode2 & TEST_REG) + "," + getMODRM8String(opcode2 & TEST_MOD, opcode2 & TEST_RM));
+                }
             }
             break;
             case MOV_MODRM_REG_16: {
-                int opcode2 = memory.readByte(ip++);
+                int opcode2 = memory.readByte(cs * 16 + (ip++));
                 setReg16(opcode2 & TEST_REG, getMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM));
+                if (debug) {
+                    debugFile.println("MOV " + getReg16String(opcode2 & TEST_REG) + "," + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM));
+                }
             }
             break;
             case MOV_MEM_AL: {
-                int opcode2 = memory.readByte(ip++);
+                int opcode2 = memory.readByte(cs * 16 + (ip++));
                 setReg8(REG_AL_AX, getMODRM8(opcode2 & TEST_MOD, opcode2 & TEST_RM));
+                if (debug) {
+                    debugFile.println("MOV AL," + getMODRM8String(opcode2 & TEST_MOD, opcode2 & TEST_RM));
+                }
+
             }
             break;
             case MOV_MEM_AX: {
-                int opcode2 = memory.readByte(ip++);
+                int opcode2 = memory.readByte(cs * 16 + (ip++));
                 setReg16(REG_AL_AX, getMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM));
+                if (debug) {
+                    debugFile.println("MOV AX," + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM));
+                }
             }
             break;
             case MOV_AL_MEM: {
-                int opcode2 = memory.readByte(ip++);
+                int opcode2 = memory.readByte(cs * 16 + (ip++));
                 setMODRM8(opcode2 & TEST_MOD, opcode2 & TEST_RM, getReg8(REG_AL_AX));
+                if (debug) {
+                    debugFile.println("MOV " + getMODRM8String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + ",AL");
+                }
             }
             break;
             case MOV_AX_MEM: {
-                int opcode2 = memory.readByte(ip++);
+                int opcode2 = memory.readByte(cs * 16 + (ip++));
                 setMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM, getReg16(REG_AL_AX));
+                if (debug) {
+                    debugFile.println("MOV " + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + ",AX");
+                }
             }
             break;
             case MOV_IMM_AL: {
-                setReg8(REG_AL_AX, memory.readByte(ip++));
+                setReg8(REG_AL_AX, memory.readByte(cs * 16 + (ip++)));
+                if (debug) {
+                    debugFile.println("MOV AL," + memory.readByte(ip - 1));
+                }
             }
             break;
             case MOV_IMM_CL: {
-                setReg8(REG_CL_CX, memory.readByte(ip++));
+                setReg8(REG_CL_CX, memory.readByte(cs * 16 + (ip++)));
+                if (debug) {
+                    debugFile.println("MOV CL," + memory.readByte(ip - 1));
+                }
             }
             break;
             case MOV_IMM_DL: {
-                setReg8(REG_DL_DX, memory.readByte(ip++));
+                setReg8(REG_DL_DX, memory.readByte(cs * 16 + (ip++)));
+                if (debug) {
+                    debugFile.println("MOV DL," + memory.readByte(ip - 1));
+                }
             }
             break;
             case MOV_IMM_BL: {
-                setReg8(REG_BL_BX, memory.readByte(ip++));
+                setReg8(REG_BL_BX, memory.readByte(cs * 16 + (ip++)));
+                if (debug) {
+                    debugFile.println("MOV BL," + memory.readByte(ip - 1));
+                }
             }
             break;
             case MOV_IMM_AH: {
-                setReg8(REG_AH_SP, memory.readByte(ip++));
+                setReg8(REG_AH_SP, memory.readByte(cs * 16 + (ip++)));
+                if (debug) {
+                    debugFile.println("MOV AH," + memory.readByte(ip - 1));
+                }
             }
             break;
             case MOV_IMM_CH: {
-                setReg8(REG_CH_BP, memory.readByte(ip++));
+                setReg8(REG_CH_BP, memory.readByte(cs * 16 + (ip++)));
+                if (debug) {
+                    debugFile.println("MOV CH," + memory.readByte(ip - 1));
+                }
             }
             break;
             case MOV_IMM_DH: {
-                setReg8(REG_DH_SI, memory.readByte(ip++));
+                setReg8(REG_DH_SI, memory.readByte(cs * 16 + (ip++)));
+                if (debug) {
+                    debugFile.println("MOV DH," + memory.readByte(ip - 1));
+                }
             }
             break;
             case MOV_IMM_BH: {
-                setReg8(REG_BH_DI, memory.readByte(ip++));
+                setReg8(REG_BH_DI, memory.readByte(cs * 16 + (ip++)));
+                if (debug) {
+                    debugFile.println("MOV BH," + memory.readByte(ip - 1));
+                }
             }
             break;
             case MOV_IMM_AX: {
-                setReg16(REG_AL_AX, memory.readWord(ip++));
+                setReg16(REG_AL_AX, memory.readWord(cs * 16 + (ip++)));
                 ip++;
+                if (debug) {
+                    debugFile.println("MOV AX," + memory.readWord(ip - 2));
+                }
             }
             break;
             case MOV_IMM_CX: {
-                setReg16(REG_CL_CX, memory.readWord(ip++));
+                setReg16(REG_CL_CX, memory.readWord(cs * 16 + (ip++)));
                 ip++;
+                if (debug) {
+                    debugFile.println("MOV CX," + memory.readWord(ip - 2));
+                }
             }
             break;
             case MOV_IMM_DX: {
-                setReg16(REG_DL_DX, memory.readWord(ip++));
+                setReg16(REG_DL_DX, memory.readWord(cs * 16 + (ip++)));
                 ip++;
+                if (debug) {
+                    debugFile.println("MOV DX," + memory.readWord(ip - 2));
+                }
             }
             break;
             case MOV_IMM_BX: {
-                setReg16(REG_BL_BX, memory.readWord(ip++));
+                setReg16(REG_BL_BX, memory.readWord(cs * 16 + (ip++)));
                 ip++;
+                if (debug) {
+                    debugFile.println("MOV BX," + memory.readWord(ip - 2));
+                }
             }
             break;
             case MOV_IMM_SP: {
-                setReg16(REG_AH_SP, memory.readWord(ip++));
+                setReg16(REG_AH_SP, memory.readWord(cs * 16 + (ip++)));
                 ip++;
+                if (debug) {
+                    debugFile.println("MOV SP," + memory.readWord(ip - 2));
+                }
             }
             break;
             case MOV_IMM_BP: {
-                setReg16(REG_CH_BP, memory.readWord(ip++));
+                setReg16(REG_CH_BP, memory.readWord(cs * 16 + (ip++)));
                 ip++;
+                if (debug) {
+                    debugFile.println("MOV BP," + memory.readWord(ip - 2));
+                }
             }
             break;
             case MOV_IMM_SI: {
-                setReg16(REG_DH_SI, memory.readWord(ip++));
+                setReg16(REG_DH_SI, memory.readWord(cs * 16 + (ip++)));
                 ip++;
+                if (debug) {
+                    debugFile.println("MOV SI," + memory.readWord(ip - 2));
+                }
             }
             break;
             case MOV_IMM_DI: {
-                setReg16(REG_BH_DI, memory.readWord(ip++));
+                setReg16(REG_BH_DI, memory.readWord(cs * 16 + (ip++)));
                 ip++;
+                if (debug) {
+                    debugFile.println("MOV DI," + memory.readWord(ip - 2));
+                }
             }
             break;
             case XCHG_MODRM_REG_8: {
-                int opcode2 = memory.readByte(ip++);
+                int opcode2 = memory.readByte(cs * 16 + (ip++));
                 int op1 = getReg8(opcode2 & TEST_REG);
                 setReg8(opcode2 & TEST_REG, getMODRM8(opcode2 & TEST_MOD, opcode2 & TEST_RM));
                 setMODRM8(opcode2 & TEST_MOD, opcode2 & TEST_RM, op1);
+                if (debug) {
+                    debugFile.println("XCHG " + getReg8String(opcode2 & TEST_REG) + "," + getMODRM8String(opcode2 & TEST_MOD, opcode2 & TEST_RM));
+                }
             }
             break;
             case XCHG_MODRM_REG_16: {
-                int opcode2 = memory.readByte(ip++);
+                int opcode2 = memory.readByte(cs * 16 + (ip++));
                 int op1 = getReg16(opcode2 & TEST_REG);
                 setReg16(opcode2 & TEST_REG, getMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM));
                 setMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM, op1);
+                if (debug) {
+                    debugFile.println("XCHG " + getReg16String(opcode2 & TEST_REG) + "," + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM));
+                }
             }
             break;
             case XCHG_CX_AX: {
                 int op1 = getReg16(REG_CL_CX);
                 setReg16(REG_CL_CX, REG_AL_AX);
                 setReg16(REG_AL_AX, op1);
+                if (debug) {
+                    debugFile.println("XCHG AX,CX");
+                }
             }
             break;
             case XCHG_DX_AX: {
                 int op1 = getReg16(REG_DL_DX);
                 setReg16(REG_DL_DX, REG_AL_AX);
                 setReg16(REG_AL_AX, op1);
+                if (debug) {
+                    debugFile.println("XCHG AX,DX");
+                }
             }
             break;
             case XCHG_BX_AX: {
                 int op1 = getReg16(REG_BL_BX);
                 setReg16(REG_BL_BX, REG_AL_AX);
                 setReg16(REG_AL_AX, op1);
+                if (debug) {
+                    debugFile.println("XCHG AX,BX");
+                }
             }
             break;
             case XCHG_SP_AX: {
                 int op1 = getReg16(REG_AH_SP);
                 setReg16(REG_AH_SP, REG_AL_AX);
                 setReg16(REG_AL_AX, op1);
+                if (debug) {
+                    debugFile.println("XCHG AX,SP");
+                }
             }
             break;
             case XCHG_BP_AX: {
                 int op1 = getReg16(REG_AH_SP);
                 setReg16(REG_AH_SP, REG_AL_AX);
                 setReg16(REG_AL_AX, op1);
+                if (debug) {
+                    debugFile.println("XCHG AX,BP");
+                }
             }
             break;
             case XCHG_SI_AX: {
                 int op1 = getReg16(REG_DH_SI);
                 setReg16(REG_DH_SI, REG_AL_AX);
                 setReg16(REG_AL_AX, op1);
+                if (debug) {
+                    debugFile.println("XCHG AX,SI");
+                }
             }
             break;
             case XCHG_DI_AX: {
                 int op1 = getReg16(REG_BH_DI);
                 setReg16(REG_BH_DI, REG_AL_AX);
                 setReg16(REG_AL_AX, op1);
+                if (debug) {
+                    debugFile.println("XCHG AX,DI");
+                }
             }
             break;
             case PUSH_ES: {
                 setReg16(REG_AH_SP, (getReg16(REG_AH_SP) - 2) & 0xFFFF);
                 memory.writeWord(getReg16(REG_AH_SP), (short) getSReg(SREG_ES));
+                if (debug) {
+                    debugFile.println("PUSH ES");
+                }
             }
             break;
             case PUSH_CS: {
                 setReg16(REG_AH_SP, (getReg16(REG_AH_SP) - 2) & 0xFFFF);
                 memory.writeWord(getReg16(REG_AH_SP), (short) getSReg(SREG_CS));
+                if (debug) {
+                    debugFile.println("PUSH CS");
+                }
             }
             break;
             case PUSH_SS: {
                 setReg16(REG_AH_SP, (getReg16(REG_AH_SP) - 2) & 0xFFFF);
                 memory.writeWord(getReg16(REG_AH_SP), (short) getSReg(SREG_SS));
+                if (debug) {
+                    debugFile.println("PUSH SS");
+                }
             }
             break;
             case PUSH_DS: {
                 setReg16(REG_AH_SP, (getReg16(REG_AH_SP) - 2) & 0xFFFF);
                 memory.writeWord(getReg16(REG_AH_SP), (short) getSReg(SREG_DS));
+                if (debug) {
+                    debugFile.println("PUSH DS");
+                }
             }
             break;
             case PUSH_AX: {
                 setReg16(REG_AH_SP, (getReg16(REG_AH_SP) - 2) & 0xFFFF);
                 memory.writeWord(getReg16(REG_AH_SP), (short) getReg16(REG_AL_AX));
+                if (debug) {
+                    debugFile.println("PUSH AX");
+                }
             }
             break;
             case PUSH_CX: {
                 setReg16(REG_AH_SP, (getReg16(REG_AH_SP) - 2) & 0xFFFF);
                 memory.writeWord(getReg16(REG_AH_SP), (short) getReg16(REG_CL_CX));
+                if (debug) {
+                    debugFile.println("PUSH CX");
+                }
             }
             break;
             case PUSH_DX: {
                 setReg16(REG_AH_SP, (getReg16(REG_AH_SP) - 2) & 0xFFFF);
                 memory.writeWord(getReg16(REG_AH_SP), (short) getReg16(REG_DL_DX));
+                if (debug) {
+                    debugFile.println("PUSH DX");
+                }
             }
             break;
             case PUSH_BX: {
                 setReg16(REG_AH_SP, (getReg16(REG_AH_SP) - 2) & 0xFFFF);
                 memory.writeWord(getReg16(REG_AH_SP), (short) getReg16(REG_BL_BX));
+                if (debug) {
+                    debugFile.println("PUSH BX");
+                }
             }
             break;
             case PUSH_SP: {
                 setReg16(REG_AH_SP, (getReg16(REG_AH_SP) - 2) & 0xFFFF);
                 memory.writeWord(getReg16(REG_AH_SP), (short) getReg16(REG_AH_SP));
+                if (debug) {
+                    debugFile.println("PUSH SP");
+                }
             }
             break;
             case PUSH_BP: {
                 setReg16(REG_AH_SP, (getReg16(REG_AH_SP) - 2) & 0xFFFF);
                 memory.writeWord(getReg16(REG_AH_SP), (short) getReg16(REG_CH_BP));
+                if (debug) {
+                    debugFile.println("PUSH BP");
+                }
             }
             break;
             case PUSH_SI: {
                 setReg16(REG_AH_SP, (getReg16(REG_AH_SP) - 2) & 0xFFFF);
                 memory.writeWord(getReg16(REG_AH_SP), (short) getReg16(REG_DH_SI));
+                if (debug) {
+                    debugFile.println("PUSH SI");
+                }
             }
             break;
             case PUSH_DI: {
                 setReg16(REG_AH_SP, (getReg16(REG_AH_SP) - 2) & 0xFFFF);
                 memory.writeWord(getReg16(REG_AH_SP), (short) getReg16(REG_BH_DI));
+                if (debug) {
+                    debugFile.println("PUSH DI");
+                }
             }
             break;
             case POP_ES: {
                 setSReg(SREG_ES, memory.readWord(getReg16(REG_AH_SP)));
                 setReg16(REG_AH_SP, (getReg16(REG_AH_SP) + 2) & 0xFFFF);
+                if (debug) {
+                    debugFile.println("POP ES");
+                }
             }
             break;
             case POP_SS: {
                 setSReg(SREG_SS, memory.readWord(getReg16(REG_AH_SP)));
                 setReg16(REG_AH_SP, (getReg16(REG_AH_SP) + 2) & 0xFFFF);
+                if (debug) {
+                    debugFile.println("POP SS");
+                }
             }
             break;
             case POP_DS: {
                 setSReg(SREG_DS, memory.readWord(getReg16(REG_AH_SP)));
                 setReg16(REG_AH_SP, (getReg16(REG_AH_SP) + 2) & 0xFFFF);
+                if (debug) {
+                    debugFile.println("POP DS");
+                }
             }
             break;
             case POP_AX: {
                 setReg16(REG_AL_AX, memory.readWord(getReg16(REG_AH_SP)));
                 setReg16(REG_AH_SP, (getReg16(REG_AH_SP) + 2) & 0xFFFF);
+                if (debug) {
+                    debugFile.println("POP AX");
+                }
             }
             break;
             case POP_CX: {
                 setReg16(REG_CL_CX, memory.readWord(getReg16(REG_AH_SP)));
                 setReg16(REG_AH_SP, (getReg16(REG_AH_SP) + 2) & 0xFFFF);
+                if (debug) {
+                    debugFile.println("POP CX");
+                }
             }
             break;
             case POP_DX: {
                 setReg16(REG_DL_DX, memory.readWord(getReg16(REG_AH_SP)));
                 setReg16(REG_AH_SP, (getReg16(REG_AH_SP) + 2) & 0xFFFF);
+                if (debug) {
+                    debugFile.println("POP DX");
+                }
             }
             break;
             case POP_BX: {
                 setReg16(REG_BL_BX, memory.readWord(getReg16(REG_AH_SP)));
                 setReg16(REG_AH_SP, (getReg16(REG_AH_SP) + 2) & 0xFFFF);
+                if (debug) {
+                    debugFile.println("POP BX");
+                }
             }
             break;
             case POP_SP: {
                 setReg16(REG_AH_SP, memory.readWord(getReg16(REG_AH_SP)));
                 setReg16(REG_AH_SP, (getReg16(REG_AH_SP) + 2) & 0xFFFF);
+                if (debug) {
+                    debugFile.println("POP SP");
+                }
             }
             break;
             case POP_BP: {
                 setReg16(REG_CH_BP, memory.readWord(getReg16(REG_AH_SP)));
                 setReg16(REG_AH_SP, (getReg16(REG_AH_SP) + 2) & 0xFFFF);
+                if (debug) {
+                    debugFile.println("POP BP");
+                }
             }
             break;
             case POP_SI: {
                 setReg16(REG_DH_SI, memory.readWord(getReg16(REG_AH_SP)));
                 setReg16(REG_AH_SP, (getReg16(REG_AH_SP) + 2) & 0xFFFF);
+                if (debug) {
+                    debugFile.println("POP SI");
+                }
             }
             break;
             case POP_DI: {
                 setReg16(REG_BH_DI, memory.readWord(getReg16(REG_AH_SP)));
                 setReg16(REG_AH_SP, (getReg16(REG_AH_SP) + 2) & 0xFFFF);
+                if (debug) {
+                    debugFile.println("POP DI");
+                }
             }
             break;
             case PUSHF: {
                 setReg16(REG_AH_SP, (getReg16(REG_AH_SP) - 2) & 0xFFFF);
                 memory.writeWord(getReg16(REG_AH_SP), (short) flags);
+                if (debug) {
+                    debugFile.println("PUSHF");
+                }
             }
             break;
             case POPF: {
                 flags = memory.readWord(getReg16(REG_AH_SP));
                 setReg16(REG_AH_SP, (getReg16(REG_AH_SP) + 2) & 0xFFFF);
+                if (debug) {
+                    debugFile.println("POPF");
+                }
             }
             break;
             case SAHF: {
                 flags &= 0xFF00;
                 flags |= getReg8(REG_AH_SP) & 0xFF;
+                if (debug) {
+                    debugFile.println("SAHF");
+                }
             }
             break;
             case LAHF: {
                 setReg8(REG_AH_SP, flags & 0xFF);
+                if (debug) {
+                    debugFile.println("LAHF");
+                }
             }
             break;
             case LEA_MEM_REG: {
-                int opcode2 = memory.readByte(ip++);
+                int opcode2 = memory.readByte(cs * 16 + (ip++));
                 setReg16(opcode2 & TEST_REG, getOffset(opcode2 & TEST_MOD, opcode2 & TEST_RM));
+                if (debug) {
+                    debugFile.println("LEA " + getReg16String(opcode2 & TEST_REG) + "," + getOffsetString(opcode2 & TEST_MOD, opcode2 & TEST_RM));
+                }
             }
             break;
             case LES_MEM_REG: {
-                int opcode2 = memory.readByte(ip++);
+                int opcode2 = memory.readByte(cs * 16 + (ip++));
                 int adress = getAddressMODRM(opcode2 & TEST_MOD, opcode2 & TEST_RM);
                 setReg16(opcode2 & TEST_REG, memory.readWord(adress));
                 setSReg(SREG_ES, memory.readWord(adress + 2));
+                if (debug) {
+                    debugFile.println("LES " + getReg16String(opcode2 & TEST_REG) + "," + getAddressMODRMString(opcode2 & TEST_MOD, opcode2 & TEST_RM));
+                }
             }
             break;
             case LDS_MEM_REG: {
-                int opcode2 = memory.readByte(ip++);
+                int opcode2 = memory.readByte(cs * 16 + (ip++));
                 int adress = getAddressMODRM(opcode2 & TEST_MOD, opcode2 & TEST_RM);
                 setReg16(opcode2 & TEST_REG, memory.readWord(adress));
                 setSReg(SREG_DS, memory.readWord(adress + 2));
+                if (debug) {
+                    debugFile.println("LDS " + getReg16String(opcode2 & TEST_REG) + "," + getAddressMODRMString(opcode2 & TEST_MOD, opcode2 & TEST_RM));
+                }
             }
             break;
             case XLAT: {
                 setReg8(REG_AL_AX, memory.readByte(getReg16(REG_BL_BX) + getReg8(REG_AL_AX)));
+                if (debug) {
+                    debugFile.println("XLAT");
+                }
             }
             break;
             case IN_IMM_AL: {
-                int port = memory.readByte(ip++);
+                int port = memory.readByte(cs * 16 + (ip++));
                 setReg8(REG_AL_AX, ports.readByte(port));
+                if (debug) {
+                    debugFile.println("IN AL," + Integer.toHexString(memory.readByte(ip - 1)));
+                }
             }
             break;
             case IN_IMM_AX: {
-                int port = memory.readByte(ip++);
+                int port = memory.readByte(cs * 16 + (ip++));
                 setReg16(REG_AL_AX, ports.readWord(port));
+                if (debug) {
+                    debugFile.println("IN AX," + Integer.toHexString(memory.readByte(ip - 1)));
+                }
             }
             break;
             case IN_DX_AL: {
                 setReg8(REG_AL_AX, ports.readByte(getReg16(REG_DL_DX)));
+                if (debug) {
+                    debugFile.println("IN AL,DX");
+                }
             }
             break;
             case IN_DX_AX: {
                 setReg16(REG_AL_AX, ports.readWord(getReg16(REG_DL_DX)));
+                if (debug) {
+                    debugFile.println("IN AX,DX");
+                }
+            }
+            break;
+            case OUT_IMM_AL: {
+                int port = memory.readByte(cs * 16 + (ip++));
+                ports.writeByte(port, (byte) getReg8(REG_AL_AX));
+                if (debug) {
+                    debugFile.println("OUT AL," + port);
+                }
+            }
+            break;
+            case OUT_IMM_AX: {
+                int port = memory.readByte(cs * 16 + (ip++));
+                ports.writeWord(port, (short) getReg16(REG_AL_AX));
+                if (debug) {
+                    debugFile.println("OUT AX," + port);
+                }
             }
             break;
             case OUT_DX_AL: {
                 ports.writeByte(getReg16(REG_DL_DX), (byte) getReg8(REG_AL_AX));
+                if (debug) {
+                    debugFile.println("OUT AL,DX");
+                }
             }
             break;
             case OUT_DX_AX: {
                 ports.writeWord(getReg16(REG_DL_DX), (short) getReg16(REG_AL_AX));
+                if (debug) {
+                    debugFile.println("OUT AX,DX");
+                }
             }
             break;
 
@@ -922,7 +1172,7 @@ public class K1810WM86 {
              * Arithmetik
              */
             case ADD_REG_MODRM_8: {
-                int opcode2 = memory.readByte(ip++);
+                int opcode2 = memory.readByte(cs * 16 + (ip++));
                 int op1 = getMODRM8(opcode2 & TEST_MOD, opcode2 & TEST_RM);
                 int op2 = getReg8(opcode2 & TEST_REG);
                 int res = op1 + op2;
@@ -933,10 +1183,13 @@ public class K1810WM86 {
                 checkParityFlag(res);
                 checkAuxiliaryCarryFlagAdd(op1, op2);
                 setMODRM8(opcode2 & TEST_MOD, opcode2 & TEST_RM, res & 0xFF);
+                if (debug) {
+                    debugFile.println("ADD " + getMODRM8String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + "," + getReg8String(opcode2 & TEST_REG));
+                }
             }
             break;
             case ADD_REG_MODRM_16: {
-                int opcode2 = memory.readByte(ip++);
+                int opcode2 = memory.readByte(cs * 16 + (ip++));
                 int op1 = getMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM);
                 int op2 = getReg16(opcode2 & TEST_REG);
                 int res = op1 + op2;
@@ -947,10 +1200,13 @@ public class K1810WM86 {
                 checkParityFlag(res);
                 checkAuxiliaryCarryFlagAdd(op1, op2);
                 setMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM, res & 0xFFFF);
+                if (debug) {
+                    debugFile.println("ADD " + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + "," + getReg16String(opcode2 & TEST_REG));
+                }
             }
             break;
             case ADD_MODRM_REG_8: {
-                int opcode2 = memory.readByte(ip++);
+                int opcode2 = memory.readByte(cs * 16 + (ip++));
                 int op1 = getReg8(opcode2 & TEST_REG);
                 int op2 = getMODRM8(opcode2 & TEST_MOD, opcode2 & TEST_RM);
                 int res = op1 + op2;
@@ -961,10 +1217,13 @@ public class K1810WM86 {
                 checkParityFlag(res);
                 checkAuxiliaryCarryFlagAdd(op1, op2);
                 setReg8(opcode2 & TEST_REG, res & 0xFF);
+                if (debug) {
+                    debugFile.println("ADD " + getReg8String(opcode2 & TEST_REG) + "," + getMODRM8String(opcode2 & TEST_MOD, opcode2 & TEST_RM));
+                }
             }
             break;
             case ADD_MODRM_REG_16: {
-                int opcode2 = memory.readByte(ip++);
+                int opcode2 = memory.readByte(cs * 16 + (ip++));
                 int op1 = getReg16(opcode2 & TEST_REG);
                 int op2 = getMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM);
                 int res = op1 + op2;
@@ -975,11 +1234,14 @@ public class K1810WM86 {
                 checkParityFlag(res);
                 checkAuxiliaryCarryFlagAdd(op1, op2);
                 setReg16(opcode2 & TEST_REG, res & 0xFFFF);
+                if (debug) {
+                    debugFile.println("ADD " + getReg16String(opcode2 & TEST_REG) + "," + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM));
+                }
             }
             break;
             case ADD_IMM_AL: {
                 int op1 = getReg8(REG_AL_AX);
-                int op2 = memory.readByte(ip++);
+                int op2 = memory.readByte(cs * 16 + (ip++));
                 int res = op1 + op2;
                 checkCarryFlagAdd8(res);
                 checkZeroFlag8(res);
@@ -988,11 +1250,14 @@ public class K1810WM86 {
                 checkParityFlag(res);
                 checkAuxiliaryCarryFlagAdd(op1, op2);
                 setReg8(REG_AL_AX, res & 0xFF);
+                if (debug) {
+                    debugFile.println("ADD AL," + memory.readByte(ip - 1));
+                }
             }
             break;
             case ADD_IMM_AX: {
                 int op1 = getReg16(REG_AL_AX);
-                int op2 = memory.readWord(ip++);
+                int op2 = memory.readWord(cs * 16 + (ip++));
                 ip++;
                 int res = op1 + op2;
                 checkCarryFlagAdd16(res);
@@ -1002,10 +1267,13 @@ public class K1810WM86 {
                 checkParityFlag(res);
                 checkAuxiliaryCarryFlagAdd(op1, op2);
                 setReg16(REG_AL_AX, res & 0xFFFF);
+                if (debug) {
+                    debugFile.println("ADD AX," + memory.readWord(ip - 2));
+                }
             }
             break;
             case ADC_REG_MODRM_8: {
-                int opcode2 = memory.readByte(ip++);
+                int opcode2 = memory.readByte(cs * 16 + (ip++));
                 int op1 = getMODRM8(opcode2 & TEST_MOD, opcode2 & TEST_RM);
                 int op2 = getReg8(opcode2 & TEST_REG);
                 int res = op1 + op2;
@@ -1019,10 +1287,13 @@ public class K1810WM86 {
                 checkParityFlag(res);
                 checkAuxiliaryCarryFlagAdd(op1, op2);
                 setMODRM8(opcode2 & TEST_MOD, opcode2 & TEST_RM, res & 0xFF);
+                if (debug) {
+                    debugFile.println("ADC " + getMODRM8String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + "," + getReg8String(opcode2 & TEST_REG));
+                }
             }
             break;
             case ADC_REG_MODRM_16: {
-                int opcode2 = memory.readByte(ip++);
+                int opcode2 = memory.readByte(cs * 16 + (ip++));
                 int op1 = getMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM);
                 int op2 = getReg16(opcode2 & TEST_REG);
                 if (getFlag(CARRY_FLAG)) {
@@ -1036,10 +1307,13 @@ public class K1810WM86 {
                 checkParityFlag(res);
                 checkAuxiliaryCarryFlagAdd(op1, op2);
                 setMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM, res & 0xFFFF);
+                if (debug) {
+                    debugFile.println("ADC " + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + "," + getReg16String(opcode2 & TEST_REG));
+                }
             }
             break;
             case ADC_MODRM_REG_8: {
-                int opcode2 = memory.readByte(ip++);
+                int opcode2 = memory.readByte(cs * 16 + (ip++));
                 int op1 = getReg8(opcode2 & TEST_REG);
                 int op2 = getMODRM8(opcode2 & TEST_MOD, opcode2 & TEST_RM);
                 if (getFlag(CARRY_FLAG)) {
@@ -1053,10 +1327,13 @@ public class K1810WM86 {
                 checkParityFlag(res);
                 checkAuxiliaryCarryFlagAdd(op1, op2);
                 setReg8(opcode2 & TEST_REG, res & 0xFF);
+                if (debug) {
+                    debugFile.println("ADC " + getReg8String(opcode2 & TEST_REG) + "," + getMODRM8String(opcode2 & TEST_MOD, opcode2 & TEST_RM));
+                }
             }
             break;
             case ADC_MODRM_REG_16: {
-                int opcode2 = memory.readByte(ip++);
+                int opcode2 = memory.readByte(cs * 16 + (ip++));
                 int op1 = getReg16(opcode2 & TEST_REG);
                 int op2 = getMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM);
                 if (getFlag(CARRY_FLAG)) {
@@ -1070,11 +1347,14 @@ public class K1810WM86 {
                 checkParityFlag(res);
                 checkAuxiliaryCarryFlagAdd(op1, op2);
                 setReg16(opcode2 & TEST_REG, res & 0xFFFF);
+                if (debug) {
+                    debugFile.println("ADC " + getReg16String(opcode2 & TEST_REG) + "," + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM));
+                }
             }
             break;
             case ADC_IMM_AL: {
                 int op1 = getReg8(REG_AL_AX);
-                int op2 = memory.readByte(ip++);
+                int op2 = memory.readByte(cs * 16 + (ip++));
                 if (getFlag(CARRY_FLAG)) {
                     op2++;
                 }
@@ -1086,11 +1366,14 @@ public class K1810WM86 {
                 checkParityFlag(res);
                 checkAuxiliaryCarryFlagAdd(op1, op2);
                 setReg8(REG_AL_AX, res & 0xFF);
+                if (debug) {
+                    debugFile.println("ADC AL," + memory.readByte(ip - 1));
+                }
             }
             break;
             case ADC_IMM_AX: {
                 int op1 = getReg16(REG_AL_AX);
-                int op2 = memory.readWord(ip++);
+                int op2 = memory.readWord(cs * 16 + (ip++));
                 ip++;
                 if (getFlag(CARRY_FLAG)) {
                     op2++;
@@ -1103,10 +1386,13 @@ public class K1810WM86 {
                 checkParityFlag(res);
                 checkAuxiliaryCarryFlagAdd(op1, op2);
                 setReg16(REG_AL_AX, res & 0xFFFF);
+                if (debug) {
+                    debugFile.println("ADC AX," + memory.readWord(ip - 2));
+                }
             }
             break;
             case SUB_REG_MODRM_8: {
-                int opcode2 = memory.readByte(ip++);
+                int opcode2 = memory.readByte(cs * 16 + (ip++));
                 int op1 = getMODRM8(opcode2 & TEST_MOD, opcode2 & TEST_RM);
                 int op2 = getReg8(opcode2 & TEST_REG);
                 int res = op1 - op2;
@@ -1117,10 +1403,13 @@ public class K1810WM86 {
                 checkParityFlag(res);
                 checkAuxiliaryCarryFlagSub(op1, op2);
                 setMODRM8(opcode2 & TEST_MOD, opcode2 & TEST_RM, res & 0xFF);
+                if (debug) {
+                    debugFile.println("SUB " + getMODRM8String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + "," + getReg8String(opcode2 & TEST_REG));
+                }
             }
             break;
             case SUB_REG_MODRM_16: {
-                int opcode2 = memory.readByte(ip++);
+                int opcode2 = memory.readByte(cs * 16 + (ip++));
                 int op1 = getMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM);
                 int op2 = getReg16(opcode2 & TEST_REG);
                 int res = op1 - op2;
@@ -1131,10 +1420,13 @@ public class K1810WM86 {
                 checkParityFlag(res);
                 checkAuxiliaryCarryFlagSub(op1, op2);
                 setMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM, res & 0xFFFF);
+                if (debug) {
+                    debugFile.println("SUB " + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + "," + getReg16String(opcode2 & TEST_REG));
+                }
             }
             break;
             case SUB_MODRM_REG_8: {
-                int opcode2 = memory.readByte(ip++);
+                int opcode2 = memory.readByte(cs * 16 + (ip++));
                 int op1 = getReg8(opcode2 & TEST_REG);
                 int op2 = getMODRM8(opcode2 & TEST_MOD, opcode2 & TEST_RM);
                 int res = op1 - op2;
@@ -1145,10 +1437,13 @@ public class K1810WM86 {
                 checkParityFlag(res);
                 checkAuxiliaryCarryFlagSub(op1, op2);
                 setReg8(opcode2 & TEST_REG, res & 0xFF);
+                if (debug) {
+                    debugFile.println("SUB " + getReg8String(opcode2 & TEST_REG) + "," + getMODRM8String(opcode2 & TEST_MOD, opcode2 & TEST_RM));
+                }
             }
             break;
             case SUB_MODRM_REG_16: {
-                int opcode2 = memory.readByte(ip++);
+                int opcode2 = memory.readByte(cs * 16 + (ip++));
                 int op1 = getReg16(opcode2 & TEST_REG);
                 int op2 = getMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM);
                 int res = op1 - op2;
@@ -1159,11 +1454,14 @@ public class K1810WM86 {
                 checkParityFlag(res);
                 checkAuxiliaryCarryFlagSub(op1, op2);
                 setReg16(opcode2 & TEST_REG, res & 0xFFFF);
+                if (debug) {
+                    debugFile.println("SUB " + getReg16String(opcode2 & TEST_REG) + "," + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM));
+                }
             }
             break;
             case SUB_IMM_AL: {
                 int op1 = getReg8(REG_AL_AX);
-                int op2 = memory.readByte(ip++);
+                int op2 = memory.readByte(cs * 16 + (ip++));
                 int res = op1 - op2;
                 checkCarryFlagSub8(res);
                 checkZeroFlag8(res);
@@ -1172,11 +1470,14 @@ public class K1810WM86 {
                 checkParityFlag(res);
                 checkAuxiliaryCarryFlagSub(op1, op2);
                 setReg8(REG_AL_AX, res & 0xFF);
+                if (debug) {
+                    debugFile.println("SUB AL," + memory.readByte(ip - 1));
+                }
             }
             break;
             case SUB_IMM_AX: {
                 int op1 = getReg16(REG_AL_AX);
-                int op2 = memory.readWord(ip++);
+                int op2 = memory.readWord(cs * 16 + (ip++));
                 ip++;
                 int res = op1 - op2;
                 checkCarryFlagSub16(res);
@@ -1186,10 +1487,13 @@ public class K1810WM86 {
                 checkParityFlag(res);
                 checkAuxiliaryCarryFlagSub(op1, op2);
                 setReg16(REG_AL_AX, res & 0xFFFF);
+                if (debug) {
+                    debugFile.println("SUB AX," + memory.readWord(ip - 2));
+                }
             }
             break;
             case CMP_REG_MODRM_8: {
-                int opcode2 = memory.readByte(ip++);
+                int opcode2 = memory.readByte(cs * 16 + (ip++));
                 int op1 = getMODRM8(opcode2 & TEST_MOD, opcode2 & TEST_RM);
                 int op2 = getReg8(opcode2 & TEST_REG);
                 int res = op1 - op2;
@@ -1199,10 +1503,13 @@ public class K1810WM86 {
                 checkOverflowFlagSub8(op1, op2, res);
                 checkParityFlag(res);
                 checkAuxiliaryCarryFlagSub(op1, op2);
+                if (debug) {
+                    debugFile.println("CMP " + getMODRM8String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + "," + getReg8String(opcode2 & TEST_REG));
+                }
             }
             break;
             case CMP_REG_MODRM_16: {
-                int opcode2 = memory.readByte(ip++);
+                int opcode2 = memory.readByte(cs * 16 + (ip++));
                 int op1 = getMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM);
                 int op2 = getReg16(opcode2 & TEST_REG);
                 int res = op1 - op2;
@@ -1212,10 +1519,13 @@ public class K1810WM86 {
                 checkOverflowFlagSub16(op1, op2, res);
                 checkParityFlag(res);
                 checkAuxiliaryCarryFlagSub(op1, op2);
+                if (debug) {
+                    debugFile.println("CMP " + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + "," + getReg16String(opcode2 & TEST_REG));
+                }
             }
             break;
             case CMP_MODRM_REG_8: {
-                int opcode2 = memory.readByte(ip++);
+                int opcode2 = memory.readByte(cs * 16 + (ip++));
                 int op1 = getReg8(opcode2 & TEST_REG);
                 int op2 = getMODRM8(opcode2 & TEST_MOD, opcode2 & TEST_RM);
                 int res = op1 - op2;
@@ -1225,10 +1535,13 @@ public class K1810WM86 {
                 checkOverflowFlagSub8(op1, op2, res);
                 checkParityFlag(res);
                 checkAuxiliaryCarryFlagSub(op1, op2);
+                if (debug) {
+                    debugFile.println("CMP " + getReg8String(opcode2 & TEST_REG) + "," + getMODRM8String(opcode2 & TEST_MOD, opcode2 & TEST_RM));
+                }
             }
             break;
             case CMP_MODRM_REG_16: {
-                int opcode2 = memory.readByte(ip++);
+                int opcode2 = memory.readByte(cs * 16 + (ip++));
                 int op1 = getReg16(opcode2 & TEST_REG);
                 int op2 = getMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM);
                 int res = op1 - op2;
@@ -1238,11 +1551,14 @@ public class K1810WM86 {
                 checkOverflowFlagSub16(op1, op2, res);
                 checkParityFlag(res);
                 checkAuxiliaryCarryFlagSub(op1, op2);
+                if (debug) {
+                    debugFile.println("CMP " + getReg16String(opcode2 & TEST_REG) + "," + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM));
+                }
             }
             break;
             case CMP_IMM_AL: {
                 int op1 = getReg8(REG_AL_AX);
-                int op2 = memory.readByte(ip++);
+                int op2 = memory.readByte(cs * 16 + (ip++));
                 int res = op1 - op2;
                 checkCarryFlagSub8(res);
                 checkZeroFlag8(res);
@@ -1250,11 +1566,14 @@ public class K1810WM86 {
                 checkOverflowFlagSub8(op1, op2, res);
                 checkParityFlag(res);
                 checkAuxiliaryCarryFlagSub(op1, op2);
+                if (debug) {
+                    debugFile.println("CMP AL," + memory.readByte(ip - 1));
+                }
             }
             break;
             case CMP_IMM_AX: {
                 int op1 = getReg16(REG_AL_AX);
-                int op2 = memory.readWord(ip++);
+                int op2 = memory.readWord(cs * 16 + (ip++));
                 ip++;
                 int res = op1 - op2;
                 checkCarryFlagSub16(res);
@@ -1263,11 +1582,14 @@ public class K1810WM86 {
                 checkOverflowFlagSub16(op1, op2, res);
                 checkParityFlag(res);
                 checkAuxiliaryCarryFlagSub(op1, op2);
+                if (debug) {
+                    debugFile.println("CMP AX," + memory.readWord(ip - 2));
+                }
             }
             break;
 
             case SBB_REG_MODRM_8: {
-                int opcode2 = memory.readByte(ip++);
+                int opcode2 = memory.readByte(cs * 16 + (ip++));
                 int op1 = getMODRM8(opcode2 & TEST_MOD, opcode2 & TEST_RM);
                 int op2 = getReg8(opcode2 & TEST_REG);
                 if (getFlag(CARRY_FLAG)) {
@@ -1281,10 +1603,13 @@ public class K1810WM86 {
                 checkParityFlag(res);
                 checkAuxiliaryCarryFlagSub(op1, op2);
                 setMODRM8(opcode2 & TEST_MOD, opcode2 & TEST_RM, res & 0xFF);
+                if (debug) {
+                    debugFile.println("SBB " + getMODRM8String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + "," + getReg8String(opcode2 & TEST_REG));
+                }
             }
             break;
             case SBB_REG_MODRM_16: {
-                int opcode2 = memory.readByte(ip++);
+                int opcode2 = memory.readByte(cs * 16 + (ip++));
                 int op1 = getMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM);
                 int op2 = getReg16(opcode2 & TEST_REG);
                 if (getFlag(CARRY_FLAG)) {
@@ -1298,10 +1623,13 @@ public class K1810WM86 {
                 checkParityFlag(res);
                 checkAuxiliaryCarryFlagSub(op1, op2);
                 setMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM, res & 0xFFFF);
+                if (debug) {
+                    debugFile.println("SBB " + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + "," + getReg16String(opcode2 & TEST_REG));
+                }
             }
             break;
             case SBB_MODRM_REG_8: {
-                int opcode2 = memory.readByte(ip++);
+                int opcode2 = memory.readByte(cs * 16 + (ip++));
                 int op1 = getReg8(opcode2 & TEST_REG);
                 int op2 = getMODRM8(opcode2 & TEST_MOD, opcode2 & TEST_RM);
                 if (getFlag(CARRY_FLAG)) {
@@ -1315,10 +1643,13 @@ public class K1810WM86 {
                 checkParityFlag(res);
                 checkAuxiliaryCarryFlagSub(op1, op2);
                 setReg8(opcode2 & TEST_REG, res & 0xFF);
+                if (debug) {
+                    debugFile.println("SBB " + getReg8String(opcode2 & TEST_REG) + "," + getMODRM8String(opcode2 & TEST_MOD, opcode2 & TEST_RM));
+                }
             }
             break;
             case SBB_MODRM_REG_16: {
-                int opcode2 = memory.readByte(ip++);
+                int opcode2 = memory.readByte(cs * 16 + (ip++));
                 int op1 = getReg16(opcode2 & TEST_REG);
                 int op2 = getMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM);
                 if (getFlag(CARRY_FLAG)) {
@@ -1332,11 +1663,14 @@ public class K1810WM86 {
                 checkParityFlag(res);
                 checkAuxiliaryCarryFlagSub(op1, op2);
                 setReg16(opcode2 & TEST_REG, res & 0xFFFF);
+                if (debug) {
+                    debugFile.println("SBB " + getReg16String(opcode2 & TEST_REG) + "," + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM));
+                }
             }
             break;
             case SBB_IMM_AL: {
                 int op1 = getReg8(REG_AL_AX);
-                int op2 = memory.readByte(ip++);
+                int op2 = memory.readByte(cs * 16 + (ip++));
                 if (getFlag(CARRY_FLAG)) {
                     op2++;
                 }
@@ -1348,11 +1682,14 @@ public class K1810WM86 {
                 checkParityFlag(res);
                 checkAuxiliaryCarryFlagSub(op1, op2);
                 setReg8(REG_AL_AX, res & 0xFF);
+                if (debug) {
+                    debugFile.println("SBB AL," + memory.readByte(ip - 1));
+                }
             }
             break;
             case SBB_IMM_AX: {
                 int op1 = getReg16(REG_AL_AX);
-                int op2 = memory.readWord(ip++);
+                int op2 = memory.readWord(cs * 16 + (ip++));
                 ip++;
                 if (getFlag(CARRY_FLAG)) {
                     op2++;
@@ -1365,6 +1702,9 @@ public class K1810WM86 {
                 checkParityFlag(res);
                 checkAuxiliaryCarryFlagSub(op1, op2);
                 setReg16(REG_AL_AX, res & 0xFFFF);
+                if (debug) {
+                    debugFile.println("SBB AX," + memory.readWord(ip - 2));
+                }
             }
             break;
             case INC_AX: {
@@ -1375,6 +1715,9 @@ public class K1810WM86 {
                 checkParityFlag(res);
                 checkAuxiliaryCarryFlagAdd(ax, 1);
                 setReg16(REG_AL_AX, res & 0xFFFF);
+                if (debug) {
+                    debugFile.println("INC AX");
+                }
             }
             break;
             case INC_CX: {
@@ -1385,6 +1728,9 @@ public class K1810WM86 {
                 checkParityFlag(res);
                 checkAuxiliaryCarryFlagAdd(cx, 1);
                 setReg16(REG_CL_CX, res & 0xFFFF);
+                if (debug) {
+                    debugFile.println("INC CX");
+                }
             }
             break;
             case INC_DX: {
@@ -1395,6 +1741,9 @@ public class K1810WM86 {
                 checkParityFlag(res);
                 checkAuxiliaryCarryFlagAdd(dx, 1);
                 setReg16(REG_DL_DX, res & 0xFFFF);
+                if (debug) {
+                    debugFile.println("INC DX");
+                }
             }
             break;
             case INC_BX: {
@@ -1404,6 +1753,9 @@ public class K1810WM86 {
                 checkOverflowFlagAdd16(bx, 1, res);
                 checkParityFlag(res);
                 setReg16(REG_BL_BX, res & 0xFFFF);
+                if (debug) {
+                    debugFile.println("INC BX");
+                }
             }
             break;
             case INC_SP: {
@@ -1414,6 +1766,9 @@ public class K1810WM86 {
                 checkParityFlag(res);
                 checkAuxiliaryCarryFlagAdd(sp, 1);
                 setReg16(REG_AH_SP, res & 0xFFFF);
+                if (debug) {
+                    debugFile.println("INC SP");
+                }
             }
             break;
             case INC_BP: {
@@ -1424,6 +1779,9 @@ public class K1810WM86 {
                 checkParityFlag(res);
                 checkAuxiliaryCarryFlagAdd(bp, 1);
                 setReg16(REG_CH_BP, res & 0xFFFF);
+                if (debug) {
+                    debugFile.println("INC BP");
+                }
             }
             break;
             case INC_SI: {
@@ -1434,6 +1792,9 @@ public class K1810WM86 {
                 checkParityFlag(res);
                 checkAuxiliaryCarryFlagAdd(si, 1);
                 setReg16(REG_DH_SI, res & 0xFFFF);
+                if (debug) {
+                    debugFile.println("INC SI");
+                }
             }
             break;
             case INC_DI: {
@@ -1444,6 +1805,9 @@ public class K1810WM86 {
                 checkParityFlag(res);
                 checkAuxiliaryCarryFlagAdd(di, 1);
                 setReg16(REG_BH_DI, res & 0xFFFF);
+                if (debug) {
+                    debugFile.println("INC DI");
+                }
             }
             break;
             case DEC_AX: {
@@ -1454,6 +1818,9 @@ public class K1810WM86 {
                 checkParityFlag(res);
                 checkAuxiliaryCarryFlagSub(ax, 1);
                 setReg16(REG_AL_AX, res & 0xFFFF);
+                if (debug) {
+                    debugFile.println("DEC AX");
+                }
             }
             break;
             case DEC_CX: {
@@ -1464,6 +1831,9 @@ public class K1810WM86 {
                 checkParityFlag(res);
                 checkAuxiliaryCarryFlagSub(cx, 1);
                 setReg16(REG_CL_CX, res & 0xFFFF);
+                if (debug) {
+                    debugFile.println("DEC CX");
+                }
             }
             break;
             case DEC_DX: {
@@ -1474,6 +1844,9 @@ public class K1810WM86 {
                 checkParityFlag(res);
                 checkAuxiliaryCarryFlagSub(dx, 1);
                 setReg16(REG_DL_DX, res & 0xFFFF);
+                if (debug) {
+                    debugFile.println("DEC DX");
+                }
             }
             break;
             case DEC_BX: {
@@ -1484,6 +1857,9 @@ public class K1810WM86 {
                 checkParityFlag(res);
                 checkAuxiliaryCarryFlagSub(bx, 1);
                 setReg16(REG_BL_BX, res & 0xFFFF);
+                if (debug) {
+                    debugFile.println("DEC BX");
+                }
             }
             break;
             case DEC_SP: {
@@ -1494,6 +1870,9 @@ public class K1810WM86 {
                 checkParityFlag(res);
                 checkAuxiliaryCarryFlagSub(sp, 1);
                 setReg16(REG_AH_SP, res & 0xFFFF);
+                if (debug) {
+                    debugFile.println("DEC SP");
+                }
             }
             break;
             case DEC_BP: {
@@ -1504,6 +1883,9 @@ public class K1810WM86 {
                 checkParityFlag(res);
                 checkAuxiliaryCarryFlagSub(bp, 1);
                 setReg16(REG_CH_BP, res & 0xFFFF);
+                if (debug) {
+                    debugFile.println("DEC BP");
+                }
             }
             break;
             case DEC_SI: {
@@ -1514,6 +1896,9 @@ public class K1810WM86 {
                 checkParityFlag(res);
                 checkAuxiliaryCarryFlagSub(si, 1);
                 setReg16(REG_DH_SI, res & 0xFFFF);
+                if (debug) {
+                    debugFile.println("DEC SI");
+                }
             }
             break;
             case DEC_DI: {
@@ -1524,6 +1909,9 @@ public class K1810WM86 {
                 checkParityFlag(res);
                 checkAuxiliaryCarryFlagSub(di, 1);
                 setReg16(REG_BH_DI, res & 0xFFFF);
+                if (debug) {
+                    debugFile.println("DEC DI");
+                }
             }
             break;
             case DAA: {
@@ -1543,6 +1931,9 @@ public class K1810WM86 {
                 checkZeroFlag8(getReg8(REG_AL_AX));
                 checkSignFlag8(getReg8(REG_AL_AX));
                 checkParityFlag(getReg8(REG_AL_AX));
+                if (debug) {
+                    debugFile.println("DAA");
+                }
             }
             break;
             case DAS: {
@@ -1562,6 +1953,9 @@ public class K1810WM86 {
                 checkZeroFlag8(getReg8(REG_AL_AX));
                 checkSignFlag8(getReg8(REG_AL_AX));
                 checkParityFlag(getReg8(REG_AL_AX));
+                if (debug) {
+                    debugFile.println("DAS");
+                }
             }
             break;
             case AAA: {
@@ -1574,6 +1968,9 @@ public class K1810WM86 {
                 } else {
                     clearFlag(CARRY_FLAG);
                     clearFlag(AUXILIARY_CARRY_FLAG);
+                }
+                if (debug) {
+                    debugFile.println("AAA");
                 }
             }
             break;
@@ -1588,6 +1985,9 @@ public class K1810WM86 {
                     clearFlag(CARRY_FLAG);
                     clearFlag(AUXILIARY_CARRY_FLAG);
                 }
+                if (debug) {
+                    debugFile.println("AAS");
+                }
             }
             break;
             case AAM: {
@@ -1597,6 +1997,9 @@ public class K1810WM86 {
                 checkParityFlag(res);
                 checkSignFlag16(res);
                 setReg16(REG_AL_AX, res);
+                if (debug) {
+                    debugFile.println("AAM");
+                }
             }
             break;
             case AAD: {
@@ -1607,6 +2010,9 @@ public class K1810WM86 {
                 checkParityFlag(res);
                 checkSignFlag16(res);
                 setReg16(REG_AL_AX, res);
+                if (debug) {
+                    debugFile.println("AAD");
+                }
             }
             break;
             case CBW: {
@@ -1614,6 +2020,9 @@ public class K1810WM86 {
                     setReg8(REG_AH_SP, 0xFF);
                 } else {
                     setReg8(REG_AH_SP, 0x00);
+                }
+                if (debug) {
+                    debugFile.println("CBW");
                 }
             }
             break;
@@ -1623,6 +2032,9 @@ public class K1810WM86 {
                 } else {
                     setReg16(REG_DL_DX, 0x0000);
                 }
+                if (debug) {
+                    debugFile.println("CWD");
+                }
             }
             break;
 
@@ -1631,7 +2043,7 @@ public class K1810WM86 {
              * Logische Operationen
              */
             case OR_REG_MODRM_8: {
-                int opcode2 = memory.readByte(ip++);
+                int opcode2 = memory.readByte(cs * 16 + (ip++));
                 int op1 = getMODRM8(opcode2 & TEST_MOD, opcode2 & TEST_RM);
                 int op2 = getReg8(opcode2 & TEST_REG);
                 int res = op1 | op2;
@@ -1641,10 +2053,13 @@ public class K1810WM86 {
                 clearFlag(CARRY_FLAG);
                 clearFlag(OVERFLOW_FLAG);
                 setMODRM8(opcode2 & TEST_MOD, opcode2 & TEST_RM, res & 0xFF);
+                if (debug) {
+                    debugFile.println("OR " + getMODRM8String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + "," + getReg8String(opcode2 & TEST_REG));
+                }
             }
             break;
             case OR_REG_MODRM_16: {
-                int opcode2 = memory.readByte(ip++);
+                int opcode2 = memory.readByte(cs * 16 + (ip++));
                 int op1 = getMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM);
                 int op2 = getReg16(opcode2 & TEST_REG);
                 int res = op1 | op2;
@@ -1654,10 +2069,13 @@ public class K1810WM86 {
                 clearFlag(CARRY_FLAG);
                 clearFlag(OVERFLOW_FLAG);
                 setMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM, res & 0xFFFF);
+                if (debug) {
+                    debugFile.println("OR " + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + "," + getReg16String(opcode2 & TEST_REG));
+                }
             }
             break;
             case OR_MODRM_REG_8: {
-                int opcode2 = memory.readByte(ip++);
+                int opcode2 = memory.readByte(cs * 16 + (ip++));
                 int op1 = getMODRM8(opcode2 & TEST_MOD, opcode2 & TEST_RM);
                 int op2 = getReg8(opcode2 & TEST_REG);
                 int res = op1 | op2;
@@ -1667,10 +2085,13 @@ public class K1810WM86 {
                 clearFlag(CARRY_FLAG);
                 clearFlag(OVERFLOW_FLAG);
                 setReg8(opcode2 & TEST_REG, res & 0xFF);
+                if (debug) {
+                    debugFile.println("OR " + getReg8String(opcode2 & TEST_REG) + "," + getMODRM8String(opcode2 & TEST_MOD, opcode2 & TEST_RM));
+                }
             }
             break;
             case OR_MODRM_REG_16: {
-                int opcode2 = memory.readByte(ip++);
+                int opcode2 = memory.readByte(cs * 16 + (ip++));
                 int op1 = getMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM);
                 int op2 = getReg16(opcode2 & TEST_REG);
                 int res = op1 | op2;
@@ -1680,11 +2101,14 @@ public class K1810WM86 {
                 clearFlag(CARRY_FLAG);
                 clearFlag(OVERFLOW_FLAG);
                 setReg16(opcode2 & TEST_REG, res & 0xFFFF);
+                if (debug) {
+                    debugFile.println("OR " + getReg16String(opcode2 & TEST_REG) + "," + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM));
+                }
             }
             break;
             case OR_IMM_AL: {
                 int op1 = getReg8(REG_AL_AX);
-                int op2 = memory.readByte(ip++);
+                int op2 = memory.readByte(cs * 16 + (ip++));
                 int res = op1 | op2;
                 checkParityFlag(res);
                 checkZeroFlag8(res);
@@ -1692,11 +2116,14 @@ public class K1810WM86 {
                 clearFlag(CARRY_FLAG);
                 clearFlag(OVERFLOW_FLAG);
                 setReg8(REG_AL_AX, res & 0xFF);
+                if (debug) {
+                    debugFile.println("OR AL," + memory.readByte(ip - 1));
+                }
             }
             break;
             case OR_IMM_AX: {
                 int op1 = getReg16(REG_AL_AX);
-                int op2 = memory.readWord(ip++);
+                int op2 = memory.readWord(cs * 16 + (ip++));
                 ip++;
                 int res = op1 | op2;
                 checkParityFlag(res);
@@ -1705,10 +2132,13 @@ public class K1810WM86 {
                 clearFlag(CARRY_FLAG);
                 clearFlag(OVERFLOW_FLAG);
                 setReg16(REG_AL_AX, res & 0xFFFF);
+                if (debug) {
+                    debugFile.println("OR AX," + memory.readWord(ip - 2));
+                }
             }
             break;
             case AND_REG_MODRM_8: {
-                int opcode2 = memory.readByte(ip++);
+                int opcode2 = memory.readByte(cs * 16 + (ip++));
                 int op1 = getMODRM8(opcode2 & TEST_MOD, opcode2 & TEST_RM);
                 int op2 = getReg8(opcode2 & TEST_REG);
                 int res = op1 & op2;
@@ -1718,10 +2148,13 @@ public class K1810WM86 {
                 clearFlag(CARRY_FLAG);
                 clearFlag(OVERFLOW_FLAG);
                 setMODRM8(opcode2 & TEST_MOD, opcode2 & TEST_RM, res & 0xFF);
+                if (debug) {
+                    debugFile.println("AND " + getMODRM8String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + "," + getReg8String(opcode2 & TEST_REG));
+                }
             }
             break;
             case AND_REG_MODRM_16: {
-                int opcode2 = memory.readByte(ip++);
+                int opcode2 = memory.readByte(cs * 16 + (ip++));
                 int op1 = getMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM);
                 int op2 = getReg16(opcode2 & TEST_REG);
                 int res = op1 & op2;
@@ -1731,10 +2164,13 @@ public class K1810WM86 {
                 clearFlag(CARRY_FLAG);
                 clearFlag(OVERFLOW_FLAG);
                 setMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM, res & 0xFFFF);
+                if (debug) {
+                    debugFile.println("AND " + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + "," + getReg16String(opcode2 & TEST_REG));
+                }
             }
             break;
             case AND_MODRM_REG_8: {
-                int opcode2 = memory.readByte(ip++);
+                int opcode2 = memory.readByte(cs * 16 + (ip++));
                 int op1 = getMODRM8(opcode2 & TEST_MOD, opcode2 & TEST_RM);
                 int op2 = getReg8(opcode2 & TEST_REG);
                 int res = op1 & op2;
@@ -1744,10 +2180,13 @@ public class K1810WM86 {
                 clearFlag(CARRY_FLAG);
                 clearFlag(OVERFLOW_FLAG);
                 setReg8(opcode2 & TEST_REG, res & 0xFF);
+                if (debug) {
+                    debugFile.println("AND " + getReg8String(opcode2 & TEST_REG) + "," + getMODRM8String(opcode2 & TEST_MOD, opcode2 & TEST_RM));
+                }
             }
             break;
             case AND_MODRM_REG_16: {
-                int opcode2 = memory.readByte(ip++);
+                int opcode2 = memory.readByte(cs * 16 + (ip++));
                 int op1 = getMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM);
                 int op2 = getReg16(opcode2 & TEST_REG);
                 int res = op1 & op2;
@@ -1757,11 +2196,14 @@ public class K1810WM86 {
                 clearFlag(CARRY_FLAG);
                 clearFlag(OVERFLOW_FLAG);
                 setReg16(opcode2 & TEST_REG, res & 0xFFFF);
+                if (debug) {
+                    debugFile.println("AND " + getReg16String(opcode2 & TEST_REG) + "," + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM));
+                }
             }
             break;
             case AND_IMM_AL: {
                 int op1 = getReg8(REG_AL_AX);
-                int op2 = memory.readByte(ip++);
+                int op2 = memory.readByte(cs * 16 + (ip++));
                 int res = op1 & op2;
                 checkParityFlag(res);
                 checkZeroFlag8(res);
@@ -1769,11 +2211,14 @@ public class K1810WM86 {
                 clearFlag(CARRY_FLAG);
                 clearFlag(OVERFLOW_FLAG);
                 setReg8(REG_AL_AX, res & 0xFF);
+                if (debug) {
+                    debugFile.println("AND AL," + memory.readByte(ip - 1));
+                }
             }
             break;
             case AND_IMM_AX: {
                 int op1 = getReg16(REG_AL_AX);
-                int op2 = memory.readWord(ip++);
+                int op2 = memory.readWord(cs * 16 + (ip++));
                 ip++;
                 int res = op1 & op2;
                 checkParityFlag(res);
@@ -1782,10 +2227,13 @@ public class K1810WM86 {
                 clearFlag(CARRY_FLAG);
                 clearFlag(OVERFLOW_FLAG);
                 setReg16(REG_AL_AX, res & 0xFFFF);
+                if (debug) {
+                    debugFile.println("AND AX," + memory.readWord(ip - 2));
+                }
             }
             break;
             case XOR_REG_MODRM_8: {
-                int opcode2 = memory.readByte(ip++);
+                int opcode2 = memory.readByte(cs * 16 + (ip++));
                 int op1 = getMODRM8(opcode2 & TEST_MOD, opcode2 & TEST_RM);
                 int op2 = getReg8(opcode2 & TEST_REG);
                 int res = op1 ^ op2;
@@ -1795,10 +2243,13 @@ public class K1810WM86 {
                 clearFlag(CARRY_FLAG);
                 clearFlag(OVERFLOW_FLAG);
                 setMODRM8(opcode2 & TEST_MOD, opcode2 & TEST_RM, res & 0xFF);
+                if (debug) {
+                    debugFile.println("XOR " + getMODRM8String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + "," + getReg8String(opcode2 & TEST_REG));
+                }
             }
             break;
             case XOR_REG_MODRM_16: {
-                int opcode2 = memory.readByte(ip++);
+                int opcode2 = memory.readByte(cs * 16 + (ip++));
                 int op1 = getMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM);
                 int op2 = getReg16(opcode2 & TEST_REG);
                 int res = op1 ^ op2;
@@ -1808,10 +2259,13 @@ public class K1810WM86 {
                 clearFlag(CARRY_FLAG);
                 clearFlag(OVERFLOW_FLAG);
                 setMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM, res & 0xFFFF);
+                if (debug) {
+                    debugFile.println("XOR " + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + "," + getReg16String(opcode2 & TEST_REG));
+                }
             }
             break;
             case XOR_MODRM_REG_8: {
-                int opcode2 = memory.readByte(ip++);
+                int opcode2 = memory.readByte(cs * 16 + (ip++));
                 int op1 = getMODRM8(opcode2 & TEST_MOD, opcode2 & TEST_RM);
                 int op2 = getReg8(opcode2 & TEST_REG);
                 int res = op1 ^ op2;
@@ -1821,10 +2275,13 @@ public class K1810WM86 {
                 clearFlag(CARRY_FLAG);
                 clearFlag(OVERFLOW_FLAG);
                 setReg8(opcode2 & TEST_REG, res & 0xFF);
+                if (debug) {
+                    debugFile.println("XOR " + getReg8String(opcode2 & TEST_REG) + "," + getMODRM8String(opcode2 & TEST_MOD, opcode2 & TEST_RM));
+                }
             }
             break;
             case XOR_MODRM_REG_16: {
-                int opcode2 = memory.readByte(ip++);
+                int opcode2 = memory.readByte(cs * 16 + (ip++));
                 int op1 = getMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM);
                 int op2 = getReg16(opcode2 & TEST_REG);
                 int res = op1 & op2;
@@ -1834,11 +2291,14 @@ public class K1810WM86 {
                 clearFlag(CARRY_FLAG);
                 clearFlag(OVERFLOW_FLAG);
                 setReg16(opcode2 & TEST_REG, res & 0xFFFF);
+                if (debug) {
+                    debugFile.println("XOR " + getReg16String(opcode2 & TEST_REG) + "," + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM));
+                }
             }
             break;
             case XOR_IMM_AL: {
                 int op1 = getReg8(REG_AL_AX);
-                int op2 = memory.readByte(ip++);
+                int op2 = memory.readByte(cs * 16 + (ip++));
                 int res = op1 & op2;
                 checkParityFlag(res);
                 checkZeroFlag8(res);
@@ -1846,11 +2306,14 @@ public class K1810WM86 {
                 clearFlag(CARRY_FLAG);
                 clearFlag(OVERFLOW_FLAG);
                 setReg8(REG_AL_AX, res & 0xFF);
+                if (debug) {
+                    debugFile.println("XOR AL," + memory.readByte(ip - 1));
+                }
             }
             break;
             case XOR_IMM_AX: {
                 int op1 = getReg16(REG_AL_AX);
-                int op2 = memory.readWord(ip++);
+                int op2 = memory.readWord(cs * 16 + (ip++));
                 ip++;
                 int res = op1 & op2;
                 checkParityFlag(res);
@@ -1859,10 +2322,13 @@ public class K1810WM86 {
                 clearFlag(CARRY_FLAG);
                 clearFlag(OVERFLOW_FLAG);
                 setReg16(REG_AL_AX, res & 0xFFFF);
+                if (debug) {
+                    debugFile.println("XOR AX," + memory.readWord(ip - 2));
+                }
             }
             break;
             case TEST_REG_MODRM_8: {
-                int opcode2 = memory.readByte(ip++);
+                int opcode2 = memory.readByte(cs * 16 + (ip++));
                 int op1 = getMODRM8(opcode2 & TEST_MOD, opcode2 & TEST_RM);
                 int op2 = getReg8(opcode2 & TEST_REG);
                 int res = op1 & op2;
@@ -1871,10 +2337,13 @@ public class K1810WM86 {
                 checkSignFlag8(res);
                 clearFlag(CARRY_FLAG);
                 clearFlag(OVERFLOW_FLAG);
+                if (debug) {
+                    debugFile.println("TEST " + getMODRM8String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + "," + getReg8String(opcode2 & TEST_REG));
+                }
             }
             break;
             case TEST_REG_MODRM_16: {
-                int opcode2 = memory.readByte(ip++);
+                int opcode2 = memory.readByte(cs * 16 + (ip++));
                 int op1 = getMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM);
                 int op2 = getReg16(opcode2 & TEST_REG);
                 int res = op1 & op2;
@@ -1883,22 +2352,28 @@ public class K1810WM86 {
                 checkSignFlag16(res);
                 clearFlag(CARRY_FLAG);
                 clearFlag(OVERFLOW_FLAG);
+                if (debug) {
+                    debugFile.println("TEST " + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + "," + getReg16String(opcode2 & TEST_REG));
+                }
             }
             break;
             case TEST_IMM_AL: {
                 int op1 = getReg8(REG_AL_AX);
-                int op2 = memory.readByte(ip++);
+                int op2 = memory.readByte(cs * 16 + (ip++));
                 int res = op1 & op2;
                 checkParityFlag(res);
                 checkZeroFlag8(res);
                 checkSignFlag8(res);
                 clearFlag(CARRY_FLAG);
                 clearFlag(OVERFLOW_FLAG);
+                if (debug) {
+                    debugFile.println("TEST AL," + memory.readByte(ip - 1));
+                }
             }
             break;
             case TEST_IMM_AX: {
                 int op1 = getReg16(REG_AL_AX);
-                int op2 = memory.readWord(ip++);
+                int op2 = memory.readWord(cs * 16 + (ip++));
                 ip++;
                 int res = op1 & op2;
                 checkParityFlag(res);
@@ -1906,6 +2381,9 @@ public class K1810WM86 {
                 checkSignFlag16(res);
                 clearFlag(CARRY_FLAG);
                 clearFlag(OVERFLOW_FLAG);
+                if (debug) {
+                    debugFile.println("TEST AX," + memory.readWord(ip - 2));
+                }
             }
             break;
 
@@ -1913,141 +2391,201 @@ public class K1810WM86 {
              * Übergabe der Steuerung
              */
             case JMP_NEAR_LABEL: {
-                int increment = memory.readWord(ip++);
+                if (debug) {
+                    debugFile.println("JMP " + memory.readWord(ip));
+                }
+                int increment = memory.readWord(cs * 16 + (ip++));
                 ip++;
                 ip += increment;
             }
             break;
             case JMP_FAR_LABEL: {
-                int increment = memory.readWord(ip++);
+                if (debug) {
+                    debugFile.println("JMP " + Integer.toHexString(memory.readWord(cs * 16 + ip + 2) & 0xFFFF) + ":" + Integer.toHexString(memory.readWord(cs * 16 + ip) & 0xFFFF));
+                }
+                int increment = memory.readWord(cs * 16 + (ip++)) & 0xFFFF;
                 ip++;
-                int codesegment = memory.readWord(ip++);
+                int codesegment = memory.readWord(cs * 16 + (ip++)) & 0xFFFF;
                 ip++;
                 cs = codesegment;
                 ip = increment;
             }
             break;
             case JMP_SHORT_LABEL: {
-                int increment = memory.readByte(ip++);
+                if (debug) {
+                    debugFile.println("JMP " + memory.readByte(ip));
+                }
+                int increment = memory.readByte(cs * 16 + (ip++));
                 ip += increment;
             }
             break;
             case JO: {
-                int increment = memory.readByte(ip++);
+                if (debug) {
+                    debugFile.println("JO " + memory.readByte(ip));
+                }
+                int increment = memory.readByte(cs * 16 + (ip++));
                 if (getFlag(OVERFLOW_FLAG)) {
                     ip += increment;
                 }
             }
             break;
             case JNO: {
-                int increment = memory.readByte(ip++);
+                if (debug) {
+                    debugFile.println("JNO " + memory.readByte(ip));
+                }
+                int increment = memory.readByte(cs * 16 + (ip++));
                 if (!getFlag(OVERFLOW_FLAG)) {
                     ip += increment;
                 }
             }
             break;
             case JB_JNAE_JC: {
-                int increment = memory.readByte(ip++);
+                if (debug) {
+                    debugFile.println("JC " + memory.readByte(ip));
+                }
+                int increment = memory.readByte(cs * 16 + (ip++));
                 if (getFlag(CARRY_FLAG)) {
                     ip += increment;
                 }
             }
             break;
             case JNB_JAE_JNC: {
-                int increment = memory.readByte(ip++);
+                if (debug) {
+                    debugFile.println("JNC " + memory.readByte(ip));
+                }
+                int increment = memory.readByte(cs * 16 + (ip++));
                 if (!getFlag(CARRY_FLAG)) {
                     ip += increment;
                 }
             }
             break;
             case JE_JZ: {
-                int increment = memory.readByte(ip++);
+                if (debug) {
+                    debugFile.println("JE " + memory.readByte(ip));
+                }
+                int increment = memory.readByte(cs * 16 + (ip++));
                 if (getFlag(ZERO_FLAG)) {
                     ip += increment;
                 }
             }
             break;
             case JNE_JNZ: {
-                int increment = memory.readByte(ip++);
+                if (debug) {
+                    debugFile.println("JNE " + memory.readByte(ip));
+                }
+                int increment = memory.readByte(cs * 16 + (ip++));
                 if (!getFlag(ZERO_FLAG)) {
                     ip += increment;
                 }
             }
             break;
             case JBE_JNA: {
-                int increment = memory.readByte(ip++);
+                if (debug) {
+                    debugFile.println("JNA " + memory.readByte(ip));
+                }
+                int increment = memory.readByte(cs * 16 + (ip++));
                 if (getFlag(CARRY_FLAG) || getFlag(ZERO_FLAG)) {
                     ip += increment;
                 }
             }
             break;
             case JNBE_JA: {
-                int increment = memory.readByte(ip++);
+                if (debug) {
+                    debugFile.println("JA " + memory.readByte(ip));
+                }
+                int increment = memory.readByte(cs * 16 + (ip++));
                 if (!getFlag(CARRY_FLAG) && !getFlag(ZERO_FLAG)) {
                     ip += increment;
                 }
             }
             break;
             case JS: {
-                int increment = memory.readByte(ip++);
+                if (debug) {
+                    debugFile.println("JS " + memory.readByte(ip));
+                }
+                int increment = memory.readByte(cs * 16 + (ip++));
                 if (getFlag(SIGN_FLAG)) {
                     ip += increment;
                 }
             }
             break;
             case JNS: {
-                int increment = memory.readByte(ip++);
+                if (debug) {
+                    debugFile.println("JNS " + memory.readByte(ip));
+                }
+                int increment = memory.readByte(cs * 16 + (ip++));
                 if (!getFlag(SIGN_FLAG)) {
                     ip += increment;
                 }
             }
             break;
             case JP_JPE: {
-                int increment = memory.readByte(ip++);
+                if (debug) {
+                    debugFile.println("JP " + memory.readByte(ip));
+                }
+                int increment = memory.readByte(cs * 16 + (ip++));
                 if (getFlag(PARITY_FLAG)) {
                     ip += increment;
                 }
             }
             break;
             case JNP_JPO: {
-                int increment = memory.readByte(ip++);
+                if (debug) {
+                    debugFile.println("JNP " + memory.readByte(ip));
+                }
+                int increment = memory.readByte(cs * 16 + (ip++));
                 if (!getFlag(PARITY_FLAG)) {
                     ip += increment;
                 }
             }
             break;
             case JL_JNGE: {
-                int increment = memory.readByte(ip++);
+                if (debug) {
+                    debugFile.println("JL " + memory.readByte(ip));
+                }
+                int increment = memory.readByte(cs * 16 + (ip++));
                 if (getFlag(SIGN_FLAG) != getFlag(OVERFLOW_FLAG)) {
                     ip += increment;
                 }
             }
             break;
             case JNL_JGE: {
-                int increment = memory.readByte(ip++);
+                if (debug) {
+                    debugFile.println("JNL " + memory.readByte(ip));
+                }
+                int increment = memory.readByte(cs * 16 + (ip++));
                 if (getFlag(SIGN_FLAG) == getFlag(OVERFLOW_FLAG)) {
                     ip += increment;
                 }
             }
             break;
             case JLE_JNG: {
-                int increment = memory.readByte(ip++);
+                if (debug) {
+                    debugFile.println("JNG " + memory.readByte(ip));
+                }
+                int increment = memory.readByte(cs * 16 + (ip++));
                 if (getFlag(SIGN_FLAG) != getFlag(OVERFLOW_FLAG) || getFlag(ZERO_FLAG)) {
                     ip += increment;
                 }
             }
             break;
             case JNLE_JG: {
-                int increment = memory.readByte(ip++);
+                if (debug) {
+                    debugFile.println("JG " + memory.readByte(ip));
+                }
+                int increment = memory.readByte(cs * 16 + (ip++));
                 if (getFlag(SIGN_FLAG) == getFlag(OVERFLOW_FLAG) && !getFlag(ZERO_FLAG)) {
                     ip += increment;
                 }
             }
             break;
             case CALL_FAR_PROC: {
-                int increment = memory.readWord(ip++);
+                if (debug) {
+                    debugFile.println("CALL " + Integer.toHexString(memory.readWord(ip)) + ":" + memory.readWord(ip + 2));
+                }
+                int increment = memory.readWord(cs * 16 + (ip++));
                 ip++;
-                int codesegment = memory.readWord(ip++);
+                int codesegment = memory.readWord(cs * 16 + (ip++));
                 ip++;
                 setReg16(REG_AH_SP, (getReg16(REG_AH_SP) - 2) & 0xFFFF);
                 memory.writeWord(getReg16(REG_AH_SP), (short) ip);
@@ -2058,7 +2596,10 @@ public class K1810WM86 {
             }
             break;
             case CALL_NEAR_PROC: {
-                int increment = memory.readWord(ip++);
+                if (debug) {
+                    debugFile.println("CALL " + memory.readWord(ip));
+                }
+                int increment = memory.readWord(cs * 16 + (ip++));
                 ip++;
                 setReg16(REG_AH_SP, (getReg16(REG_AH_SP) - 2) & 0xFFFF);
                 memory.writeWord(getReg16(REG_AH_SP), (short) ip);
@@ -2066,19 +2607,28 @@ public class K1810WM86 {
             }
             break;
             case RET_IN_SEG_IMM: {
-                int data = memory.readWord(ip++);
+                if (debug) {
+                    debugFile.println("RET " + memory.readWord(ip));
+                }
+                int data = memory.readWord(cs * 16 + (ip++));
                 ip++;
                 ip = memory.readWord(getReg16(REG_AH_SP));
                 setReg16(REG_AH_SP, (getReg16(REG_AH_SP) + 2 + data) & 0xFFFF);
             }
             break;
             case RET_IN_SEG: {
+                if (debug) {
+                    debugFile.println("RET");
+                }
                 ip = memory.readWord(getReg16(REG_AH_SP));
                 setReg16(REG_AH_SP, (getReg16(REG_AH_SP) + 2) & 0xFFFF);
             }
             break;
             case RET_INTER_SEG_IMM: {
-                int data = memory.readWord(ip++);
+                if (debug) {
+                    debugFile.println("RET " + memory.readWord(ip));
+                }
+                int data = memory.readWord(cs * 16 + (ip++));
                 ip++;
                 cs = memory.readWord(getReg16(REG_AH_SP));
                 setReg16(REG_AH_SP, (getReg16(REG_AH_SP) + 2) & 0xFFFF);
@@ -2087,6 +2637,9 @@ public class K1810WM86 {
             }
             break;
             case RET_INTER_SEG: {
+                if (debug) {
+                    debugFile.println("RET");
+                }
                 cs = memory.readWord(getReg16(REG_AH_SP));
                 setReg16(REG_AH_SP, (getReg16(REG_AH_SP) + 2) & 0xFFFF);
                 ip = memory.readWord(getReg16(REG_AH_SP));
@@ -2094,7 +2647,7 @@ public class K1810WM86 {
             }
             break;
             case LOOPNE_LOOPNZ: {
-                int increment = memory.readByte(ip++);
+                int increment = memory.readByte(cs * 16 + (ip++));
                 setReg16(REG_CL_CX, getReg16(REG_CL_CX) - 1);
                 if (getReg16(REG_CL_CX) != 0 && !getFlag(ZERO_FLAG)) {
                     ip += increment;
@@ -2102,7 +2655,10 @@ public class K1810WM86 {
             }
             break;
             case LOOPE_LOOPZ: {
-                int increment = memory.readByte(ip++);
+                if (debug) {
+                    debugFile.println("LOOPE " + memory.readByte(ip));
+                }
+                int increment = memory.readByte(cs * 16 + (ip++));
                 setReg16(REG_CL_CX, getReg16(REG_CL_CX) - 1);
                 if (getReg16(REG_CL_CX) != 0 && getFlag(ZERO_FLAG)) {
                     ip += increment;
@@ -2110,7 +2666,10 @@ public class K1810WM86 {
             }
             break;
             case LOOP: {
-                int increment = memory.readByte(ip++);
+                if (debug) {
+                    debugFile.println("LOOP " + memory.readByte(ip));
+                }
+                int increment = memory.readByte(cs * 16 + (ip++));
                 setReg16(REG_CL_CX, getReg16(REG_CL_CX) - 1);
                 if (getReg16(REG_CL_CX) != 0) {
                     ip += increment;
@@ -2118,27 +2677,78 @@ public class K1810WM86 {
             }
             break;
             case JCXZ: {
-                int increment = memory.readByte(ip++);
+                if (debug) {
+                    debugFile.println("JCXZ " + memory.readByte(ip));
+                }
+                int increment = memory.readByte(cs * 16 + (ip++));
                 if (getReg16(REG_CL_CX) == 0) {
                     ip += increment;
                 }
             }
             break;
             case INT_IMM: {
-                int data=memory.readByte(ip++);
+                int data = memory.readByte(cs * 16 + (ip++));
                 setReg16(REG_AH_SP, (getReg16(REG_AH_SP) - 2) & 0xFFFF);
                 memory.writeWord(getReg16(REG_AH_SP), (short) flags);
                 clearFlag(INTERRUPT_ENABLE_FLAG);
                 clearFlag(TRAP_FLAG);
                 setReg16(REG_AH_SP, (getReg16(REG_AH_SP) - 2) & 0xFFFF);
                 memory.writeWord(getReg16(REG_AH_SP), (short) cs);
-                hier weiter
+                setReg16(REG_AH_SP, (getReg16(REG_AH_SP) - 2) & 0xFFFF);
+                memory.writeWord(getReg16(REG_AH_SP), (short) ip);
+                ip = memory.readWord(data * 4);
+                cs = memory.readWord(data * 4 + 2);
+                if (debug) {
+                    debugFile.println("INT " + memory.readByte(ip - 1));
+                }
+            }
+            break;
+            case INT3: {
+                int data = 3;
+                setReg16(REG_AH_SP, (getReg16(REG_AH_SP) - 2) & 0xFFFF);
+                memory.writeWord(getReg16(REG_AH_SP), (short) flags);
+                clearFlag(INTERRUPT_ENABLE_FLAG);
+                clearFlag(TRAP_FLAG);
+                setReg16(REG_AH_SP, (getReg16(REG_AH_SP) - 2) & 0xFFFF);
+                memory.writeWord(getReg16(REG_AH_SP), (short) cs);
+                setReg16(REG_AH_SP, (getReg16(REG_AH_SP) - 2) & 0xFFFF);
+                memory.writeWord(getReg16(REG_AH_SP), (short) ip);
+                ip = memory.readWord(data * 4);
+                cs = memory.readWord(data * 4 + 2);
+                if (debug) {
+                    debugFile.println("INT 3");
+                }
             }
             break;
             case INTO: {
+                if (getFlag(OVERFLOW_FLAG)) {
+                    int data = 4;
+                    setReg16(REG_AH_SP, (getReg16(REG_AH_SP) - 2) & 0xFFFF);
+                    memory.writeWord(getReg16(REG_AH_SP), (short) flags);
+                    clearFlag(INTERRUPT_ENABLE_FLAG);
+                    clearFlag(TRAP_FLAG);
+                    setReg16(REG_AH_SP, (getReg16(REG_AH_SP) - 2) & 0xFFFF);
+                    memory.writeWord(getReg16(REG_AH_SP), (short) cs);
+                    setReg16(REG_AH_SP, (getReg16(REG_AH_SP) - 2) & 0xFFFF);
+                    memory.writeWord(getReg16(REG_AH_SP), (short) ip);
+                    ip = memory.readWord(data * 4);
+                    cs = memory.readWord(data * 4 + 2);
+                }
+                if (debug) {
+                    debugFile.println("INTO");
+                }
             }
             break;
             case IRET: {
+                ip = memory.readWord(getReg16(REG_AH_SP));
+                setReg16(REG_AH_SP, (getReg16(REG_AH_SP) + 2) & 0xFFFF);
+                cs = memory.readWord(getReg16(REG_AH_SP));
+                setReg16(REG_AH_SP, (getReg16(REG_AH_SP) + 2) & 0xFFFF);
+                flags = memory.readWord(getReg16(REG_AH_SP));
+                setReg16(REG_AH_SP, (getReg16(REG_AH_SP) + 2) & 0xFFFF);
+                if (debug) {
+                    debugFile.println("IRET");
+                }
             }
             break;
 
@@ -2173,6 +2783,9 @@ public class K1810WM86 {
                     }
                     string_prefix = NO_PREFIX;
                 }
+                if (debug) {
+                    debugFile.println("MOVS");
+                }
             }
             break;
             case MOVS_16: {
@@ -2201,6 +2814,9 @@ public class K1810WM86 {
                         }
                     }
                     string_prefix = NO_PREFIX;
+                }
+                if (debug) {
+                    debugFile.println("MOVS");
                 }
             }
             break;
@@ -2246,6 +2862,9 @@ public class K1810WM86 {
                         }
                     }
                     string_prefix = NO_PREFIX;
+                }
+                if (debug) {
+                    debugFile.println("CMPS");
                 }
             }
             break;
@@ -2293,6 +2912,9 @@ public class K1810WM86 {
                     }
                     string_prefix = NO_PREFIX;
                 }
+                if (debug) {
+                    debugFile.println("CMPS");
+                }
             }
             break;
             case STOS_8: {
@@ -2319,6 +2941,9 @@ public class K1810WM86 {
                     }
                     string_prefix = NO_PREFIX;
                 }
+                if (debug) {
+                    debugFile.println("STOS");
+                }
             }
             break;
             case STOS_16: {
@@ -2343,6 +2968,9 @@ public class K1810WM86 {
                         }
                     }
                     string_prefix = NO_PREFIX;
+                }
+                if (debug) {
+                    debugFile.println("STOS");
                 }
             }
             break;
@@ -2369,6 +2997,9 @@ public class K1810WM86 {
                     }
                     string_prefix = NO_PREFIX;
                 }
+                if (debug) {
+                    debugFile.println("LODS");
+                }
             }
             break;
             case LODS_16: {
@@ -2393,6 +3024,9 @@ public class K1810WM86 {
                         }
                     }
                     string_prefix = NO_PREFIX;
+                }
+                if (debug) {
+                    debugFile.println("LODS");
                 }
             }
             break;
@@ -2435,6 +3069,9 @@ public class K1810WM86 {
                     }
                     string_prefix = NO_PREFIX;
                 }
+                if (debug) {
+                    debugFile.println("SCAS");
+                }
             }
             break;
             case SCAS_16: {
@@ -2476,14 +3113,23 @@ public class K1810WM86 {
                     }
                     string_prefix = NO_PREFIX;
                 }
+                if (debug) {
+                    debugFile.println("SCAS");
+                }
             }
             break;
             case REPNE_REPNZ: {
                 string_prefix = REPNE_REPNZ;
+                if (debug) {
+                    debugFile.println("REPNE");
+                }
             }
             break;
             case REP_REPE_REPZ: {
                 string_prefix = REP_REPE_REPZ;
+                if (debug) {
+                    debugFile.println("REP");
+                }
             }
             break;
 
@@ -2493,51 +3139,164 @@ public class K1810WM86 {
              */
             case PREFIX_ES:
                 prefix = PREFIX_ES;
+                if (debug) {
+                    debugFile.println("ES:");
+                }
                 break;
             case PREFIX_CS:
                 prefix = PREFIX_CS;
+                if (debug) {
+                    debugFile.println("CS:");
+                }
                 break;
             case PREFIX_SS:
                 prefix = PREFIX_SS;
+                if (debug) {
+                    debugFile.println("SS");
+                }
                 break;
             case PREFIX_DS:
                 prefix = PREFIX_DS;
+                if (debug) {
+                    debugFile.println("DS");
+                }
                 break;
 
             /**
              * Prozessorsteuerung
              */
             case NOP:
+                if (debug) {
+                    debugFile.println("NOP");
+                }
                 break;
             case CMC:
                 flags ^= CARRY_FLAG;
+                if (debug) {
+                    debugFile.println("CMC");
+                }
                 break;
             case CLC:
                 flags &= ~CARRY_FLAG;
+                if (debug) {
+                    debugFile.println("CLC");
+                }
                 break;
             case STC:
                 flags |= CARRY_FLAG;
+                if (debug) {
+                    debugFile.println("STC");
+                }
                 break;
             case CLI:
                 flags &= ~INTERRUPT_ENABLE_FLAG;
+                if (debug) {
+                    debugFile.println("CLI");
+                }
                 break;
             case STI:
                 flags |= INTERRUPT_ENABLE_FLAG;
+                if (debug) {
+                    debugFile.println("STI");
+                }
                 break;
             case CLD:
                 flags &= ~DIRECTION_FLAG;
+                if (debug) {
+                    debugFile.println("CLD");
+                }
                 break;
             case STD:
                 flags |= DIRECTION_FLAG;
+                if (debug) {
+                    debugFile.println("STD");
+                }
                 break;
+            case WAIT: {
+                if (debug) {
+                    debugFile.println("WAIT");
 
+                }
+                System.out.println("Befehl LOCK noch nicht implementiert");
+            }
+            break;
+            case LOCK: {
+                if (debug) {
+                    debugFile.println("LOCK");
+                }
+                System.out.println("Befehl LOCK noch nicht implementiert");
+            }
+            break;
+            case HLT: {
+                if (debug) {
+                    debugFile.println("HLT");
+                }
+                System.out.println("Befehl HLT noch nicht implementiert");
+            }
+            break;
+            case ESC0: {
+                if (debug) {
+                    debugFile.println("ESC0");
+                }
+                System.out.println("Befehl ESC0 noch nicht implementiert");
+            }
+            break;
+            case ESC1: {
+                if (debug) {
+                    debugFile.println("ESC1");
+                }
+                System.out.println("Befehl ESC1 noch nicht implementiert");
+            }
+            break;
+            case ESC2: {
+                if (debug) {
+                    debugFile.println("ESC2");
+                }
+                System.out.println("Befehl ESC2 noch nicht implementiert");
+            }
+            break;
+            case ESC3: {
+                if (debug) {
+                    debugFile.println("ESC3");
+                }
+                System.out.println("Befehl ESC3 noch nicht implementiert");
+            }
+            break;
+            case ESC4: {
+                if (debug) {
+                    debugFile.println("ESC4");
+                }
+                System.out.println("Befehl ESC4 noch nicht implementiert");
+            }
+            break;
+            case ESC5: {
+                if (debug) {
+                    debugFile.println("ESC5");
+                }
+                System.out.println("Befehl ESC5 noch nicht implementiert");
+            }
+            break;
+            case ESC6: {
+                if (debug) {
+                    debugFile.println("ESC6");
+                }
+                System.out.println("Befehl ESC6 noch nicht implementiert");
+            }
+            break;
+            case ESC7: {
+                if (debug) {
+                    debugFile.println("ESC7");
+                }
+                System.out.println("Befehl ESC7 noch nicht implementiert");
+            }
+            break;
             /*
              * Zweier
              */
             case 0x80: {
-                int opcode2 = memory.readByte(ip++);
+                int opcode2 = memory.readByte(cs * 16 + (ip++));
                 int op1 = getMODRM8(opcode2 & TEST_MOD, opcode2 & TEST_RM);
-                int op2 = memory.readByte(ip++);
+                int op2 = memory.readByte(cs * 16 + (ip++));
                 switch (opcode2 & TEST_REG) {
                     case _80_ADD_IMM_REG_8_NOSIGN: {
                         int res = op1 + op2;
@@ -2548,6 +3307,9 @@ public class K1810WM86 {
                         checkParityFlag(res);
                         checkAuxiliaryCarryFlagAdd(op1, op2);
                         setMODRM8(opcode2 & TEST_MOD, opcode2 & TEST_RM, res & 0xFF);
+                        if (debug) {
+                            debugFile.println("ADD " + getMODRM8String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + "," + memory.readByte(ip - 1));
+                        }
                     }
                     break;
                     case _80_OR_IMM_REG_8_NOSIGN: {
@@ -2558,6 +3320,9 @@ public class K1810WM86 {
                         clearFlag(CARRY_FLAG);
                         clearFlag(OVERFLOW_FLAG);
                         setMODRM8(opcode2 & TEST_MOD, opcode2 & TEST_RM, res & 0xFF);
+                        if (debug) {
+                            debugFile.println("OR " + getMODRM8String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + "," + memory.readByte(ip - 1));
+                        }
                     }
                     break;
                     case _80_ADC_IMM_REG_8_NOSIGN: {
@@ -2572,6 +3337,9 @@ public class K1810WM86 {
                         checkParityFlag(res);
                         checkAuxiliaryCarryFlagAdd(op1, op2);
                         setMODRM8(opcode2 & TEST_MOD, opcode2 & TEST_RM, res & 0xFF);
+                        if (debug) {
+                            debugFile.println("ADC " + getMODRM8String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + "," + memory.readByte(ip - 1));
+                        }
                     }
                     break;
                     case _80_SBB_IMM_REG_8_NOSIGN: {
@@ -2586,6 +3354,9 @@ public class K1810WM86 {
                         checkParityFlag(res);
                         checkAuxiliaryCarryFlagSub(op1, op2);
                         setMODRM8(opcode2 & TEST_MOD, opcode2 & TEST_RM, res & 0xFF);
+                        if (debug) {
+                            debugFile.println("SBB " + getMODRM8String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + "," + memory.readByte(ip - 1));
+                        }
                     }
                     break;
                     case _80_AND_IMM_REG_8_NOSIGN: {
@@ -2596,6 +3367,9 @@ public class K1810WM86 {
                         clearFlag(CARRY_FLAG);
                         clearFlag(OVERFLOW_FLAG);
                         setMODRM8(opcode2 & TEST_MOD, opcode2 & TEST_RM, res & 0xFF);
+                        if (debug) {
+                            debugFile.println("AND " + getMODRM8String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + "," + memory.readByte(ip - 1));
+                        }
                     }
                     break;
                     case _80_SUB_IMM_REG_8_NOSIGN: {
@@ -2607,6 +3381,9 @@ public class K1810WM86 {
                         checkParityFlag(res);
                         checkAuxiliaryCarryFlagSub(op1, op2);
                         setMODRM8(opcode2 & TEST_MOD, opcode2 & TEST_RM, res & 0xFF);
+                        if (debug) {
+                            debugFile.println("SUB " + getMODRM8String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + "," + memory.readByte(ip - 1));
+                        }
                     }
                     break;
                     case _80_XOR_IMM_REG_8_NOSIGN: {
@@ -2617,6 +3394,9 @@ public class K1810WM86 {
                         clearFlag(CARRY_FLAG);
                         clearFlag(OVERFLOW_FLAG);
                         setMODRM8(opcode2 & TEST_MOD, opcode2 & TEST_RM, res & 0xFF);
+                        if (debug) {
+                            debugFile.println("XOR " + getMODRM8String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + "," + memory.readByte(ip - 1));
+                        }
                     }
                     break;
                     case _80_CMP_IMM_REG_8_NOSIGN: {
@@ -2627,15 +3407,18 @@ public class K1810WM86 {
                         checkOverflowFlagSub8(op1, op2, res);
                         checkParityFlag(res);
                         checkAuxiliaryCarryFlagSub(op1, op2);
+                        if (debug) {
+                            debugFile.println("CMP " + getMODRM8String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + "," + memory.readByte(ip - 1));
+                        }
                     }
                     break;
                 }
             }
             break;
             case 0x81: {
-                int opcode2 = memory.readByte(ip++);
+                int opcode2 = memory.readByte(cs * 16 + (ip++));
                 int op1 = getMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM);
-                int op2 = memory.readWord(ip++);
+                int op2 = memory.readWord(cs * 16 + (ip++));
                 ip++;
                 switch (opcode2 & TEST_REG) {
                     case _81_ADD_IMM_REG_16_NOSIGN: {
@@ -2647,6 +3430,9 @@ public class K1810WM86 {
                         checkParityFlag(res);
                         checkAuxiliaryCarryFlagAdd(op1, op2);
                         setMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM, res & 0xFFFF);
+                        if (debug) {
+                            debugFile.println("ADD " + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + "," + memory.readWord(ip - 2));
+                        }
                     }
                     break;
                     case _81_OR_IMM_REG_16_NOSIGN: {
@@ -2657,6 +3443,9 @@ public class K1810WM86 {
                         clearFlag(CARRY_FLAG);
                         clearFlag(OVERFLOW_FLAG);
                         setMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM, res & 0xFFFF);
+                        if (debug) {
+                            debugFile.println("OR " + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + "," + memory.readWord(ip - 2));
+                        }
                     }
                     break;
                     case _81_ADC_IMM_REG_16_NOSIGN: {
@@ -2671,6 +3460,9 @@ public class K1810WM86 {
                         checkParityFlag(res);
                         checkAuxiliaryCarryFlagAdd(op1, op2);
                         setMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM, res & 0xFFFF);
+                        if (debug) {
+                            debugFile.println("ADC " + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + "," + memory.readWord(ip - 2));
+                        }
                     }
                     break;
                     case _81_SBB_IMM_REG_16_NOSIGN: {
@@ -2685,6 +3477,9 @@ public class K1810WM86 {
                         checkParityFlag(res);
                         checkAuxiliaryCarryFlagSub(op1, op2);
                         setMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM, res & 0xFFFF);
+                        if (debug) {
+                            debugFile.println("SBB " + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + "," + memory.readWord(ip - 2));
+                        }
                     }
                     break;
                     case _81_AND_IMM_REG_16_NOSIGN: {
@@ -2695,6 +3490,9 @@ public class K1810WM86 {
                         clearFlag(CARRY_FLAG);
                         clearFlag(OVERFLOW_FLAG);
                         setMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM, res & 0xFFFF);
+                        if (debug) {
+                            debugFile.println("AND " + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + "," + memory.readWord(ip - 2));
+                        }
                     }
                     break;
                     case _81_SUB_IMM_REG_16_NOSIGN: {
@@ -2706,6 +3504,9 @@ public class K1810WM86 {
                         checkParityFlag(res);
                         checkAuxiliaryCarryFlagSub(op1, op2);
                         setMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM, res & 0xFFFF);
+                        if (debug) {
+                            debugFile.println("SUB " + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + "," + memory.readWord(ip - 2));
+                        }
                     }
                     break;
                     case _81_XOR_IMM_REG_16_NOSIGN: {
@@ -2716,6 +3517,9 @@ public class K1810WM86 {
                         clearFlag(CARRY_FLAG);
                         clearFlag(OVERFLOW_FLAG);
                         setMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM, res & 0xFFFF);
+                        if (debug) {
+                            debugFile.println("XOR " + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + "," + memory.readWord(ip - 2));
+                        }
                     }
                     break;
                     case _81_CMP_IMM_REG_16_NOSIGN: {
@@ -2726,15 +3530,18 @@ public class K1810WM86 {
                         checkOverflowFlagSub16(op1, op2, res);
                         checkParityFlag(res);
                         checkAuxiliaryCarryFlagSub(op1, op2);
+                        if (debug) {
+                            debugFile.println("CMP " + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + "," + memory.readWord(ip - 2));
+                        }
                     }
                     break;
                 }
             }
             break;
             case 0x82: {
-                int opcode2 = memory.readByte(ip++);
+                int opcode2 = memory.readByte(cs * 16 + (ip++));
                 int op1 = getMODRM8(opcode2 & TEST_MOD, opcode2 & TEST_RM);
-                int op2 = memory.readByte(ip++);
+                int op2 = memory.readByte(cs * 16 + (ip++));
                 switch (opcode2 & TEST_REG) {
                     case _82_ADD_IMM_REG_8_SIGN: {
                         int res = op1 + op2;
@@ -2745,6 +3552,9 @@ public class K1810WM86 {
                         checkParityFlag(res);
                         checkAuxiliaryCarryFlagAdd(op1, op2);
                         setMODRM8(opcode2 & TEST_MOD, opcode2 & TEST_RM, res & 0xFF);
+                        if (debug) {
+                            debugFile.println("ADD " + getMODRM8String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + "," + memory.readByte(ip - 1));
+                        }
                     }
                     break;
                     case _82_ADC_IMM_REG_8_SIGN: {
@@ -2759,6 +3569,9 @@ public class K1810WM86 {
                         checkParityFlag(res);
                         checkAuxiliaryCarryFlagAdd(op1, op2);
                         setMODRM8(opcode2 & TEST_MOD, opcode2 & TEST_RM, res & 0xFF);
+                        if (debug) {
+                            debugFile.println("ADC " + getMODRM8String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + "," + memory.readByte(ip - 1));
+                        }
                     }
                     break;
                     case _82_SBB_IMM_REG_8_SIGN: {
@@ -2773,6 +3586,9 @@ public class K1810WM86 {
                         checkParityFlag(res);
                         checkAuxiliaryCarryFlagSub(op1, op2);
                         setMODRM8(opcode2 & TEST_MOD, opcode2 & TEST_RM, res & 0xFF);
+                        if (debug) {
+                            debugFile.println("SBB " + getMODRM8String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + "," + memory.readByte(ip - 1));
+                        }
                     }
                     break;
                     case _82_SUB_IMM_REG_8_SIGN: {
@@ -2784,6 +3600,9 @@ public class K1810WM86 {
                         checkParityFlag(res);
                         checkAuxiliaryCarryFlagSub(op1, op2);
                         setMODRM8(opcode2 & TEST_MOD, opcode2 & TEST_RM, res & 0xFF);
+                        if (debug) {
+                            debugFile.println("SUB " + getMODRM8String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + "," + memory.readByte(ip - 1));
+                        }
                     }
                     break;
                     case _82_CMP_IMM_REG_8_SIGN: {
@@ -2794,14 +3613,17 @@ public class K1810WM86 {
                         checkOverflowFlagSub8(op1, op2, res);
                         checkParityFlag(res);
                         checkAuxiliaryCarryFlagSub(op1, op2);
+                        if (debug) {
+                            debugFile.println("CMP " + getMODRM8String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + "," + memory.readByte(ip - 1));
+                        }
                     }
                     break;
                 }
             }
             case 0x83: {
-                int opcode2 = memory.readByte(ip++);
+                int opcode2 = memory.readByte(cs * 16 + (ip++));
                 int op1 = getMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM);
-                int op2 = memory.readByte(ip++);
+                int op2 = memory.readByte(cs * 16 + (ip++));
                 switch (opcode2 & TEST_REG) {
                     case _83_ADD_IMM_REG_16_SIGN: {
                         int res = op1 + op2;
@@ -2812,6 +3634,9 @@ public class K1810WM86 {
                         checkParityFlag(res);
                         checkAuxiliaryCarryFlagAdd(op1, op2);
                         setMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM, res & 0xFFFF);
+                        if (debug) {
+                            debugFile.println("ADD " + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + "," + memory.readWord(ip - 2));
+                        }
                     }
                     break;
                     case _83_ADC_IMM_REG_16_SIGN: {
@@ -2826,6 +3651,9 @@ public class K1810WM86 {
                         checkParityFlag(res);
                         checkAuxiliaryCarryFlagAdd(op1, op2);
                         setMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM, res & 0xFFFF);
+                        if (debug) {
+                            debugFile.println("ADC " + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + "," + memory.readWord(ip - 2));
+                        }
                     }
                     break;
                     case _83_SBB_IMM_REG_16_SIGN: {
@@ -2840,6 +3668,9 @@ public class K1810WM86 {
                         checkParityFlag(res);
                         checkAuxiliaryCarryFlagSub(op1, op2);
                         setMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM, res & 0xFFFF);
+                        if (debug) {
+                            debugFile.println("SBB " + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + "," + memory.readWord(ip - 2));
+                        }
                     }
                     break;
                     case _83_SUB_IMM_REG_16_SIGN: {
@@ -2851,6 +3682,9 @@ public class K1810WM86 {
                         checkParityFlag(res);
                         checkAuxiliaryCarryFlagSub(op1, op2);
                         setMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM, res & 0xFFFF);
+                        if (debug) {
+                            debugFile.println("SUB " + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + "," + memory.readWord(ip - 2));
+                        }
                     }
                     break;
                     case _83_CMP_IMM_REG_16_SIGN: {
@@ -2861,68 +3695,98 @@ public class K1810WM86 {
                         checkOverflowFlagSub16(op1, op2, res);
                         checkParityFlag(res);
                         checkAuxiliaryCarryFlagSub(op1, op2);
+                        if (debug) {
+                            debugFile.println("CMP " + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + "," + memory.readWord(ip - 2));
+                        }
                     }
                     break;
                 }
             }
             break;
             case 0x8C: {
-                int opcode2 = memory.readByte(ip++);
+                int opcode2 = memory.readByte(cs * 16 + (ip++));
                 switch (opcode2 & TEST_REG) {
                     case _8C_MOV_ES_MODRM_16: {
                         setMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM, getSReg(SREG_ES));
+                        if (debug) {
+                            debugFile.println("MOV " + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + ",ES");
+                        }
                     }
                     break;
                     case _8C_MOV_CS_MODRM_16: {
                         setMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM, getSReg(SREG_CS));
+                        if (debug) {
+                            debugFile.println("MOV " + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + ",CS");
+                        }
                     }
                     break;
                     case _8C_MOV_SS_MODRM_16: {
                         setMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM, getSReg(SREG_SS));
+                        if (debug) {
+                            debugFile.println("MOV " + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + ",SS");
+                        }
                     }
                     break;
                     case _8C_MOV_DS_MODRM_16: {
                         setMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM, getSReg(SREG_DS));
+                        if (debug) {
+                            debugFile.println("MOV " + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + ",DS");
+                        }
                     }
                     break;
                 }
             }
             break;
             case 0x8E: {
-                int opcode2 = memory.readByte(ip++);
+                int opcode2 = memory.readByte(cs * 16 + (ip++));
                 switch (opcode2 & TEST_REG) {
                     case _8E_MOV_MODRM_ES_16: {
                         setSReg(SREG_ES, getMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM));
+                        if (debug) {
+                            debugFile.println("MOV ES," + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM));
+                        }
                     }
                     break;
                     case _8E_MOV_MODRM_CS_16: {
                         setSReg(SREG_CS, getMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM));
+                        if (debug) {
+                            debugFile.println("MOV CS," + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM));
+                        }
                     }
                     break;
                     case _8E_MOV_MODRM_SS_16: {
                         setSReg(SREG_SS, getMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM));
+                        if (debug) {
+                            debugFile.println("MOV SS," + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM));
+                        }
                     }
                     break;
                     case _8E_MOV_MODRM_DS_16: {
                         setSReg(SREG_DS, getMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM));
+                        if (debug) {
+                            debugFile.println("MOV DS," + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM));
+                        }
                     }
                     break;
                 }
             }
             break;
             case 0x8F: {
-                int opcode2 = memory.readByte(ip++);
+                int opcode2 = memory.readByte(cs * 16 + (ip++));
                 switch (opcode2 & TEST_REG) {
                     case _8F_POP_MODRM_16: {
                         setMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM, memory.readWord(getReg16(REG_AH_SP)));
                         setReg16(REG_AH_SP, (getReg16(REG_AH_SP) + 2) & 0xFFFF);
+                        if (debug) {
+                            debugFile.println("POP " + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM));
+                        }
                     }
                     break;
                 }
             }
             break;
             case 0xC6: {
-                int opcode2 = memory.readByte(ip++);
+                int opcode2 = memory.readByte(cs * 16 + (ip++));
                 switch (opcode2 & TEST_REG) {
                     case _C6_MOV_IMM_MEM_8: {
                         int data8;
@@ -2942,13 +3806,17 @@ public class K1810WM86 {
                         }
                         setMODRM8(opcode2 & TEST_MOD, opcode2 & TEST_RM, data8 & 0xFF);
                         ip++;
+                        if (debug) {
+                            debugFile.println("MOV " + getMODRM8String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + "," + data8);
+                        }
+
                     }
                     break;
                 }
             }
             break;
             case 0xC7: {
-                int opcode2 = memory.readByte(ip++);
+                int opcode2 = memory.readByte(cs * 16 + (ip++));
                 switch (opcode2 & TEST_REG) {
                     case _C7_MOV_IMM_MEM_16: {
                         int data16;
@@ -2968,13 +3836,16 @@ public class K1810WM86 {
                         }
                         setMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM, data16 & 0xFFFF);
                         ip = ip + 2;
+                        if (debug) {
+                            debugFile.println("MOV " + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + "," + data16);
+                        }
                     }
                     break;
                 }
             }
             break;
             case 0xD0: {
-                int opcode2 = memory.readByte(ip++);
+                int opcode2 = memory.readByte(cs * 16 + (ip++));
                 int op1 = getMODRM8(opcode2 & TEST_MOD, opcode2 & TEST_RM);
                 switch (opcode2 & TEST_REG) {
                     case _D0_ROL_MODRM_1_8: {
@@ -2990,6 +3861,9 @@ public class K1810WM86 {
                         } else {
                             clearFlag(OVERFLOW_FLAG);
                         }
+                        if (debug) {
+                            debugFile.println("ROL " + getMODRM8String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + ",1");
+                        }
                     }
                     break;
                     case _D0_ROR_MODRM_1_8: {
@@ -3004,6 +3878,9 @@ public class K1810WM86 {
                             setFlag(OVERFLOW_FLAG);
                         } else {
                             clearFlag(OVERFLOW_FLAG);
+                        }
+                        if (debug) {
+                            debugFile.println("ROR " + getMODRM8String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + ",1");
                         }
                     }
                     break;
@@ -3023,6 +3900,9 @@ public class K1810WM86 {
                         } else {
                             clearFlag(OVERFLOW_FLAG);
                         }
+                        if (debug) {
+                            debugFile.println("RCL " + getMODRM8String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + ",1");
+                        }
                     }
                     break;
                     case _D0_RCR_MODRM_1_8: {
@@ -3040,6 +3920,9 @@ public class K1810WM86 {
                             setFlag(OVERFLOW_FLAG);
                         } else {
                             clearFlag(OVERFLOW_FLAG);
+                        }
+                        if (debug) {
+                            debugFile.println("RCR " + getMODRM8String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + ",1");
                         }
                     }
                     break;
@@ -3059,6 +3942,9 @@ public class K1810WM86 {
                         checkSignFlag8(res);
                         checkZeroFlag8(res);
                         checkParityFlag(res);
+                        if (debug) {
+                            debugFile.println("SHL " + getMODRM8String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + ",1");
+                        }
                     }
                     break;
                     case _D0_SHR_MODRM_1_8: {
@@ -3077,6 +3963,9 @@ public class K1810WM86 {
                         checkSignFlag8(res);
                         checkZeroFlag8(res);
                         checkParityFlag(res);
+                        if (debug) {
+                            debugFile.println("SHR " + getMODRM8String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + ",1");
+                        }
                     }
                     break;
                     case _D0_SAR_MODRM_1_8: {
@@ -3096,13 +3985,16 @@ public class K1810WM86 {
                         checkSignFlag8(res);
                         checkZeroFlag8(res);
                         checkParityFlag(res);
+                        if (debug) {
+                            debugFile.println("SAR " + getMODRM8String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + ",1");
+                        }
                     }
                     break;
                 }
             }
             break;
             case 0xD1: {
-                int opcode2 = memory.readByte(ip++);
+                int opcode2 = memory.readByte(cs * 16 + (ip++));
                 int op1 = getMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM);
                 switch (opcode2 & TEST_REG) {
                     case _D1_ROL_MODRM_1_16: {
@@ -3118,6 +4010,9 @@ public class K1810WM86 {
                         } else {
                             clearFlag(OVERFLOW_FLAG);
                         }
+                        if (debug) {
+                            debugFile.println("ROL " + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + ",1");
+                        }
                     }
                     break;
                     case _D1_ROR_MODRM_1_16: {
@@ -3132,6 +4027,9 @@ public class K1810WM86 {
                             setFlag(OVERFLOW_FLAG);
                         } else {
                             clearFlag(OVERFLOW_FLAG);
+                        }
+                        if (debug) {
+                            debugFile.println("ROR " + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + ",1");
                         }
                     }
                     break;
@@ -3151,6 +4049,9 @@ public class K1810WM86 {
                         } else {
                             clearFlag(OVERFLOW_FLAG);
                         }
+                        if (debug) {
+                            debugFile.println("RCL " + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + ",1");
+                        }
                     }
                     break;
                     case _D1_RCR_MODRM_1_16: {
@@ -3168,6 +4069,9 @@ public class K1810WM86 {
                             setFlag(OVERFLOW_FLAG);
                         } else {
                             clearFlag(OVERFLOW_FLAG);
+                        }
+                        if (debug) {
+                            debugFile.println("RCR " + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + ",1");
                         }
                     }
                     break;
@@ -3187,6 +4091,9 @@ public class K1810WM86 {
                         checkSignFlag16(res);
                         checkZeroFlag16(res);
                         checkParityFlag(res);
+                        if (debug) {
+                            debugFile.println("SHL " + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + ",1");
+                        }
                     }
                     break;
                     case _D1_SHR_MODRM_1_16: {
@@ -3205,6 +4112,9 @@ public class K1810WM86 {
                         checkSignFlag16(res);
                         checkZeroFlag16(res);
                         checkParityFlag(res);
+                        if (debug) {
+                            debugFile.println("SHR " + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + ",1");
+                        }
                     }
                     break;
                     case _D1_SAR_MODRM_1_16: {
@@ -3224,13 +4134,16 @@ public class K1810WM86 {
                         checkSignFlag8(res);
                         checkZeroFlag8(res);
                         checkParityFlag(res);
+                        if (debug) {
+                            debugFile.println("SAR " + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + ",1");
+                        }
                     }
                     break;
                 }
             }
             break;
             case 0xD2: {
-                int opcode2 = memory.readByte(ip++);
+                int opcode2 = memory.readByte(cs * 16 + (ip++));
                 int op1 = getMODRM8(opcode2 & TEST_MOD, opcode2 & TEST_RM);
                 int count = getReg8(REG_CL_CX);
                 switch (opcode2 & TEST_REG) {
@@ -3244,6 +4157,9 @@ public class K1810WM86 {
                             op1 = ((op1 << 1) & 0xFF) & ((op1 & 0x80) >> 7);
                         }
                         setMODRM8(opcode2 & TEST_MOD, opcode2 & TEST_RM, op1);
+                        if (debug) {
+                            debugFile.println("ROL " + getMODRM8String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + ",CL");
+                        }
                     }
                     break;
                     case _D2_ROR_MODRM_CL_8: {
@@ -3256,6 +4172,9 @@ public class K1810WM86 {
                             op1 = ((op1 >> 1) & 0xFF) & ((op1 & 0x01) << 7);
                         }
                         setMODRM8(opcode2 & TEST_MOD, opcode2 & TEST_RM, op1);
+                        if (debug) {
+                            debugFile.println("ROR " + getMODRM8String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + ",CL");
+                        }
                     }
                     break;
                     case _D2_RCL_MODRM_CL_8: {
@@ -3272,6 +4191,9 @@ public class K1810WM86 {
                             }
                         }
                         setMODRM8(opcode2 & TEST_MOD, opcode2 & TEST_RM, op1);
+                        if (debug) {
+                            debugFile.println("RCL " + getMODRM8String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + ",CL");
+                        }
                     }
                     break;
                     case _D2_RCR_MODRM_CL_8: {
@@ -3288,6 +4210,9 @@ public class K1810WM86 {
                             }
                         }
                         setMODRM8(opcode2 & TEST_MOD, opcode2 & TEST_RM, op1);
+                        if (debug) {
+                            debugFile.println("RCR " + getMODRM8String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + ",CL");
+                        }
                     }
                     break;
                     case _D2_SAL_SHL_MODRM_CL_8: {
@@ -3303,6 +4228,9 @@ public class K1810WM86 {
                         checkSignFlag8(op1);
                         checkZeroFlag8(op1);
                         checkParityFlag(op1);
+                        if (debug) {
+                            debugFile.println("SAL " + getMODRM8String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + ",CL");
+                        }
                     }
                     break;
                     case _D2_SHR_MODRM_CL_8: {
@@ -3318,6 +4246,9 @@ public class K1810WM86 {
                         checkSignFlag8(op1);
                         checkZeroFlag8(op1);
                         checkParityFlag(op1);
+                        if (debug) {
+                            debugFile.println("SHR " + getMODRM8String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + ",CL");
+                        }
                     }
                     break;
                     case _D2_SAR_MODRM_CL_8: {
@@ -3340,13 +4271,16 @@ public class K1810WM86 {
                         checkSignFlag8(op1);
                         checkZeroFlag8(op1);
                         checkParityFlag(op1);
+                        if (debug) {
+                            debugFile.println("SAR " + getMODRM8String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + ",CL");
+                        }
                     }
                     break;
                 }
             }
             break;
             case 0xD3: {
-                int opcode2 = memory.readByte(ip++);
+                int opcode2 = memory.readByte(cs * 16 + (ip++));
                 int op1 = getMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM);
                 int count = getReg8(REG_CL_CX);
                 switch (opcode2 & TEST_REG) {
@@ -3360,6 +4294,9 @@ public class K1810WM86 {
                             op1 = ((op1 << 1) & 0xFFFF) & ((op1 & 0x8000) >> 15);
                         }
                         setMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM, op1);
+                        if (debug) {
+                            debugFile.println("ROL " + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + ",CL");
+                        }
                     }
                     break;
                     case _D3_ROR_MODRM_CL_16: {
@@ -3372,6 +4309,9 @@ public class K1810WM86 {
                             op1 = ((op1 >> 1) & 0xFFFF) & ((op1 & 0x0001) << 15);
                         }
                         setMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM, op1);
+                        if (debug) {
+                            debugFile.println("ROR " + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + ",CL");
+                        }
                     }
                     break;
                     case _D3_RCL_MODRM_CL_16: {
@@ -3388,6 +4328,9 @@ public class K1810WM86 {
                             }
                         }
                         setMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM, op1);
+                        if (debug) {
+                            debugFile.println("RCL " + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + ",CL");
+                        }
                     }
                     break;
                     case _D3_RCR_MODRM_CL_16: {
@@ -3404,6 +4347,9 @@ public class K1810WM86 {
                             }
                         }
                         setMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM, op1);
+                        if (debug) {
+                            debugFile.println("RCR " + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + ",CL");
+                        }
                     }
                     break;
                     case _D3_SAL_SHL_MODRM_CL_16: {
@@ -3419,6 +4365,9 @@ public class K1810WM86 {
                         checkSignFlag16(op1);
                         checkZeroFlag16(op1);
                         checkParityFlag(op1);
+                        if (debug) {
+                            debugFile.println("SHL " + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + ",CL");
+                        }
                     }
                     break;
                     case _D3_SHR_MODRM_CL_16: {
@@ -3434,6 +4383,9 @@ public class K1810WM86 {
                         checkSignFlag16(op1);
                         checkZeroFlag16(op1);
                         checkParityFlag(op1);
+                        if (debug) {
+                            debugFile.println("SHR " + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + ",CL");
+                        }
                     }
                     break;
                     case _D3_SAR_MODRM_CL_16: {
@@ -3456,27 +4408,36 @@ public class K1810WM86 {
                         checkSignFlag16(op1);
                         checkZeroFlag16(op1);
                         checkParityFlag(op1);
+                        if (debug) {
+                            debugFile.println("SAR " + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + ",CL");
+                        }
                     }
                     break;
                 }
             }
             break;
             case 0xF6: {
-                int opcode2 = memory.readByte(ip++);
+                int opcode2 = memory.readByte(cs * 16 + (ip++));
                 int op1 = getMODRM8(opcode2 & TEST_MOD, opcode2 & TEST_RM);
                 switch (opcode2 & TEST_REG) {
                     case _F6_TEST_IMM_MODRM_8: {
-                        int op2 = memory.readByte(ip++);
+                        int op2 = memory.readByte(cs * 16 + (ip++));
                         int res = op1 & op2;
                         checkParityFlag(res);
                         checkZeroFlag8(res);
                         checkSignFlag8(res);
                         clearFlag(CARRY_FLAG);
                         clearFlag(OVERFLOW_FLAG);
+                        if (debug) {
+                            debugFile.println("TEST " + getMODRM8String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + "," + memory.readByte(ip - 1));
+                        }
                     }
                     break;
                     case _F6_NOT_MODRM_8: {
                         setMODRM8(opcode2 & TEST_MOD, opcode2 & TEST_RM, (~op1) & 0xFF);
+                        if (debug) {
+                            debugFile.println("NOT " + getMODRM8String(opcode2 & TEST_MOD, opcode2 & TEST_RM));
+                        }
                     }
                     break;
                     case _F6_NEG_MODRM_8: {
@@ -3495,6 +4456,9 @@ public class K1810WM86 {
                         checkSignFlag8(op1);
                         checkZeroFlag8(op1);
                         checkParityFlag(op1);
+                        if (debug) {
+                            debugFile.println("NEG " + getMODRM8String(opcode2 & TEST_MOD, opcode2 & TEST_RM));
+                        }
                     }
                     break;
                     case _F6_MUL_MODRM_8: {
@@ -3507,6 +4471,9 @@ public class K1810WM86 {
                             clearFlag(OVERFLOW_FLAG);
                         }
                         setReg16(REG_AL_AX, (op2 * op1) & 0xFFFF);
+                        if (debug) {
+                            debugFile.println("MUL " + getMODRM8String(opcode2 & TEST_MOD, opcode2 & TEST_RM));
+                        }
                     }
                     break;
                     case _F6_IMUL_MODRM_8: {
@@ -3520,6 +4487,9 @@ public class K1810WM86 {
                             clearFlag(OVERFLOW_FLAG);
                         }
                         setReg16(REG_AL_AX, res & 0xFFFF);
+                        if (debug) {
+                            debugFile.println("IMUL " + getMODRM8String(opcode2 & TEST_MOD, opcode2 & TEST_RM));
+                        }
                     }
                     break;
                     case _F6_DIV_MODRM_8: {
@@ -3529,6 +4499,9 @@ public class K1810WM86 {
                         } else {
                             setReg8(REG_AL_AX, op2 / op1);
                             setReg8(REG_AH_SP, op2 % op1);
+                        }
+                        if (debug) {
+                            debugFile.println("DIV " + getMODRM8String(opcode2 & TEST_MOD, opcode2 & TEST_RM));
                         }
                     }
                     break;
@@ -3540,17 +4513,20 @@ public class K1810WM86 {
                             setReg8(REG_AL_AX, (short) op2 / (byte) op1);
                             setReg8(REG_AH_SP, (short) op2 % (byte) op1);
                         }
+                        if (debug) {
+                            debugFile.println("IDIV " + getMODRM8String(opcode2 & TEST_MOD, opcode2 & TEST_RM));
+                        }
                     }
                     break;
                 }
             }
             break;
             case 0xF7: {
-                int opcode2 = memory.readByte(ip++);
+                int opcode2 = memory.readByte(cs * 16 + (ip++));
                 int op1 = getMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM);
                 switch (opcode2 & TEST_REG) {
                     case _F7_TEST_IMM_MODRM_16: {
-                        int op2 = memory.readWord(ip++);
+                        int op2 = memory.readWord(cs * 16 + (ip++));
                         ip++;
                         int res = op1 & op2;
                         checkParityFlag(res);
@@ -3558,10 +4534,16 @@ public class K1810WM86 {
                         checkSignFlag16(res);
                         clearFlag(CARRY_FLAG);
                         clearFlag(OVERFLOW_FLAG);
+                        if (debug) {
+                            debugFile.println("TEST " + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM) + "," + memory.readWord(ip - 2));
+                        }
                     }
                     break;
                     case _F7_NOT_MODRM_16: {
                         setMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM, (~op1) & 0xFFFF);
+                        if (debug) {
+                            debugFile.println("NOT " + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM));
+                        }
                     }
                     break;
                     case _F7_NEG_MODRM_16: {
@@ -3580,6 +4562,9 @@ public class K1810WM86 {
                         checkSignFlag16(op1);
                         checkZeroFlag16(op1);
                         checkParityFlag(op1);
+                        if (debug) {
+                            debugFile.println("NEG " + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM));
+                        }
                     }
                     break;
                     case _F7_MUL_MODRM_16: {
@@ -3593,6 +4578,9 @@ public class K1810WM86 {
                         }
                         setReg16(REG_DL_DX, ((op2 * op1) >> 16) & 0xFFFF);
                         setReg16(REG_AL_AX, (op2 * op1) & 0xFFFF);
+                        if (debug) {
+                            debugFile.println("MUL " + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM));
+                        }
                     }
                     break;
                     case _F7_IMUL_MODRM_16: {
@@ -3607,6 +4595,9 @@ public class K1810WM86 {
                         }
                         setReg16(REG_DL_DX, (res >> 16) & 0xFFFF);
                         setReg16(REG_AL_AX, res & 0xFFFF);
+                        if (debug) {
+                            debugFile.println("IMUL " + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM));
+                        }
                     }
                     break;
                     case _F7_DIV_MODRM_16: {
@@ -3617,6 +4608,10 @@ public class K1810WM86 {
                             setReg16(REG_AL_AX, op2 / op1);
                             setReg16(REG_DL_DX, op2 % op1);
                         }
+                        if (debug) {
+                            debugFile.println("DIV " + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM));
+                        }
+
                     }
                     break;
                     case _F7_IDIV_MODRM_16: {
@@ -3627,13 +4622,16 @@ public class K1810WM86 {
                             setReg16(REG_AL_AX, (int) op2 / (short) op1);
                             setReg16(REG_DL_DX, (int) op2 % (short) op1);
                         }
+                        if (debug) {
+                            debugFile.println("IDIV " + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM));
+                        }
                     }
                     break;
                 }
             }
             break;
             case 0xFE: {
-                int opcode2 = memory.readByte(ip++);
+                int opcode2 = memory.readByte(cs * 16 + (ip++));
                 int op1 = getMODRM8(opcode2 & TEST_MOD, opcode2 & TEST_RM);
                 switch (opcode2 & TEST_REG) {
                     case _FE_INC_MODRM_8: {
@@ -3644,6 +4642,10 @@ public class K1810WM86 {
                         checkParityFlag(res);
                         checkAuxiliaryCarryFlagAdd(op1, 1);
                         setMODRM8(opcode2 & TEST_MOD, opcode2 & TEST_RM, res & 0xFF);
+                        if (debug) {
+                            debugFile.println("INC " + getMODRM8String(opcode2 & TEST_MOD, opcode2 & TEST_RM));
+                        }
+
                     }
                     break;
                     case _FE_DEC_MODRM_8: {
@@ -3654,13 +4656,16 @@ public class K1810WM86 {
                         checkParityFlag(res);
                         checkAuxiliaryCarryFlagSub(op1, 1);
                         setMODRM8(opcode2 & TEST_MOD, opcode2 & TEST_RM, res & 0xFF);
+                        if (debug) {
+                            debugFile.println("DEC " + getMODRM8String(opcode2 & TEST_MOD, opcode2 & TEST_RM));
+                        }
                     }
                     break;
                 }
             }
             break;
             case 0xFF: {
-                int opcode2 = memory.readByte(ip++);
+                int opcode2 = memory.readByte(cs * 16 + (ip++));
                 int op1 = getMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM);
                 switch (opcode2 & TEST_REG) {
                     case _FF_INC_MEM_16: {
@@ -3671,6 +4676,9 @@ public class K1810WM86 {
                         checkParityFlag(res);
                         checkAuxiliaryCarryFlagAdd(op1, 1);
                         setMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM, res & 0xFFFF);
+                        if (debug) {
+                            debugFile.println("INC " + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM));
+                        }
                     }
                     break;
                     case _FF_DEC_MEM_16: {
@@ -3681,15 +4689,24 @@ public class K1810WM86 {
                         checkParityFlag(res);
                         checkAuxiliaryCarryFlagSub(op1, 1);
                         setMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM, res & 0xFFFF);
+                        if (debug) {
+                            debugFile.println("DEC " + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM));
+                        }
                     }
                     break;
                     case _FF_CALL_MODRM_16: {
+                        if (debug) {
+                            debugFile.println("CALL " + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM));
+                        }
                         setReg16(REG_AH_SP, (getReg16(REG_AH_SP) - 2) & 0xFFFF);
                         memory.writeWord(getReg16(REG_AH_SP), (short) ip);
                         ip = op1;
                     }
                     break;
                     case _FF_CALL_MEM_16: {
+                        if (debug) {
+                            debugFile.println("CALL " + Integer.toHexString(memory.readWord(op1 + 2)) + ":" + memory.readWord(op1));
+                        }
                         setReg16(REG_AH_SP, (getReg16(REG_AH_SP) - 2) & 0xFFFF);
                         memory.writeWord(getReg16(REG_AH_SP), (short) ip);
                         setReg16(REG_AH_SP, (getReg16(REG_AH_SP) - 2) & 0xFFFF);
@@ -3701,10 +4718,16 @@ public class K1810WM86 {
                     }
                     break;
                     case _FF_JMP_MODRM_16: {
+                        if (debug) {
+                            debugFile.println("JMP " + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM));
+                        }
                         ip = op1;
                     }
                     break;
                     case _FF_JMP_MEM_16: {
+                        if (debug) {
+                            debugFile.println("JMP " + Integer.toHexString(memory.readWord(op1 + 2)) + ":" + memory.readWord(op1));
+                        }
                         int increment = memory.readWord(op1);
                         int codesegment = memory.readWord(op1 + 2);
                         cs = codesegment;
@@ -3714,33 +4737,17 @@ public class K1810WM86 {
                     case _FF_PUSH_MEM_16: {
                         setReg16(REG_AH_SP, (getReg16(REG_AH_SP) - 2) & 0xFFFF);
                         memory.writeWord(getReg16(REG_AH_SP), (short) op1);
+                        if (debug) {
+                            debugFile.println("PUSH " + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM));
+                        }
                     }
                     break;
                 }
             }
             break;
-
-
-
             default:
                 System.out.println("Nicht implementierter oder ungültiger OPCode " + Integer.toHexString(opcode1).toString() + " !");
                 break;
-            /*
-
-            private static final int INT_IMM = 0xCD;
-            private static final int INTO = 0xCE;
-            private static final int IRET = 0xCF;
-            private static final int WAIT = 0x9B;
-            private static final int LOCK = 0xF0;
-            private static final int HLT = 0xF4;
-            private static final int ESC0 = 0xD8;
-            private static final int ESC1 = 0xD9;
-            private static final int ESC2 = 0xDA;
-            private static final int ESC3 = 0xDB;
-            private static final int ESC4 = 0xDC;
-            private static final int ESC5 = 0xDD;
-            private static final int ESC6 = 0xDE;
-            private static final int ESC7 = 0xDF;*/
         }
     }
 
@@ -3752,8 +4759,59 @@ public class K1810WM86 {
         System.out.println("SF:" + ((flags & SIGN_FLAG) != 0));
     }
 
+    private String getOffsetString(int MOD, int RM) {
+        String offset = "";
+
+        switch (RM) {
+            case RM_BX_SI:
+                offset = "(BX)+(SI)";
+                break;
+            case RM_BX_DI:
+                offset = "(BX)+(DI)";
+                break;
+            case RM_BP_SI:
+                offset = "(BP)+(SI)";
+                break;
+            case RM_BP_DI:
+                offset = "(BP)+(DI)";
+                break;
+            case RM_SI:
+                offset = "(SI)";
+                break;
+            case RM_DI:
+                offset = "(DI)";
+                break;
+            case RM_DIRECT_BP:
+                if (MOD == MOD_MEM_NO_DISPL) {
+                    offset = Integer.toHexString(memory.readWord(ip - 2) & 0xFFFF);
+                } else {
+                    offset = "(BP)";
+                }
+                break;
+            case RM_BX:
+                offset = "(BX)";
+                break;
+            default:
+                throw new IllegalStateException("RM not detected");
+        }
+
+        switch (MOD) {
+            case MOD_MEM_NO_DISPL:
+                break;
+            case MOD_MEM_8_DISPL:
+                offset += "+" + Integer.toHexString(memory.readByte(ip - 1) & 0xFF);
+                break;
+            case MOD_MEM_16_DISPL:
+                offset += "+" + Integer.toHexString(memory.readWord(ip - 2) & 0xFFFF);
+                ;
+                break;
+        }
+        return offset;
+    }
+
     private int getOffset(int MOD, int RM) {
         int offset = 0;
+
         switch (RM) {
             case RM_BX_SI:
                 offset = bx + si;
@@ -3775,7 +4833,7 @@ public class K1810WM86 {
                 break;
             case RM_DIRECT_BP:
                 if (MOD == MOD_MEM_NO_DISPL) {
-                    offset = memory.readWord(ip++);
+                    offset = memory.readWord(cs * 16 + (ip++));
                     ip++;
                 } else {
                     offset = bp;
@@ -3792,14 +4850,60 @@ public class K1810WM86 {
             case MOD_MEM_NO_DISPL:
                 break;
             case MOD_MEM_8_DISPL:
-                offset += memory.readByte(ip++);
+                offset += memory.readByte(cs * 16 + (ip++));
                 break;
             case MOD_MEM_16_DISPL:
-                offset += memory.readWord(ip++);
+                offset += memory.readWord(cs * 16 + (ip++));
                 ip++;
                 break;
         }
         return offset;
+    }
+
+    private String getReg8String(int reg) {
+        switch (reg) {
+            case REG_AL_AX:
+                return "AL";
+            case REG_CL_CX:
+                return "CL";
+            case REG_DL_DX:
+                return "DL";
+            case REG_BL_BX:
+                return "BL";
+            case REG_AH_SP:
+                return "AH";
+            case REG_CH_BP:
+                return "CH";
+            case REG_DH_SI:
+                return "DH";
+            case REG_BH_DI:
+                return "BH";
+            default:
+                throw new IllegalStateException("Register not detected");
+        }
+    }
+
+    private String getReg16String(int reg) {
+        switch (reg) {
+            case REG_AL_AX:
+                return "AX";
+            case REG_CL_CX:
+                return "CX";
+            case REG_DL_DX:
+                return "DX";
+            case REG_BL_BX:
+                return "BX";
+            case REG_AH_SP:
+                return "SP";
+            case REG_CH_BP:
+                return "BP";
+            case REG_DH_SI:
+                return "SI";
+            case REG_BH_DI:
+                return "DI";
+            default:
+                throw new IllegalStateException("Register not detected");
+        }
     }
 
     private int getReg8(int reg) {
@@ -3850,6 +4954,7 @@ public class K1810WM86 {
 
     private int getSegmentAddress(int MOD, int RM) {
         int segmentAddress = 0;
+
         switch (prefix) {
             case NO_PREFIX:
                 switch (RM) {
@@ -3969,6 +5074,22 @@ public class K1810WM86 {
         }
     }
 
+    private String getMODRM8String(int MOD, int RM) {
+        if (MOD == MOD_REG) {
+            return getReg8String(RM << 3);
+        } else {
+            return getAddressMODRMString(MOD, RM);
+        }
+    }
+
+    private String getMODRM16String(int MOD, int RM) {
+        if (MOD == MOD_REG) {
+            return getReg16String(RM << 3);
+        } else {
+            return getAddressMODRMString(MOD, RM);
+        }
+    }
+
     private void setMODRM8(int MOD, int RM, int value) {
         if (MOD == MOD_REG) {
             setReg8(RM << 3, value);
@@ -3983,6 +5104,12 @@ public class K1810WM86 {
         } else {
             memory.writeWord(getAddressMODRM(MOD, RM), (short) (value & 0xFFFF));
         }
+    }
+
+    private String getAddressMODRMString(int MOD, int RM) {
+        int segmentAddress = getSegmentAddress(MOD, RM);
+        int offset = getOffset(MOD, RM);
+        return Integer.toHexString(segmentAddress & 0xFFFF) + ":" + Integer.toHexString(offset & 0xFFFF);
     }
 
     private int getAddressMODRM(int MOD, int RM) {
@@ -4163,13 +5290,33 @@ public class K1810WM86 {
         }
     }
 
+    public void reset() {
+        flags = 0x0000;
+        ip = 0x0000;
+        ds = 0x0000;
+        es = 0x0000;
+        ss = 0x0000;
+        cs = 0xFFFF;
+    }
+
     public void test() {
+        try {
+            RandomAccessFile file1 = new RandomAccessFile("1.hex", "r");
+            RandomAccessFile file2 = new RandomAccessFile("2.hex", "r");
 
+            for (int i = 0; i < file1.length(); i++) {
+                memory.writeByte(0xFC000 + i, file1.readByte());
+                memory.writeByte(0xF8000 + i, file2.readByte());
+            }
+            reset();
 
-        int op1 = 0x56;
-        int op2 = 0xFC1E;
-        System.out.println(Integer.toHexString((short) op2 / (byte) op1));
-        System.out.println(Integer.toHexString((short) op2 % (byte) op1));
+            for (int i = 0; i < 1000; i++) {
+                this.executeNextInstruction();
+            memory.dump();
+//                Thread.sleep(1000);
+            }
+        } catch (Exception exception) {
+        }
     }
 
     public static final void main(String[] args) {
