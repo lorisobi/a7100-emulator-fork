@@ -8,7 +8,6 @@ import a7100emulator.components.Screen;
 import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.image.BufferedImage;
-import java.io.FileNotFoundException;
 import java.io.RandomAccessFile;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -27,7 +26,7 @@ public class BitmapGenerator {
     private BitmapGenerator() {
     }
 
-    public static BufferedImage generateBitmapFromLineCode(byte[] linecode, boolean intense, boolean inverse, boolean flash) {
+    public static BufferedImage generateBitmapFromLineCode(byte[] linecode, boolean intense, boolean inverse, boolean flash, boolean underline) {
         BufferedImage image = new BufferedImage(8, 16, BufferedImage.TYPE_INT_RGB);
 
         int f_color = GREEN;
@@ -48,7 +47,7 @@ public class BitmapGenerator {
         for (int lineIndex = 0; lineIndex < 16; lineIndex++) {
             int line = linecode[lineIndex];
             for (int columnIndex = 0; columnIndex < 8; columnIndex++) {
-                if (getBit(line, columnIndex)) {
+                if (getBit(line, columnIndex) || (lineIndex == 13 && underline)) {
                     image.setRGB(7 - columnIndex, lineIndex, f_color);
                 }
             }
@@ -61,7 +60,7 @@ public class BitmapGenerator {
     }
 
     public static void main(String[] args) {
-        byte[] codes = new byte[16];//{0x00, 0x00, 0xFC, 0x42, 0x42, 0x42, 0x7C, 0x42, 0x42, 0x42, 0xfc, 0x00, 0x00, 0x00, 0x00, 0x00};
+        byte[] codes = new byte[16];
 
         JFrame frame = new JFrame();
 
@@ -85,58 +84,14 @@ public class BitmapGenerator {
 
             for (int i = 0; i < 128; i++) {
                 raf.read(codes);
-
-                screen.setCharacter(x, y, generateBitmapFromLineCode(codes, false, false, false));
+                screen.setCharacter(x, y, generateBitmapFromLineCode(codes, false, false, false, true));
                 x++;
                 if (x == 80) {
                     y++;
                     x = 0;
                 }
             }
-
-                        raf.seek(0x1800);
-            x = 0;
-            y++;
-
-            for (int i = 0; i < 128; i++) {
-                raf.read(codes);
-
-                screen.setCharacter(x, y, generateBitmapFromLineCode(codes, false, true, false));
-                x++;
-                if (x == 80) {
-                    y++;
-                    x = 0;
-                }
-            }
-
-                                    raf.seek(0x1800);
-            x = 0;
-            y++;
-
-            for (int i = 0; i < 128; i++) {
-                raf.read(codes);
-
-                screen.setCharacter(x, y, generateBitmapFromLineCode(codes, true, false, false));
-                x++;
-                if (x == 80) {
-                    y++;
-                    x = 0;
-                }
-            }
-                                    raf.seek(0x1800);
-            x = 0;
-            y++;
-
-            for (int i = 0; i < 128; i++) {
-                raf.read(codes);
-
-                screen.setCharacter(x, y, generateBitmapFromLineCode(codes, true, true, false));
-                x++;
-                if (x == 80) {
-                    y++;
-                    x = 0;
-                }
-            }
+            raf.close();
         } catch (Exception ex) {
             Logger.getLogger(BitmapGenerator.class.getName()).log(Level.SEVERE, null, ex);
         }

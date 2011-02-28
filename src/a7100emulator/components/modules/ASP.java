@@ -1,0 +1,259 @@
+/*
+ * To change this template, choose Tools | Templates
+ * and open the template in the editor.
+ */
+package a7100emulator.components.modules;
+
+import a7100emulator.components.Ports;
+
+/**
+ *
+ * @author Dirk
+ */
+public final class ASP implements Module {
+
+    private static int asp_count=0;
+
+    private final static int PORT_ASP_1_ENABLE_INTERRUPT = 0x300;
+    private final static int PORT_ASP_1_BOS1810 = 0x301;
+    private final static int PORT_ASP_1_RETI = 0x302;
+    private final static int PORT_ASP_1_TEST = 0x304;
+    private final static int PORT_ASP_1_CONTROL = 0x306;
+    private final static int PORT_ASP_1_U855_PORT_A_DATA = 0x308;
+    private final static int PORT_ASP_1_U855_PORT_B_DATA = 0x30A;
+    private final static int PORT_ASP_1_U855_PORT_A_INIT = 0x30C;
+    private final static int PORT_ASP_1_U855_PORT_B_INIT = 0x30E;
+    private final static int PORT_ASP_1_U857_TIMER_0 = 0x310;
+    private final static int PORT_ASP_1_U857_TIMER_1 = 0x312;
+    private final static int PORT_ASP_1_U857_TIMER_2 = 0x314;
+    private final static int PORT_ASP_1_U857_TIMER_3 = 0x316;
+    private final static int PORT_ASP_1_U856_DATA_V24 = 0x318;
+    private final static int PORT_ASP_1_U856_DATA_IFSS = 0x31A;
+    private final static int PORT_ASP_1_U856_CONTROL_V24 = 0x31C;
+    private final static int PORT_ASP_1_U856_CONTROL_IFSS_V24 = 0x31E;
+    private final static int PORT_ASP_2_ENABLE_INTERRUPT = 0x320;
+    private final static int PORT_ASP_2_BOS1810 = 0x321;
+    private final static int PORT_ASP_2_RETI = 0x322;
+    private final static int PORT_ASP_2_TEST = 0x324;
+    private final static int PORT_ASP_2_CONTROL = 0x326;
+    private final static int PORT_ASP_2_U855_PORT_A_DATA = 0x328;
+    private final static int PORT_ASP_2_U855_PORT_B_DATA = 0x32A;
+    private final static int PORT_ASP_2_U855_PORT_A_INIT = 0x32C;
+    private final static int PORT_ASP_2_U855_PORT_B_INIT = 0x32E;
+    private final static int PORT_ASP_2_U857_TIMER_0 = 0x330;
+    private final static int PORT_ASP_2_U857_TIMER_1 = 0x332;
+    private final static int PORT_ASP_2_U857_TIMER_2 = 0x334;
+    private final static int PORT_ASP_2_U857_TIMER_3 = 0x336;
+    private final static int PORT_ASP_2_U856_DATA_V24 = 0x338;
+    private final static int PORT_ASP_2_U856_DATA_IFSS = 0x33A;
+    private final static int PORT_ASP_2_U856_CONTROL_V24 = 0x33C;
+    private final static int PORT_ASP_2_U856_CONTROL_IFSS_V24 = 0x33E;
+    private final int asp_id;
+
+    public ASP() {
+        asp_id = asp_count++;
+        registerPorts();
+    }
+
+    public void registerPorts() {
+
+        switch (asp_id) {
+            case 1:
+                Ports.getInstance().registerPort(this, PORT_ASP_1_ENABLE_INTERRUPT);
+                Ports.getInstance().registerPort(this, PORT_ASP_1_BOS1810);
+                Ports.getInstance().registerPort(this, PORT_ASP_1_RETI);
+                Ports.getInstance().registerPort(this, PORT_ASP_1_TEST);
+                Ports.getInstance().registerPort(this, PORT_ASP_1_CONTROL);
+                Ports.getInstance().registerPort(this, PORT_ASP_1_U855_PORT_A_DATA);
+                Ports.getInstance().registerPort(this, PORT_ASP_1_U855_PORT_B_DATA);
+                Ports.getInstance().registerPort(this, PORT_ASP_1_U855_PORT_A_INIT);
+                Ports.getInstance().registerPort(this, PORT_ASP_1_U855_PORT_B_INIT);
+                Ports.getInstance().registerPort(this, PORT_ASP_1_U857_TIMER_0);
+                Ports.getInstance().registerPort(this, PORT_ASP_1_U857_TIMER_1);
+                Ports.getInstance().registerPort(this, PORT_ASP_1_U857_TIMER_2);
+                Ports.getInstance().registerPort(this, PORT_ASP_1_U857_TIMER_3);
+                Ports.getInstance().registerPort(this, PORT_ASP_1_U856_DATA_V24);
+                Ports.getInstance().registerPort(this, PORT_ASP_1_U856_DATA_IFSS);
+                Ports.getInstance().registerPort(this, PORT_ASP_1_U856_CONTROL_V24);
+                Ports.getInstance().registerPort(this, PORT_ASP_1_U856_CONTROL_IFSS_V24);
+                break;
+            case 2:
+                Ports.getInstance().registerPort(this, PORT_ASP_2_ENABLE_INTERRUPT);
+                Ports.getInstance().registerPort(this, PORT_ASP_2_BOS1810);
+                Ports.getInstance().registerPort(this, PORT_ASP_2_RETI);
+                Ports.getInstance().registerPort(this, PORT_ASP_2_TEST);
+                Ports.getInstance().registerPort(this, PORT_ASP_2_CONTROL);
+                Ports.getInstance().registerPort(this, PORT_ASP_2_U855_PORT_A_DATA);
+                Ports.getInstance().registerPort(this, PORT_ASP_2_U855_PORT_B_DATA);
+                Ports.getInstance().registerPort(this, PORT_ASP_2_U855_PORT_A_INIT);
+                Ports.getInstance().registerPort(this, PORT_ASP_2_U855_PORT_B_INIT);
+                Ports.getInstance().registerPort(this, PORT_ASP_2_U857_TIMER_0);
+                Ports.getInstance().registerPort(this, PORT_ASP_2_U857_TIMER_1);
+                Ports.getInstance().registerPort(this, PORT_ASP_2_U857_TIMER_2);
+                Ports.getInstance().registerPort(this, PORT_ASP_2_U857_TIMER_3);
+                Ports.getInstance().registerPort(this, PORT_ASP_2_U856_DATA_V24);
+                Ports.getInstance().registerPort(this, PORT_ASP_2_U856_DATA_IFSS);
+                Ports.getInstance().registerPort(this, PORT_ASP_2_U856_CONTROL_V24);
+                Ports.getInstance().registerPort(this, PORT_ASP_2_U856_CONTROL_IFSS_V24);
+                break;
+        }
+    }
+
+    public void writePort_Byte(int port, int data) {
+        switch (port) {
+            case PORT_ASP_1_ENABLE_INTERRUPT:
+                break;
+            case PORT_ASP_1_BOS1810:
+                break;
+            case PORT_ASP_1_RETI:
+                break;
+            case PORT_ASP_1_TEST:
+                break;
+            case PORT_ASP_1_CONTROL:
+                break;
+            case PORT_ASP_1_U855_PORT_A_DATA:
+                break;
+            case PORT_ASP_1_U855_PORT_B_DATA:
+                break;
+            case PORT_ASP_1_U855_PORT_A_INIT:
+                break;
+            case PORT_ASP_1_U855_PORT_B_INIT:
+                break;
+            case PORT_ASP_1_U857_TIMER_0:
+                break;
+            case PORT_ASP_1_U857_TIMER_1:
+                break;
+            case PORT_ASP_1_U857_TIMER_2:
+                break;
+            case PORT_ASP_1_U857_TIMER_3:
+                break;
+            case PORT_ASP_1_U856_DATA_V24:
+                break;
+            case PORT_ASP_1_U856_DATA_IFSS:
+                break;
+            case PORT_ASP_1_U856_CONTROL_V24:
+                break;
+            case PORT_ASP_1_U856_CONTROL_IFSS_V24:
+                break;
+        }
+    }
+
+    public void writePort_Word(int port, int data) {
+        switch (port) {
+            case PORT_ASP_1_ENABLE_INTERRUPT:
+                break;
+            case PORT_ASP_1_BOS1810:
+                break;
+            case PORT_ASP_1_RETI:
+                break;
+            case PORT_ASP_1_TEST:
+                break;
+            case PORT_ASP_1_CONTROL:
+                break;
+            case PORT_ASP_1_U855_PORT_A_DATA:
+                break;
+            case PORT_ASP_1_U855_PORT_B_DATA:
+                break;
+            case PORT_ASP_1_U855_PORT_A_INIT:
+                break;
+            case PORT_ASP_1_U855_PORT_B_INIT:
+                break;
+            case PORT_ASP_1_U857_TIMER_0:
+                break;
+            case PORT_ASP_1_U857_TIMER_1:
+                break;
+            case PORT_ASP_1_U857_TIMER_2:
+                break;
+            case PORT_ASP_1_U857_TIMER_3:
+                break;
+            case PORT_ASP_1_U856_DATA_V24:
+                break;
+            case PORT_ASP_1_U856_DATA_IFSS:
+                break;
+            case PORT_ASP_1_U856_CONTROL_V24:
+                break;
+            case PORT_ASP_1_U856_CONTROL_IFSS_V24:
+                break;
+        }
+    }
+
+    public int readPort_Byte(int port) {
+        switch (port) {
+            case PORT_ASP_1_ENABLE_INTERRUPT:
+                break;
+            case PORT_ASP_1_BOS1810:
+                break;
+            case PORT_ASP_1_RETI:
+                break;
+            case PORT_ASP_1_TEST:
+                break;
+            case PORT_ASP_1_CONTROL:
+                break;
+            case PORT_ASP_1_U855_PORT_A_DATA:
+                break;
+            case PORT_ASP_1_U855_PORT_B_DATA:
+                break;
+            case PORT_ASP_1_U855_PORT_A_INIT:
+                break;
+            case PORT_ASP_1_U855_PORT_B_INIT:
+                break;
+            case PORT_ASP_1_U857_TIMER_0:
+                break;
+            case PORT_ASP_1_U857_TIMER_1:
+                break;
+            case PORT_ASP_1_U857_TIMER_2:
+                break;
+            case PORT_ASP_1_U857_TIMER_3:
+                break;
+            case PORT_ASP_1_U856_DATA_V24:
+                break;
+            case PORT_ASP_1_U856_DATA_IFSS:
+                break;
+            case PORT_ASP_1_U856_CONTROL_V24:
+                break;
+            case PORT_ASP_1_U856_CONTROL_IFSS_V24:
+                break;
+        }
+        return 0;
+    }
+
+    public int readPort_Word(int port) {
+        switch (port) {
+            case PORT_ASP_1_ENABLE_INTERRUPT:
+                break;
+            case PORT_ASP_1_BOS1810:
+                break;
+            case PORT_ASP_1_RETI:
+                break;
+            case PORT_ASP_1_TEST:
+                break;
+            case PORT_ASP_1_CONTROL:
+                break;
+            case PORT_ASP_1_U855_PORT_A_DATA:
+                break;
+            case PORT_ASP_1_U855_PORT_B_DATA:
+                break;
+            case PORT_ASP_1_U855_PORT_A_INIT:
+                break;
+            case PORT_ASP_1_U855_PORT_B_INIT:
+                break;
+            case PORT_ASP_1_U857_TIMER_0:
+                break;
+            case PORT_ASP_1_U857_TIMER_1:
+                break;
+            case PORT_ASP_1_U857_TIMER_2:
+                break;
+            case PORT_ASP_1_U857_TIMER_3:
+                break;
+            case PORT_ASP_1_U856_DATA_V24:
+                break;
+            case PORT_ASP_1_U856_DATA_IFSS:
+                break;
+            case PORT_ASP_1_U856_CONTROL_V24:
+                break;
+            case PORT_ASP_1_U856_CONTROL_IFSS_V24:
+                break;
+        }
+        return 0;
+    }
+}
