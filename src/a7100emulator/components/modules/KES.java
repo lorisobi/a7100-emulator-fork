@@ -4,13 +4,13 @@
  */
 package a7100emulator.components.modules;
 
-import a7100emulator.components.Ports;
+import a7100emulator.components.SystemPorts;
 
 /**
  *
  * @author Dirk
  */
-public final class KES implements Module {
+public final class KES implements PortModule {
 
     private static int kes_count = 0;
     private final static int PORT_KES_1_WAKEUP_1 = 0x100;
@@ -27,12 +27,12 @@ public final class KES implements Module {
     public void registerPorts() {
         switch (kes_id) {
             case 0:
-                Ports.getInstance().registerPort(this, PORT_KES_1_WAKEUP_1);
-                Ports.getInstance().registerPort(this, PORT_KES_1_WAKEUP_2);
+                SystemPorts.getInstance().registerPort(this, PORT_KES_1_WAKEUP_1);
+                SystemPorts.getInstance().registerPort(this, PORT_KES_1_WAKEUP_2);
                 break;
             case 1:
-                Ports.getInstance().registerPort(this, PORT_KES_2_WAKEUP_1);
-                Ports.getInstance().registerPort(this, PORT_KES_2_WAKEUP_2);
+                SystemPorts.getInstance().registerPort(this, PORT_KES_2_WAKEUP_1);
+                SystemPorts.getInstance().registerPort(this, PORT_KES_2_WAKEUP_2);
                 break;
         }
     }
@@ -71,5 +71,9 @@ public final class KES implements Module {
                 throw new IllegalArgumentException("Cannot read from PORT:" + Integer.toHexString(port));
         }
         return 0;
+    }
+
+    public void init() {
+        throw new UnsupportedOperationException("Not supported yet.");
     }
 }

@@ -15,17 +15,17 @@ import java.util.logging.Logger;
  *
  * @author Dirk
  */
-public class Memory {
+public class SystemMemory {
 
     private HashMap<AddressSpace, Module> memoryModules = new HashMap<AddressSpace, Module>();
-    private static Memory instance;
+    private static SystemMemory instance;
 
-    private Memory() {
+    private SystemMemory() {
     }
 
-    public static Memory getInstance() {
+    public static SystemMemory getInstance() {
         if (instance == null) {
-            instance = new Memory();
+            instance = new SystemMemory();
         }
         return instance;
     }
@@ -77,7 +77,7 @@ public class Memory {
             fos.write(memory);
             fos.close();
         } catch (Exception ex) {
-            Logger.getLogger(Memory.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(SystemMemory.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
 }

@@ -4,8 +4,8 @@
  */
 package a7100emulator.components.cpu;
 
-import a7100emulator.components.Memory;
-import a7100emulator.components.Ports;
+import a7100emulator.components.SystemMemory;
+import a7100emulator.components.SystemPorts;
 import java.io.FileOutputStream;
 import java.io.PrintStream;
 import java.io.RandomAccessFile;
@@ -21,11 +21,11 @@ public class K1810WM86 {
     /**
      * Speicher
      */
-    private Memory memory = new Memory();
+    private SystemMemory memory = SystemMemory.getInstance();
     /**
      * E/A Ports
      */
-    private Ports ports = new Ports();
+    private SystemPorts ports = SystemPorts.getInstance();
     /**
      * Nicht verwendet
      * 0F
@@ -528,7 +528,7 @@ public class K1810WM86 {
      */
     private int di;
     /*
-     * Instructionpointer
+     * Instruktionpointer
      */
     private int ip;
     /*

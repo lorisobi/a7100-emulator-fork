@@ -4,20 +4,20 @@
  */
 package a7100emulator.components.modules;
 
-import a7100emulator.components.Ports;
+import a7100emulator.components.SystemPorts;
 
 /**
  *
  * @author Dirk
  */
-public class ABS implements Module {
+public class ABS implements PortModule {
 
     private final static int PORT_ABS_STATE = 0x200;
     private final static int PORT_ABS_DATA = 0x202;
 
     public void registerPorts() {
-        Ports.getInstance().registerPort(this, PORT_ABS_STATE);
-        Ports.getInstance().registerPort(this, PORT_ABS_DATA);
+        SystemPorts.getInstance().registerPort(this, PORT_ABS_STATE);
+        SystemPorts.getInstance().registerPort(this, PORT_ABS_DATA);
     }
 
     public void writePort_Byte(int port, int data) {
@@ -56,5 +56,9 @@ public class ABS implements Module {
                 break;
         }
         return 0;
+    }
+
+    public void init() {
+        throw new UnsupportedOperationException("Not supported yet.");
     }
 }

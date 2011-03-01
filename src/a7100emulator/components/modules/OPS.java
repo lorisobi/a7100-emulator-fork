@@ -4,13 +4,13 @@
  */
 package a7100emulator.components.modules;
 
-import a7100emulator.components.Ports;
+import a7100emulator.components.SystemPorts;
 
 /**
  *
  * @author Dirk
  */
-public final class OPS implements Module {
+public final class OPS implements PortModule,MemoryModule {
 
     private static int ops_count=0;
 
@@ -28,16 +28,16 @@ public final class OPS implements Module {
     public void registerPorts() {
         switch (ops_id) {
             case 0:
-                Ports.getInstance().registerPort(this, PORT_OPS_1_PES);
+                SystemPorts.getInstance().registerPort(this, PORT_OPS_1_PES);
                 break;
             case 1:
-                Ports.getInstance().registerPort(this, PORT_OPS_2_PES);
+                SystemPorts.getInstance().registerPort(this, PORT_OPS_2_PES);
                 break;
             case 2:
-                Ports.getInstance().registerPort(this, PORT_OPS_3_PES);
+                SystemPorts.getInstance().registerPort(this, PORT_OPS_3_PES);
                 break;
             case 3:
-                Ports.getInstance().registerPort(this, PORT_OPS_4_PES);
+                SystemPorts.getInstance().registerPort(this, PORT_OPS_4_PES);
                 break;
         }
     }
@@ -58,5 +58,29 @@ public final class OPS implements Module {
     public int readPort_Word(int port) {
         System.out.println("read Word auf OPS Port nicht implementiert");
         return 0;
+    }
+
+    public void init() {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    public int readByte(int address) {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    public int readWord(int address) {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    public void registerMemory() {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    public void writeByte(int address, int data) {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    public void writeWord(int address, int data) {
+        throw new UnsupportedOperationException("Not supported yet.");
     }
 }

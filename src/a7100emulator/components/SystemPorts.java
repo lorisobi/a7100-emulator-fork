@@ -4,27 +4,27 @@
  */
 package a7100emulator.components;
 
-import a7100emulator.components.modules.Module;
+import a7100emulator.components.modules.PortModule;
 import java.util.HashMap;
 
 /**
  *
  * @author Dirk
  */
-public class Ports {
+public class SystemPorts {
 
-    private static Ports instance;
+    private static SystemPorts instance;
 
-    public static Ports getInstance() {
+    public static SystemPorts getInstance() {
         if (instance == null) {
-            instance = new Ports();
+            instance = new SystemPorts();
         }
         return instance;
     }
-    private HashMap<Integer, Module> portModules = new HashMap<Integer, Module>();
+    private HashMap<Integer, PortModule> portModules = new HashMap<Integer, PortModule>();
     //private byte[] ports = new byte[65536];
 
-    public void registerPort(Module module, int port) {
+    public void registerPort(PortModule module, int port) {
         portModules.put(port, module);
     }
 

@@ -4,20 +4,20 @@
  */
 package a7100emulator.components.modules;
 
-import a7100emulator.components.Ports;
+import a7100emulator.components.SystemPorts;
 
 /**
  *
  * @author Dirk
  */
-public class KGS implements Module {
+public class KGS implements PortModule {
 
     private final static int PORT_KGS_STATE = 0x200;
     private final static int PORT_KGS_DATA = 0x202;
 
     public void registerPorts() {
-        Ports.getInstance().registerPort(this, PORT_KGS_STATE);
-        Ports.getInstance().registerPort(this, PORT_KGS_DATA);
+        SystemPorts.getInstance().registerPort(this, PORT_KGS_STATE);
+        SystemPorts.getInstance().registerPort(this, PORT_KGS_DATA);
     }
 
     public void writePort_Byte(int port, int data) {
@@ -56,5 +56,9 @@ public class KGS implements Module {
                 break;
         }
         return 0;
+    }
+
+    public void init() {
+        throw new UnsupportedOperationException("Not supported yet.");
     }
 }

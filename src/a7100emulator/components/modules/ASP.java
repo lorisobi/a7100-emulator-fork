@@ -4,13 +4,13 @@
  */
 package a7100emulator.components.modules;
 
-import a7100emulator.components.Ports;
+import a7100emulator.components.SystemPorts;
 
 /**
  *
  * @author Dirk
  */
-public final class ASP implements Module {
+public final class ASP implements PortModule {
 
     private static int asp_count=0;
 
@@ -59,42 +59,42 @@ public final class ASP implements Module {
 
         switch (asp_id) {
             case 1:
-                Ports.getInstance().registerPort(this, PORT_ASP_1_ENABLE_INTERRUPT);
-                Ports.getInstance().registerPort(this, PORT_ASP_1_BOS1810);
-                Ports.getInstance().registerPort(this, PORT_ASP_1_RETI);
-                Ports.getInstance().registerPort(this, PORT_ASP_1_TEST);
-                Ports.getInstance().registerPort(this, PORT_ASP_1_CONTROL);
-                Ports.getInstance().registerPort(this, PORT_ASP_1_U855_PORT_A_DATA);
-                Ports.getInstance().registerPort(this, PORT_ASP_1_U855_PORT_B_DATA);
-                Ports.getInstance().registerPort(this, PORT_ASP_1_U855_PORT_A_INIT);
-                Ports.getInstance().registerPort(this, PORT_ASP_1_U855_PORT_B_INIT);
-                Ports.getInstance().registerPort(this, PORT_ASP_1_U857_TIMER_0);
-                Ports.getInstance().registerPort(this, PORT_ASP_1_U857_TIMER_1);
-                Ports.getInstance().registerPort(this, PORT_ASP_1_U857_TIMER_2);
-                Ports.getInstance().registerPort(this, PORT_ASP_1_U857_TIMER_3);
-                Ports.getInstance().registerPort(this, PORT_ASP_1_U856_DATA_V24);
-                Ports.getInstance().registerPort(this, PORT_ASP_1_U856_DATA_IFSS);
-                Ports.getInstance().registerPort(this, PORT_ASP_1_U856_CONTROL_V24);
-                Ports.getInstance().registerPort(this, PORT_ASP_1_U856_CONTROL_IFSS_V24);
+                SystemPorts.getInstance().registerPort(this, PORT_ASP_1_ENABLE_INTERRUPT);
+                SystemPorts.getInstance().registerPort(this, PORT_ASP_1_BOS1810);
+                SystemPorts.getInstance().registerPort(this, PORT_ASP_1_RETI);
+                SystemPorts.getInstance().registerPort(this, PORT_ASP_1_TEST);
+                SystemPorts.getInstance().registerPort(this, PORT_ASP_1_CONTROL);
+                SystemPorts.getInstance().registerPort(this, PORT_ASP_1_U855_PORT_A_DATA);
+                SystemPorts.getInstance().registerPort(this, PORT_ASP_1_U855_PORT_B_DATA);
+                SystemPorts.getInstance().registerPort(this, PORT_ASP_1_U855_PORT_A_INIT);
+                SystemPorts.getInstance().registerPort(this, PORT_ASP_1_U855_PORT_B_INIT);
+                SystemPorts.getInstance().registerPort(this, PORT_ASP_1_U857_TIMER_0);
+                SystemPorts.getInstance().registerPort(this, PORT_ASP_1_U857_TIMER_1);
+                SystemPorts.getInstance().registerPort(this, PORT_ASP_1_U857_TIMER_2);
+                SystemPorts.getInstance().registerPort(this, PORT_ASP_1_U857_TIMER_3);
+                SystemPorts.getInstance().registerPort(this, PORT_ASP_1_U856_DATA_V24);
+                SystemPorts.getInstance().registerPort(this, PORT_ASP_1_U856_DATA_IFSS);
+                SystemPorts.getInstance().registerPort(this, PORT_ASP_1_U856_CONTROL_V24);
+                SystemPorts.getInstance().registerPort(this, PORT_ASP_1_U856_CONTROL_IFSS_V24);
                 break;
             case 2:
-                Ports.getInstance().registerPort(this, PORT_ASP_2_ENABLE_INTERRUPT);
-                Ports.getInstance().registerPort(this, PORT_ASP_2_BOS1810);
-                Ports.getInstance().registerPort(this, PORT_ASP_2_RETI);
-                Ports.getInstance().registerPort(this, PORT_ASP_2_TEST);
-                Ports.getInstance().registerPort(this, PORT_ASP_2_CONTROL);
-                Ports.getInstance().registerPort(this, PORT_ASP_2_U855_PORT_A_DATA);
-                Ports.getInstance().registerPort(this, PORT_ASP_2_U855_PORT_B_DATA);
-                Ports.getInstance().registerPort(this, PORT_ASP_2_U855_PORT_A_INIT);
-                Ports.getInstance().registerPort(this, PORT_ASP_2_U855_PORT_B_INIT);
-                Ports.getInstance().registerPort(this, PORT_ASP_2_U857_TIMER_0);
-                Ports.getInstance().registerPort(this, PORT_ASP_2_U857_TIMER_1);
-                Ports.getInstance().registerPort(this, PORT_ASP_2_U857_TIMER_2);
-                Ports.getInstance().registerPort(this, PORT_ASP_2_U857_TIMER_3);
-                Ports.getInstance().registerPort(this, PORT_ASP_2_U856_DATA_V24);
-                Ports.getInstance().registerPort(this, PORT_ASP_2_U856_DATA_IFSS);
-                Ports.getInstance().registerPort(this, PORT_ASP_2_U856_CONTROL_V24);
-                Ports.getInstance().registerPort(this, PORT_ASP_2_U856_CONTROL_IFSS_V24);
+                SystemPorts.getInstance().registerPort(this, PORT_ASP_2_ENABLE_INTERRUPT);
+                SystemPorts.getInstance().registerPort(this, PORT_ASP_2_BOS1810);
+                SystemPorts.getInstance().registerPort(this, PORT_ASP_2_RETI);
+                SystemPorts.getInstance().registerPort(this, PORT_ASP_2_TEST);
+                SystemPorts.getInstance().registerPort(this, PORT_ASP_2_CONTROL);
+                SystemPorts.getInstance().registerPort(this, PORT_ASP_2_U855_PORT_A_DATA);
+                SystemPorts.getInstance().registerPort(this, PORT_ASP_2_U855_PORT_B_DATA);
+                SystemPorts.getInstance().registerPort(this, PORT_ASP_2_U855_PORT_A_INIT);
+                SystemPorts.getInstance().registerPort(this, PORT_ASP_2_U855_PORT_B_INIT);
+                SystemPorts.getInstance().registerPort(this, PORT_ASP_2_U857_TIMER_0);
+                SystemPorts.getInstance().registerPort(this, PORT_ASP_2_U857_TIMER_1);
+                SystemPorts.getInstance().registerPort(this, PORT_ASP_2_U857_TIMER_2);
+                SystemPorts.getInstance().registerPort(this, PORT_ASP_2_U857_TIMER_3);
+                SystemPorts.getInstance().registerPort(this, PORT_ASP_2_U856_DATA_V24);
+                SystemPorts.getInstance().registerPort(this, PORT_ASP_2_U856_DATA_IFSS);
+                SystemPorts.getInstance().registerPort(this, PORT_ASP_2_U856_CONTROL_V24);
+                SystemPorts.getInstance().registerPort(this, PORT_ASP_2_U856_CONTROL_IFSS_V24);
                 break;
         }
     }
@@ -255,5 +255,9 @@ public final class ASP implements Module {
                 break;
         }
         return 0;
+    }
+
+    public void init() {
+        throw new UnsupportedOperationException("Not supported yet.");
     }
 }

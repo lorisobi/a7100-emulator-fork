@@ -9,6 +9,10 @@ package a7100emulator.components.modules;
  *
  * @author Dirk
  */
-public class ABG {
+public class ABG implements Module {
+
+    public void init() {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
 
 }
