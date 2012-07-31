@@ -4,7 +4,7 @@
  */
 package a7100emulator.Tools;
 
-import a7100emulator.components.SystemMemory;
+import a7100emulator.components.system.SystemMemory;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -65,7 +65,7 @@ public class Memory {
                 Logger.getLogger(Memory.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
-        dump();
+        //dump();
     }
 
     public void writeByte(int address, int value) {
@@ -101,4 +101,45 @@ public class Memory {
             Logger.getLogger(SystemMemory.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
+
+//
+//    public static void main(String[] args) {
+//
+//        try {
+//            File file=new File("DUMP.ROM");
+//            FileInputStream fin = new FileInputStream(file);
+//            FileOutputStream fos1 = new FileOutputStream("259.rom");
+//            FileOutputStream fos2 = new FileOutputStream("260.rom");
+//            FileOutputStream fos3 = new FileOutputStream("261.rom");
+//            FileOutputStream fos4 = new FileOutputStream("262.rom");
+//
+//            int offset1=0x4000;
+//
+//            byte[] ba1=new byte[(int) file.length()/4];
+//            byte[] ba2=new byte[(int) file.length()/4];
+//            byte[] ba3=new byte[(int) file.length()/4];
+//            byte[] ba4=new byte[(int) file.length()/4];
+//
+//            for (int i=0;i<0x2000;i++) {
+//                ba1[i]=(byte)fin.read();
+//                ba2[i]=(byte)fin.read();
+//            }
+//            for (int i=0;i<0x2000;i++) {
+//                ba3[i]=(byte)fin.read();
+//                ba4[i]=(byte)fin.read();
+//            }
+//
+//            fos1.write(ba4);
+//            fos2.write(ba2);
+//            fos3.write(ba3);
+//            fos4.write(ba1);
+//
+//
+//            fos1.close();
+//            fos2.close();
+//            fos3.close();
+//            fos4.close();
+//        } catch (Exception ex) {
+//        }
+//    }
 }

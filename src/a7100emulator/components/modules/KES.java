@@ -4,7 +4,7 @@
  */
 package a7100emulator.components.modules;
 
-import a7100emulator.components.SystemPorts;
+import a7100emulator.components.system.SystemPorts;
 
 /**
  *
