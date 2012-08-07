@@ -4,6 +4,8 @@
  */
 package a7100emulator.components.ic;
 
+import a7100emulator.components.system.InterruptSystem;
+
 /**
  *
  * @author Dirk
@@ -21,9 +23,11 @@ public class KR580WW55A {
     private In_Out port_b_in_out = In_Out.INPUT;
     private In_Out port_a_in_out = In_Out.INPUT;
     private int bits = 0;
+    private int dataB=0;
     //private Beep beep=new Beep();
 
     public void writeInit(int control) {
+//        System.out.println("Out Control: " + Integer.toHexString(control)+"/"+Integer.toBinaryString(control));
         if (getBit(control, 7)) {
             // Configure Mode
             group_a_mode = getBit(control, 6) ? 2 : (getBit(control, 5) ? 1 : 0);
@@ -73,6 +77,10 @@ public class KR580WW55A {
                     break;
                 case 7: // NMI-MASK
                     System.out.println("NMI-MASK:" + (newState ? "ON" : "OFF"));
+                    if (newState) 
+                        InterruptSystem.getInstance().enableParityNMI();
+                    else 
+                        InterruptSystem.getInstance().disableParityNMI();
                     break;
             }
             // System.out.println("Control:" + Integer.toBinaryString(control) + " Bit:" + bit + " Bits:" + Integer.toBinaryString(bits));
@@ -83,17 +91,18 @@ public class KR580WW55A {
     }
 
     public void writePortB(int data) {
+        dataB=data;
     }
 
     public void writePortC(int data) {
     }
 
     public int readPortA() {
-        return 0;
+        return 0xC0;
     }
 
     public int readPortB() {
-        return 0;
+        return dataB;
     }
 
     public int readPortC() {

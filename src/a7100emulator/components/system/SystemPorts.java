@@ -30,7 +30,8 @@ public class SystemPorts {
     public void writeByte(int address, int value) {
         PortModule module = portModules.get(address);
         if (module == null) {
-            System.out.println("Kein Modul für Port " + Integer.toHexString(address));
+            SystemClock.getInstance().updateClock(0xC000);
+//            System.out.println("Kein Modul für Port " + Integer.toHexString(address));
         } else {
             module.writePort_Byte(address, 0xFF & value);
         }
@@ -39,8 +40,9 @@ public class SystemPorts {
     public int readByte(int address) {
         PortModule module = portModules.get(address);
         if (module == null) {
-            System.out.println("Kein Modul für Port " + Integer.toHexString(address));
-            return 0xFF;
+//            System.out.println("Kein Modul für Port " + Integer.toHexString(address));
+            SystemClock.getInstance().updateClock(0xC000);
+            return 0x00;
         } else {
             return module.readPort_Byte(address);
         }
@@ -49,7 +51,8 @@ public class SystemPorts {
     public void writeWord(int address, int value) {
         PortModule module = portModules.get(address);
         if (module == null) {
-            System.out.println("Kein Modul für Port " + Integer.toHexString(address));
+            SystemClock.getInstance().updateClock(0xC000);
+//            System.out.println("Kein Modul für Port " + Integer.toHexString(address));
         } else {
             module.writePort_Word(address, 0xFFFF & value);
         }
@@ -58,7 +61,8 @@ public class SystemPorts {
     public int readWord(int address) {
         PortModule module = portModules.get(address);
         if (module == null) {
-            System.out.println("Kein Modul für Port " + Integer.toHexString(address));
+            SystemClock.getInstance().updateClock(0xC000);
+//            System.out.println("Kein Modul für Port " + Integer.toHexString(address));
             return 0xFF;
         }
         return module.readPort_Word(address);

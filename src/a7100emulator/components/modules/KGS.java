@@ -413,129 +413,129 @@ public final class KGS implements PortModule {
                 break;
             case 0x49:
                 // [ Pn I Horizontaltabulator vorwärts
-                System.out.println("ESC Folge noch nicht implementiert");
+                System.out.println("ESC Folge [ Pn I noch nicht implementiert");
                 receiveESC = false;
                 break;
             case 0x5A:
                 // [ Pn Z Horizontaltabulator rückwärts
-                System.out.println("ESC Folge noch nicht implementiert");
+                System.out.println("ESC Folge [ Pn Z noch nicht implementiert");
                 receiveESC = false;
                 break;
             case 0x59:
                 // [ Pn Y Vertikaltabulator vorwärts
-                System.out.println("ESC Folge noch nicht implementiert");
+                System.out.println("ESC Folge [ Pn Y noch nicht implementiert");
                 receiveESC = false;
                 break;
             case 0x48:
                 // [ Pn ; Pm H Cursor-Direktpositionierung
                 // H Setzen Horizontal-Tabulatorstop
-                System.out.println("ESC Folge noch nicht implementiert");
+                System.out.println("ESC Folge [ Pn;Pm H noch nicht implementiert");
                 receiveESC = false;
                 break;
             case 0x66:
                 // [ Pn ; Pm f Cursor-Direktpositionierung
-                System.out.println("ESC Folge noch nicht implementiert");
+                System.out.println("ESC Folge [ Pn;Pm f noch nicht implementiert");
                 receiveESC = false;
                 break;
             case 0x4D:
                 // M Cursor eine Zeile nach oben
-                System.out.println("ESC Folge noch nicht implementiert");
+                System.out.println("ESC Folge M noch nicht implementiert");
                 receiveESC = false;
                 break;
             case 0x4A:
                 // J Setzen Vertikal-Tabulatorstop
                 // [ Ps; Ps; ... ;Ps J Löschen eines Zeichenbereiches des Bildschirms
-                System.out.println("ESC Folge noch nicht implementiert");
+                System.out.println("ESC Folge [ Ps;Ps;... J noch nicht implementiert");
                 receiveESC = false;
                 break;
             case 0x4E:
                 // [ Pn1; Pn2; ... ;Pns <SP> N Setzen Horizontal-Tabulatorstops
-                System.out.println("ESC Folge noch nicht implementiert");
+                System.out.println("ESC Folge [ Pn1; Pn2 <SP> N noch nicht implementiert");
                 receiveESC = false;
                 break;
             case 0x67:
                 // [ Ps; Ps; ... ;Ps g Löschen Tabulatorstops
-                System.out.println("ESC Folge noch nicht implementiert");
+                System.out.println("ESC Folge [ Ps; Ps; ... g noch nicht implementiert");
                 receiveESC = false;
                 break;
             case 0x57:
                 // [ Ps; Ps; ... ;Ps W Tabulator-Steuerung
-                System.out.println("ESC Folge noch nicht implementiert");
+                System.out.println("ESC Folge [ Ps; Ps; ... W noch nicht implementiert");
                 receiveESC = false;
                 break;
             case 0x68:
                 // [ Ps; Ps; ... ;Ps h Setzen Modus
-                System.out.println("ESC Folge noch nicht implementiert");
+                System.out.println("ESC Folge [ Ps; Ps; ... ;Ps h noch nicht implementiert");
                 receiveESC = false;
                 break;
             case 0x6C:
                 // [ Ps; Ps; ... ;Ps l Rücksetzen Modus
-                System.out.println("ESC Folge noch nicht implementiert");
+                System.out.println("ESC Folge [ Ps; Ps; ... ;Ps l noch nicht implementiert");
                 receiveESC = false;
                 break;
             case 0x4B:
                 // [ Ps; Ps; ... ;Ps K Löschen eines Zeichenbereiches in der aktiven Zeile
-                System.out.println("ESC Folge noch nicht implementiert");
+                System.out.println("ESC Folge [ Ps; Ps; ... ;Ps K noch nicht implementiert");
                 receiveESC = false;
                 break;
             case 0x75:
                 // [ Pn1; Pnm1; Pn2; Pm2 <SP> u Löschen eines Zeichenbereiches von Anfangs- bis Endposition
-                System.out.println("ESC Folge noch nicht implementiert");
+                System.out.println("ESC Folge [ Pn1; Pnm1; Pn2; Pm2 <SP> u noch nicht implementiert");
                 receiveESC = false;
                 break;
             case 0x6D:
                 // [ Ps; Ps; ... ;Ps m Ein-Ausschalten von Attributen
-                System.out.println("ESC Folge noch nicht implementiert");
+                System.out.println("ESC Folge [ Ps; PS; ... m noch nicht implementiert");
                 receiveESC = false;
                 break;
             case 0x6E:
                 // [ Ps; Ps; ... ;Ps n Anforderung zur Übertragung des KGS-Status an die ZVE und Rückmeldung
-                System.out.println("ESC Folge noch nicht implementiert");
+                System.out.println("ESC Folge [ Ps; Ps; ... n noch nicht implementiert");
                 receiveESC = false;
                 break;
             case 0x52:
                 // [ Pn; Pm R Übertragung der Cursorposition vom KGS an die ZVE als Antwort auf eine Anforderung der ZVE
-                System.out.println("ESC Folge noch nicht implementiert");
+                System.out.println("ESC Folge [ Pn;Pm R noch nicht implementiert");
                 receiveESC = false;
                 break;
             case 0x63:
                 // c Rücksetzen des KGS
                 // [ Ps c Anforderung zur Übertragung der KGS Gerätekennung
-                System.out.println("ESC Folge noch nicht implementiert");
+                System.out.println("ESC Folge [ Ps c noch nicht implementiert");
                 receiveESC = false;
                 break;
             case 0x37:
                 // 7 Retten Cursorposition
-                System.out.println("ESC Folge noch nicht implementiert");
+                System.out.println("ESC Folge 7 noch nicht implementiert");
                 if (ESCPosition == 1) {
                     receiveESC = false;
                 }
                 break;
             case 0x38:
                 // 8 Rücklesen Cursorposition
-                System.out.println("ESC Folge noch nicht implementiert");
+                System.out.println("ESC Folge 8 noch nicht implementiert");
                 if (ESCPosition == 1) {
                     receiveESC = false;
                 }
                 break;
             case 0x5D:
                 // ] Anforderung zur Übertragung des Diagnosefiles
-                System.out.println("ESC Folge noch nicht implementiert");
+                System.out.println("ESC Folge ] noch nicht implementiert");
                 receiveESC = false;
                 break;
             case 0x5E:
                 // ^ Aufruf Testbild
-                System.out.println("ESC Folge noch nicht implementiert");
+                System.out.println("ESC Folge ^ noch nicht implementiert");
                 receiveESC = false;
                 break;
             case 0x50:
                 // P BCL BCH LAL LAH Byte1 ... ByteN Laden der ladbaren Firmware
-                System.out.println("ESC Folge noch nicht implementiert");
+                System.out.println("ESC Folge P BCL BCH LAL LAH noch nicht implementiert");
                 receiveESC = false;
                 break;
             case 0x5F:
                 // _ SAL SAR Start Programm
-                System.out.println("ESC Folge noch nicht implementiert");
+                System.out.println("ESC Folge _ noch nicht implementiert");
                 receiveESC = false;
                 break;
             case 0x70:

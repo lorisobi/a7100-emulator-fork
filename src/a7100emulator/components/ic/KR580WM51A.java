@@ -17,12 +17,10 @@ public class KR580WM51A {
     private final int STATE_TXE = 0x04;
     private int command;
     private int mode;
-    private int state = 7;
+    private int state = 0x05;
     private boolean modeInstruction = false;
     private byte[] deviceBuffer = new byte[10];
     private int bufferPosition = 0;
-    private int data;
-    private int deviceData = 0x11;
 
     public KR580WM51A() {
         Keyboard.getInstance().registerController(this);
@@ -36,15 +34,17 @@ public class KR580WM51A {
             this.command = command;
             if (command == 0x40) { // Reset
                 modeInstruction = true;
-                Keyboard.getInstance().reset();
+                bufferPosition=1;
+                deviceBuffer[0]=0x00;
+                Keyboard.getInstance().receiveByte(0x00);
             } else {
             }
         }
-        System.out.println("Out Command " + Integer.toHexString(command) + "/" + Integer.toBinaryString(command));
+//        System.out.println("Out Command " + Integer.toHexString(command) + "/" + Integer.toBinaryString(command));
     }
 
     public void writeDataToDevice(int data) {
-        System.out.println("Out Data " + Integer.toHexString(data) + "/" + Integer.toBinaryString(data));
+        //System.out.println("Out Data " + Integer.toHexString(data) + "/" + Integer.toBinaryString(data));
         Keyboard.getInstance().receiveByte(data);
         //state = 7;
     }
@@ -70,7 +70,7 @@ public class KR580WM51A {
                 state &= ~STATE_RXRDY;
             }
         }
-        System.out.println("Lese Daten " + Integer.toHexString(value) + "/" + Integer.toBinaryString(value));
+        //System.out.println("Lese Daten " + Integer.toHexString((byte) value) + "/" + Integer.toBinaryString((byte) value));
         return value;
     }
 

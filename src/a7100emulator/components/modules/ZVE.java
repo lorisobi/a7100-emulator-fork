@@ -6,10 +6,7 @@ package a7100emulator.components.modules;
 
 import a7100emulator.Tools.AddressSpace;
 import a7100emulator.Tools.Memory;
-import a7100emulator.components.ic.K1810WM86;
-import a7100emulator.components.ic.KR580WI53;
-import a7100emulator.components.ic.KR580WM51A;
-import a7100emulator.components.ic.KR580WW55A;
+import a7100emulator.components.ic.*;
 import a7100emulator.components.system.SystemClock;
 import a7100emulator.components.system.SystemMemory;
 import a7100emulator.components.system.SystemPorts;
@@ -40,6 +37,7 @@ public final class ZVE implements PortModule, MemoryModule, ClockModule {
     private final KR580WW55A ppi = new KR580WW55A();
     private final KR580WI53 pti = new KR580WI53();
     private final KR580WM51A usart = new KR580WM51A();
+    private final K580WN59A pic=new K580WN59A();
     private final Memory memory = new Memory(32768);
 
     public ZVE() {
@@ -76,8 +74,9 @@ public final class ZVE implements PortModule, MemoryModule, ClockModule {
         //System.out.println("OUT Byte " + Integer.toHexString(data) + "(" + Integer.toBinaryString(data) + ")" + " to port " + Integer.toHexString(port));
         switch (port) {
             case PORT_ZVE_8259A_1:
+                pic.writePort0(data);
             case PORT_ZVE_8259A_2:
-                //System.out.println("Write Byte to port " + Integer.toHexString(port)+" noch nicht implementiert!");
+                pic.writePort1(data);
                 break;
             case PORT_ZVE_8255A_PORT_A:
                 ppi.writePortA(data);
@@ -117,7 +116,6 @@ public final class ZVE implements PortModule, MemoryModule, ClockModule {
 //        System.out.println("OUT Word " + Integer.toHexString(data) + " to port " + Integer.toHexString(port));
         switch (port) {
             case PORT_ZVE_8259A_1:
-                System.out.println("Write Byte to port " + Integer.toHexString(port)+" noch nicht implementiert!");
                 break;
             case PORT_ZVE_8259A_2:
                 break;
@@ -149,11 +147,9 @@ public final class ZVE implements PortModule, MemoryModule, ClockModule {
         //System.out.println("IN Byte from port " + Integer.toHexString(port));
         switch (port) {
             case PORT_ZVE_8259A_1:
-                //System.out.println("Read Byte from port " + Integer.toHexString(port)+" noch nicht implementiert!");
-                break;
+                return pic.readStatus();
             case PORT_ZVE_8259A_2:
-                //System.out.println("Read Byte from port " + Integer.toHexString(port)+" noch nicht implementiert!");
-                break;
+                return pic.readOCW();
             case PORT_ZVE_8255A_PORT_A:
                 return ppi.readPortA();
             case PORT_ZVE_8255A_PORT_B:

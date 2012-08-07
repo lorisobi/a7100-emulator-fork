@@ -5,10 +5,15 @@
 
 package a7100emulator.components.modules;
 
+import a7100emulator.components.system.FloppyDrive;
+
 /**
  *
  * @author Dirk
  */
 public class AFS {
+    
+    private FloppyDrive drive0=new FloppyDrive();
+    private FloppyDrive drive1=new FloppyDrive();
 
 }

@@ -27,7 +27,7 @@ public class KR580WI53 {
 
     public void writeInit(int control) {
         int counterID = (control & TEST_COUNTER) >> 6;
-        System.out.print("Initialisiere Counter " + counterID + ": ");
+        //System.out.print("Initialisiere Counter " + counterID + ": ");
         switch (counterID) {
             case 0:
             case 1:
@@ -40,13 +40,13 @@ public class KR580WI53 {
     }
 
     public void writeCounter(int i, int data) {
-        System.out.print("Setze Counter " + i + ": ");
+        //System.out.print("Setze Counter " + i + ": ");
         counter[i].setValue(data);
     }
 
     public int readCounter(int i) {
         int val = counter[i].getValue();
-        System.out.println("Gelesen: " + val);
+        //System.out.println("Gelesen Counter "+i+": " + Integer.toHexString(val));
         return val;
     }
 
@@ -83,14 +83,14 @@ public class KR580WI53 {
                 if (!latched) {
                     latch = value;
                     latched = true;
-                    System.out.println("latched: " + latch);
+            //        System.out.println("latched: " + latch);
                 }
             } else {
                 mode = (TEST_MODE & control) >> 1;
                 rw = (TEST_RW & control) >> 4;
                 type = TEST_TYPE & control;
             }
-            System.out.println("MODE:" + mode + " RW:" + rw + " Type:" + type);
+            //System.out.println("MODE:" + mode + " RW:" + rw + " Type:" + type);
         }
 
         public void setValue(int val) {
@@ -107,7 +107,7 @@ public class KR580WI53 {
                     break;
                 case 3:
                     if (readWriteState == 0) {
-                        value |= val & 0xFF;
+                        value = val & 0xFF;
                         readWriteState++;
                         running = false;
                     } else {
@@ -120,7 +120,7 @@ public class KR580WI53 {
                     }
                     break;
             }
-            System.out.println("Neuer Wert:" + value);
+          //  System.out.println("Counter "+id+" - Neuer Wert:" + value);
         }
 
         public int getValue() {
@@ -171,8 +171,9 @@ public class KR580WI53 {
                 value -= amount;
                 if (value <= 0) {
                     value = 0;
-                    if (id == 0 && value + amount > 0) {
-                        InterruptSystem.getInstance().addInterrupt(34);
+                    if (value + amount > 0) {
+                        running=false;
+                        if (id==0) InterruptSystem.getInstance().addInterrupt(34);
                     }
                 }
                 //if (value>0) System.out.println("Neuer Wert:" + value);

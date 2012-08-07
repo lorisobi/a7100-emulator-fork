@@ -6,6 +6,8 @@ package a7100emulator;
 
 import a7100emulator.Debug.Decoder;
 import a7100emulator.Debug.MemoryAnalyzer;
+import a7100emulator.components.system.Keyboard;
+import a7100emulator.components.system.Screen;
 import a7100emulator.components.system.SystemMemory;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -18,7 +20,7 @@ import javax.swing.JMenuItem;
  *
  * @author Dirk
  */
-public class MainMenu extends JFrame {
+public class MainView extends JFrame {
 
     private final JMenu menuEmulator = new JMenu("Emulator");
     private final JMenu menuDebug = new JMenu("Debug");
@@ -33,7 +35,7 @@ public class MainMenu extends JFrame {
     private final JMenuItem menuDebugDecoderDump = new JMenuItem("Dump");
     private MainMenuController controller = new MainMenuController();
 
-    public MainMenu() {
+    public MainView() {
         super("A7100 Emulator");
         JMenuBar menubar = new JMenuBar();
         menubar.add(menuEmulator);
@@ -56,6 +58,9 @@ public class MainMenu extends JFrame {
         menuDebugDecoderDump.addActionListener(controller);
         
         this.setJMenuBar(menubar);
+        this.add(Screen.getInstance());
+        this.addKeyListener(Keyboard.getInstance());
+        this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         this.setVisible(true);
         this.pack();
     }

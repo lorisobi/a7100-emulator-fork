@@ -41,6 +41,7 @@ public class SystemMemory {
                 return memoryModules.get(addressSpace);
             }
         }
+        SystemClock.getInstance().updateClock(0xC000);
         //System.out.println("No module for memory address " + Integer.toHexString(address));
         return null;
     }
@@ -50,11 +51,6 @@ public class SystemMemory {
         if (module == null) {
             return;
         }
-//        if (address==0x80) {
-//            System.out.println("Schreibe an 0x80");
-//            this.dump();
-//            System.exit(0);
-//        }
         module.writeByte(address, value);
     }
 
@@ -71,11 +67,6 @@ public class SystemMemory {
         if (module == null) {
             return;
         }
-//        if (address==0x80) {
-//            System.out.println("Schreibe an 0x80");
-//            this.dump();
-//            System.exit(0);
-//        }
         module.writeWord(address, value);
     }
 

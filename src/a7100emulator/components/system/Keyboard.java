@@ -14,10 +14,6 @@ import java.awt.event.KeyListener;
  */
 public class Keyboard implements KeyListener {
 
-    public void reset() {
-        byteCnt=0;
-    }
-
     enum KeyboardType {
 
         K7637, K7672;
@@ -56,7 +52,7 @@ public class Keyboard implements KeyListener {
     private static Keyboard instance = null;
     private int byteCnt = 0;
     private byte[] commands = new byte[10];
-    private KeyboardType kbdType = KeyboardType.K7672;
+    private KeyboardType kbdType = KeyboardType.K7637;
 
     private Keyboard() {
     }
@@ -70,7 +66,9 @@ public class Keyboard implements KeyListener {
 
     public void registerController(KR580WM51A controller) {
         ifssController = controller;
-        sendBytes(new byte[]{(byte)0xFF, 0x11});
+        if (kbdType.equals(KeyboardType.K7637)) {
+            sendBytes(new byte[]{0x00, (byte) 0xFF, 0x11});
+        }
     }
 
     @Override
@@ -83,7 +81,7 @@ public class Keyboard implements KeyListener {
 
     @Override
     public void keyReleased(KeyEvent e) {
-        System.out.println("KeyReleased: " + Integer.toHexString(e.getKeyCode()) + " " + (int) e.getKeyChar());
+        //System.out.println("KeyReleased: " + Integer.toHexString(e.getKeyCode()) + " " + (int) e.getKeyChar());
 
         int code = 0x00;
         boolean shift = e.isShiftDown();
@@ -317,12 +315,19 @@ public class Keyboard implements KeyListener {
 
     public void receiveByte(int b) {
         commands[byteCnt++] = (byte) (b & 0xFF);
-        sendByte(0xFF);
+        if (kbdType.equals(KeyboardType.K7637)) {
+            if (b == 0x00) {
+                byteCnt = 0;
+                sendBytes(new byte[]{(byte) 0xFF, 0x11});
+            } else {
+                sendByte(0xFF);
+            }
+        }
         checkCommands();
     }
 
     public void checkCommands() {
-        System.out.println("Cnt:" + byteCnt);
+        //System.out.println("Cnt:" + byteCnt);
 
         switch (byteCnt) {
             case 1:
@@ -337,7 +342,7 @@ public class Keyboard implements KeyListener {
                         break;
                     case 0x52:
                         //Status
-                        System.out.println("Anfrage Status");
+                        //System.out.println("Anfrage Status");
                         byteCnt = 0;
                         sendBytes(new byte[]{0x1B, 0x5B, 0x30, 0x6E});
                         break;
@@ -386,7 +391,7 @@ public class Keyboard implements KeyListener {
                         break;
                     case 0x55:
                         // RESET
-                        System.out.println("Anfrage Reset");
+                        //System.out.println("Anfrage Reset");
                         byteCnt = 0;
                         sendByte(0x11);
                         break;
@@ -397,7 +402,7 @@ public class Keyboard implements KeyListener {
                     case 0x6E:
                         // Status
                         if (commands[0] == 0x1b) {
-                            System.out.println("Anfrage Status");
+                            //System.out.println("Anfrage Status");
                             byteCnt = 0;
                             sendBytes(new byte[]{0x5B, 0x30, 0x6E});
                         }
