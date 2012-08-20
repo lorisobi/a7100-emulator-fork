@@ -4,6 +4,7 @@
  */
 package a7100emulator;
 
+import a7100emulator.Debug.Debugger;
 import a7100emulator.Debug.Decoder;
 import a7100emulator.Debug.MemoryAnalyzer;
 import a7100emulator.components.system.Keyboard;
@@ -11,10 +12,7 @@ import a7100emulator.components.system.Screen;
 import a7100emulator.components.system.SystemMemory;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import javax.swing.JFrame;
-import javax.swing.JMenu;
-import javax.swing.JMenuBar;
-import javax.swing.JMenuItem;
+import javax.swing.*;
 
 /**
  *
@@ -29,6 +27,7 @@ public class MainView extends JFrame {
     private final JMenuItem menuEmulatorExit = new JMenuItem("Beenden");
     private final JMenu menuDebugMemory = new JMenu("Speicher");
     private final JMenu menuDebugDecoder = new JMenu("Decoder");
+    private final JCheckBoxMenuItem menuDebugSwitch = new JCheckBoxMenuItem("Debugger");
     private final JMenuItem menuDebugMemoryShow = new JMenuItem("zeigen");
     private final JMenuItem menuDebugMemoryDump = new JMenuItem("Dump");
     private final JMenuItem menuDebugDecoderShow = new JMenuItem("zeigen");
@@ -51,12 +50,14 @@ public class MainView extends JFrame {
         menuDebug.add(menuDebugDecoder);
         menuDebugDecoder.add(menuDebugDecoderShow);
         menuDebugDecoder.add(menuDebugDecoderDump);
+        menuDebug.add(menuDebugSwitch);
 
+        menuDebugSwitch.addActionListener(controller);
         menuDebugMemoryShow.addActionListener(controller);
         menuDebugMemoryDump.addActionListener(controller);
         menuDebugDecoderShow.addActionListener(controller);
         menuDebugDecoderDump.addActionListener(controller);
-        
+
         this.setJMenuBar(menubar);
         this.add(Screen.getInstance());
         this.addKeyListener(Keyboard.getInstance());
@@ -74,8 +75,10 @@ public class MainView extends JFrame {
                 Decoder.getInstance().show();
             } else if (e.getSource() == menuDebugMemoryDump) {
                 SystemMemory.getInstance().dump();
-            }else if (e.getSource() == menuDebugDecoderDump) {
+            } else if (e.getSource() == menuDebugDecoderDump) {
                 Decoder.getInstance().save();
+            } else if (e.getSource()==menuDebugSwitch) {
+                Debugger.getInstance().setDebug(menuDebugSwitch.isSelected());
             }
         }
     }

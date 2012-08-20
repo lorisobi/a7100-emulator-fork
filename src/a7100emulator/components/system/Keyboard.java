@@ -81,16 +81,13 @@ public class Keyboard implements KeyListener {
 
     @Override
     public void keyReleased(KeyEvent e) {
-        //System.out.println("KeyReleased: " + Integer.toHexString(e.getKeyCode()) + " " + (int) e.getKeyChar());
-
-        int code = 0x00;
         boolean shift = e.isShiftDown();
 
         //System.out.println(Integer.toHexString(code)+" "+e.getKeyChar());
 
-        if (e.isShiftDown()) {
-            System.out.println("Shift+");
-        }
+//        if (e.isShiftDown()) {
+//            System.out.println("Shift+");
+//        }
 
         switch (e.getKeyCode()) {
             case KeyEvent.VK_0:

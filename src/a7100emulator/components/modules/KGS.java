@@ -6,6 +6,7 @@ package a7100emulator.components.modules;
 
 import a7100emulator.Tools.BitmapGenerator;
 import a7100emulator.Tools.Memory;
+import a7100emulator.components.system.InterruptSystem;
 import a7100emulator.components.system.SystemPorts;
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -98,6 +99,8 @@ public final class KGS implements PortModule {
                 break;
             case PORT_KGS_DATA:
                 dataReceived(data);
+                setBit(INT_BIT);
+                InterruptSystem.getInstance().addIRInterrupt(7);
                 break;
         }
     }

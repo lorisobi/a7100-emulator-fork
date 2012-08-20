@@ -4,6 +4,9 @@
  */
 package a7100emulator.components.modules;
 
+import a7100emulator.Tools.Memory;
+import a7100emulator.components.system.FloppyDrive;
+import a7100emulator.components.system.InterruptSystem;
 import a7100emulator.components.system.SystemMemory;
 import a7100emulator.components.system.SystemPorts;
 
@@ -26,6 +29,8 @@ public final class KES implements PortModule {
     private byte[] ccb = new byte[16];
     private byte[] cib = new byte[16];
     private byte[] iopb = new byte[30];
+    private Memory sram = new Memory(0x4000);
+    private AFS afs = new AFS();
 
     public KES() {
         kes_id = kes_count++;
@@ -126,6 +131,8 @@ public final class KES implements PortModule {
         }
         checkIOPB();
         memory.writeByte(ccbAddress + 0x01, 0x00);
+
+        InterruptSystem.getInstance().addIRInterrupt(5);
     }
 
     private void checkIOPB() {
@@ -144,26 +151,91 @@ public final class KES implements PortModule {
         System.out.println("38-39 (ignorieren): " + Integer.toHexString(iopb[24]) + "," + Integer.toHexString(iopb[25]));
         System.out.println("3A-3D (Allgemeiner Adresspointer): " + Integer.toHexString(iopb[26]) + "," + Integer.toHexString(iopb[27]) + "," + Integer.toHexString(iopb[28]) + "," + Integer.toHexString(iopb[29]));
         switch (iopb[0x0B]) {
-            case 0x00:
+            case 0x00: {
                 // Intialisierung
-                break;
-            case 0x01:
+                int driveNr = memory.readByte(ccbAddress + 0x2A);
+                FloppyDrive drive = afs.getFloppy(driveNr & 0x03);
+                int status = 0x01;
+                // Typ Floppy
+                status |= 0x08;
+                // Laufwerksnummer
+                status |= (driveNr & 0x03) << 4;
+                status |= (drive.getDiskInsert()) ? 0x00 : 0xC0;
+                memory.writeByte(ccbAddress + 0x13, 0xFF);
+                memory.writeByte(ccbAddress + 0x11, status);
+            }
+            break;
+            case 0x01: {
                 // Statusabfrage
-                break;
+                int driveNr = memory.readByte(ccbAddress + 0x2A);
+                int memAddr = memory.readWord(ccbAddress + 0x34) * 16 + memory.readWord(ccbAddress + 0x32);
+                int status = 0x01;
+                if (getBit(driveNr, 4)) {
+                    FloppyDrive drive = afs.getFloppy(driveNr & 0x03);
+                    // Typ Floppy
+                    status |= 0x08;
+                    // Laufwerksnummer
+                    status |= (driveNr & 0x03) << 4;
+
+                    // Hard Error
+                    memory.writeByte(memAddr + 0x0, 0);
+                    memory.writeByte(memAddr + 0x1, (drive.getDiskInsert()) ? 0x00 : 0x40);
+                    status |= (drive.getDiskInsert()) ? 0x00 : 0xC0;
+                    // Soft Error
+                    memory.writeByte(memAddr + 0x2, 0);
+                    // Verlangter Zylinder
+                    memory.writeByte(memAddr + 0x3, 0);
+                    memory.writeByte(memAddr + 0x4, 0);
+                    // Verlangter Kopf
+                    memory.writeByte(memAddr + 0x5, 0);
+                    // Verlangter Sektor
+                    memory.writeByte(memAddr + 0x6, 0);
+                    // Aktueller Zylinder
+                    memory.writeByte(memAddr + 0x7, 0);
+                    memory.writeByte(memAddr + 0x8, 0);
+                    // Aktueller Kopf
+                    memory.writeByte(memAddr + 0x9, 0);
+                    // Aktueller Sektor
+                    memory.writeByte(memAddr + 0xA, 0);
+                    // Anzahl der durchgeführten Wiederholungen
+                    memory.writeByte(memAddr + 0xB, 0);
+
+                    // Anzahl der Bytes
+                    memory.writeByte(ccbAddress + 0x36, 0xB);
+                }
+                memory.writeByte(ccbAddress + 0x13, 0xFF);
+                memory.writeByte(ccbAddress + 0x11, status);
+            }
+            break;
             case 0x02:
                 // Formatieren
                 break;
             case 0x03:
                 // Lesen des Sektor-ID-Feldes
                 break;
-            case 0x04:
+            case 0x04: {
                 // Daten lesen
-                break;
+                int driveNr = memory.readByte(ccbAddress + 0x2A);
+                int memAddr = memory.readWord(ccbAddress + 0x34) * 16 + memory.readWord(ccbAddress + 0x32);
+                int cylinder = memory.readWord(ccbAddress + 0x2E);
+                int sector = memory.readByte(ccbAddress + 0x31);
+                int head = memory.readByte(ccbAddress + 0x30);
+                int byteCnt = memory.readWord(ccbAddress + 0x36);
+                FloppyDrive drive = afs.getFloppy(driveNr & 0x03);
+                byte[] data = drive.readData(cylinder, sector, head, byteCnt);
+                for (int i = 0; i < data.length; i++) {
+                    memory.writeByte(memAddr + i, data[i]);
+                }
+                memory.writeByte(ccbAddress + 0x13, 0xFF);
+                memory.writeByte(ccbAddress + 0x11, 0x01);
+            }
+            break;
             case 0x05:
                 // Daten zum KES-Puffer lesen
                 break;
             case 0x06:
                 // Daten schreiben
+
                 break;
             case 0x07:
                 // Daten aus KES-Puffer Schreiben
@@ -177,14 +249,32 @@ public final class KES implements PortModule {
             case 0x0D:
                 // DMA-Transfer zwischen Systemspeicher und UA-880-Subsystem Port
                 break;
-            case 0x0E:
+            case 0x0E: {
                 // KES-Puffer Ein-/Ausgabe
-                break;
+                int kesAddr = memory.readWord(ccbAddress + 0x2E);
+                int memAddr = memory.readWord(ccbAddress + 0x34) * 16 + memory.readWord(ccbAddress + 0x32);
+                int cnt = memory.readWord(ccbAddress + 0x36);
+                boolean toKES = memory.readByte(ccbAddress + 0x30) == 0xFF;
+                for (int i = 0; i < cnt; i++) {
+                    if (toKES) {
+                        sram.writeByte(kesAddr + i, memory.readByte(memAddr + i));
+                    } else {
+                        memory.writeByte(memAddr + i, sram.readByte(kesAddr + i));
+                    }
+                }
+                memory.writeByte(ccbAddress + 0x13, 0xFF);
+                memory.writeByte(ccbAddress + 0x11, 0x01);
+            }
+            break;
             case 0x0F:
                 // Diagnose
                 memory.writeByte(ccbAddress + 0x13, 0xFF);
                 memory.writeByte(ccbAddress + 0x11, 0x01);
                 break;
         }
+    }
+
+    private boolean getBit(int op1, int i) {
+        return (((op1 >> i) & 0x1) == 0x1);
     }
 }

@@ -83,7 +83,7 @@ public class KR580WI53 {
                 if (!latched) {
                     latch = value;
                     latched = true;
-            //        System.out.println("latched: " + latch);
+                    //        System.out.println("latched: " + latch);
                 }
             } else {
                 mode = (TEST_MODE & control) >> 1;
@@ -120,7 +120,7 @@ public class KR580WI53 {
                     }
                     break;
             }
-          //  System.out.println("Counter "+id+" - Neuer Wert:" + value);
+            //  System.out.println("Counter "+id+" - Neuer Wert:" + value);
         }
 
         public int getValue() {
@@ -172,8 +172,10 @@ public class KR580WI53 {
                 if (value <= 0) {
                     value = 0;
                     if (value + amount > 0) {
-                        running=false;
-                        if (id==0) InterruptSystem.getInstance().addInterrupt(34);
+                        running = false;
+                        if (id == 0) {
+                            InterruptSystem.getInstance().addIRInterrupt(2);
+                        }
                     }
                 }
                 //if (value>0) System.out.println("Neuer Wert:" + value);

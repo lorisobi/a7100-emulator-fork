@@ -4,16 +4,12 @@
  */
 package a7100emulator.components.ic;
 
+import a7100emulator.Debug.Debugger;
 import a7100emulator.Debug.Decoder;
 import a7100emulator.components.system.InterruptSystem;
 import a7100emulator.components.system.SystemClock;
 import a7100emulator.components.system.SystemMemory;
 import a7100emulator.components.system.SystemPorts;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.PrintStream;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  *
@@ -555,26 +551,22 @@ public class K1810WM86 implements Runnable {
     private Decoder decoder = Decoder.getInstance();
     private int decoderAddress;
     private String decoderString;
-    private PrintStream debugFile = null;
-    private boolean debug = false;
-    private int debugstart = -1;//0xF800 * 16 + 0x459B;
 
     public K1810WM86() {
-        if (debug) {
-            try {
-                debugFile = new PrintStream(new FileOutputStream("K1810WM86.log"));
-            } catch (Exception ex) {
-                Logger.getLogger(K1810WM86.class.getName()).log(Level.SEVERE, null, ex);
-            }
-        }
     }
 
     private void executeNextInstruction() {
         int opcode1 = memory.readByte(cs * 16 + (ip++));
+        boolean debug = Debugger.getInstance().isDebug();
 
         if (debug && (opcode1 != PREFIX_CS && opcode1 != PREFIX_SS && opcode1 != PREFIX_DS && opcode1 != PREFIX_ES)) {
             decoderAddress = cs * 16 + (ip - 1 - (prefix == NO_PREFIX ? 0 : 1));
             decoderString = String.format("%04X", cs) + ":" + String.format("%04X", ip - 1 - (prefix == NO_PREFIX ? 0 : 1)) + " ";
+        }
+
+        if ((ip - 1) == 0x01E4) {
+            int i = 0;
+            i = i + 1;
         }
 
         opCodeStatistic[opcode1]++;
@@ -605,19 +597,21 @@ public class K1810WM86 implements Runnable {
             break;
             case MOV_MODRM_REG_8: {
                 int opcode2 = memory.readByte(cs * 16 + (ip++));
-                setReg8(opcode2 & TEST_REG, getMODRM8(opcode2 & TEST_MOD, opcode2 & TEST_RM, true));
+                int op1 = getMODRM8(opcode2 & TEST_MOD, opcode2 & TEST_RM, true);
+                setReg8(opcode2 & TEST_REG, op1);
                 clock.updateClock(((opcode2 & TEST_MOD) == MOD_REG) ? 2 : 8 + getOpcodeCyclesEA(opcode2 & TEST_MOD, opcode2 & TEST_RM));
                 if (debug) {
-                    decoderString += "MOV " + getReg8String(opcode2 & TEST_REG) + "," + getMODRM8String(opcode2 & TEST_MOD, opcode2 & TEST_RM, 0);
+                    decoderString += "MOV " + getReg8String(opcode2 & TEST_REG) + "," + getMODRM8String(opcode2 & TEST_MOD, opcode2 & TEST_RM, 0) + " (" + Integer.toHexString(op1) + "h)";
                 }
             }
             break;
             case MOV_MODRM_REG_16: {
                 int opcode2 = memory.readByte(cs * 16 + (ip++));
-                setReg16(opcode2 & TEST_REG, getMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM, true));
+                int op1 = getMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM, true);
+                setReg16(opcode2 & TEST_REG, op1);
                 clock.updateClock(((opcode2 & TEST_MOD) == MOD_REG) ? 2 : 8 + getOpcodeCyclesEA(opcode2 & TEST_MOD, opcode2 & TEST_RM));
                 if (debug) {
-                    decoderString += "MOV " + getReg16String(opcode2 & TEST_REG) + "," + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM, 0);
+                    decoderString += "MOV " + getReg16String(opcode2 & TEST_REG) + "," + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM, 0) + " (" + Integer.toHexString(op1) + "h)";
                 }
             }
             break;
@@ -650,7 +644,7 @@ public class K1810WM86 implements Runnable {
                 memory.writeByte(segment * 16 + offset, getReg8(REG_AL_AX));
                 clock.updateClock(10);
                 if (debug) {
-                    decoderString += "MOV " + getSegmentString("DS") + ":" + Integer.toHexString(offset) + ",AL";
+                    decoderString += "MOV " + getSegmentString("DS") + ":" + Integer.toHexString(offset) + ",AL (" + getReg8(REG_AL_AX) + ")";
                 }
             }
             break;
@@ -815,17 +809,18 @@ public class K1810WM86 implements Runnable {
             case XCHG_MODRM_REG_16: {
                 int opcode2 = memory.readByte(cs * 16 + (ip++));
                 int op1 = getReg16(opcode2 & TEST_REG);
-                setReg16(opcode2 & TEST_REG, getMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM, false));
+                int op2 = getMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM, false);
+                setReg16(opcode2 & TEST_REG, op2);
                 setMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM, op1, true);
                 clock.updateClock(((opcode2 & TEST_MOD) == MOD_REG) ? 4 : 17 + getOpcodeCyclesEA(opcode2 & TEST_MOD, opcode2 & TEST_RM));
                 if (debug) {
-                    decoderString += "XCHG " + getReg16String(opcode2 & TEST_REG) + "," + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM, 0);
+                    decoderString += "XCHG " + getReg16String(opcode2 & TEST_REG) + "," + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM, 0) + " (" + Integer.toHexString(op1) + "h," + Integer.toHexString(op1) + "h)";
                 }
             }
             break;
             case XCHG_CX_AX: {
                 int op1 = getReg16(REG_CL_CX);
-                setReg16(REG_CL_CX, REG_AL_AX);
+                setReg16(REG_CL_CX, getReg16(REG_AL_AX));
                 setReg16(REG_AL_AX, op1);
                 clock.updateClock(3);
                 if (debug) {
@@ -835,7 +830,7 @@ public class K1810WM86 implements Runnable {
             break;
             case XCHG_DX_AX: {
                 int op1 = getReg16(REG_DL_DX);
-                setReg16(REG_DL_DX, REG_AL_AX);
+                setReg16(REG_DL_DX, getReg16(REG_AL_AX));
                 setReg16(REG_AL_AX, op1);
                 clock.updateClock(3);
                 if (debug) {
@@ -845,7 +840,7 @@ public class K1810WM86 implements Runnable {
             break;
             case XCHG_BX_AX: {
                 int op1 = getReg16(REG_BL_BX);
-                setReg16(REG_BL_BX, REG_AL_AX);
+                setReg16(REG_BL_BX, getReg16(REG_AL_AX));
                 setReg16(REG_AL_AX, op1);
                 clock.updateClock(3);
                 if (debug) {
@@ -855,7 +850,7 @@ public class K1810WM86 implements Runnable {
             break;
             case XCHG_SP_AX: {
                 int op1 = getReg16(REG_AH_SP);
-                setReg16(REG_AH_SP, REG_AL_AX);
+                setReg16(REG_AH_SP, getReg16(REG_AL_AX));
                 setReg16(REG_AL_AX, op1);
                 clock.updateClock(3);
                 if (debug) {
@@ -865,7 +860,7 @@ public class K1810WM86 implements Runnable {
             break;
             case XCHG_BP_AX: {
                 int op1 = getReg16(REG_AH_SP);
-                setReg16(REG_AH_SP, REG_AL_AX);
+                setReg16(REG_AH_SP, getReg16(REG_AL_AX));
                 setReg16(REG_AL_AX, op1);
                 clock.updateClock(3);
                 if (debug) {
@@ -875,7 +870,7 @@ public class K1810WM86 implements Runnable {
             break;
             case XCHG_SI_AX: {
                 int op1 = getReg16(REG_DH_SI);
-                setReg16(REG_DH_SI, REG_AL_AX);
+                setReg16(REG_DH_SI, getReg16(REG_AL_AX));
                 setReg16(REG_AL_AX, op1);
                 clock.updateClock(3);
                 if (debug) {
@@ -885,7 +880,7 @@ public class K1810WM86 implements Runnable {
             break;
             case XCHG_DI_AX: {
                 int op1 = getReg16(REG_BH_DI);
-                setReg16(REG_BH_DI, REG_AL_AX);
+                setReg16(REG_BH_DI, getReg16(REG_AL_AX));
                 setReg16(REG_AL_AX, op1);
                 clock.updateClock(3);
                 if (debug) {
@@ -895,7 +890,7 @@ public class K1810WM86 implements Runnable {
             break;
             case PUSH_ES: {
                 setReg16(REG_AH_SP, (getReg16(REG_AH_SP) - 2) & 0xFFFF);
-                memory.writeWord(getReg16(REG_AH_SP), (short) getSReg(SREG_ES));
+                memory.writeWord(ss * 16 + getReg16(REG_AH_SP), (short) getSReg(SREG_ES));
                 clock.updateClock(10);
                 if (debug) {
                     decoderString += "PUSH ES";
@@ -904,7 +899,7 @@ public class K1810WM86 implements Runnable {
             break;
             case PUSH_CS: {
                 setReg16(REG_AH_SP, (getReg16(REG_AH_SP) - 2) & 0xFFFF);
-                memory.writeWord(getReg16(REG_AH_SP), (short) getSReg(SREG_CS));
+                memory.writeWord(ss * 16 + getReg16(REG_AH_SP), (short) getSReg(SREG_CS));
                 clock.updateClock(10);
                 if (debug) {
                     decoderString += "PUSH CS";
@@ -913,7 +908,7 @@ public class K1810WM86 implements Runnable {
             break;
             case PUSH_SS: {
                 setReg16(REG_AH_SP, (getReg16(REG_AH_SP) - 2) & 0xFFFF);
-                memory.writeWord(getReg16(REG_AH_SP), (short) getSReg(SREG_SS));
+                memory.writeWord(ss * 16 + getReg16(REG_AH_SP), (short) getSReg(SREG_SS));
                 clock.updateClock(10);
                 if (debug) {
                     decoderString += "PUSH SS";
@@ -922,7 +917,7 @@ public class K1810WM86 implements Runnable {
             break;
             case PUSH_DS: {
                 setReg16(REG_AH_SP, (getReg16(REG_AH_SP) - 2) & 0xFFFF);
-                memory.writeWord(getReg16(REG_AH_SP), (short) getSReg(SREG_DS));
+                memory.writeWord(ss * 16 + getReg16(REG_AH_SP), (short) getSReg(SREG_DS));
                 clock.updateClock(10);
                 if (debug) {
                     decoderString += "PUSH DS";
@@ -931,7 +926,7 @@ public class K1810WM86 implements Runnable {
             break;
             case PUSH_AX: {
                 setReg16(REG_AH_SP, (getReg16(REG_AH_SP) - 2) & 0xFFFF);
-                memory.writeWord(getReg16(REG_AH_SP), (short) getReg16(REG_AL_AX));
+                memory.writeWord(ss * 16 + getReg16(REG_AH_SP), (short) getReg16(REG_AL_AX));
                 clock.updateClock(11);
                 if (debug) {
                     decoderString += "PUSH AX";
@@ -940,7 +935,7 @@ public class K1810WM86 implements Runnable {
             break;
             case PUSH_CX: {
                 setReg16(REG_AH_SP, (getReg16(REG_AH_SP) - 2) & 0xFFFF);
-                memory.writeWord(getReg16(REG_AH_SP), (short) getReg16(REG_CL_CX));
+                memory.writeWord(ss * 16 + getReg16(REG_AH_SP), (short) getReg16(REG_CL_CX));
                 clock.updateClock(11);
                 if (debug) {
                     decoderString += "PUSH CX";
@@ -949,7 +944,7 @@ public class K1810WM86 implements Runnable {
             break;
             case PUSH_DX: {
                 setReg16(REG_AH_SP, (getReg16(REG_AH_SP) - 2) & 0xFFFF);
-                memory.writeWord(getReg16(REG_AH_SP), (short) getReg16(REG_DL_DX));
+                memory.writeWord(ss * 16 + getReg16(REG_AH_SP), (short) getReg16(REG_DL_DX));
                 clock.updateClock(11);
                 if (debug) {
                     decoderString += "PUSH DX";
@@ -958,7 +953,7 @@ public class K1810WM86 implements Runnable {
             break;
             case PUSH_BX: {
                 setReg16(REG_AH_SP, (getReg16(REG_AH_SP) - 2) & 0xFFFF);
-                memory.writeWord(getReg16(REG_AH_SP), (short) getReg16(REG_BL_BX));
+                memory.writeWord(ss * 16 + getReg16(REG_AH_SP), (short) getReg16(REG_BL_BX));
                 clock.updateClock(11);
                 if (debug) {
                     decoderString += "PUSH BX";
@@ -967,7 +962,7 @@ public class K1810WM86 implements Runnable {
             break;
             case PUSH_SP: {
                 setReg16(REG_AH_SP, (getReg16(REG_AH_SP) - 2) & 0xFFFF);
-                memory.writeWord(getReg16(REG_AH_SP), (short) getReg16(REG_AH_SP));
+                memory.writeWord(ss * 16 + getReg16(REG_AH_SP), (short) getReg16(REG_AH_SP));
                 clock.updateClock(11);
                 if (debug) {
                     decoderString += "PUSH SP";
@@ -976,7 +971,7 @@ public class K1810WM86 implements Runnable {
             break;
             case PUSH_BP: {
                 setReg16(REG_AH_SP, (getReg16(REG_AH_SP) - 2) & 0xFFFF);
-                memory.writeWord(getReg16(REG_AH_SP), (short) getReg16(REG_CH_BP));
+                memory.writeWord(ss * 16 + getReg16(REG_AH_SP), (short) getReg16(REG_CH_BP));
                 clock.updateClock(11);
                 if (debug) {
                     decoderString += "PUSH BP";
@@ -985,7 +980,7 @@ public class K1810WM86 implements Runnable {
             break;
             case PUSH_SI: {
                 setReg16(REG_AH_SP, (getReg16(REG_AH_SP) - 2) & 0xFFFF);
-                memory.writeWord(getReg16(REG_AH_SP), (short) getReg16(REG_DH_SI));
+                memory.writeWord(ss * 16 + getReg16(REG_AH_SP), (short) getReg16(REG_DH_SI));
                 clock.updateClock(11);
                 if (debug) {
                     decoderString += "PUSH SI";
@@ -994,7 +989,7 @@ public class K1810WM86 implements Runnable {
             break;
             case PUSH_DI: {
                 setReg16(REG_AH_SP, (getReg16(REG_AH_SP) - 2) & 0xFFFF);
-                memory.writeWord(getReg16(REG_AH_SP), (short) getReg16(REG_BH_DI));
+                memory.writeWord(ss * 16 + getReg16(REG_AH_SP), (short) getReg16(REG_BH_DI));
                 clock.updateClock(11);
                 if (debug) {
                     decoderString += "PUSH DI";
@@ -1002,7 +997,7 @@ public class K1810WM86 implements Runnable {
             }
             break;
             case POP_ES: {
-                setSReg(SREG_ES, memory.readWord(getReg16(REG_AH_SP)));
+                setSReg(SREG_ES, memory.readWord(ss * 16 + getReg16(REG_AH_SP)));
                 setReg16(REG_AH_SP, (getReg16(REG_AH_SP) + 2) & 0xFFFF);
                 clock.updateClock(8);
                 if (debug) {
@@ -1011,7 +1006,7 @@ public class K1810WM86 implements Runnable {
             }
             break;
             case POP_SS: {
-                setSReg(SREG_SS, memory.readWord(getReg16(REG_AH_SP)));
+                setSReg(SREG_SS, memory.readWord(ss * 16 + getReg16(REG_AH_SP)));
                 setReg16(REG_AH_SP, (getReg16(REG_AH_SP) + 2) & 0xFFFF);
                 clock.updateClock(8);
                 if (debug) {
@@ -1020,7 +1015,7 @@ public class K1810WM86 implements Runnable {
             }
             break;
             case POP_DS: {
-                setSReg(SREG_DS, memory.readWord(getReg16(REG_AH_SP)));
+                setSReg(SREG_DS, memory.readWord(ss * 16 + getReg16(REG_AH_SP)));
                 setReg16(REG_AH_SP, (getReg16(REG_AH_SP) + 2) & 0xFFFF);
                 clock.updateClock(8);
                 if (debug) {
@@ -1029,7 +1024,7 @@ public class K1810WM86 implements Runnable {
             }
             break;
             case POP_AX: {
-                setReg16(REG_AL_AX, memory.readWord(getReg16(REG_AH_SP)));
+                setReg16(REG_AL_AX, memory.readWord(ss * 16 + getReg16(REG_AH_SP)));
                 setReg16(REG_AH_SP, (getReg16(REG_AH_SP) + 2) & 0xFFFF);
                 clock.updateClock(8);
                 if (debug) {
@@ -1038,7 +1033,7 @@ public class K1810WM86 implements Runnable {
             }
             break;
             case POP_CX: {
-                setReg16(REG_CL_CX, memory.readWord(getReg16(REG_AH_SP)));
+                setReg16(REG_CL_CX, memory.readWord(ss * 16 + getReg16(REG_AH_SP)));
                 setReg16(REG_AH_SP, (getReg16(REG_AH_SP) + 2) & 0xFFFF);
                 clock.updateClock(8);
                 if (debug) {
@@ -1047,7 +1042,7 @@ public class K1810WM86 implements Runnable {
             }
             break;
             case POP_DX: {
-                setReg16(REG_DL_DX, memory.readWord(getReg16(REG_AH_SP)));
+                setReg16(REG_DL_DX, memory.readWord(ss * 16 + getReg16(REG_AH_SP)));
                 setReg16(REG_AH_SP, (getReg16(REG_AH_SP) + 2) & 0xFFFF);
                 clock.updateClock(8);
                 if (debug) {
@@ -1056,7 +1051,7 @@ public class K1810WM86 implements Runnable {
             }
             break;
             case POP_BX: {
-                setReg16(REG_BL_BX, memory.readWord(getReg16(REG_AH_SP)));
+                setReg16(REG_BL_BX, memory.readWord(ss * 16 + getReg16(REG_AH_SP)));
                 setReg16(REG_AH_SP, (getReg16(REG_AH_SP) + 2) & 0xFFFF);
                 clock.updateClock(8);
                 if (debug) {
@@ -1065,7 +1060,7 @@ public class K1810WM86 implements Runnable {
             }
             break;
             case POP_SP: {
-                setReg16(REG_AH_SP, memory.readWord(getReg16(REG_AH_SP)));
+                setReg16(REG_AH_SP, memory.readWord(ss * 16 + getReg16(REG_AH_SP)));
                 setReg16(REG_AH_SP, (getReg16(REG_AH_SP) + 2) & 0xFFFF);
                 clock.updateClock(8);
                 if (debug) {
@@ -1074,7 +1069,7 @@ public class K1810WM86 implements Runnable {
             }
             break;
             case POP_BP: {
-                setReg16(REG_CH_BP, memory.readWord(getReg16(REG_AH_SP)));
+                setReg16(REG_CH_BP, memory.readWord(ss * 16 + getReg16(REG_AH_SP)));
                 setReg16(REG_AH_SP, (getReg16(REG_AH_SP) + 2) & 0xFFFF);
                 clock.updateClock(8);
                 if (debug) {
@@ -1083,7 +1078,7 @@ public class K1810WM86 implements Runnable {
             }
             break;
             case POP_SI: {
-                setReg16(REG_DH_SI, memory.readWord(getReg16(REG_AH_SP)));
+                setReg16(REG_DH_SI, memory.readWord(ss * 16 + getReg16(REG_AH_SP)));
                 setReg16(REG_AH_SP, (getReg16(REG_AH_SP) + 2) & 0xFFFF);
                 clock.updateClock(8);
                 if (debug) {
@@ -1092,7 +1087,7 @@ public class K1810WM86 implements Runnable {
             }
             break;
             case POP_DI: {
-                setReg16(REG_BH_DI, memory.readWord(getReg16(REG_AH_SP)));
+                setReg16(REG_BH_DI, memory.readWord(ss * 16 + getReg16(REG_AH_SP)));
                 setReg16(REG_AH_SP, (getReg16(REG_AH_SP) + 2) & 0xFFFF);
                 clock.updateClock(8);
                 if (debug) {
@@ -1102,7 +1097,7 @@ public class K1810WM86 implements Runnable {
             break;
             case PUSHF: {
                 setReg16(REG_AH_SP, (getReg16(REG_AH_SP) - 2) & 0xFFFF);
-                memory.writeWord(getReg16(REG_AH_SP), (short) flags);
+                memory.writeWord(ss * 16 + getReg16(REG_AH_SP), (short) flags);
                 clock.updateClock(10);
                 if (debug) {
                     decoderString += "PUSHF";
@@ -1110,7 +1105,7 @@ public class K1810WM86 implements Runnable {
             }
             break;
             case POPF: {
-                flags = memory.readWord(getReg16(REG_AH_SP));
+                flags = memory.readWord(ss * 16 + getReg16(REG_AH_SP));
                 setReg16(REG_AH_SP, (getReg16(REG_AH_SP) + 2) & 0xFFFF);
                 clock.updateClock(8);
                 if (debug) {
@@ -1198,7 +1193,7 @@ public class K1810WM86 implements Runnable {
                 setReg8(REG_AL_AX, ports.readByte(getReg16(REG_DL_DX)));
                 clock.updateClock(8);
                 if (debug) {
-                    decoderString += "IN AL,DX";
+                    decoderString += "IN AL,DX (" + Integer.toHexString(getReg8(REG_AL_AX)) + "," + Integer.toHexString(getReg16(REG_DL_DX)) + ")";
                 }
             }
             break;
@@ -1316,7 +1311,7 @@ public class K1810WM86 implements Runnable {
                 setReg16(opcode2 & TEST_REG, res & 0xFFFF);
                 clock.updateClock(((opcode2 & TEST_MOD) == MOD_REG) ? 3 : 9 + getOpcodeCyclesEA(opcode2 & TEST_MOD, opcode2 & TEST_RM));
                 if (debug) {
-                    decoderString += "ADD " + getReg16String(opcode2 & TEST_REG) + "," + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM, 0);
+                    decoderString += "ADD " + getReg16String(opcode2 & TEST_REG) + "," + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM, 0) + " (" + Integer.toHexString(op1) + "h," + Integer.toHexString(op2) + "h)";
                 }
             }
             break;
@@ -1548,7 +1543,7 @@ public class K1810WM86 implements Runnable {
                 setReg16(opcode2 & TEST_REG, res & 0xFFFF);
                 clock.updateClock(((opcode2 & TEST_MOD) == MOD_REG) ? 3 : 9 + getOpcodeCyclesEA(opcode2 & TEST_MOD, opcode2 & TEST_RM));
                 if (debug) {
-                    decoderString += "SUB " + getReg16String(opcode2 & TEST_REG) + "," + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM, 0)+" ("+Integer.toHexString(op1)+"-"+Integer.toHexString(op2)+")";
+                    decoderString += "SUB " + getReg16String(opcode2 & TEST_REG) + "," + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM, 0) + " (" + Integer.toHexString(op1) + "-" + Integer.toHexString(op2) + ")";
                 }
             }
             break;
@@ -1651,7 +1646,7 @@ public class K1810WM86 implements Runnable {
                 checkAuxiliaryCarryFlagSub(op1, op2);
                 clock.updateClock(((opcode2 & TEST_MOD) == MOD_REG) ? 3 : 9 + getOpcodeCyclesEA(opcode2 & TEST_MOD, opcode2 & TEST_RM));
                 if (debug) {
-                    decoderString += "CMP " + getReg16String(opcode2 & TEST_REG) + "," + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM, 0)+" ("+Integer.toHexString(op1)+","+Integer.toHexString(op2)+")";
+                    decoderString += "CMP " + getReg16String(opcode2 & TEST_REG) + "," + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM, 0) + " (" + Integer.toHexString(op1) + "," + Integer.toHexString(op2) + ")";
                 }
             }
             break;
@@ -1667,7 +1662,7 @@ public class K1810WM86 implements Runnable {
                 checkAuxiliaryCarryFlagSub(op1, op2);
                 clock.updateClock(4);
                 if (debug) {
-                    decoderString += "CMP AL," + Integer.toHexString(memory.readByte(cs * 16 + ip - 1)) + "h";
+                    decoderString += "CMP AL," + Integer.toHexString(memory.readByte(cs * 16 + ip - 1)) + "h (" + Integer.toHexString(getReg8(REG_AL_AX)) + ")";
                 }
             }
             break;
@@ -1684,7 +1679,7 @@ public class K1810WM86 implements Runnable {
                 checkAuxiliaryCarryFlagSub(op1, op2);
                 clock.updateClock(4);
                 if (debug) {
-                    decoderString += "CMP AX," + Integer.toHexString(memory.readWord(cs * 16 + ip - 2)) + "h ("+Integer.toHexString(op1)+","+Integer.toHexString(op2)+")";
+                    decoderString += "CMP AX," + Integer.toHexString(memory.readWord(cs * 16 + ip - 2)) + "h (" + Integer.toHexString(op1) + "," + Integer.toHexString(op2) + ")";
                 }
             }
             break;
@@ -2517,7 +2512,7 @@ public class K1810WM86 implements Runnable {
                 clearFlag(OVERFLOW_FLAG);
                 clock.updateClock(4);
                 if (debug) {
-                    decoderString += "TEST AL," + Integer.toHexString(memory.readByte(cs * 16 + ip - 1)) + "h";
+                    decoderString += "TEST AL," + Integer.toHexString(memory.readByte(cs * 16 + ip - 1)) + "h (" + Integer.toHexString(getReg8(REG_AL_AX)) + ")";
                 }
             }
             break;
@@ -2533,7 +2528,7 @@ public class K1810WM86 implements Runnable {
                 clearFlag(OVERFLOW_FLAG);
                 clock.updateClock(4);
                 if (debug) {
-                    decoderString += "TEST AX," + Integer.toHexString(memory.readWord(cs * 16 + ip - 2)) + "h";
+                    decoderString += "TEST AX," + Integer.toHexString(memory.readWord(cs * 16 + ip - 2)) + "h (" + Integer.toHexString(ax) + ")";
                 }
             }
             break;
@@ -2771,7 +2766,7 @@ public class K1810WM86 implements Runnable {
             case JNLE_JG: {
                 int increment = (byte) memory.readByte(cs * 16 + (ip++));
                 if (debug) {
-                    decoderString += "JG " + increment + " (" + Integer.toHexString(cs) + ":" + Integer.toHexString(ip+increment) + ")";
+                    decoderString += "JG " + increment + " (" + Integer.toHexString(cs) + ":" + Integer.toHexString(ip + increment) + ")";
                 }
                 if ((getFlag(SIGN_FLAG) == getFlag(OVERFLOW_FLAG)) && !getFlag(ZERO_FLAG)) {
                     ip += increment;
@@ -2790,9 +2785,9 @@ public class K1810WM86 implements Runnable {
                 int codesegment = memory.readWord(cs * 16 + (ip++));
                 ip++;
                 setReg16(REG_AH_SP, (getReg16(REG_AH_SP) - 2) & 0xFFFF);
-                memory.writeWord(getReg16(REG_AH_SP), (short) ip);
+                memory.writeWord(ss * 16 + getReg16(REG_AH_SP), (short) ip);
                 setReg16(REG_AH_SP, (getReg16(REG_AH_SP) - 2) & 0xFFFF);
-                memory.writeWord(getReg16(REG_AH_SP), (short) cs);
+                memory.writeWord(ss * 16 + getReg16(REG_AH_SP), (short) cs);
                 cs = codesegment;
                 ip = increment;
                 clock.updateClock(28);
@@ -2802,7 +2797,7 @@ public class K1810WM86 implements Runnable {
                 int increment = (short) memory.readWord(cs * 16 + (ip++));
                 ip++;
                 setReg16(REG_AH_SP, (getReg16(REG_AH_SP) - 2) & 0xFFFF);
-                memory.writeWord(getReg16(REG_AH_SP), (short) ip);
+                memory.writeWord(ss * 16 + getReg16(REG_AH_SP), (short) ip);
                 ip += increment;
                 clock.updateClock(19);
                 if (debug) {
@@ -2816,7 +2811,7 @@ public class K1810WM86 implements Runnable {
                 }
                 int data = memory.readWord(cs * 16 + (ip++));
                 ip++;
-                ip = memory.readWord(getReg16(REG_AH_SP));
+                ip = memory.readWord(ss * 16 + getReg16(REG_AH_SP));
                 setReg16(REG_AH_SP, (getReg16(REG_AH_SP) + 2 + data) & 0xFFFF);
                 clock.updateClock(20);
             }
@@ -2825,7 +2820,7 @@ public class K1810WM86 implements Runnable {
                 if (debug) {
                     decoderString += "RET";
                 }
-                ip = memory.readWord(getReg16(REG_AH_SP));
+                ip = memory.readWord(ss * 16 + getReg16(REG_AH_SP));
                 setReg16(REG_AH_SP, (getReg16(REG_AH_SP) + 2) & 0xFFFF);
                 clock.updateClock(16);
             }
@@ -2836,9 +2831,9 @@ public class K1810WM86 implements Runnable {
                 }
                 int data = memory.readWord(cs * 16 + (ip++));
                 ip++;
-                cs = memory.readWord(getReg16(REG_AH_SP));
+                cs = memory.readWord(ss * 16 + getReg16(REG_AH_SP));
                 setReg16(REG_AH_SP, (getReg16(REG_AH_SP) + 2) & 0xFFFF);
-                ip = memory.readWord(getReg16(REG_AH_SP));
+                ip = memory.readWord(ss * 16 + getReg16(REG_AH_SP));
                 setReg16(REG_AH_SP, (getReg16(REG_AH_SP) + 2 + data) & 0xFFFF);
                 clock.updateClock(25);
             }
@@ -2847,9 +2842,9 @@ public class K1810WM86 implements Runnable {
                 if (debug) {
                     decoderString += "RET";
                 }
-                cs = memory.readWord(getReg16(REG_AH_SP));
+                cs = memory.readWord(ss * 16 + getReg16(REG_AH_SP));
                 setReg16(REG_AH_SP, (getReg16(REG_AH_SP) + 2) & 0xFFFF);
-                ip = memory.readWord(getReg16(REG_AH_SP));
+                ip = memory.readWord(ss * 16 + getReg16(REG_AH_SP));
                 setReg16(REG_AH_SP, (getReg16(REG_AH_SP) + 2) & 0xFFFF);
                 clock.updateClock(26);
             }
@@ -2947,11 +2942,11 @@ public class K1810WM86 implements Runnable {
             }
             break;
             case IRET: {
-                ip = memory.readWord(getReg16(REG_AH_SP));
+                ip = memory.readWord(ss * 16 + getReg16(REG_AH_SP));
                 setReg16(REG_AH_SP, (getReg16(REG_AH_SP) + 2) & 0xFFFF);
-                cs = memory.readWord(getReg16(REG_AH_SP));
+                cs = memory.readWord(ss * 16 + getReg16(REG_AH_SP));
                 setReg16(REG_AH_SP, (getReg16(REG_AH_SP) + 2) & 0xFFFF);
-                flags = memory.readWord(getReg16(REG_AH_SP));
+                flags = memory.readWord(ss * 16 + getReg16(REG_AH_SP));
                 setReg16(REG_AH_SP, (getReg16(REG_AH_SP) + 2) & 0xFFFF);
                 clock.updateClock(32);
                 if (debug) {
@@ -2964,8 +2959,9 @@ public class K1810WM86 implements Runnable {
              * Zeichkettenverarbeitung
              */
             case MOVS_8: {
+                int segment = getSegment(ds);
                 if (string_prefix == NO_PREFIX) {
-                    memory.writeByte(getSReg(SREG_ES) * 16 + getReg16(REG_BH_DI), memory.readByte(getSReg(SREG_DS) * 16 + getReg16(REG_DH_SI)));
+                    memory.writeByte(getSReg(SREG_ES) * 16 + getReg16(REG_BH_DI), memory.readByte(segment * 16 + getReg16(REG_DH_SI)));
                     if (getFlag(DIRECTION_FLAG)) {
                         setReg16(REG_BH_DI, getReg16(REG_BH_DI) - 1);
                         setReg16(REG_DH_SI, getReg16(REG_DH_SI) - 1);
@@ -2978,7 +2974,7 @@ public class K1810WM86 implements Runnable {
                     clock.updateClock(9);
                     while (getReg16(REG_CL_CX) != 0) {
                         clock.updateClock(17);
-                        memory.writeByte(getSReg(SREG_ES) * 16 + getReg16(REG_BH_DI), memory.readByte(getSReg(SREG_DS) * 16 + getReg16(REG_DH_SI)));
+                        memory.writeByte(getSReg(SREG_ES) * 16 + getReg16(REG_BH_DI), memory.readByte(segment * 16 + getReg16(REG_DH_SI)));
                         if (getFlag(DIRECTION_FLAG)) {
                             setReg16(REG_BH_DI, getReg16(REG_BH_DI) - 1);
                             setReg16(REG_DH_SI, getReg16(REG_DH_SI) - 1);
@@ -2995,13 +2991,14 @@ public class K1810WM86 implements Runnable {
                     string_prefix = NO_PREFIX;
                 }
                 if (debug) {
-                    decoderString += "MOVS";
+                    decoderString += "MOVS ES<-" + getSegmentString("DS");
                 }
             }
             break;
             case MOVS_16: {
+                int segment = getSegment(ds);
                 if (string_prefix == NO_PREFIX) {
-                    memory.writeWord(getSReg(SREG_ES) * 16 + getReg16(REG_BH_DI), memory.readWord(getSReg(SREG_DS) * 16 + getReg16(REG_DH_SI)));
+                    memory.writeWord(getSReg(SREG_ES) * 16 + getReg16(REG_BH_DI), memory.readWord(segment * 16 + getReg16(REG_DH_SI)));
                     if (getFlag(DIRECTION_FLAG)) {
                         setReg16(REG_BH_DI, getReg16(REG_BH_DI) - 2);
                         setReg16(REG_DH_SI, getReg16(REG_DH_SI) - 2);
@@ -3014,7 +3011,7 @@ public class K1810WM86 implements Runnable {
                     clock.updateClock(9);
                     while (getReg16(REG_CL_CX) != 0) {
                         clock.updateClock(17);
-                        memory.writeWord(getSReg(SREG_ES) * 16 + getReg16(REG_BH_DI), memory.readWord(getSReg(SREG_DS) * 16 + getReg16(REG_DH_SI)));
+                        memory.writeWord(getSReg(SREG_ES) * 16 + getReg16(REG_BH_DI), memory.readWord(segment * 16 + getReg16(REG_DH_SI)));
                         if (getFlag(DIRECTION_FLAG)) {
                             setReg16(REG_BH_DI, getReg16(REG_BH_DI) - 2);
                             setReg16(REG_DH_SI, getReg16(REG_DH_SI) - 2);
@@ -3031,14 +3028,15 @@ public class K1810WM86 implements Runnable {
                     string_prefix = NO_PREFIX;
                 }
                 if (debug) {
-                    decoderString += "MOVSW";
+                    decoderString += "MOVSW ES<-" + getSegmentString("DS");
                 }
             }
             break;
             case CMPS_8: {
+                int segment = getSegment(ds);
                 if (string_prefix == NO_PREFIX) {
                     int op1 = memory.readByte(getSReg(SREG_ES) * 16 + getReg16(REG_BH_DI));
-                    int op2 = memory.readByte(getSReg(SREG_DS) * 16 + getReg16(REG_DH_SI));
+                    int op2 = memory.readByte(segment * 16 + getReg16(REG_DH_SI));
                     int res = op1 - op2;
                     checkCarryFlagSub8(res);
                     checkZeroFlag8(res);
@@ -3059,7 +3057,7 @@ public class K1810WM86 implements Runnable {
                     while (getReg16(REG_CL_CX) != 0) {
                         clock.updateClock(17);
                         int op1 = memory.readByte(getSReg(SREG_ES) * 16 + getReg16(REG_BH_DI));
-                        int op2 = memory.readByte(getSReg(SREG_DS) * 16 + getReg16(REG_DH_SI));
+                        int op2 = memory.readByte(segment * 16 + getReg16(REG_DH_SI));
                         int res = op1 - op2;
                         checkCarryFlagSub8(res);
                         checkZeroFlag8(res);
@@ -3082,14 +3080,15 @@ public class K1810WM86 implements Runnable {
                     string_prefix = NO_PREFIX;
                 }
                 if (debug) {
-                    decoderString += "CMPS";
+                    decoderString += "CMPS ES," + getSegmentString("DS");
                 }
             }
             break;
             case CMPS_16: {
+                int segment = getSegment(ds);
                 if (string_prefix == NO_PREFIX) {
                     int op1 = memory.readWord(getSReg(SREG_ES) * 16 + getReg16(REG_BH_DI));
-                    int op2 = memory.readWord(getSReg(SREG_DS) * 16 + getReg16(REG_DH_SI));
+                    int op2 = memory.readWord(segment * 16 + getReg16(REG_DH_SI));
                     int res = op1 - op2;
                     checkCarryFlagSub16(res);
                     checkZeroFlag16(res);
@@ -3110,7 +3109,7 @@ public class K1810WM86 implements Runnable {
                     while (getReg16(REG_CL_CX) != 0) {
                         clock.updateClock(17);
                         int op1 = memory.readWord(getSReg(SREG_ES) * 16 + getReg16(REG_BH_DI));
-                        int op2 = memory.readWord(getSReg(SREG_DS) * 16 + getReg16(REG_DH_SI));
+                        int op2 = memory.readWord(segment * 16 + getReg16(REG_DH_SI));
                         int res = op1 - op2;
                         checkCarryFlagSub16(res);
                         checkZeroFlag16(res);
@@ -3134,7 +3133,7 @@ public class K1810WM86 implements Runnable {
                     string_prefix = NO_PREFIX;
                 }
                 if (debug) {
-                    decoderString += "CMPSW";
+                    decoderString += "CMPSW ES," + getSegmentString("DS");
                 }
             }
             break;
@@ -3198,8 +3197,9 @@ public class K1810WM86 implements Runnable {
             }
             break;
             case LODS_8: {
+                int segment = getSegment(ds);
                 if (string_prefix == NO_PREFIX) {
-                    setReg8(REG_AL_AX, memory.readByte(getSReg(SREG_DS) * 16 + getReg16(REG_DH_SI)));
+                    setReg8(REG_AL_AX, memory.readByte(segment * 16 + getReg16(REG_DH_SI)));
                     if (getFlag(DIRECTION_FLAG)) {
                         setReg16(REG_DH_SI, getReg16(REG_DH_SI) - 1);
                     } else {
@@ -3210,7 +3210,7 @@ public class K1810WM86 implements Runnable {
                     clock.updateClock(9);
                     while (getReg16(REG_CL_CX) != 0) {
                         clock.updateClock(11);
-                        setReg8(REG_AL_AX, memory.readByte(getSReg(SREG_DS) * 16 + getReg16(REG_DH_SI)));
+                        setReg8(REG_AL_AX, memory.readByte(segment * 16 + getReg16(REG_DH_SI)));
                         if (getFlag(DIRECTION_FLAG)) {
                             setReg16(REG_DH_SI, getReg16(REG_DH_SI) - 1);
                         } else {
@@ -3224,13 +3224,14 @@ public class K1810WM86 implements Runnable {
                     string_prefix = NO_PREFIX;
                 }
                 if (debug) {
-                    decoderString += "LODS";
+                    decoderString += "LODS " + getSegmentString("DS");
                 }
             }
             break;
             case LODS_16: {
+                int segment = getSegment(ds);
                 if (string_prefix == NO_PREFIX) {
-                    setReg16(REG_AL_AX, memory.readWord(getSReg(SREG_DS) * 16 + getReg16(REG_DH_SI)));
+                    setReg16(REG_AL_AX, memory.readWord(segment * 16 + getReg16(REG_DH_SI)));
                     if (getFlag(DIRECTION_FLAG)) {
                         setReg16(REG_DH_SI, getReg16(REG_DH_SI) - 2);
                     } else {
@@ -3241,7 +3242,7 @@ public class K1810WM86 implements Runnable {
                     clock.updateClock(9);
                     while (getReg16(REG_CL_CX) != 0) {
                         clock.updateClock(11);
-                        setReg16(REG_AL_AX, memory.readWord(getSReg(SREG_DS) * 16 + getReg16(REG_DH_SI)));
+                        setReg16(REG_AL_AX, memory.readWord(segment * 16 + getReg16(REG_DH_SI)));
                         if (getFlag(DIRECTION_FLAG)) {
                             setReg16(REG_DH_SI, getReg16(REG_DH_SI) - 2);
                         } else {
@@ -3255,14 +3256,14 @@ public class K1810WM86 implements Runnable {
                     string_prefix = NO_PREFIX;
                 }
                 if (debug) {
-                    decoderString += "LODSW";
+                    decoderString += "LODSW " + getSegmentString("DS");
                 }
             }
             break;
             case SCAS_8: {
                 if (string_prefix == NO_PREFIX) {
                     int op1 = getReg8(REG_AL_AX);
-                    int op2 = memory.readByte(getSReg(SREG_DS) * 16 + getReg16(REG_DH_SI));
+                    int op2 = memory.readByte(getSReg(SREG_ES) * 16 + getReg16(REG_BH_DI));
                     int res = op1 - op2;
                     checkCarryFlagSub8(res);
                     checkZeroFlag8(res);
@@ -3281,7 +3282,7 @@ public class K1810WM86 implements Runnable {
                     while (getReg16(REG_CL_CX) != 0) {
                         clock.updateClock(15);
                         int op1 = getReg8(REG_AL_AX);
-                        int op2 = memory.readByte(getSReg(SREG_DS) * 16 + getReg16(REG_DH_SI));
+                        int op2 = memory.readByte(getSReg(SREG_ES) * 16 + getReg16(REG_BH_DI));
                         int res = op1 - op2;
                         checkCarryFlagSub8(res);
                         checkZeroFlag8(res);
@@ -3309,7 +3310,7 @@ public class K1810WM86 implements Runnable {
             case SCAS_16: {
                 if (string_prefix == NO_PREFIX) {
                     int op1 = getReg16(REG_AL_AX);
-                    int op2 = memory.readWord(getSReg(SREG_DS) * 16 + getReg16(REG_DH_SI));
+                    int op2 = memory.readWord(getSReg(SREG_ES) * 16 + getReg16(REG_BH_DI));
                     int res = op1 - op2;
                     checkCarryFlagSub16(res);
                     checkZeroFlag16(res);
@@ -3328,7 +3329,7 @@ public class K1810WM86 implements Runnable {
                     while (getReg16(REG_CL_CX) != 0) {
                         clock.updateClock(15);
                         int op1 = getReg16(REG_AL_AX);
-                        int op2 = memory.readWord(getSReg(SREG_DS) * 16 + getReg16(REG_DH_SI));
+                        int op2 = memory.readWord(getSReg(SREG_ES) * 16 + getReg16(REG_BH_DI));
                         int res = op1 - op2;
                         checkCarryFlagSub16(res);
                         checkZeroFlag16(res);
@@ -4078,7 +4079,7 @@ public class K1810WM86 implements Runnable {
                         ip++;
                         clock.updateClock(((opcode2 & TEST_MOD) == MOD_REG) ? 4 : 10 + getOpcodeCyclesEA(opcode2 & TEST_MOD, opcode2 & TEST_RM));
                         if (debug) {
-                            decoderString += "CMP " + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM, 1) + "," + Integer.toHexString(op2) + "h";
+                            decoderString += "CMP " + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM, 1) + "," + Integer.toHexString(op2) + "h" + " ---" + Integer.toHexString(op1);
                         }
                     }
                     break;
@@ -4165,7 +4166,7 @@ public class K1810WM86 implements Runnable {
                 int opcode2 = memory.readByte(cs * 16 + (ip++));
                 switch (opcode2 & TEST_REG) {
                     case _8F_POP_MODRM_16: {
-                        setMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM, memory.readWord(getReg16(REG_AH_SP)), true);
+                        setMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM, memory.readWord(ss * 16 + getReg16(REG_AH_SP)), true);
                         setReg16(REG_AH_SP, (getReg16(REG_AH_SP) + 2) & 0xFFFF);
                         clock.updateClock(((opcode2 & TEST_MOD) == MOD_REG) ? 8 : 17 + getOpcodeCyclesEA(opcode2 & TEST_MOD, opcode2 & TEST_RM));
                         if (debug) {
@@ -4455,7 +4456,7 @@ public class K1810WM86 implements Runnable {
                         }
                         clock.updateClock(((opcode2 & TEST_MOD) == MOD_REG) ? 2 : 15 + getOpcodeCyclesEA(opcode2 & TEST_MOD, opcode2 & TEST_RM));
                         if (debug) {
-                            decoderString += "RCR " + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM, 0) + ",1 ("+Integer.toBinaryString(op1)+"->"+Integer.toBinaryString(res)+")";
+                            decoderString += "RCR " + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM, 0) + ",1 (" + Integer.toBinaryString(op1) + "->" + Integer.toBinaryString(res) + ")";
                         }
                     }
                     break;
@@ -5149,20 +5150,20 @@ public class K1810WM86 implements Runnable {
                             decoderString += "CALL " + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM, 0) + " (" + Integer.toHexString(cs) + ":" + Integer.toHexString(op1) + ")";
                         }
                         setReg16(REG_AH_SP, (getReg16(REG_AH_SP) - 2) & 0xFFFF);
-                        memory.writeWord(getReg16(REG_AH_SP), (short) ip);
+                        memory.writeWord(ss * 16 + getReg16(REG_AH_SP), (short) ip);
                         ip = op1;
                         clock.updateClock(((opcode2 & TEST_MOD) == MOD_REG) ? 16 : 21 + getOpcodeCyclesEA(opcode2 & TEST_MOD, opcode2 & TEST_RM));
                     }
                     break;
                     case _FF_CALL_MEM_16: {
-                        int op1 = getMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM, true);
+                        int op1 = getAddressMODRM(opcode2 & TEST_MOD, opcode2 & TEST_RM, true);
                         if (debug) {
                             decoderString += "CALL " + Integer.toHexString(memory.readWord(op1 + 2)) + ":" + memory.readWord(op1);
                         }
                         setReg16(REG_AH_SP, (getReg16(REG_AH_SP) - 2) & 0xFFFF);
-                        memory.writeWord(getReg16(REG_AH_SP), (short) ip);
+                        memory.writeWord(ss * 16 + getReg16(REG_AH_SP), (short) ip);
                         setReg16(REG_AH_SP, (getReg16(REG_AH_SP) - 2) & 0xFFFF);
-                        memory.writeWord(getReg16(REG_AH_SP), (short) cs);
+                        memory.writeWord(ss * 16 + getReg16(REG_AH_SP), (short) cs);
                         int increment = memory.readWord(op1);
                         int codesegment = memory.readWord(op1 + 2);
                         cs = codesegment;
@@ -5172,18 +5173,11 @@ public class K1810WM86 implements Runnable {
                     break;
                     case _FF_JMP_MODRM_16: {
                         int op1 = getMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM, true);
-                        System.out.println("_FF_JMP_MODRM_16");
-                        System.out.println(getRegisterString());
-                        System.out.println(Integer.toBinaryString(opcode1) + " " + Integer.toBinaryString(opcode2) + " -- " + op1);
-                        System.out.println("JMP " + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM, 0));
-                        memory.dump();
-                        System.exit(0);
                         if (debug) {
                             decoderString += "JMP " + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM, 0) + " (" + Integer.toHexString(cs) + ":" + Integer.toHexString(op1) + ")";
                         }
                         ip = op1;
                         clock.updateClock(((opcode2 & TEST_MOD) == MOD_REG) ? 11 : 18 + getOpcodeCyclesEA(opcode2 & TEST_MOD, opcode2 & TEST_RM));
-
                     }
                     break;
                     case _FF_JMP_MEM_16: {
@@ -5201,10 +5195,10 @@ public class K1810WM86 implements Runnable {
                     case _FF_PUSH_MEM_16: {
                         int op1 = getMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM, true);
                         setReg16(REG_AH_SP, (getReg16(REG_AH_SP) - 2) & 0xFFFF);
-                        memory.writeWord(getReg16(REG_AH_SP), (short) op1);
+                        memory.writeWord(ss * 16 + getReg16(REG_AH_SP), (short) op1);
                         clock.updateClock(16 + getOpcodeCyclesEA(opcode2 & TEST_MOD, opcode2 & TEST_RM));
                         if (debug) {
-                            decoderString += "PUSH " + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM, 0);
+                            decoderString += "PUSH " + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM, 0) + " (" + Integer.toHexString(op1) + "h)";
                         }
                     }
                     break;
@@ -5222,18 +5216,12 @@ public class K1810WM86 implements Runnable {
         if (debug) {
             if (decoderString != null) {
                 decoder.addItem(decoderAddress, decoderString);
-                debugFile.println(decoderString);
-                debugFile.flush();
+                Debugger.getInstance().addLine(decoderString);
             }
             //debugFile.println(getRegisterString());
         } else {
-            if (cs * 16 + ip == debugstart) {
-                try {
-                    debugFile = new PrintStream(new FileOutputStream("K1810WM86.log"));
-                    debug = true;
-                } catch (FileNotFoundException ex) {
-                    Logger.getLogger(K1810WM86.class.getName()).log(Level.SEVERE, null, ex);
-                }
+            if (cs * 16 + ip == Debugger.getInstance().getDebugstart()) {
+                Debugger.getInstance().setDebug(true);
             }
         }
 
@@ -5881,7 +5869,7 @@ public class K1810WM86 implements Runnable {
     }
 
     private void checkSignFlag8(int res) {
-        if (res <0) {
+        if (res < 0) {
             setFlag(SIGN_FLAG);
         } else {
             clearFlag(SIGN_FLAG);
@@ -5889,7 +5877,7 @@ public class K1810WM86 implements Runnable {
     }
 
     private void checkSignFlag16(int res) {
-        if (res <0){
+        if (res < 0) {
             setFlag(SIGN_FLAG);
         } else {
             clearFlag(SIGN_FLAG);
@@ -5988,14 +5976,14 @@ public class K1810WM86 implements Runnable {
         if (interruptID >= 0) {
             System.out.println("Verarbeite Interrupt " + interruptID);
             setReg16(REG_AH_SP, (getReg16(REG_AH_SP) - 2) & 0xFFFF);
-            memory.writeWord(getReg16(REG_AH_SP), (short) flags);
+            memory.writeWord(ss * 16 + getReg16(REG_AH_SP), (short) flags);
             clearFlag(INTERRUPT_ENABLE_FLAG);
             clearFlag(TRAP_FLAG);
 //            interruptSystem.disableInterrupts();
             setReg16(REG_AH_SP, (getReg16(REG_AH_SP) - 2) & 0xFFFF);
-            memory.writeWord(getReg16(REG_AH_SP), (short) cs);
+            memory.writeWord(ss * 16 + getReg16(REG_AH_SP), (short) cs);
             setReg16(REG_AH_SP, (getReg16(REG_AH_SP) - 2) & 0xFFFF);
-            memory.writeWord(getReg16(REG_AH_SP), (short) ip);
+            memory.writeWord(ss * 16 + getReg16(REG_AH_SP), (short) ip);
             ip = memory.readWord(interruptID * 4);
             cs = memory.readWord(interruptID * 4 + 2);
             isHalted = false;

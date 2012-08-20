@@ -75,6 +75,7 @@ public final class ZVE implements PortModule, MemoryModule, ClockModule {
         switch (port) {
             case PORT_ZVE_8259A_1:
                 pic.writePort0(data);
+                break;
             case PORT_ZVE_8259A_2:
                 pic.writePort1(data);
                 break;

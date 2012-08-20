@@ -73,7 +73,7 @@ public final class OPS implements PortModule, MemoryModule {
 
     @Override
     public int readPort_Byte(int port) {
-        System.out.println("Lese Status OPS Port " + Integer.toHexString(port) + ": " + Integer.toBinaryString(state));
+        //System.out.println("Lese Status OPS Port " + Integer.toHexString(port) + ": " + Integer.toBinaryString(state));
         return state;
     }
 
