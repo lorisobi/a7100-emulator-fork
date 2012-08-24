@@ -73,10 +73,11 @@ public class FloppyDrive {
         }
         byte[] res = new byte[cnt];
         int pos;
+        sector=sector-1;
         if (track == 0) {
             // Systemspur
             if (head == 0) {
-                pos = sector * 16;
+                pos = sector * 128;
             } else {
                 pos = (16 * 128) + (sector * 256);
             }

@@ -22,7 +22,7 @@ public class AFS {
         drives[2] = new FloppyDrive(DriveType.K5602_10);
         drives[3] = new FloppyDrive(DriveType.K5602_10);
         
-        drives[0].loadDisk(new File("./disks/disk1.bin"));
+        drives[0].loadDisk(new File("./disks/disk2.bin"));
     }
     
     public FloppyDrive getFloppy(int id) {

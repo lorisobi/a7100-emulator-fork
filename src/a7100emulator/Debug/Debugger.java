@@ -44,7 +44,6 @@ public class Debugger {
      * @param debug the debug to set
      */
     public void setDebug(boolean debug) {
-        this.debug = debug;
         if (debug) {
             try {
                 debugFile = new PrintStream(new FileOutputStream("K1810WM86.log"));
@@ -52,6 +51,7 @@ public class Debugger {
                 Logger.getLogger(Debugger.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
+        this.debug = debug;
     }
 
     /**

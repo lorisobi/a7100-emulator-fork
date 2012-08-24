@@ -7,6 +7,7 @@ package a7100emulator.components.modules;
 import a7100emulator.Tools.BitmapGenerator;
 import a7100emulator.Tools.Memory;
 import a7100emulator.components.system.InterruptSystem;
+import a7100emulator.components.system.SystemClock;
 import a7100emulator.components.system.SystemPorts;
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -15,7 +16,7 @@ import java.io.File;
  *
  * @author Dirk
  */
-public final class KGS implements PortModule {
+public final class KGS implements PortModule, ClockModule {
 
     // Zeichensätze
     private Memory characterCodes = new Memory(4096);
@@ -73,6 +74,8 @@ public final class KGS implements PortModule {
     private boolean disableGraphics = false;
     private boolean initialized = false;
     private int output = 0;
+    private long interruptClock = 0;
+    private boolean interruptWaiting = false;
 
     public KGS() {
         init();
@@ -100,7 +103,8 @@ public final class KGS implements PortModule {
             case PORT_KGS_DATA:
                 dataReceived(data);
                 setBit(INT_BIT);
-                InterruptSystem.getInstance().addIRInterrupt(7);
+                interruptWaiting = true;
+                interruptClock = 0;
                 break;
         }
     }
@@ -134,13 +138,15 @@ public final class KGS implements PortModule {
 
     @Override
     public int readPort_Word(int port) {
+        int result = 0;
         switch (port) {
             case PORT_KGS_STATE:
+                result = state;
                 break;
             case PORT_KGS_DATA:
                 break;
         }
-        return 0;
+        return result;
     }
 
     @Override
@@ -149,6 +155,7 @@ public final class KGS implements PortModule {
         initTabs();
         abg = new ABG();
         registerPorts();
+        registerClocks();
     }
 
     private void initTabs() {
@@ -567,5 +574,21 @@ public final class KGS implements PortModule {
             return (ESCBytes[1] - 0x30);
         }
         throw new IllegalArgumentException("Falsche ESC-Sequenz");
+    }
+
+    @Override
+    public void registerClocks() {
+        SystemClock.getInstance().registerClock(this);
+    }
+
+    @Override
+    public void clockUpdate(int amount) {
+        if (interruptWaiting) {
+            interruptClock += amount;
+            if (interruptClock > 20) {
+                interruptWaiting = false;
+                InterruptSystem.getInstance().addIRInterrupt(7);
+            }
+        }
     }
 }
