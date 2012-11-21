@@ -50,22 +50,22 @@ public class KR580WW55A {
 
             switch (bit) {
                 case 0: // PB-INTR
-                    System.out.println("PB-INTR:" + (newState ? "ON" : "OFF"));
+                    //System.out.println("PB-INTR:" + (newState ? "ON" : "OFF"));
                     break;
                 case 1: // SB-INTR-OUT
-                    System.out.println("SB-INTR-OUT:" + (newState ? "ON" : "OFF"));
+                    //System.out.println("SB-INTR-OUT:" + (newState ? "ON" : "OFF"));
                     break;
                 case 2: // ACK
-                    System.out.println("ACK:" + (newState ? "ON" : "OFF"));
+                    //System.out.println("ACK:" + (newState ? "ON" : "OFF"));
                     break;
                 case 3: // STROBE
-                    System.out.println("STROBE:" + (newState ? "ON" : "OFF"));
+                    //System.out.println("STROBE:" + (newState ? "ON" : "OFF"));
                     break;
                 case 4: // OVERRIDE
-                    System.out.println("OVERRIDE:" + (newState ? "ON" : "OFF"));
+                    //System.out.println("OVERRIDE:" + (newState ? "ON" : "OFF"));
                     break;
                 case 5: // SET-DC-OFF
-                    System.out.println("DC-OFF:" + (newState ? "ON" : "OFF"));
+                    //System.out.println("DC-OFF:" + (newState ? "ON" : "OFF"));
                     break;
                 case 6: // TONE
                     if (!oldState && newState) {
@@ -76,7 +76,7 @@ public class KR580WW55A {
                     }
                     break;
                 case 7: // NMI-MASK
-                    System.out.println("NMI-MASK:" + (newState ? "ON" : "OFF"));
+                    //System.out.println("NMI-MASK:" + (newState ? "ON" : "OFF"));
                     if (newState) 
                         InterruptSystem.getInstance().enableParityNMI();
                     else 

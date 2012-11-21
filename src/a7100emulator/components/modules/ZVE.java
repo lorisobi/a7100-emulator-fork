@@ -33,11 +33,11 @@ public final class ZVE implements PortModule, MemoryModule, ClockModule {
     /**
      * Komponenten
      */
+    private final K580WN59A pic=new K580WN59A();
     private final K1810WM86 cpu = new K1810WM86();
     private final KR580WW55A ppi = new KR580WW55A();
     private final KR580WI53 pti = new KR580WI53();
     private final KR580WM51A usart = new KR580WM51A();
-    private final K580WN59A pic=new K580WN59A();
     private final Memory memory = new Memory(32768);
 
     public ZVE() {

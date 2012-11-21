@@ -58,17 +58,17 @@ public final class KES implements PortModule, ClockModule {
                 switch (data) {
                     case 0x00:
                         // RESET_OFF
-                        System.out.println("RESET OFF");
+                        //System.out.println("RESET OFF");
                         readWUB = true;
                         break;
                     case 0x01:
                         // START_OPERATION
-                        System.out.println("START OPERATION");
+                        //System.out.println("START OPERATION");
                         startOperation();
                         break;
                     case 0x02:
                         // RESET
-                        System.out.println("RESET");
+                        //System.out.println("RESET");
                         break;
                     default:
                         throw new IllegalArgumentException("Illegal Command:" + Integer.toHexString(data));
@@ -118,7 +118,7 @@ public final class KES implements PortModule, ClockModule {
         if (readWUB) {
             int seg = memory.readWord(INIT_WUB_ADDRESS + 4);
             int off = memory.readWord(INIT_WUB_ADDRESS + 2);
-            System.out.println("WUB: " + Integer.toHexString(seg) + ":" + Integer.toHexString(off));
+            //System.out.println("WUB: " + Integer.toHexString(seg) + ":" + Integer.toHexString(off));
             ccbAddress = seg * 16 + off;
             readWUB = false;
         }
@@ -208,11 +208,30 @@ public final class KES implements PortModule, ClockModule {
                 memory.writeByte(ccbAddress + 0x11, status);
             }
             break;
-            case 0x02:
+            case 0x02: {
                 // Formatieren
-                break;
+                int driveNr = memory.readByte(ccbAddress + 0x2A);
+                int memSeg = memory.readWord(ccbAddress + 0x34);
+                int memOff = memory.readWord(ccbAddress + 0x32);
+                int memAddr = memSeg * 16 + memOff;
+                int cylinder = memory.readWord(ccbAddress + 0x2E);
+                int head = memory.readByte(ccbAddress + 0x30);
+                int mod = memory.readByte(ccbAddress + 0x2C);
+                int[] data = new int[]{memory.readByte(memAddr + 1), memory.readByte(memAddr + 2), memory.readByte(memAddr + 3), memory.readByte(memAddr + 4)};
+                int interleave=memory.readByte(memAddr + 5);
+                
+                FloppyDrive drive = afs.getFloppy(driveNr & 0x03);
+                System.out.println("Formatiere Laufwerk " + (driveNr & 0x03) + " C/H " + cylinder + "/" + head);
+                System.out.println("Datenbytes: " + String.format("%02X %02X %02X %02X", memory.readByte(memAddr + 1), memory.readByte(memAddr + 2), memory.readByte(memAddr + 3), memory.readByte(memAddr + 4)) + " Interleave: " + String.format("%02X", memory.readByte(memAddr + 5)));
+                System.out.println("Modifizierung: " + Integer.toBinaryString(mod));
+                drive.format(cylinder,head,mod,data,interleave);
+                memory.writeByte(ccbAddress + 0x13, 0xFF);
+                memory.writeByte(ccbAddress + 0x11, 0x01);
+            }
+            break;
             case 0x03:
                 // Lesen des Sektor-ID-Feldes
+                System.out.println("Lesen Sektor-ID-Feld noch nicht implementiert");
                 break;
             case 0x04: {
                 // Daten lesen
@@ -224,39 +243,44 @@ public final class KES implements PortModule, ClockModule {
                 int sector = memory.readByte(ccbAddress + 0x31);
                 int head = memory.readByte(ccbAddress + 0x30);
                 int byteCnt = memory.readWord(ccbAddress + 0x36);
-                System.out.println("Lese " + byteCnt + " Bytes von Laufwerk " + (driveNr & 0x03) + " C/H/S " + cylinder + "/" + head + "/" + sector + " nach " + String.format("%04X:%04X", memSeg, memOff));
+                //System.out.println("Lese " + byteCnt + " Bytes von Laufwerk " + (driveNr & 0x03) + " C/H/S " + cylinder + "/" + head + "/" + sector + " nach " + String.format("%04X:%04X", memSeg, memOff));
                 FloppyDrive drive = afs.getFloppy(driveNr & 0x03);
                 byte[] data = drive.readData(cylinder, sector, head, byteCnt);
                 for (int i = 0; i < data.length; i++) {
                     memory.writeByte(memAddr + i, data[i]);
-                    System.out.print(String.format("%02X", data[i] & 0xFF) + " ");
-                    if ((i + 1) % 16 == 0) {
-                        System.out.println();
-                    }
+//                    System.out.print(String.format("%02X", data[i] & 0xFF) + " ");
+//                    if ((i + 1) % 16 == 0) {
+//                        System.out.println();
+//                    }
                 }
-                System.out.println();
+                //System.out.println();
                 memory.writeByte(ccbAddress + 0x13, 0xFF);
                 memory.writeByte(ccbAddress + 0x11, 0x01);
             }
             break;
             case 0x05:
                 // Daten zum KES-Puffer lesen
+                System.out.println("Daten zum KES-Puffer noch nicht implementiert");
                 break;
             case 0x06:
                 // Daten schreiben
-
+                System.out.println("Daten schreiben noch nicht implementiert");
                 break;
             case 0x07:
                 // Daten aus KES-Puffer Schreiben
+                System.out.println("Daten von KES-Puffer noch nicht implementiert");
                 break;
             case 0x08:
                 // Spurpositionierung einschalten
+                System.out.println("Spurpositionierung noch nicht implementiert");
                 break;
             case 0x0C:
                 // Start UA880-Programm
+                System.out.println("UA880 noch nicht implementiert");
                 break;
             case 0x0D:
                 // DMA-Transfer zwischen Systemspeicher und UA-880-Subsystem Port
+                System.out.println("DMA-Transfer noch nicht implementiert");
                 break;
             case 0x0E: {
                 // KES-Puffer Ein-/Ausgabe
@@ -298,7 +322,7 @@ public final class KES implements PortModule, ClockModule {
             interruptClock += amount;
             if (interruptClock > 20) {
                 interruptWaiting = false;
-                InterruptSystem.getInstance().addIRInterrupt(5);
+                InterruptSystem.getInstance().getPIC().requestInterrupt(5);
             }
         }
     }

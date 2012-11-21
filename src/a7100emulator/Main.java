@@ -17,8 +17,7 @@ public class Main {
      * @param args the command line arguments
      */
     public static void main(String[] args) {
-        new MainView();
-        new A7100();
+        new MainView(new A7100());
     }
 
 }

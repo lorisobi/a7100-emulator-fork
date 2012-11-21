@@ -78,15 +78,14 @@ public class SystemMemory {
         return module.readWord(address);
     }
 
-    public void dump() {
-        FileOutputStream fos = null;
+    public void dump(String filename) {
+        FileOutputStream fos;
         try {
-            fos = new FileOutputStream("dump.hex");
+            fos = new FileOutputStream(filename);
             for (int i = 0; i <= MAX_ADDRESS; i++) {
                 fos.write(readByte(i));
             }
             fos.close();
-            //System.exit(0);
         } catch (Exception ex) {
             Logger.getLogger(SystemMemory.class.getName()).log(Level.SEVERE, null, ex);
         }

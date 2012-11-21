@@ -174,7 +174,7 @@ public class KR580WI53 {
                     if (value + amount > 0) {
                         running = false;
                         if (id == 0) {
-                            InterruptSystem.getInstance().addIRInterrupt(2);
+                            InterruptSystem.getInstance().getPIC().requestInterrupt(2);
                         }
                     }
                 }

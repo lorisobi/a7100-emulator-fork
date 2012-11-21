@@ -9,8 +9,15 @@ import a7100emulator.Tools.Memory;
 import a7100emulator.components.system.InterruptSystem;
 import a7100emulator.components.system.SystemClock;
 import a7100emulator.components.system.SystemPorts;
+import java.awt.Dimension;
+import java.awt.Graphics;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.util.LinkedList;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.swing.JComponent;
+import javax.swing.JFrame;
 
 /**
  *
@@ -65,17 +72,28 @@ public final class KGS implements PortModule, ClockModule {
     private int state = 1;
     private int cursorRow = 1;
     private int cursorColumn = 1;
-    private boolean receiveESC = false;
+    private boolean receiveSequence = false;
     private byte[] ESCBytes = new byte[256];
+    private LinkedList<Byte> escSequence = new LinkedList<Byte>();
     private byte ESCPosition = 0;
     private boolean[] hTabs = new boolean[80];
     private boolean[] vTabs = new boolean[25];
     private ABG abg;
     private boolean disableGraphics = false;
     private boolean initialized = false;
-    private int output = 0;
     private long interruptClock = 0;
     private boolean interruptWaiting = false;
+    private byte[] deviceBuffer = new byte[100];
+    private int bufferPosition = 0;
+    private int cursorRowSave = 1;
+    private int cursorColumnSave = 1;
+    private boolean intense = false;
+    private boolean inverse = false;
+    private boolean flash = false;
+    private boolean underline = false;
+    private boolean wraparound = false;
+    private boolean wrapped = false;
+    private LinkedList<Byte> deviceBuffer2 = new LinkedList<Byte>();
 
     public KGS() {
         init();
@@ -95,7 +113,9 @@ public final class KGS implements PortModule, ClockModule {
                 clearBit(INT_BIT);
                 clearBit(ERR_BIT);
                 if (!initialized) {
-                    output = 0x00;
+                    deviceBuffer[0] = 0x00;
+                    bufferPosition = 1;
+                    deviceBuffer2.add((byte) 0x00);
                     setBit(OBF_BIT);
                     initialized = true;
                 }
@@ -122,15 +142,24 @@ public final class KGS implements PortModule, ClockModule {
 
     @Override
     public int readPort_Byte(int port) {
-        //System.out.println("IN Byte from port " + Integer.toHexString(port));
         int result = 0;
         switch (port) {
             case PORT_KGS_STATE:
                 result = state;
                 break;
             case PORT_KGS_DATA:
-                result = output;
-                clearBit(OBF_BIT);
+                result = deviceBuffer[0];
+                if (initialized && bufferPosition != 0) {
+                    System.arraycopy(deviceBuffer, 1, deviceBuffer, 0, 99);
+                    bufferPosition--;
+                    if (bufferPosition == 0) {
+                        clearBit(OBF_BIT);
+                    }
+                } else //                result = output;
+                {
+                    clearBit(OBF_BIT);
+                }
+                    //            System.out.println("Lese KGS Daten: " + Integer.toHexString(result)+ " Buffer Position:"+bufferPosition+" OBF:"+getBit(OBF_BIT));
                 break;
         }
         return result;
@@ -144,6 +173,18 @@ public final class KGS implements PortModule, ClockModule {
                 result = state;
                 break;
             case PORT_KGS_DATA:
+                result = deviceBuffer[0];
+                if (initialized && bufferPosition != 0) {
+                    System.arraycopy(deviceBuffer, 1, deviceBuffer, 0, 99);
+                    bufferPosition--;
+                    if (bufferPosition == 0) {
+                        clearBit(OBF_BIT);
+                    }
+                } else //                result = output;
+                {
+                    clearBit(OBF_BIT);
+                }
+                //System.out.println("Lese KGS Daten: " + Integer.toHexString(result)+ " Buffer Position:"+bufferPosition+" OBF:"+getBit(OBF_BIT));
                 break;
         }
         return result;
@@ -156,6 +197,16 @@ public final class KGS implements PortModule, ClockModule {
         abg = new ABG();
         registerPorts();
         registerClocks();
+    }
+
+    private void drawCharacter(int data, int row, int column) {
+        // Darstellbares Zeichen
+        byte[] linecode = new byte[16];
+        for (byte line = 0; line < 16; line++) {
+            linecode[line] = (byte) (characterCodes.readByte(16 * data + line) & 0xFF);
+        }
+        BufferedImage character = BitmapGenerator.generateBitmapFromLineCode(linecode, intense, inverse, flash, underline);
+        abg.updateAlphanumericScreenRectangle((column - 1) * 8, (row - 1) * 16, character);
     }
 
     private void initTabs() {
@@ -181,25 +232,32 @@ public final class KGS implements PortModule, ClockModule {
 
     private void dataReceived(int data) {
         if (initialized) {
-            if (receiveESC) {
+            if (receiveSequence) {
                 ESCBytes[ESCPosition++] = (byte) (data & 0xFF);
+                escSequence.add((byte) (data & 0xFF));
+                System.out.print((char) data);
                 checkESC();
             } else {
                 if (data >= 0x20 && data != CODE_DEL) {
-                    // Darstellbares Zeichen
-                    byte[] linecode = new byte[16];
-                    for (byte line = 0; line < 16; line++) {
-                        linecode[line] = (byte) (characterCodes.readByte(16 * data + line) & 0xFF);
+                    if (wraparound) {
+                        if (cursorColumn == 81) {
+                            cursorColumn = 1;
+                            if (cursorRow != 25) {
+                                cursorRow++;
+                            } else {
+                                abg.rollAlphanumericScreen();
+                            }
+                        }
                     }
-                    BufferedImage character = BitmapGenerator.generateBitmapFromLineCode(linecode, false, false, false, false);
-                    abg.updateAlphanumericScreenRectangle((cursorColumn - 1) * 8, (cursorRow - 1) * 16, character);
-                    cursorColumn++;
+                    drawCharacter(data, cursorRow, cursorColumn++);
                     if (cursorColumn == 81) {
-                        cursorColumn = 1;
-                        if (cursorRow != 25) {
-                            cursorRow++;
-                        } else {
-                            abg.rollAlphanumericScreen();
+                        if (!wraparound) {
+                            cursorColumn = 1;
+                            if (cursorRow != 25) {
+                                cursorRow++;
+                            } else {
+                                abg.rollAlphanumericScreen();
+                            }
                         }
                     }
                 } else {
@@ -261,22 +319,32 @@ public final class KGS implements PortModule, ClockModule {
                             break;
                         case CODE_SO:
                             // Shift Out
+                            System.out.println("Shift OUT");
                             // TODO
                             break;
                         case CODE_SI:
                             // Shift In
+                            System.out.println("Shift In");
                             // TODO
                             break;
                         case CODE_DLE:
                             // Data Link Escape
+                            receiveSequence = true;
+                            escSequence.clear();
+                            escSequence.add((byte) 0x10);
+                            ESCPosition = 0;
                             // TODO
                             break;
                         case CODE_CAN:
                             // Cancel ESC
+                            receiveSequence = false;
                             break;
                         case CODE_ESC:
-                            receiveESC = true;
+                            receiveSequence = true;
+                            escSequence.clear();
+                            escSequence.add((byte) 0x1B);
                             ESCPosition = 0;
+                            System.out.print("ESC ");
                             break;
                         case CODE_RS:
                             cursorColumn = 1;
@@ -311,7 +379,9 @@ public final class KGS implements PortModule, ClockModule {
         } else {
             // TODO Initialisierung
             if (data == 0xAA) {
-                output = 0x55;
+                //deviceBuffer2.add((byte) 0x55);
+                deviceBuffer[0] = 0x55;
+                bufferPosition = 1;
                 setBit(OBF_BIT);
             } else if (data == 0x55) {
                 setBit(INT_BIT);
@@ -321,259 +391,484 @@ public final class KGS implements PortModule, ClockModule {
     }
 
     private void checkESC() {
-        switch (ESCBytes[ESCPosition - 1]) {
-            case 0x41:
-            case 0x6B:
-                // [ Pn A / [ Pn k Cursor nach oben
-                cursorRow -= getParameter();
-                if (cursorRow < 1) {
-                    cursorRow = 1;
+        //switch (ESCBytes[ESCPosition - 1]) {
+        if (escSequence.peekFirst() == 0x10) {
+            int code = escSequence.get(1) & 0xFF;
+            if (escSequence.size() == 18) {
+                code |= 0x80;
+                for (byte line = 0; line < 16; line++) {
+                    characterCodes.writeByte(16 * code + line, escSequence.get(2 + line) & 0xFF);
                 }
-                receiveESC = false;
-                break;
-            case 0x42:
-            case 0x65:
-                // [ Pn B / [ Pn e Cursor nach unten
-                cursorRow += getParameter();
-                if (cursorRow > 25) {
-                    cursorRow = 25;
-                }
-                receiveESC = false;
-                break;
-            case 0x43:
-            case 0x61:
-                // [ Pn C / [ Pn a Cursor nach rechts
-                cursorColumn += getParameter();
-                if (cursorRow > 80) {
-                    cursorColumn = 80;
-                }
-                receiveESC = false;
-                break;
-            case 0x44:
-                // [ Pn D Cursor nach links
-                // D Zeilenschaltung
-                if (ESCPosition == 1) {
-                    cursorRow++;
-                    if (cursorRow > 25) {
-                        abg.rollAlphanumericScreen();
-                        cursorRow = 25;
-                    }
-                    receiveESC = false;
-                } else {
-                    cursorColumn -= getParameter();
+                receiveSequence = false;
+            }
+        } else {
+            switch (escSequence.peekLast()) {
+                case 0x41:
+                case 0x6B:
+                    // [ Pn A / [ Pn k Cursor nach oben
+                    cursorRow -= getParameter();
                     if (cursorRow < 1) {
-                        cursorColumn = 1;
+                        cursorRow = 1;
                     }
-                    receiveESC = false;
-                }
-                break;
-            case 0x6A:
-                // [ Pn j Cursor nach links
-                cursorColumn -= getParameter();
-                if (cursorRow < 1) {
-                    cursorColumn = 1;
-                }
-                receiveESC = false;
-                break;
-            case 0x47:
-            case 0x60:
-                // [ Pn G / [ Pn ` Horizontalposition absolut
-                cursorColumn = getParameter();
-                if (cursorColumn > 80) {
-                    cursorColumn = 80;
-                }
-                receiveESC = false;
-                break;
-            case 0x64:
-                // [ Pn d Vertikalposition absolut
-                cursorRow = getParameter();
-                if (cursorRow > 25) {
-                    cursorRow = 25;
-                }
-                receiveESC = false;
-                break;
-            case 0x46:
-                // [ Pn F Cursor nach oben an Zeilenanfang
-                cursorColumn = 1;
-                cursorRow -= getParameter();
-                if (cursorRow < 1) {
-                    cursorRow = 1;
-                }
-                receiveESC = false;
-                break;
-            case 0x45:
-                // [ Pn E Cursor nach unten an Zeilenanfang
-                // E Neue Zeile
-                if (ESCPosition == 1) {
-                    cursorColumn = 1;
-                    cursorRow++;
-                    if (cursorRow > 25) {
-                        abg.rollAlphanumericScreen();
-                        cursorRow = 25;
-                    }
-                    receiveESC = false;
-                } else {
-                    cursorColumn = 1;
+                    receiveSequence = false;
+                    break;
+                case 0x42:
+                case 0x65:
+                    // [ Pn B / [ Pn e Cursor nach unten
                     cursorRow += getParameter();
                     if (cursorRow > 25) {
                         cursorRow = 25;
                     }
-                    receiveESC = false;
+                    receiveSequence = false;
+                    break;
+                case 0x43:
+                case 0x61:
+                    // [ Pn C / [ Pn a Cursor nach rechts
+                    cursorColumn += getParameter();
+                    if (cursorRow > 80) {
+                        cursorColumn = 80;
+                    }
+                    receiveSequence = false;
+                    break;
+                case 0x44:
+                    // [ Pn D Cursor nach links
+                    // D Zeilenschaltung
+                    if (ESCPosition == 1) {
+                        cursorRow++;
+                        if (cursorRow > 25) {
+                            abg.rollAlphanumericScreen();
+                            cursorRow = 25;
+                        }
+                        receiveSequence = false;
+                    } else {
+                        cursorColumn -= getParameter();
+                        if (cursorRow < 1) {
+                            cursorColumn = 1;
+                        }
+                        receiveSequence = false;
+                    }
+                    break;
+                case 0x6A:
+                    // [ Pn j Cursor nach links
+                    cursorColumn -= getParameter();
+                    if (cursorRow < 1) {
+                        cursorColumn = 1;
+                    }
+                    receiveSequence = false;
+                    break;
+                case 0x47:
+                case 0x60:
+                    // [ Pn G / [ Pn ` Horizontalposition absolut
+                    cursorColumn = getParameter();
+                    if (cursorColumn > 80) {
+                        cursorColumn = 80;
+                    }
+                    receiveSequence = false;
+                    break;
+                case 0x64:
+                    // [ Pn d Vertikalposition absolut
+                    cursorRow = getParameter();
+                    if (cursorRow > 25) {
+                        cursorRow = 25;
+                    }
+                    receiveSequence = false;
+                    break;
+                case 0x46:
+                    // [ Pn F Cursor nach oben an Zeilenanfang
+                    cursorColumn = 1;
+                    cursorRow -= getParameter();
+                    if (cursorRow < 1) {
+                        cursorRow = 1;
+                    }
+                    receiveSequence = false;
+                    break;
+                case 0x45:
+                    // [ Pn E Cursor nach unten an Zeilenanfang
+                    // E Neue Zeile
+                    if (ESCPosition == 1) {
+                        cursorColumn = 1;
+                        cursorRow++;
+                        if (cursorRow > 25) {
+                            abg.rollAlphanumericScreen();
+                            cursorRow = 25;
+                        }
+                        receiveSequence = false;
+                    } else {
+                        cursorColumn = 1;
+                        cursorRow += getParameter();
+                        if (cursorRow > 25) {
+                            cursorRow = 25;
+                        }
+                        receiveSequence = false;
+                    }
+                    break;
+                case 0x49:
+                    // [ Pn I Horizontaltabulator vorwärts
+                    System.out.println("ESC Folge [ Pn I noch nicht implementiert");
+                    receiveSequence = false;
+                    break;
+                case 0x5A:
+                    // [ Pn Z Horizontaltabulator rückwärts
+                    System.out.println("ESC Folge [ Pn Z noch nicht implementiert");
+                    receiveSequence = false;
+                    break;
+                case 0x59:
+                    // [ Pn Y Vertikaltabulator vorwärts
+                    System.out.println("ESC Folge [ Pn Y noch nicht implementiert");
+                    receiveSequence = false;
+                    break;
+                case 0x48:
+                    // [ Pn ; Pm H Cursor-Direktpositionierung
+                    // H Setzen Horizontal-Tabulatorstop
+                    if (ESCPosition == 1) {
+                        receiveSequence = false;
+                    } else {
+                        int[] params = getParameters();
+                        cursorRow = params[0];
+                        cursorColumn = params[1];
+                        if (cursorRow < 1) {
+                            cursorRow = 1;
+                        }
+                        if (cursorRow > 25) {
+                            cursorRow = 25;
+                        }
+                        if (cursorColumn < 1) {
+                            cursorColumn = 1;
+                        }
+                        if (cursorColumn > 80) {
+                            cursorColumn = 80;
+                        }
+                        receiveSequence = false;
+                    }
+                    break;
+                case 0x66: {
+                    // [ Pn ; Pm f Cursor-Direktpositionierung
+                    //System.out.println("ESC Folge [ Pn;Pm f noch nicht implementiert");
+                    int[] params = getParameters();
+                    cursorRow = params[0];
+                    cursorColumn = params[1];
+                    if (cursorRow < 1) {
+                        cursorRow = 1;
+                    }
+                    if (cursorRow > 25) {
+                        cursorRow = 25;
+                    }
+                    if (cursorColumn < 1) {
+                        cursorColumn = 1;
+                    }
+                    if (cursorColumn > 80) {
+                        cursorColumn = 80;
+                    }
+
+                    receiveSequence = false;
                 }
                 break;
-            case 0x49:
-                // [ Pn I Horizontaltabulator vorwärts
-                System.out.println("ESC Folge [ Pn I noch nicht implementiert");
-                receiveESC = false;
-                break;
-            case 0x5A:
-                // [ Pn Z Horizontaltabulator rückwärts
-                System.out.println("ESC Folge [ Pn Z noch nicht implementiert");
-                receiveESC = false;
-                break;
-            case 0x59:
-                // [ Pn Y Vertikaltabulator vorwärts
-                System.out.println("ESC Folge [ Pn Y noch nicht implementiert");
-                receiveESC = false;
-                break;
-            case 0x48:
-                // [ Pn ; Pm H Cursor-Direktpositionierung
-                // H Setzen Horizontal-Tabulatorstop
-                System.out.println("ESC Folge [ Pn;Pm H noch nicht implementiert");
-                receiveESC = false;
-                break;
-            case 0x66:
-                // [ Pn ; Pm f Cursor-Direktpositionierung
-                System.out.println("ESC Folge [ Pn;Pm f noch nicht implementiert");
-                receiveESC = false;
-                break;
-            case 0x4D:
-                // M Cursor eine Zeile nach oben
-                System.out.println("ESC Folge M noch nicht implementiert");
-                receiveESC = false;
-                break;
-            case 0x4A:
-                // J Setzen Vertikal-Tabulatorstop
-                // [ Ps; Ps; ... ;Ps J Löschen eines Zeichenbereiches des Bildschirms
-                System.out.println("ESC Folge [ Ps;Ps;... J noch nicht implementiert");
-                receiveESC = false;
-                break;
-            case 0x4E:
-                // [ Pn1; Pn2; ... ;Pns <SP> N Setzen Horizontal-Tabulatorstops
-                System.out.println("ESC Folge [ Pn1; Pn2 <SP> N noch nicht implementiert");
-                receiveESC = false;
-                break;
-            case 0x67:
-                // [ Ps; Ps; ... ;Ps g Löschen Tabulatorstops
-                System.out.println("ESC Folge [ Ps; Ps; ... g noch nicht implementiert");
-                receiveESC = false;
-                break;
-            case 0x57:
-                // [ Ps; Ps; ... ;Ps W Tabulator-Steuerung
-                System.out.println("ESC Folge [ Ps; Ps; ... W noch nicht implementiert");
-                receiveESC = false;
-                break;
-            case 0x68:
-                // [ Ps; Ps; ... ;Ps h Setzen Modus
-                System.out.println("ESC Folge [ Ps; Ps; ... ;Ps h noch nicht implementiert");
-                receiveESC = false;
-                break;
-            case 0x6C:
-                // [ Ps; Ps; ... ;Ps l Rücksetzen Modus
-                System.out.println("ESC Folge [ Ps; Ps; ... ;Ps l noch nicht implementiert");
-                receiveESC = false;
-                break;
-            case 0x4B:
-                // [ Ps; Ps; ... ;Ps K Löschen eines Zeichenbereiches in der aktiven Zeile
-                System.out.println("ESC Folge [ Ps; Ps; ... ;Ps K noch nicht implementiert");
-                receiveESC = false;
-                break;
-            case 0x75:
-                // [ Pn1; Pnm1; Pn2; Pm2 <SP> u Löschen eines Zeichenbereiches von Anfangs- bis Endposition
-                System.out.println("ESC Folge [ Pn1; Pnm1; Pn2; Pm2 <SP> u noch nicht implementiert");
-                receiveESC = false;
-                break;
-            case 0x6D:
-                // [ Ps; Ps; ... ;Ps m Ein-Ausschalten von Attributen
-                System.out.println("ESC Folge [ Ps; PS; ... m noch nicht implementiert");
-                receiveESC = false;
-                break;
-            case 0x6E:
-                // [ Ps; Ps; ... ;Ps n Anforderung zur Übertragung des KGS-Status an die ZVE und Rückmeldung
-                System.out.println("ESC Folge [ Ps; Ps; ... n noch nicht implementiert");
-                receiveESC = false;
-                break;
-            case 0x52:
-                // [ Pn; Pm R Übertragung der Cursorposition vom KGS an die ZVE als Antwort auf eine Anforderung der ZVE
-                System.out.println("ESC Folge [ Pn;Pm R noch nicht implementiert");
-                receiveESC = false;
-                break;
-            case 0x63:
-                // c Rücksetzen des KGS
-                // [ Ps c Anforderung zur Übertragung der KGS Gerätekennung
-                System.out.println("ESC Folge [ Ps c noch nicht implementiert");
-                receiveESC = false;
-                break;
-            case 0x37:
-                // 7 Retten Cursorposition
-                System.out.println("ESC Folge 7 noch nicht implementiert");
-                if (ESCPosition == 1) {
-                    receiveESC = false;
+                case 0x4D:
+                    // M Cursor eine Zeile nach oben
+                    System.out.println("ESC Folge M noch nicht implementiert");
+                    receiveSequence = false;
+                    break;
+                case 0x4A:
+
+                    if (ESCPosition == 1) {
+                        // J Setzen Vertikal-Tabulatorstop
+                        receiveSequence = false;
+                    } else {
+                        // [ Ps; Ps; ... ;Ps J Löschen eines Zeichenbereiches des Bildschirms
+                        int[] params = getParameters();
+                        if (params[0] <= 0) {
+                            for (int i = cursorColumn; i <= 80; i++) {
+                                drawCharacter(0x20, cursorRow, i);
+                            }
+                            for (int i = cursorRow + 1; i <= 25; i++) {
+                                for (int j = 1; j <= 80; j++) {
+                                    drawCharacter(0x20, i, j);
+                                }
+                            }
+                        } else if (params[0] == 1) {
+                            for (int i = 1; i < cursorRow; i++) {
+                                for (int j = 1; j <= 80; j++) {
+                                    drawCharacter(0x20, i, j);
+                                }
+                            }
+                            for (int i = 1; i <= cursorColumn; i++) {
+                                drawCharacter(0x20, cursorRow, i);
+                            }
+                        } else if (params[0] == 2) {
+                            for (int i = 1; i <= 25; i++) {
+                                for (int j = 1; j <= 80; j++) {
+                                    drawCharacter(0x20, i, j);
+                                }
+                            }
+                        }
+//                    System.out.println("ESC Folge [ Ps;Ps;... J noch nicht implementiert");
+                        receiveSequence = false;
+                    }
+                    break;
+                case 0x4E:
+                    // [ Pn1; Pn2; ... ;Pns <SP> N Setzen Horizontal-Tabulatorstops
+                    System.out.println("ESC Folge [ Pn1; Pn2 <SP> N noch nicht implementiert");
+                    receiveSequence = false;
+                    break;
+                case 0x67:
+                    // [ Ps; Ps; ... ;Ps g Löschen Tabulatorstops
+                    System.out.println("ESC Folge [ Ps; Ps; ... g noch nicht implementiert");
+                    receiveSequence = false;
+                    break;
+                case 0x57:
+                    // [ Ps; Ps; ... ;Ps W Tabulator-Steuerung
+                    System.out.println("ESC Folge [ Ps; Ps; ... W noch nicht implementiert");
+                    receiveSequence = false;
+                    break;
+                case 0x68: {
+                    // [ Ps; Ps; ... ;Ps h Setzen Modus
+                    int[] params = getParameters();
+                    for (int p : params) {
+                        switch (p) {
+                            case 4:
+                                System.out.println("Weiches Rollen Bildlinienweise");
+                                break;
+                            case 7:
+                                System.out.println("Wraparound");
+                                wraparound = true;
+                                break;
+                            case 10:
+                                System.out.println("Cursor blinkender Unterstrich");
+                                break;
+                            case 14:
+                                System.out.println("Cursor sichtbar");
+                                break;
+                            case 16:
+                                System.out.println("Weiches Rollen normal");
+                                break;
+                        }
+                    }
+                    receiveSequence = false;
                 }
                 break;
-            case 0x38:
-                // 8 Rücklesen Cursorposition
-                System.out.println("ESC Folge 8 noch nicht implementiert");
-                if (ESCPosition == 1) {
-                    receiveESC = false;
+                case 0x6C: {
+                    // [ Ps; Ps; ... ;Ps l Rücksetzen Modus
+                    int[] params = getParameters();
+                    for (int p : params) {
+                        switch (p) {
+                            case 2:
+                                System.out.println("Modus 2");
+                                break;
+                            case 4:
+                                System.out.println("Hartes Rollen Bildlinienweise");
+                                break;
+                            case 7:
+                                System.out.println("kein Wraparound");
+                                wraparound = false;
+                                break;
+                            case 10:
+                                System.out.println("Cursor nicht blinkender Block");
+                                break;
+                            case 14:
+                                System.out.println("Cursor unsichtbar");
+                                break;
+                            case 16:
+                                System.out.println("Schnelles Weiches Rollen");
+                                break;
+                        }
+                    }
+                    receiveSequence = false;
                 }
                 break;
-            case 0x5D:
-                // ] Anforderung zur Übertragung des Diagnosefiles
-                System.out.println("ESC Folge ] noch nicht implementiert");
-                receiveESC = false;
-                break;
-            case 0x5E:
-                // ^ Aufruf Testbild
-                System.out.println("ESC Folge ^ noch nicht implementiert");
-                receiveESC = false;
-                break;
-            case 0x50:
-                // P BCL BCH LAL LAH Byte1 ... ByteN Laden der ladbaren Firmware
-                System.out.println("ESC Folge P BCL BCH LAL LAH noch nicht implementiert");
-                receiveESC = false;
-                break;
-            case 0x5F:
-                // _ SAL SAR Start Programm
-                System.out.println("ESC Folge _ noch nicht implementiert");
-                receiveESC = false;
-                break;
-            case 0x70:
-                // [ p Unterdrücken Grafikanzeige
-                if (ESCPosition == 2 && ESCBytes[0] == 0x5B) {
-                    disableGraphics = true;
-                    System.out.println("Grafikmodus abgeschaltet");
-                    receiveESC = false;
+                case 0x4B: {
+                    // [ Ps; Ps; ... ;Ps K Löschen eines Zeichenbereiches in der aktiven Zeile
+                    System.out.println("ESC Folge [ Ps; Ps; ... ;Ps K noch nicht implementiert");
+                    int[] params = getParameters();
+                    switch (params[0]) {
+                        case 0:
+                            for (int i = cursorColumn; i <= 80; i++) {
+                                drawCharacter(0x20, cursorRow, i);
+                            }
+                            break;
+                        case 1:
+                            for (int i = 1; i <= cursorColumn; i++) {
+                                drawCharacter(0x20, cursorRow, i);
+                            }
+                            break;
+                        case 2:
+                            for (int i = 1; i <= 80; i++) {
+                                drawCharacter(0x20, cursorRow, i);
+                            }
+                            break;
+                    }
+                    receiveSequence = false;
                 }
                 break;
-            case 0x73:
-                // [ s Erlauben Grafikanzeige
-                if (ESCPosition == 2 && ESCBytes[0] == 0x5B) {
-                    disableGraphics = false;
-                    System.out.println("Grafikmodus erlaubt");
-                    receiveESC = false;
+                case 0x75: {
+                    // [ Pn1; Pnm1; Pn2; Pm2 <SP> u Löschen eines Zeichenbereiches von Anfangs- bis Endposition
+                    int[] params = getParameters();
+                    for (int i = params[0]; i <= params[2]; i++) {
+                        for (int j = params[1]; j <= params[3]; j++) {
+                            drawCharacter(0x20, i, j);
+                        }
+                    }
+                    receiveSequence = false;
                 }
                 break;
+                case 0x6D: {
+                    // [ Ps; Ps; ... ;Ps m Ein-Ausschalten von Attributen
+                    //System.out.println("ESC Folge [ Ps; PS; ... m noch nicht implementiert");
+                    System.out.println("Setze Attribut");
+                    int[] params = getParameters();
+                    for (int p : params) {
+                        switch (p) {
+                            case -1:
+                            case 0:
+                                intense = false;
+                                inverse = false;
+                                flash = false;
+                                underline = false;
+                                break;
+                            case 1:
+                                intense = true;
+                                break;
+                            case 4:
+                                underline = true;
+                                break;
+                            case 5:
+                                flash = true;
+                                break;
+                            case 7:
+                                inverse = true;
+                                break;
+                            case 22:
+                                intense = false;
+                                break;
+                            case 24:
+                                underline = false;
+                                break;
+                            case 25:
+                                flash = false;
+                                break;
+                            case 27:
+                                inverse = false;
+                                break;
+                        }
+                    }
+                    receiveSequence = false;
+                }
+                break;
+                case 0x6E:
+                    // [ Ps; Ps; ... ;Ps n Anforderung zur Übertragung des KGS-Status an die ZVE und Rückmeldung
+                    System.out.println("ESC Folge [ Ps; Ps; ... n noch nicht implementiert");
+                    receiveSequence = false;
+                    break;
+                case 0x52:
+                    // [ Pn; Pm R Übertragung der Cursorposition vom KGS an die ZVE als Antwort auf eine Anforderung der ZVE
+                    System.out.println("ESC Folge [ Pn;Pm R noch nicht implementiert");
+                    receiveSequence = false;
+                    break;
+                case 0x63:
+                    if (ESCPosition == 1) {
+                        // c Rücksetzen des KGS
+                        receiveSequence = false;
+                    } else {
+                        // [ Ps c Anforderung zur Übertragung der KGS Gerätekennung (ESC[?2;3c)
+                        writeOutputBuffer(new byte[]{0x1B, 0x5B, 0x3F, 0x32, 0x3B, 0x33, 0x63});
+                        //System.out.println("ESC Folge [ Ps c noch nicht implementiert");
+                        receiveSequence = false;
+                    }
+                    break;
+                case 0x37:
+                    // 7 Retten Cursorposition
+                    //System.out.println("ESC Folge 7 noch nicht implementiert");
+                    if (ESCPosition == 1) {
+                        cursorColumnSave = cursorColumn;
+                        cursorRowSave = cursorRow;
+                        receiveSequence = false;
+                    }
+                    break;
+                case 0x38:
+                    // 8 Rücklesen Cursorposition
+                    //System.out.println("ESC Folge 8 noch nicht implementiert");
+                    if (ESCPosition == 1) {
+                        cursorColumn = cursorColumnSave;
+                        cursorRow = cursorRowSave;
+                        receiveSequence = false;
+                    }
+                    break;
+                case 0x5D:
+                    // ] Anforderung zur Übertragung des Diagnosefiles
+                    System.out.println("ESC Folge ] noch nicht implementiert");
+                    receiveSequence = false;
+                    break;
+                case 0x5E:
+                    // ^ Aufruf Testbild
+                    System.out.println("ESC Folge ^ noch nicht implementiert");
+                    receiveSequence = false;
+                    break;
+                case 0x50:
+                    // P BCL BCH LAL LAH Byte1 ... ByteN Laden der ladbaren Firmware
+                    System.out.println("ESC Folge P BCL BCH LAL LAH noch nicht implementiert");
+                    receiveSequence = false;
+                    break;
+                case 0x5F:
+                    // _ SAL SAR Start Programm
+                    System.out.println("ESC Folge _ noch nicht implementiert");
+                    receiveSequence = false;
+                    break;
+                case 0x70:
+                    // [ p Unterdrücken Grafikanzeige
+                    if (ESCPosition == 2 && ESCBytes[0] == 0x5B) {
+                        disableGraphics = true;
+                        System.out.println("Grafikmodus abgeschaltet");
+                        receiveSequence = false;
+                    }
+                    break;
+                case 0x73:
+                    // [ s Erlauben Grafikanzeige
+                    if (ESCPosition == 2 && ESCBytes[0] == 0x5B) {
+                        disableGraphics = false;
+                        System.out.println("Grafikmodus erlaubt");
+                        receiveSequence = false;
+                    }
+                    break;
+            }
+        }
+        if (!receiveSequence) {
+            System.out.println();
         }
     }
 
     private int getParameter() {
-        if (ESCBytes.length == 4) {
+        if (ESCPosition == 4) {
             return (ESCBytes[1] - 0x30) * 10 + (ESCBytes[2] - 0x30);
-        } else if (ESCBytes.length == 3) {
+        } else if (ESCPosition == 3) {
             return (ESCBytes[1] - 0x30);
+        } else if (ESCPosition == 2) {
+            return 1;
         }
         throw new IllegalArgumentException("Falsche ESC-Sequenz");
+    }
+
+    private int[] getParameters() {
+        int[] params = new int[128];
+        int pos = 0;
+        int index = 1;
+        while (index < ESCPosition + 1) {
+            if (ESCBytes[index] == 0x3F) {
+                index++;
+            } else if (ESCBytes[index] < 0x30 || ESCBytes[index] > 0x39) {
+                params[pos++] = -1;
+                index++;
+            } else {
+                if (ESCBytes[index + 1] < 0x30 || ESCBytes[index + 1] > 0x39) {
+                    params[pos++] = ESCBytes[index] - 0x30;
+                    index = index + 2;
+                } else {
+                    params[pos++] = (ESCBytes[index] - 0x30) * 10 + (ESCBytes[index + 1] - 0x30);
+                    index = index + 3;
+                }
+            }
+        }
+        int[] result = new int[pos];
+        System.arraycopy(params, 0, result, 0, pos);
+        return result;
     }
 
     @Override
@@ -587,8 +882,55 @@ public final class KGS implements PortModule, ClockModule {
             interruptClock += amount;
             if (interruptClock > 20) {
                 interruptWaiting = false;
-                InterruptSystem.getInstance().addIRInterrupt(7);
+                InterruptSystem.getInstance().getPIC().requestInterrupt(7);
             }
         }
+    }
+
+    private void writeOutputBuffer(byte[] bytes) {
+        deviceBuffer2.clear();
+        bufferPosition=0;
+        for (int i = 0; i < bytes.length; i++) {
+            deviceBuffer[bufferPosition++] = bytes[i];
+            //deviceBuffer2.add(bytes[i]);
+        }
+        setBit(OBF_BIT);
+    }
+
+    public void showCharacters() {
+        final BufferedImage characterImage = new BufferedImage(512, 384, BufferedImage.TYPE_INT_RGB);
+        for (int i = 0; i < 256; i++) {
+            int x = (i / 16) * 32 + 24;
+            int y = (i % 16) * 24;
+            // Darstellbares Zeichen
+            byte[] linecode = new byte[16];
+            for (byte line = 0; line < 16; line++) {
+                linecode[line] = (byte) (characterCodes.readByte(16 * i + line) & 0xFF);
+            }
+            BufferedImage character = BitmapGenerator.generateBitmapFromLineCode(linecode, intense, inverse, flash, underline);
+            characterImage.getGraphics().drawImage(character, x, y, null);
+            characterImage.getGraphics().drawString(String.format("%02X", (byte) i), x - 20, y + 10);
+        }
+        JFrame frame = new JFrame("Zeichentabelle");
+
+        JComponent component = new JComponent() {
+
+            @Override
+            public void paint(Graphics g) {
+                g.drawImage(characterImage, 0, 0, null);;
+            }
+        };
+        component.setMinimumSize(new Dimension(512, 384));
+        component.setPreferredSize(new Dimension(512, 384));
+        frame.add(component);
+
+        try {
+            Thread.sleep(100);
+        } catch (InterruptedException ex) {
+            Logger.getLogger(BitmapGenerator.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        frame.setVisible(true);
+        frame.pack();
+
     }
 }

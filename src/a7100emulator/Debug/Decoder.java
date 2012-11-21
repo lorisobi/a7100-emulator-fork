@@ -26,6 +26,7 @@ public class Decoder {
 
     private TreeMap<Integer, String> decoder = new TreeMap();
     private static Decoder instance;
+    private final DebuggerInfo debugInfo = DebuggerInfo.getInstance();
 
     private Decoder() {
     }
@@ -66,6 +67,11 @@ public class Decoder {
             Logger.getLogger(Decoder.class.getName()).log(Level.SEVERE, null, ex);
         }
         
+    }
+
+    public void addItem() {
+        String debugString = String.format("%04X:%04X ", debugInfo.getCs(), debugInfo.getIp()) + debugInfo.getCode();
+        decoder.put(debugInfo.getCs()*16+debugInfo.getIp(), debugString);
     }
 
     class DecoderTableModel extends AbstractTableModel {

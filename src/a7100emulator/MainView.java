@@ -7,11 +7,14 @@ package a7100emulator;
 import a7100emulator.Debug.Debugger;
 import a7100emulator.Debug.Decoder;
 import a7100emulator.Debug.MemoryAnalyzer;
+import a7100emulator.components.A7100;
+import a7100emulator.components.system.FloppyDrive;
 import a7100emulator.components.system.Keyboard;
 import a7100emulator.components.system.Screen;
 import a7100emulator.components.system.SystemMemory;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.File;
 import javax.swing.*;
 
 /**
@@ -21,10 +24,21 @@ import javax.swing.*;
 public class MainView extends JFrame {
 
     private final JMenu menuEmulator = new JMenu("Emulator");
+    private final JMenu menuDevices = new JMenu("Geräte");
     private final JMenu menuDebug = new JMenu("Debug");
     private final JMenuItem menuEmulatorReset = new JMenuItem("Reset");
     private final JMenuItem menuEmulatorPause = new JMenuItem("Pause");
     private final JMenuItem menuEmulatorExit = new JMenuItem("Beenden");
+    private final JMenu menuDevicesDrive0 = new JMenu("Laufwerk 0");
+    private final JMenu menuDevicesDrive1 = new JMenu("Laufwerk 1");
+    private final JMenuItem menuDevicesDrive0Load = new JMenuItem("Lade Image");
+    private final JMenuItem menuDevicesDrive0Eject = new JMenuItem("Auswerfen");
+    private final JMenuItem menuDevicesDrive0Empty = new JMenuItem("Leere Diskette");
+    private final JCheckBoxMenuItem menuDevicesDrive0WriteProtect = new JCheckBoxMenuItem("Schreibschutz");
+    private final JMenuItem menuDevicesDrive1Load = new JMenuItem("Lade Image");
+    private final JMenuItem menuDevicesDrive1Eject = new JMenuItem("Auswerfen");
+        private final JMenuItem menuDevicesDrive1Empty = new JMenuItem("Leere Diskette");
+    private final JCheckBoxMenuItem menuDevicesDrive1WriteProtect = new JCheckBoxMenuItem("Schreibschutz");
     private final JMenu menuDebugMemory = new JMenu("Speicher");
     private final JMenu menuDebugDecoder = new JMenu("Decoder");
     private final JCheckBoxMenuItem menuDebugSwitch = new JCheckBoxMenuItem("Debugger");
@@ -32,16 +46,42 @@ public class MainView extends JFrame {
     private final JMenuItem menuDebugMemoryDump = new JMenuItem("Dump");
     private final JMenuItem menuDebugDecoderShow = new JMenuItem("zeigen");
     private final JMenuItem menuDebugDecoderDump = new JMenuItem("Dump");
+    private final JMenuItem menuDebugCharacters = new JMenuItem("KGS Zeichensatz");
     private MainMenuController controller = new MainMenuController();
+    private final A7100 a7100;
 
-    public MainView() {
+    public MainView(A7100 a7100) {
         super("A7100 Emulator");
+
+        this.a7100 = a7100;
         JMenuBar menubar = new JMenuBar();
         menubar.add(menuEmulator);
         menuEmulator.add(menuEmulatorReset);
         menuEmulator.add(menuEmulatorPause);
         menuEmulator.addSeparator();
         menuEmulator.add(menuEmulatorExit);
+
+        menubar.add(menuDevices);
+        menuDevices.add(menuDevicesDrive0);
+        menuDevicesDrive0.add(menuDevicesDrive0Load);
+        menuDevicesDrive0.add(menuDevicesDrive0Eject);
+        menuDevicesDrive0.add(menuDevicesDrive0Empty);
+        menuDevicesDrive0.add(menuDevicesDrive0WriteProtect);
+        menuDevices.add(menuDevicesDrive1);
+        menuDevicesDrive1.add(menuDevicesDrive1Load);
+        menuDevicesDrive1.add(menuDevicesDrive1Eject);
+        menuDevicesDrive1.add(menuDevicesDrive1Empty);
+        menuDevicesDrive1.add(menuDevicesDrive1WriteProtect);
+
+        menuDevicesDrive0Load.addActionListener(controller);
+        menuDevicesDrive0Eject.addActionListener(controller);
+        menuDevicesDrive0Empty.addActionListener(controller);
+        menuDevicesDrive0WriteProtect.addActionListener(controller);
+        menuDevicesDrive1Load.addActionListener(controller);
+        menuDevicesDrive1Eject.addActionListener(controller);
+        menuDevicesDrive1Empty.addActionListener(controller);
+        menuDevicesDrive1WriteProtect.addActionListener(controller);
+
 
         menubar.add(menuDebug);
         menuDebug.add(menuDebugMemory);
@@ -51,12 +91,14 @@ public class MainView extends JFrame {
         menuDebugDecoder.add(menuDebugDecoderShow);
         menuDebugDecoder.add(menuDebugDecoderDump);
         menuDebug.add(menuDebugSwitch);
+        menuDebug.add(menuDebugCharacters);
 
         menuDebugSwitch.addActionListener(controller);
         menuDebugMemoryShow.addActionListener(controller);
         menuDebugMemoryDump.addActionListener(controller);
         menuDebugDecoderShow.addActionListener(controller);
         menuDebugDecoderDump.addActionListener(controller);
+        menuDebugCharacters.addActionListener(controller);
 
         this.setJMenuBar(menubar);
         this.add(Screen.getInstance());
@@ -68,17 +110,44 @@ public class MainView extends JFrame {
 
     private class MainMenuController implements ActionListener {
 
+        @Override
         public void actionPerformed(ActionEvent e) {
             if (e.getSource().equals(menuDebugMemoryShow)) {
                 (new MemoryAnalyzer()).show();
             } else if (e.getSource() == menuDebugDecoderShow) {
                 Decoder.getInstance().show();
             } else if (e.getSource() == menuDebugMemoryDump) {
-                SystemMemory.getInstance().dump();
+                SystemMemory.getInstance().dump("user_dump.hex");
             } else if (e.getSource() == menuDebugDecoderDump) {
                 Decoder.getInstance().save();
-            } else if (e.getSource()==menuDebugSwitch) {
+            } else if (e.getSource() == menuDebugSwitch) {
                 Debugger.getInstance().setDebug(menuDebugSwitch.isSelected());
+            } else if (e.getSource() == menuDebugCharacters) {
+                a7100.getKGS().showCharacters();
+            } else if (e.getSource() == menuDevicesDrive0Load) {
+                JFileChooser loadDialog = new JFileChooser("./disks/");
+                if (loadDialog.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
+                    File image = loadDialog.getSelectedFile();
+                    FloppyDrive.getInstance(0).loadDisk(image);
+                }
+            } else if (e.getSource() == menuDevicesDrive0Eject) {
+                FloppyDrive.getInstance(0).ejectDisk();
+            } else if (e.getSource() == menuDevicesDrive0Empty) {
+                FloppyDrive.getInstance(0).newDisk();
+            } else if (e.getSource() == menuDevicesDrive0WriteProtect) {
+                FloppyDrive.getInstance(0).setWriteProtect(menuDevicesDrive0WriteProtect.isSelected());
+            } else if (e.getSource() == menuDevicesDrive1Load) {
+                JFileChooser loadDialog = new JFileChooser("./disks/");
+                if (loadDialog.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
+                    File image = loadDialog.getSelectedFile();
+                    FloppyDrive.getInstance(1).loadDisk(image);
+                }
+            } else if (e.getSource() == menuDevicesDrive1Eject) {
+                FloppyDrive.getInstance(1).ejectDisk();
+            } else if (e.getSource() == menuDevicesDrive1Empty) {
+                FloppyDrive.getInstance(1).newDisk();
+            } else if (e.getSource() == menuDevicesDrive1WriteProtect) {
+                FloppyDrive.getInstance(1).setWriteProtect(menuDevicesDrive0WriteProtect.isSelected());
             }
         }
     }

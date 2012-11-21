@@ -5,8 +5,6 @@
 package a7100emulator.components.system;
 
 import java.io.*;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  *
@@ -14,80 +12,56 @@ import java.util.logging.Logger;
  */
 public class FloppyDrive {
 
+    public void setWriteProtect(boolean selected) {
+        if (disk!=null) disk.setWriteProtect(selected);
+    }
+
+    public void format(int cylinder, int head, int mod, int[] data, int interleave) {
+        disk.format(cylinder, head, mod, data,interleave);
+    }
+
+    public void newDisk() {
+        disk=new Disk();
+    }
+
     public enum DriveType {
 
         K5600_20, K5602_10, K5601
     }
-    private byte[] disk = new byte[653312];
-    private boolean diskInsert = false;
+    private Disk disk;
     private final DriveType driveType;
+    private static DriveType[] DRIVE_TYPES = new DriveType[]{DriveType.K5601, DriveType.K5601, DriveType.K5602_10, DriveType.K5602_10};
+    private static FloppyDrive instances[] = new FloppyDrive[4];
 
-    public FloppyDrive(DriveType type) {
+    public static FloppyDrive getInstance(int driveID) {
+        if (instances[driveID] == null) {
+            instances[driveID] = new FloppyDrive(DRIVE_TYPES[driveID]);
+        }
+        return instances[driveID];
+    }
+
+    private FloppyDrive(DriveType type) {
         this.driveType = type;
     }
 
+    private FloppyDrive() {
+        this.driveType = DriveType.K5601;
+    }
+
     public final void loadDisk(File file) {
-        InputStream in = null;
-
-        try {
-            byte[] buffer = new byte[(int) file.length()];
-            in = new FileInputStream(file);
-            in.read(buffer);
-            in.close();
-
-            int address = 0;
-            for (byte b : buffer) {
-                disk[address++] = b;
-            }
-            diskInsert = true;
-        } catch (Exception ex) {
-            Logger.getLogger(FloppyDrive.class.getName()).log(Level.SEVERE, null, ex);
-        } finally {
-            try {
-                in.close();
-            } catch (IOException ex) {
-                Logger.getLogger(FloppyDrive.class.getName()).log(Level.SEVERE, null, ex);
-            }
-        }
+        disk = new Disk(file);
     }
 
     public void ejectDisk() {
-        diskInsert = false;
-    }
-
-    public void dump() {
-        FileOutputStream fos;
-        try {
-            fos = new FileOutputStream("disk.bin");
-            for (byte b : disk) {
-                fos.write(b);
-            }
-            fos.close();
-        } catch (IOException ex) {
-        }
+        disk = null;
     }
 
     public byte[] readData(int track, int sector, int head, int cnt) {
-        if (!diskInsert) {
+        if (disk == null) {
             return null;
         }
-        byte[] res = new byte[cnt];
-        int pos;
-        sector=sector-1;
-        if (track == 0) {
-            // Systemspur
-            if (head == 0) {
-                pos = sector * 128;
-            } else {
-                pos = (16 * 128) + (sector * 256);
-            }
-        } else {
-            // Normale Spur
-            pos = (16 * 128) + (16 * 256);
-            pos += ((track - 1) * 2 * 16 * 256) + (head * 16 * 256) + (sector * 256);
-        }
-        System.arraycopy(disk, pos, res, 0, cnt);
-        return res;
+
+        return disk.readData(track, sector, head, cnt);
     }
 
     public int getCylinderCount() {
@@ -186,6 +160,6 @@ public class FloppyDrive {
     }
 
     public boolean getDiskInsert() {
-        return diskInsert;
+        return disk != null;
     }
 }
