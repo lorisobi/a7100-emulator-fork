@@ -73,9 +73,9 @@ public final class KGS implements PortModule, ClockModule {
     private int cursorRow = 1;
     private int cursorColumn = 1;
     private boolean receiveSequence = false;
-    private byte[] ESCBytes = new byte[256];
+    //private byte[] ESCBytes = new byte[256];
     private LinkedList<Byte> escSequence = new LinkedList<Byte>();
-    private byte ESCPosition = 0;
+    //private byte ESCPosition = 0;
     private boolean[] hTabs = new boolean[80];
     private boolean[] vTabs = new boolean[25];
     private ABG abg;
@@ -159,7 +159,7 @@ public final class KGS implements PortModule, ClockModule {
                 {
                     clearBit(OBF_BIT);
                 }
-                    //            System.out.println("Lese KGS Daten: " + Integer.toHexString(result)+ " Buffer Position:"+bufferPosition+" OBF:"+getBit(OBF_BIT));
+                //            System.out.println("Lese KGS Daten: " + Integer.toHexString(result)+ " Buffer Position:"+bufferPosition+" OBF:"+getBit(OBF_BIT));
                 break;
         }
         return result;
@@ -233,12 +233,14 @@ public final class KGS implements PortModule, ClockModule {
     private void dataReceived(int data) {
         if (initialized) {
             if (receiveSequence) {
-                ESCBytes[ESCPosition++] = (byte) (data & 0xFF);
+//                ESCBytes[ESCPosition++] = (byte) (data & 0xFF);
                 escSequence.add((byte) (data & 0xFF));
                 System.out.print((char) data);
                 checkESC();
             } else {
+//System.out.print(" "+data+" ");
                 if (data >= 0x20 && data != CODE_DEL) {
+//                    System.out.print("("+(char)data+") ");
                     if (wraparound) {
                         if (cursorColumn == 81) {
                             cursorColumn = 1;
@@ -332,7 +334,7 @@ public final class KGS implements PortModule, ClockModule {
                             receiveSequence = true;
                             escSequence.clear();
                             escSequence.add((byte) 0x10);
-                            ESCPosition = 0;
+//                            ESCPosition = 0;
                             // TODO
                             break;
                         case CODE_CAN:
@@ -343,7 +345,7 @@ public final class KGS implements PortModule, ClockModule {
                             receiveSequence = true;
                             escSequence.clear();
                             escSequence.add((byte) 0x1B);
-                            ESCPosition = 0;
+//                            ESCPosition = 0;
                             System.out.print("ESC ");
                             break;
                         case CODE_RS:
@@ -433,7 +435,7 @@ public final class KGS implements PortModule, ClockModule {
                 case 0x44:
                     // [ Pn D Cursor nach links
                     // D Zeilenschaltung
-                    if (ESCPosition == 1) {
+                    if (escSequence.size() == 1) {
                         cursorRow++;
                         if (cursorRow > 25) {
                             abg.rollAlphanumericScreen();
@@ -485,7 +487,7 @@ public final class KGS implements PortModule, ClockModule {
                 case 0x45:
                     // [ Pn E Cursor nach unten an Zeilenanfang
                     // E Neue Zeile
-                    if (ESCPosition == 1) {
+                    if (escSequence.size() == 1) {
                         cursorColumn = 1;
                         cursorRow++;
                         if (cursorRow > 25) {
@@ -520,12 +522,13 @@ public final class KGS implements PortModule, ClockModule {
                 case 0x48:
                     // [ Pn ; Pm H Cursor-Direktpositionierung
                     // H Setzen Horizontal-Tabulatorstop
-                    if (ESCPosition == 1) {
+                    if (escSequence.size() == 1) {
                         receiveSequence = false;
                     } else {
                         int[] params = getParameters();
-                        cursorRow = params[0];
-                        cursorColumn = params[1];
+                        cursorRow = params[0] == -1 ? 1 : params[0];
+                        cursorColumn = params.length < 2 || params[1] == -1 ? 1 : params[1];
+                        System.out.println(cursorRow + ";" + cursorColumn + "\n");
                         if (cursorRow < 1) {
                             cursorRow = 1;
                         }
@@ -545,8 +548,8 @@ public final class KGS implements PortModule, ClockModule {
                     // [ Pn ; Pm f Cursor-Direktpositionierung
                     //System.out.println("ESC Folge [ Pn;Pm f noch nicht implementiert");
                     int[] params = getParameters();
-                    cursorRow = params[0];
-                    cursorColumn = params[1];
+                    cursorRow = params.length < 1 || params[0] == -1 ? 1 : params[0];
+                    cursorColumn = params.length < 2 || params[1] == -1 ? 1 : params[1];
                     if (cursorRow < 1) {
                         cursorRow = 1;
                     }
@@ -569,8 +572,7 @@ public final class KGS implements PortModule, ClockModule {
                     receiveSequence = false;
                     break;
                 case 0x4A:
-
-                    if (ESCPosition == 1) {
+                    if (escSequence.size() == 1) {
                         // J Setzen Vertikal-Tabulatorstop
                         receiveSequence = false;
                     } else {
@@ -650,6 +652,7 @@ public final class KGS implements PortModule, ClockModule {
                     // [ Ps; Ps; ... ;Ps l Rücksetzen Modus
                     int[] params = getParameters();
                     for (int p : params) {
+                        System.out.println("" + p);
                         switch (p) {
                             case 2:
                                 System.out.println("Modus 2");
@@ -677,7 +680,6 @@ public final class KGS implements PortModule, ClockModule {
                 break;
                 case 0x4B: {
                     // [ Ps; Ps; ... ;Ps K Löschen eines Zeichenbereiches in der aktiven Zeile
-                    System.out.println("ESC Folge [ Ps; Ps; ... ;Ps K noch nicht implementiert");
                     int[] params = getParameters();
                     switch (params[0]) {
                         case 0:
@@ -713,11 +715,9 @@ public final class KGS implements PortModule, ClockModule {
                 case 0x6D: {
                     // [ Ps; Ps; ... ;Ps m Ein-Ausschalten von Attributen
                     //System.out.println("ESC Folge [ Ps; PS; ... m noch nicht implementiert");
-                    System.out.println("Setze Attribut");
                     int[] params = getParameters();
                     for (int p : params) {
                         switch (p) {
-                            case -1:
                             case 0:
                                 intense = false;
                                 inverse = false;
@@ -764,7 +764,7 @@ public final class KGS implements PortModule, ClockModule {
                     receiveSequence = false;
                     break;
                 case 0x63:
-                    if (ESCPosition == 1) {
+                    if (escSequence.size() == 1) {
                         // c Rücksetzen des KGS
                         receiveSequence = false;
                     } else {
@@ -777,7 +777,7 @@ public final class KGS implements PortModule, ClockModule {
                 case 0x37:
                     // 7 Retten Cursorposition
                     //System.out.println("ESC Folge 7 noch nicht implementiert");
-                    if (ESCPosition == 1) {
+                    if (escSequence.size() == 1) {
                         cursorColumnSave = cursorColumn;
                         cursorRowSave = cursorRow;
                         receiveSequence = false;
@@ -786,7 +786,7 @@ public final class KGS implements PortModule, ClockModule {
                 case 0x38:
                     // 8 Rücklesen Cursorposition
                     //System.out.println("ESC Folge 8 noch nicht implementiert");
-                    if (ESCPosition == 1) {
+                    if (escSequence.size() == 1) {
                         cursorColumn = cursorColumnSave;
                         cursorRow = cursorRowSave;
                         receiveSequence = false;
@@ -814,7 +814,7 @@ public final class KGS implements PortModule, ClockModule {
                     break;
                 case 0x70:
                     // [ p Unterdrücken Grafikanzeige
-                    if (ESCPosition == 2 && ESCBytes[0] == 0x5B) {
+                    if (escSequence.size() == 2 && escSequence.peekFirst() == 0x5B) {
                         disableGraphics = true;
                         System.out.println("Grafikmodus abgeschaltet");
                         receiveSequence = false;
@@ -822,7 +822,7 @@ public final class KGS implements PortModule, ClockModule {
                     break;
                 case 0x73:
                     // [ s Erlauben Grafikanzeige
-                    if (ESCPosition == 2 && ESCBytes[0] == 0x5B) {
+                    if (escSequence.size() == 1 && escSequence.peekFirst() == 0x5B) {
                         disableGraphics = false;
                         System.out.println("Grafikmodus erlaubt");
                         receiveSequence = false;
@@ -836,38 +836,59 @@ public final class KGS implements PortModule, ClockModule {
     }
 
     private int getParameter() {
-        if (ESCPosition == 4) {
-            return (ESCBytes[1] - 0x30) * 10 + (ESCBytes[2] - 0x30);
-        } else if (ESCPosition == 3) {
-            return (ESCBytes[1] - 0x30);
-        } else if (ESCPosition == 2) {
+        if (escSequence.size() == 4) {
+            return (escSequence.get(1) - 0x30) * 10 + (escSequence.get(2) - 0x30);
+        } else if (escSequence.size() == 3) {
+            return (escSequence.get(1) - 0x30);
+        } else if (escSequence.size() == 2) {
             return 1;
         }
         throw new IllegalArgumentException("Falsche ESC-Sequenz");
     }
 
     private int[] getParameters() {
-        int[] params = new int[128];
-        int pos = 0;
-        int index = 1;
-        while (index < ESCPosition + 1) {
-            if (ESCBytes[index] == 0x3F) {
-                index++;
-            } else if (ESCBytes[index] < 0x30 || ESCBytes[index] > 0x39) {
-                params[pos++] = -1;
-                index++;
+        String escString = "";
+        escSequence.removeFirst();
+        escSequence.removeFirst();
+        escSequence.removeLast();
+        for (byte b : escSequence) {
+            escString += (char) b;
+        }
+        escString = escString.trim();
+        System.out.println(escString);
+        String[] params2 = escString.replaceAll("\\?", "").split(";", -1);
+
+        int[] result = new int[params2.length];
+        for (int i = 0; i < params2.length; i++) {
+            String str = params2[i];
+            if (str.equals("")) {
+                result[i] = -1;
             } else {
-                if (ESCBytes[index + 1] < 0x30 || ESCBytes[index + 1] > 0x39) {
-                    params[pos++] = ESCBytes[index] - 0x30;
-                    index = index + 2;
-                } else {
-                    params[pos++] = (ESCBytes[index] - 0x30) * 10 + (ESCBytes[index + 1] - 0x30);
-                    index = index + 3;
-                }
+                result[i] = Integer.parseInt(str);
             }
         }
-        int[] result = new int[pos];
-        System.arraycopy(params, 0, result, 0, pos);
+
+//        int[] params = new int[128];
+//        int pos = 0;
+//        int index = 1;
+//        while (index < ESCPosition ) {
+//            if (ESCBytes[index] == 0x3F) {
+//                index++;
+//            } else if (ESCBytes[index] < 0x30 || ESCBytes[index] > 0x39) {
+//                params[pos++] = -1;
+//                index++;
+//            } else {
+//                if (ESCBytes[index + 1] < 0x30 || ESCBytes[index + 1] > 0x39) {
+//                    params[pos++] = ESCBytes[index] - 0x30;
+//                    index = index + 2;
+//                } else {
+//                    params[pos++] = (ESCBytes[index] - 0x30) * 10 + (ESCBytes[index + 1] - 0x30);
+//                    index = index + 3;
+//                }
+//            }
+//        }
+//        int[] result = new int[pos];
+//        System.arraycopy(params, 0, result, 0, pos);
         return result;
     }
 
@@ -889,7 +910,7 @@ public final class KGS implements PortModule, ClockModule {
 
     private void writeOutputBuffer(byte[] bytes) {
         deviceBuffer2.clear();
-        bufferPosition=0;
+        bufferPosition = 0;
         for (int i = 0; i < bytes.length; i++) {
             deviceBuffer[bufferPosition++] = bytes[i];
             //deviceBuffer2.add(bytes[i]);
@@ -912,6 +933,7 @@ public final class KGS implements PortModule, ClockModule {
             characterImage.getGraphics().drawString(String.format("%02X", (byte) i), x - 20, y + 10);
         }
         JFrame frame = new JFrame("Zeichentabelle");
+        frame.setResizable(false);
 
         JComponent component = new JComponent() {
 

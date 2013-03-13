@@ -57,17 +57,17 @@ public class Disk {
         this.writeProtect = writeProtect;
     }
 
-    public byte[] readData(int track, int sector, int head, int cnt) {
+    public byte[] readData(int cylinder, int sector, int head, int cnt) {
         byte[] res = new byte[cnt];
-        int pos = seek(track, head, sector);
+        int pos = seek(cylinder, head, sector);
         System.arraycopy(data, pos, res, 0, cnt);
         return res;
     }
 
-    public void dump() {
+    public void saveDisk(File image) {
         FileOutputStream fos;
         try {
-            fos = new FileOutputStream("disk.bin");
+            fos = new FileOutputStream(image);
             for (byte b : data) {
                 fos.write(b);
             }
@@ -80,19 +80,17 @@ public class Disk {
         // TODO: mod und interleave
         int pos = seek(cylinder, head, 1);
         for (int sector = 0; sector < sectorsPerTrack; sector++) {
-            data[pos++]=(byte) formatData[0];
+            data[pos++] = (byte) formatData[0];
             if (cylinder == 0 && head == 0) {
-               
-               for (int b=0;b<t0BytesPerSector-1;b++) {
-                   data[pos++]=(byte) formatData[1];
-               }
+                for (int b = 0; b < t0BytesPerSector - 1; b++) {
+                    data[pos++] = (byte) formatData[1];
+                }
             } else {
-                   for (int b=0;b<bytesPerSector-1;b++) {
-                   data[pos++]=(byte) formatData[1];
-               }
+                for (int b = 0; b < bytesPerSector - 1; b++) {
+                    data[pos++] = (byte) formatData[1];
+                }
             }
         }
-
     }
 
     private int seek(int track, int head, int sector) {
@@ -111,5 +109,10 @@ public class Disk {
             pos += ((track - 1) * tracksPerCylinder * sectorsPerTrack * bytesPerSector) + (head * sectorsPerTrack * bytesPerSector) + (sector * bytesPerSector);
         }
         return pos;
+    }
+
+    void writeData(int cylinder, int sector, int head, byte[] data) {
+        int pos = seek(cylinder, head, sector);
+        System.arraycopy(data, 0, this.data, pos, data.length);
     }
 }

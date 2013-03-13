@@ -201,68 +201,68 @@ public class Keyboard implements KeyListener {
                 sendByte(ctrl? 0x1A:shift ? 0x5A : 0x7A);
                 break;
             case KeyEvent.VK_F1:    // PF1
-                sendBytes(new byte[]{0x27, 0x30, 0x50});
+                sendBytes(new byte[]{0x1B, 0x30, 0x50});
                 break;
             case KeyEvent.VK_F2:    // PF2
-                sendBytes(new byte[]{0x27, 0x30, 0x51});
+                sendBytes(new byte[]{0x1B, 0x30, 0x51});
                 break;
             case KeyEvent.VK_F3:    // PF3
-                sendBytes(new byte[]{0x27, 0x30, 0x52});
+                sendBytes(new byte[]{0x1B, 0x30, 0x52});
                 break;
             case KeyEvent.VK_F4:    // PF4
-                sendBytes(new byte[]{0x27, 0x30, 0x53});
+                sendBytes(new byte[]{0x1B, 0x30, 0x53});
                 break;
             case KeyEvent.VK_F5:    // PF5
-                sendBytes(new byte[]{0x27, 0x30, 0x70});
+                sendBytes(new byte[]{0x1B, 0x30, 0x70});
                 break;
             case KeyEvent.VK_F6:    // PF6
-                sendBytes(new byte[]{0x27, 0x30, 0x71});
+                sendBytes(new byte[]{0x1B, 0x30, 0x71});
                 break;
             case KeyEvent.VK_F7:    // PF7
-                sendBytes(new byte[]{0x27, 0x30, 0x72});
+                sendBytes(new byte[]{0x1B, 0x30, 0x72});
                 break;
             case KeyEvent.VK_F8:    // PF8
-                sendBytes(new byte[]{0x27, 0x30, 0x73});
+                sendBytes(new byte[]{0x1B, 0x30, 0x73});
                 break;
             case KeyEvent.VK_F9:    // PF9
-                sendBytes(new byte[]{0x27, 0x30, 0x74});
+                sendBytes(new byte[]{0x1B, 0x30, 0x74});
                 break;
             case KeyEvent.VK_F10:   // PF10
-                sendBytes(new byte[]{0x27, 0x30, 0x75});
+                sendBytes(new byte[]{0x1B, 0x30, 0x75});
                 break;
             case KeyEvent.VK_F11:   // PF11
-                sendBytes(new byte[]{0x27, 0x30, 0x76});
+                sendBytes(new byte[]{0x1B, 0x30, 0x76});
                 break;
             case KeyEvent.VK_F12:   // PF12
-                sendBytes(new byte[]{0x27, 0x30, 0x77});
+                sendBytes(new byte[]{0x1B, 0x30, 0x77});
                 break;
             case KeyEvent.VK_UP:    // Up
-                sendBytes(new byte[]{0x27, 0x5B, 0x41});
+                sendBytes(new byte[]{0x1B, 0x5B, 0x41});
                 break;
             case KeyEvent.VK_DOWN:  // Down
-                sendBytes(new byte[]{0x27, 0x5B, 0x42});
+                sendBytes(new byte[]{0x1B, 0x5B, 0x42});
                 break;
             case KeyEvent.VK_RIGHT: // Right
-                sendBytes(new byte[]{0x27, 0x5B, 0x43});
+                sendBytes(new byte[]{0x1B, 0x5B, 0x43});
                 break;
             case KeyEvent.VK_LEFT:  // Left
-                sendBytes(new byte[]{0x27, 0x5B, 0x44});
+                sendBytes(new byte[]{0x1B, 0x5B, 0x44});
                 break;
             case KeyEvent.VK_HOME:
                 if (e.isShiftDown()) // PA2
                 {
-                    sendBytes(new byte[]{0x27, 0x30, 0x79});
+                    sendBytes(new byte[]{0x1B, 0x30, 0x79});
                 } else // PA1
                 {
-                    sendBytes(new byte[]{0x27, 0x30, 0x78});
+                    sendBytes(new byte[]{0x1B, 0x30, 0x78});
                 }
                 break;
             case KeyEvent.VK_END:
                 if (e.isShiftDown()) // Links Oben
                 {
-                    sendBytes(new byte[]{0x27, 0x5B, 0x48});
+                    sendBytes(new byte[]{0x1B, 0x5B, 0x48});
                 } else {            // PA3
-                    sendBytes(new byte[]{0x27, 0x30, 0x7A});
+                    sendBytes(new byte[]{0x1B, 0x30, 0x7A});
                 }
                 break;
             // Sondertasten

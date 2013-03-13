@@ -4,14 +4,18 @@
  */
 package a7100emulator.components.system;
 
-import java.io.*;
+import java.io.File;
 
 /**
  *
  * @author Dirk
  */
 public class FloppyDrive {
-
+    private Disk disk;
+    private final DriveType driveType;
+    private static DriveType[] DRIVE_TYPES = new DriveType[]{DriveType.K5601, DriveType.K5601, DriveType.K5602_10, DriveType.K5602_10};
+    private static FloppyDrive instances[] = new FloppyDrive[4];
+    
     public void setWriteProtect(boolean selected) {
         if (disk!=null) disk.setWriteProtect(selected);
     }
@@ -24,14 +28,24 @@ public class FloppyDrive {
         disk=new Disk();
     }
 
+    public void writeData(int cylinder, int sector, int head, byte[] data) {
+        if (disk == null) {
+            return;
+        }
+        disk.writeData(cylinder, sector, head, data);
+    }
+
+    public void saveDisk(File image) {
+        if (disk == null) {
+            return;
+        }
+        disk.saveDisk(image);
+    }
+
     public enum DriveType {
 
         K5600_20, K5602_10, K5601
     }
-    private Disk disk;
-    private final DriveType driveType;
-    private static DriveType[] DRIVE_TYPES = new DriveType[]{DriveType.K5601, DriveType.K5601, DriveType.K5602_10, DriveType.K5602_10};
-    private static FloppyDrive instances[] = new FloppyDrive[4];
 
     public static FloppyDrive getInstance(int driveID) {
         if (instances[driveID] == null) {
@@ -56,12 +70,12 @@ public class FloppyDrive {
         disk = null;
     }
 
-    public byte[] readData(int track, int sector, int head, int cnt) {
+    public byte[] readData(int cylinder, int sector, int head, int cnt) {
         if (disk == null) {
             return null;
         }
 
-        return disk.readData(track, sector, head, cnt);
+        return disk.readData(cylinder, sector, head, cnt);
     }
 
     public int getCylinderCount() {

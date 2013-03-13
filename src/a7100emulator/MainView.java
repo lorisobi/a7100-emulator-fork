@@ -32,12 +32,14 @@ public class MainView extends JFrame {
     private final JMenu menuDevicesDrive0 = new JMenu("Laufwerk 0");
     private final JMenu menuDevicesDrive1 = new JMenu("Laufwerk 1");
     private final JMenuItem menuDevicesDrive0Load = new JMenuItem("Lade Image");
+    private final JMenuItem menuDevicesDrive0Save = new JMenuItem("Speicher Image");
     private final JMenuItem menuDevicesDrive0Eject = new JMenuItem("Auswerfen");
     private final JMenuItem menuDevicesDrive0Empty = new JMenuItem("Leere Diskette");
     private final JCheckBoxMenuItem menuDevicesDrive0WriteProtect = new JCheckBoxMenuItem("Schreibschutz");
     private final JMenuItem menuDevicesDrive1Load = new JMenuItem("Lade Image");
+    private final JMenuItem menuDevicesDrive1Save = new JMenuItem("Speicher Image");
     private final JMenuItem menuDevicesDrive1Eject = new JMenuItem("Auswerfen");
-        private final JMenuItem menuDevicesDrive1Empty = new JMenuItem("Leere Diskette");
+    private final JMenuItem menuDevicesDrive1Empty = new JMenuItem("Leere Diskette");
     private final JCheckBoxMenuItem menuDevicesDrive1WriteProtect = new JCheckBoxMenuItem("Schreibschutz");
     private final JMenu menuDebugMemory = new JMenu("Speicher");
     private final JMenu menuDebugDecoder = new JMenu("Decoder");
@@ -64,20 +66,24 @@ public class MainView extends JFrame {
         menubar.add(menuDevices);
         menuDevices.add(menuDevicesDrive0);
         menuDevicesDrive0.add(menuDevicesDrive0Load);
+        menuDevicesDrive0.add(menuDevicesDrive0Save);
         menuDevicesDrive0.add(menuDevicesDrive0Eject);
         menuDevicesDrive0.add(menuDevicesDrive0Empty);
         menuDevicesDrive0.add(menuDevicesDrive0WriteProtect);
         menuDevices.add(menuDevicesDrive1);
         menuDevicesDrive1.add(menuDevicesDrive1Load);
+        menuDevicesDrive1.add(menuDevicesDrive1Save);
         menuDevicesDrive1.add(menuDevicesDrive1Eject);
         menuDevicesDrive1.add(menuDevicesDrive1Empty);
         menuDevicesDrive1.add(menuDevicesDrive1WriteProtect);
 
         menuDevicesDrive0Load.addActionListener(controller);
+        menuDevicesDrive0Save.addActionListener(controller);
         menuDevicesDrive0Eject.addActionListener(controller);
         menuDevicesDrive0Empty.addActionListener(controller);
         menuDevicesDrive0WriteProtect.addActionListener(controller);
         menuDevicesDrive1Load.addActionListener(controller);
+        menuDevicesDrive1Save.addActionListener(controller);
         menuDevicesDrive1Eject.addActionListener(controller);
         menuDevicesDrive1Empty.addActionListener(controller);
         menuDevicesDrive1WriteProtect.addActionListener(controller);
@@ -104,6 +110,7 @@ public class MainView extends JFrame {
         this.add(Screen.getInstance());
         this.addKeyListener(Keyboard.getInstance());
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        this.setResizable(false);
         this.setVisible(true);
         this.pack();
     }
@@ -130,6 +137,12 @@ public class MainView extends JFrame {
                     File image = loadDialog.getSelectedFile();
                     FloppyDrive.getInstance(0).loadDisk(image);
                 }
+            } else if (e.getSource() == menuDevicesDrive0Save) {
+                JFileChooser saveDialog = new JFileChooser("./disks/");
+                if (saveDialog.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
+                    File image = saveDialog.getSelectedFile();
+                    FloppyDrive.getInstance(0).saveDisk(image);
+                }
             } else if (e.getSource() == menuDevicesDrive0Eject) {
                 FloppyDrive.getInstance(0).ejectDisk();
             } else if (e.getSource() == menuDevicesDrive0Empty) {
@@ -141,6 +154,12 @@ public class MainView extends JFrame {
                 if (loadDialog.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
                     File image = loadDialog.getSelectedFile();
                     FloppyDrive.getInstance(1).loadDisk(image);
+                }
+            } else if (e.getSource() == menuDevicesDrive1Save) {
+                JFileChooser saveDialog = new JFileChooser("./disks/");
+                if (saveDialog.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
+                    File image = saveDialog.getSelectedFile();
+                    FloppyDrive.getInstance(1).saveDisk(image);
                 }
             } else if (e.getSource() == menuDevicesDrive1Eject) {
                 FloppyDrive.getInstance(1).ejectDisk();

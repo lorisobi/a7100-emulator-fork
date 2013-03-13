@@ -20,7 +20,7 @@ public class A7100 {
         //ZPS zps=new ZPS();
         private OPS ops1=new OPS();
         private OPS ops2=new OPS();
-        private OPS ops3=new OPS();
+        //private OPS ops3=new OPS();
         private KGS kgs=new KGS();
         private KES kes=new KES();
     

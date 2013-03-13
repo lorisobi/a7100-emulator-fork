@@ -1229,7 +1229,7 @@ public class K1810WM86 implements Runnable {
             }
             break;
             case XLAT: {
-                setReg8(REG_AL_AX, memory.readByte(ds*16+getReg16(REG_BL_BX) + getReg8(REG_AL_AX)));
+                setReg8(REG_AL_AX, memory.readByte(ds * 16 + getReg16(REG_BL_BX) + getReg8(REG_AL_AX)));
                 clock.updateClock(11);
                 if (debug) {
                     debugInfo.setCode("XLAT");
@@ -2693,7 +2693,7 @@ public class K1810WM86 implements Runnable {
             case JMP_NEAR_LABEL: {
                 int increment = (short) memory.readWord(cs * 16 + (ip++));
                 ip++;
-                ip = 0xFFFF&(ip+increment);
+                ip = 0xFFFF & (ip + increment);
                 clock.updateClock(15);
                 if (debug) {
                     debugInfo.setCode("JMP " + increment);
@@ -5440,7 +5440,7 @@ public class K1810WM86 implements Runnable {
                         int op1 = getMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM, true);
                         if (debug) {
                             debugInfo.setCode("CALL " + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM, 0));
-                            debugInfo.setOperands(String.format("%04X:%04X",cs,op1));
+                            debugInfo.setOperands(String.format("%04X:%04X", cs, op1));
                         }
                         setReg16(REG_AH_SP, (getReg16(REG_AH_SP) - 2) & 0xFFFF);
                         memory.writeWord(ss * 16 + getReg16(REG_AH_SP), (short) ip);
@@ -5672,7 +5672,7 @@ public class K1810WM86 implements Runnable {
                 offset += ((displ > 0) ? "+" : "") + displ;
                 break;
             case MOD_MEM_16_DISPL:
-                offset += "+" + Integer.toHexString(memory.readWord(cs * 16 + ip - 2 - ipOffset)) + "h";
+                offset += "+" + Integer.toHexString((short) memory.readWord(cs * 16 + ip - 2 - ipOffset)) + "h";
                 break;
         }
         return offset;
@@ -5723,7 +5723,7 @@ public class K1810WM86 implements Runnable {
                 offset += (byte) (memory.readByte(cs * 16 + (modip++)) & 0xFF);
                 break;
             case MOD_MEM_16_DISPL:
-                offset += memory.readWord(cs * 16 + (modip++));
+                offset += (short) memory.readWord(cs * 16 + (modip++));
                 modip++;
                 break;
         }
@@ -6166,7 +6166,7 @@ public class K1810WM86 implements Runnable {
     }
 
     private void checkSignFlag8(int res) {
-        if (res < 0||(res&0x80)==0x80) {
+        if (res < 0 || (res & 0x80) == 0x80) {
             setFlag(SIGN_FLAG);
         } else {
             clearFlag(SIGN_FLAG);
@@ -6174,7 +6174,7 @@ public class K1810WM86 implements Runnable {
     }
 
     private void checkSignFlag16(int res) {
-        if (res < 0 || (res&0x8000)==0x8000) {
+        if (res < 0 || (res & 0x8000) == 0x8000) {
             setFlag(SIGN_FLAG);
         } else {
             clearFlag(SIGN_FLAG);
@@ -6250,43 +6250,12 @@ public class K1810WM86 implements Runnable {
         es = 0x0000;
         ss = 0x0000;
         cs = 0xFFFF;
-
-        //Monitor Entry
-        //cs = 0xF800;
-        //ip = 0x0406;
-
-        //IRQ Entry
-        //cs = 0xF800;
-        //ip = 0x0337;
-
-        //Speicher Initialisierung
-        //cs = 0xF800;
-        //ip=0x3813;
     }
 
     private boolean getBit(int op1, int i) {
         return (((op1 >> i) & 0x1) == 0x1);
     }
 
-//    private void checkInterrupts() {
-//        int interruptID = interruptSystem.getNextInterrupt();
-//        if (interruptID >= 0) {
-//            //if (interruptID!=224) 
-//            System.out.println("Verarbeite Interrupt " + interruptID);
-//            setReg16(REG_AH_SP, (getReg16(REG_AH_SP) - 2) & 0xFFFF);
-//            memory.writeWord(ss * 16 + getReg16(REG_AH_SP), (short) flags);
-//            clearFlag(INTERRUPT_ENABLE_FLAG);
-//            clearFlag(TRAP_FLAG);
-////            interruptSystem.disableInterrupts();
-//            setReg16(REG_AH_SP, (getReg16(REG_AH_SP) - 2) & 0xFFFF);
-//            memory.writeWord(ss * 16 + getReg16(REG_AH_SP), (short) cs);
-//            setReg16(REG_AH_SP, (getReg16(REG_AH_SP) - 2) & 0xFFFF);
-//            memory.writeWord(ss * 16 + getReg16(REG_AH_SP), (short) ip);
-//            ip = memory.readWord(interruptID * 4);
-//            cs = memory.readWord(interruptID * 4 + 2);
-//            isHalted = false;
-//        }
-//    }
     private void interrupt(int interruptID) {
         setReg16(REG_AH_SP, (getReg16(REG_AH_SP) - 2) & 0xFFFF);
         memory.writeWord(ss * 16 + getReg16(REG_AH_SP), (short) flags);
