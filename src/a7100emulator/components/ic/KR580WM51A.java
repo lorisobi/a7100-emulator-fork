@@ -6,13 +6,14 @@ package a7100emulator.components.ic;
 
 import a7100emulator.components.system.InterruptSystem;
 import a7100emulator.components.system.Keyboard;
+import java.io.Serializable;
 import java.util.LinkedList;
 
 /**
  *
  * @author Dirk
  */
-public class KR580WM51A {
+public class KR580WM51A implements Serializable {
 
     private final int STATE_TXRDY = 0x01;
     private final int STATE_RXRDY = 0x02;
@@ -21,7 +22,7 @@ public class KR580WM51A {
     private int mode;
     private int state = 0x05;
     private boolean modeInstruction = false;
-    private LinkedList<Byte> deviceBuffer2 = new LinkedList<Byte>();
+    private LinkedList<Byte> deviceBuffer = new LinkedList<Byte>();
 
     public KR580WM51A() {
         Keyboard.getInstance().registerController(this);
@@ -35,8 +36,8 @@ public class KR580WM51A {
             this.command = command;
             if (command == 0x40) { // Reset
                 modeInstruction = true;
-                deviceBuffer2.clear();
-                deviceBuffer2.add((byte) 0);
+                deviceBuffer.clear();
+                deviceBuffer.add((byte) 0);
                 Keyboard.getInstance().receiveByte(0x00);
             } else {
             }
@@ -51,8 +52,7 @@ public class KR580WM51A {
     }
 
     public void writeDataToSystem(byte deviceData) {
-//        deviceBuffer[bufferPosition++] = deviceData;
-        deviceBuffer2.add(deviceData);
+        deviceBuffer.add(deviceData);
         state |= STATE_RXRDY;
         InterruptSystem.getInstance().getPIC().requestInterrupt(6);
     }
@@ -65,9 +65,9 @@ public class KR580WM51A {
 
     public int readFromDevice() {
         int value = 0;
-        if (!deviceBuffer2.isEmpty()) {
-            value = deviceBuffer2.poll();
-            if (deviceBuffer2.isEmpty()) {
+        if (!deviceBuffer.isEmpty()) {
+            value = deviceBuffer.poll();
+            if (deviceBuffer.isEmpty()) {
                 state &= ~STATE_RXRDY;
             } else {
                 InterruptSystem.getInstance().getPIC().requestInterrupt(6);
@@ -83,7 +83,7 @@ public class KR580WM51A {
 
     public void writeDataToSystem(byte[] bytes) {
         for (int i = 0; i < bytes.length; i++) {
-            deviceBuffer2.add(bytes[i]);
+            deviceBuffer.add(bytes[i]);
         }
         state |= STATE_RXRDY;
         InterruptSystem.getInstance().getPIC().requestInterrupt(6);

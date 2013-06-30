@@ -5,27 +5,31 @@
 package a7100emulator.components.system;
 
 import java.io.File;
+import java.io.Serializable;
 
 /**
  *
  * @author Dirk
  */
-public class FloppyDrive {
+public class FloppyDrive implements Serializable {
+
     private Disk disk;
     private final DriveType driveType;
-    private static DriveType[] DRIVE_TYPES = new DriveType[]{DriveType.K5601, DriveType.K5601, DriveType.K5602_10, DriveType.K5602_10};
-    private static FloppyDrive instances[] = new FloppyDrive[4];
-    
+    //private static DriveType[] DRIVE_TYPES = new DriveType[]{DriveType.K5601, DriveType.K5601, DriveType.K5602_10, DriveType.K5602_10};
+    //private static FloppyDrive instances[] = new FloppyDrive[4];
+
     public void setWriteProtect(boolean selected) {
-        if (disk!=null) disk.setWriteProtect(selected);
+        if (disk != null) {
+            disk.setWriteProtect(selected);
+        }
     }
 
     public void format(int cylinder, int head, int mod, int[] data, int interleave) {
-        disk.format(cylinder, head, mod, data,interleave);
+        disk.format(cylinder, head, mod, data, interleave);
     }
 
     public void newDisk() {
-        disk=new Disk();
+        disk = new Disk();
     }
 
     public void writeData(int cylinder, int sector, int head, byte[] data) {
@@ -47,14 +51,14 @@ public class FloppyDrive {
         K5600_20, K5602_10, K5601
     }
 
-    public static FloppyDrive getInstance(int driveID) {
+    /*public static FloppyDrive getInstance(int driveID) {
         if (instances[driveID] == null) {
             instances[driveID] = new FloppyDrive(DRIVE_TYPES[driveID]);
         }
         return instances[driveID];
-    }
+    }*/
 
-    private FloppyDrive(DriveType type) {
+    public FloppyDrive(DriveType type) {
         this.driveType = type;
     }
 

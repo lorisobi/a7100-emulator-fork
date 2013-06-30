@@ -21,7 +21,7 @@ public class BitmapGenerator {
     private BitmapGenerator() {
     }
 
-    public static BufferedImage generateBitmapFromLineCode(byte[] linecode, boolean intense, boolean inverse, boolean flash, boolean underline) {
+    public static BufferedImage generateBitmapFromLineCode(byte[] linecode, boolean intense, boolean inverse, boolean underline, boolean flash) {
         BufferedImage image = new BufferedImage(8, 16, BufferedImage.TYPE_INT_RGB);
 
         int f_color = GREEN;
@@ -32,18 +32,18 @@ public class BitmapGenerator {
             b_color = (intense) ? INTENSE_GREEN : GREEN;
         } else if (intense) {
             f_color = INTENSE_GREEN;
+        } else if (flash) {
+            // TODO
+            f_color=new Color(255,0,0).getRGB();
         }
-
-
-        Graphics g = image.getGraphics();
-        g.setColor(new Color(b_color));
-        g.fillRect(0, 0, 8, 16);
 
         for (int lineIndex = 0; lineIndex < 16; lineIndex++) {
             int line = linecode[lineIndex];
             for (int columnIndex = 0; columnIndex < 8; columnIndex++) {
                 if (getBit(line, columnIndex) || (lineIndex == 13 && underline)) {
                     image.setRGB(7 - columnIndex, lineIndex, f_color);
+                } else {
+                    image.setRGB(7 - columnIndex, lineIndex, b_color);
                 }
             }
         }

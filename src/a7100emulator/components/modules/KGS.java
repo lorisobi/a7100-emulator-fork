@@ -13,6 +13,7 @@ import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.Serializable;
 import java.util.LinkedList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -23,7 +24,7 @@ import javax.swing.JFrame;
  *
  * @author Dirk
  */
-public final class KGS implements PortModule, ClockModule {
+public final class KGS implements PortModule, ClockModule, Serializable {
 
     // Zeichensätze
     private Memory characterCodes = new Memory(4096);
@@ -73,9 +74,7 @@ public final class KGS implements PortModule, ClockModule {
     private int cursorRow = 1;
     private int cursorColumn = 1;
     private boolean receiveSequence = false;
-    //private byte[] ESCBytes = new byte[256];
     private LinkedList<Byte> escSequence = new LinkedList<Byte>();
-    //private byte ESCPosition = 0;
     private boolean[] hTabs = new boolean[80];
     private boolean[] vTabs = new boolean[25];
     private ABG abg;
@@ -205,8 +204,7 @@ public final class KGS implements PortModule, ClockModule {
         for (byte line = 0; line < 16; line++) {
             linecode[line] = (byte) (characterCodes.readByte(16 * data + line) & 0xFF);
         }
-        BufferedImage character = BitmapGenerator.generateBitmapFromLineCode(linecode, intense, inverse, flash, underline);
-        abg.updateAlphanumericScreenRectangle((column - 1) * 8, (row - 1) * 16, character);
+        abg.setLineCodes(row - 1, column - 1, linecode, intense, flash, false, underline, inverse);
     }
 
     private void initTabs() {
@@ -232,15 +230,13 @@ public final class KGS implements PortModule, ClockModule {
 
     private void dataReceived(int data) {
         if (initialized) {
+            abg.removeCursor(cursorRow - 1, cursorColumn - 1);
             if (receiveSequence) {
-//                ESCBytes[ESCPosition++] = (byte) (data & 0xFF);
                 escSequence.add((byte) (data & 0xFF));
                 System.out.print((char) data);
                 checkESC();
             } else {
-//System.out.print(" "+data+" ");
                 if (data >= 0x20 && data != CODE_DEL) {
-//                    System.out.print("("+(char)data+") ");
                     if (wraparound) {
                         if (cursorColumn == 81) {
                             cursorColumn = 1;
@@ -270,12 +266,23 @@ public final class KGS implements PortModule, ClockModule {
                             break;
                         case CODE_SOH:
                             // Start Grafiktastencode
+                            System.out.println("Starte Grafik-Tastencode");
+                            receiveSequence = true;
+                            escSequence.clear();
+                            escSequence.add((byte) 0x01);
                             break;
                         case CODE_STX:
                             // Start Grafik-Kommando
+                            System.out.println("Starte Grafik-Kommando");
+                            receiveSequence = true;
+                            escSequence.clear();
+                            escSequence.add((byte) 0x02);
                             break;
                         case CODE_ETX:
                             // Ende Grafikkommando
+                            System.out.println("Ende Grafik-Kommando");
+                            setBit(INT_BIT);
+                            receiveSequence = false;
                             break;
                         case CODE_BS:
                             // Cursor nach links
@@ -345,7 +352,6 @@ public final class KGS implements PortModule, ClockModule {
                             receiveSequence = true;
                             escSequence.clear();
                             escSequence.add((byte) 0x1B);
-//                            ESCPosition = 0;
                             System.out.print("ESC ");
                             break;
                         case CODE_RS:
@@ -378,6 +384,8 @@ public final class KGS implements PortModule, ClockModule {
                     }
                 }
             }
+            abg.setCursor(cursorRow - 1, cursorColumn - 1);
+            //abg.updateScreen();
         } else {
             // TODO Initialisierung
             if (data == 0xAA) {
@@ -393,7 +401,6 @@ public final class KGS implements PortModule, ClockModule {
     }
 
     private void checkESC() {
-        //switch (ESCBytes[ESCPosition - 1]) {
         if (escSequence.peekFirst() == 0x10) {
             int code = escSequence.get(1) & 0xFF;
             if (escSequence.size() == 18) {
@@ -402,6 +409,21 @@ public final class KGS implements PortModule, ClockModule {
                     characterCodes.writeByte(16 * code + line, escSequence.get(2 + line) & 0xFF);
                 }
                 receiveSequence = false;
+            }
+        } else if (escSequence.peekFirst() == 0x01) {
+            if (escSequence.size() == 2) {
+                int code = escSequence.peekLast() & 0xFF;
+                System.out.println(String.format("Tastaturkommando: %02X", code));
+                receiveSequence = false;
+            }
+        } else if (escSequence.peekFirst() == 0x02) {
+            if (escSequence.size() >= 3) {
+                int byteCnt = (escSequence.get(2) << 8) + escSequence.get(1);
+                System.out.println("Anzahl der Bytes: " + byteCnt);
+                if (escSequence.size() >= byteCnt + 3) {
+                    executeGraphicsBuffer();
+                    receiveSequence = false;
+                }
             }
         } else {
             switch (escSequence.peekLast()) {
@@ -435,7 +457,7 @@ public final class KGS implements PortModule, ClockModule {
                 case 0x44:
                     // [ Pn D Cursor nach links
                     // D Zeilenschaltung
-                    if (escSequence.size() == 1) {
+                    if (escSequence.size() == 2) {
                         cursorRow++;
                         if (cursorRow > 25) {
                             abg.rollAlphanumericScreen();
@@ -487,7 +509,7 @@ public final class KGS implements PortModule, ClockModule {
                 case 0x45:
                     // [ Pn E Cursor nach unten an Zeilenanfang
                     // E Neue Zeile
-                    if (escSequence.size() == 1) {
+                    if (escSequence.size() == 2) {
                         cursorColumn = 1;
                         cursorRow++;
                         if (cursorRow > 25) {
@@ -522,7 +544,7 @@ public final class KGS implements PortModule, ClockModule {
                 case 0x48:
                     // [ Pn ; Pm H Cursor-Direktpositionierung
                     // H Setzen Horizontal-Tabulatorstop
-                    if (escSequence.size() == 1) {
+                    if (escSequence.size() == 2) {
                         receiveSequence = false;
                     } else {
                         int[] params = getParameters();
@@ -572,7 +594,7 @@ public final class KGS implements PortModule, ClockModule {
                     receiveSequence = false;
                     break;
                 case 0x4A:
-                    if (escSequence.size() == 1) {
+                    if (escSequence.size() == 2) {
                         // J Setzen Vertikal-Tabulatorstop
                         receiveSequence = false;
                     } else {
@@ -603,7 +625,6 @@ public final class KGS implements PortModule, ClockModule {
                                 }
                             }
                         }
-//                    System.out.println("ESC Folge [ Ps;Ps;... J noch nicht implementiert");
                         receiveSequence = false;
                     }
                     break;
@@ -635,10 +656,12 @@ public final class KGS implements PortModule, ClockModule {
                                 wraparound = true;
                                 break;
                             case 10:
-                                System.out.println("Cursor blinkender Unterstrich");
+                                abg.setCursorMode(ABG.CursorMode.CURSOR_BLINK_LINE);
+                                //System.out.println("Cursor blinkender Unterstrich");
                                 break;
                             case 14:
                                 System.out.println("Cursor sichtbar");
+                                abg.setCursorMode(ABG.CursorMode.CURSOR_BLINK_LINE);
                                 break;
                             case 16:
                                 System.out.println("Weiches Rollen normal");
@@ -666,9 +689,11 @@ public final class KGS implements PortModule, ClockModule {
                                 break;
                             case 10:
                                 System.out.println("Cursor nicht blinkender Block");
+                                abg.setCursorMode(ABG.CursorMode.CURSOR_STATIC_BLOCK);
                                 break;
                             case 14:
                                 System.out.println("Cursor unsichtbar");
+                                abg.setCursorMode(ABG.CursorMode.CURSOR_INVISIBLE);
                                 break;
                             case 16:
                                 System.out.println("Schnelles Weiches Rollen");
@@ -714,7 +739,6 @@ public final class KGS implements PortModule, ClockModule {
                 break;
                 case 0x6D: {
                     // [ Ps; Ps; ... ;Ps m Ein-Ausschalten von Attributen
-                    //System.out.println("ESC Folge [ Ps; PS; ... m noch nicht implementiert");
                     int[] params = getParameters();
                     for (int p : params) {
                         switch (p) {
@@ -776,8 +800,7 @@ public final class KGS implements PortModule, ClockModule {
                     break;
                 case 0x37:
                     // 7 Retten Cursorposition
-                    //System.out.println("ESC Folge 7 noch nicht implementiert");
-                    if (escSequence.size() == 1) {
+                    if (escSequence.size() == 2) {
                         cursorColumnSave = cursorColumn;
                         cursorRowSave = cursorRow;
                         receiveSequence = false;
@@ -785,8 +808,7 @@ public final class KGS implements PortModule, ClockModule {
                     break;
                 case 0x38:
                     // 8 Rücklesen Cursorposition
-                    //System.out.println("ESC Folge 8 noch nicht implementiert");
-                    if (escSequence.size() == 1) {
+                    if (escSequence.size() == 2) {
                         cursorColumn = cursorColumnSave;
                         cursorRow = cursorRowSave;
                         receiveSequence = false;
@@ -814,7 +836,7 @@ public final class KGS implements PortModule, ClockModule {
                     break;
                 case 0x70:
                     // [ p Unterdrücken Grafikanzeige
-                    if (escSequence.size() == 2 && escSequence.peekFirst() == 0x5B) {
+                    if (escSequence.size() == 3 && escSequence.get(1) == 0x5B) {
                         disableGraphics = true;
                         System.out.println("Grafikmodus abgeschaltet");
                         receiveSequence = false;
@@ -822,7 +844,7 @@ public final class KGS implements PortModule, ClockModule {
                     break;
                 case 0x73:
                     // [ s Erlauben Grafikanzeige
-                    if (escSequence.size() == 1 && escSequence.peekFirst() == 0x5B) {
+                    if (escSequence.size() == 3 && escSequence.get(1) == 0x5B) {
                         disableGraphics = false;
                         System.out.println("Grafikmodus erlaubt");
                         receiveSequence = false;
@@ -855,7 +877,6 @@ public final class KGS implements PortModule, ClockModule {
             escString += (char) b;
         }
         escString = escString.trim();
-        System.out.println(escString);
         String[] params2 = escString.replaceAll("\\?", "").split(";", -1);
 
         int[] result = new int[params2.length];
@@ -867,28 +888,6 @@ public final class KGS implements PortModule, ClockModule {
                 result[i] = Integer.parseInt(str);
             }
         }
-
-//        int[] params = new int[128];
-//        int pos = 0;
-//        int index = 1;
-//        while (index < ESCPosition ) {
-//            if (ESCBytes[index] == 0x3F) {
-//                index++;
-//            } else if (ESCBytes[index] < 0x30 || ESCBytes[index] > 0x39) {
-//                params[pos++] = -1;
-//                index++;
-//            } else {
-//                if (ESCBytes[index + 1] < 0x30 || ESCBytes[index + 1] > 0x39) {
-//                    params[pos++] = ESCBytes[index] - 0x30;
-//                    index = index + 2;
-//                } else {
-//                    params[pos++] = (ESCBytes[index] - 0x30) * 10 + (ESCBytes[index + 1] - 0x30);
-//                    index = index + 3;
-//                }
-//            }
-//        }
-//        int[] result = new int[pos];
-//        System.arraycopy(params, 0, result, 0, pos);
         return result;
     }
 
@@ -913,7 +912,6 @@ public final class KGS implements PortModule, ClockModule {
         bufferPosition = 0;
         for (int i = 0; i < bytes.length; i++) {
             deviceBuffer[bufferPosition++] = bytes[i];
-            //deviceBuffer2.add(bytes[i]);
         }
         setBit(OBF_BIT);
     }
@@ -928,7 +926,7 @@ public final class KGS implements PortModule, ClockModule {
             for (byte line = 0; line < 16; line++) {
                 linecode[line] = (byte) (characterCodes.readByte(16 * i + line) & 0xFF);
             }
-            BufferedImage character = BitmapGenerator.generateBitmapFromLineCode(linecode, intense, inverse, flash, underline);
+            BufferedImage character = BitmapGenerator.generateBitmapFromLineCode(linecode, intense, inverse, underline, false);
             characterImage.getGraphics().drawImage(character, x, y, null);
             characterImage.getGraphics().drawString(String.format("%02X", (byte) i), x - 20, y + 10);
         }
@@ -939,7 +937,7 @@ public final class KGS implements PortModule, ClockModule {
 
             @Override
             public void paint(Graphics g) {
-                g.drawImage(characterImage, 0, 0, null);;
+                g.drawImage(characterImage, 0, 0, null);
             }
         };
         component.setMinimumSize(new Dimension(512, 384));
@@ -953,6 +951,269 @@ public final class KGS implements PortModule, ClockModule {
         }
         frame.setVisible(true);
         frame.pack();
+    }
 
+    private void executeGraphicsBuffer() {
+//        int byteCnt = (escSequence.get(2) << 8) + escSequence.get(1);
+        int pos = 3;
+        do {
+            switch (escSequence.get(pos++)) {
+                case 1: {
+                    // Setze Funktionskennzeichen
+                    int fk = escSequence.get(pos++);
+                }
+                break;
+                case 2: {
+                    // Setze Register des grafischen Cursors
+                    int x = (escSequence.get(pos) << 8) + escSequence.get(pos + 1);
+                    pos = pos + 2;
+                    int y = (escSequence.get(pos) << 8) + escSequence.get(pos + 1);
+                    pos = pos + 2;
+                }
+                break;
+                case 4: {
+                    // Setze Splitgrenze
+                    int z = escSequence.get(pos++);
+                }
+                break;
+                case 7: {
+                    // Initialisiere Speicher
+                    int im = escSequence.get(pos++);
+                    int s = escSequence.get(pos++);
+                }
+                break;
+                case 8: {
+                    // Initialisiere Speicherabschnitt 
+                    int im = escSequence.get(pos++);
+                    int s = escSequence.get(pos++);
+                    int ya = (escSequence.get(pos) << 8) + escSequence.get(pos + 1);
+                    pos = pos + 2;
+                    int ye = (escSequence.get(pos) << 8) + escSequence.get(pos + 1);
+                    pos = pos + 2;
+
+                }
+                break;
+                case 9: {
+                    // Initialisiere Speicherausschnitt
+                    int im = escSequence.get(pos++);
+                    int s = escSequence.get(pos++);
+                    int xa = (escSequence.get(pos) << 8) + escSequence.get(pos + 1);
+                    pos = pos + 2;
+                    int ya = (escSequence.get(pos) << 8) + escSequence.get(pos + 1);
+                    pos = pos + 2;
+                    int xe = (escSequence.get(pos) << 8) + escSequence.get(pos + 1);
+                    pos = pos + 2;
+                    int ye = (escSequence.get(pos) << 8) + escSequence.get(pos + 1);
+                    pos = pos + 2;
+
+                }
+                break;
+                case 10: {
+                    // Übernehme Palettenregisterbelegung
+                    int vi = escSequence.get(pos++);
+                    int e1 = escSequence.get(pos++);
+                    int e2 = escSequence.get(pos++);
+                    int e3 = escSequence.get(pos++);
+                    int e4 = escSequence.get(pos++);
+
+                }
+                break;
+                case 11: {
+                    // Aktiviere Palettenregisterbelegung
+                    int vi = escSequence.get(pos++);
+                }
+                break;
+                case 13: {
+                    // Übernehme Musterbox
+                    pos++;
+                    int pfx = escSequence.get(pos++);
+                    int pfy = escSequence.get(pos++);
+                    int nz = escSequence.get(pos++);
+                    int ns = escSequence.get(pos++);
+                }
+                break;
+                case 14: {
+                    // Setze Window
+                    int x1 = (escSequence.get(pos) << 8) + escSequence.get(pos + 1);
+                    pos = pos + 2;
+                    int y1 = (escSequence.get(pos) << 8) + escSequence.get(pos + 1);
+                    pos = pos + 2;
+                    int x2 = (escSequence.get(pos) << 8) + escSequence.get(pos + 1);
+                    pos = pos + 2;
+                    int y2 = (escSequence.get(pos) << 8) + escSequence.get(pos + 1);
+                    pos = pos + 2;
+                }
+                break;
+                case 15: {
+                    // Windowdarstellung
+                    int s = escSequence.get(pos++);
+                }
+                break;
+                case 16: {
+                    // Setze Startpunkt für Liniengenerierung
+                    int li = escSequence.get(pos++);
+                    int x = (escSequence.get(pos) << 8) + escSequence.get(pos + 1);
+                    pos = pos + 2;
+                    int y = (escSequence.get(pos) << 8) + escSequence.get(pos + 1);
+                    pos = pos + 2;
+                }
+                break;
+                case 17: {
+                    // Generiere Linie
+                    int x = (escSequence.get(pos) << 8) + escSequence.get(pos + 1);
+                    pos = pos + 2;
+                    int y = (escSequence.get(pos) << 8) + escSequence.get(pos + 1);
+                    pos = pos + 2;
+                }
+                break;
+                case 18: {
+                    // Setze Marker
+                    int x = (escSequence.get(pos) << 8) + escSequence.get(pos + 1);
+                    pos = pos + 2;
+                    int y = (escSequence.get(pos) << 8) + escSequence.get(pos + 1);
+                    pos = pos + 2;
+                }
+                break;
+                case 19: {
+                    // Setze Schreibposition
+                    int x = (escSequence.get(pos) << 8) + escSequence.get(pos + 1);
+                    pos = pos + 2;
+                    int y = (escSequence.get(pos) << 8) + escSequence.get(pos + 1);
+                    pos = pos + 2;
+                }
+                break;
+                case 20: {
+                    // Generiere Text
+                    int n = escSequence.get(pos++);
+                    int[] c = new int[n];
+                    for (int i = 0; i < n; i++) {
+                        c[i] = escSequence.get(pos++);
+                    }
+                }
+                break;
+                case 21: {
+                    // Setze Linientyp bzw. Speicherebenenauswahl fuer Text
+                    int li = escSequence.get(pos++);
+                    int lt = escSequence.get(pos++);
+                    int ls = escSequence.get(pos++);
+                    int s = escSequence.get(pos++);
+                }
+                break;
+                case 22: {
+                    // Setze Markertyp
+                    int mi = escSequence.get(pos++);
+                    int mt = escSequence.get(pos++);
+                    int s = escSequence.get(pos++);
+
+                }
+                break;
+                case 23: {
+                    // Setze Schreibtyp
+                    int st = escSequence.get(pos++);
+                }
+                break;
+                case 24: {
+                    // Eckpunkt Typ 0 einer zu fuellenden Fläche
+                    int x = (escSequence.get(pos) << 8) + escSequence.get(pos + 1);
+                    pos = pos + 2;
+                    int y = (escSequence.get(pos) << 8) + escSequence.get(pos + 1);
+                    pos = pos + 2;
+                }
+                break;
+                case 25: {
+                    // Eckpunkt Typ 1 einer zu fuellenden Fläche
+                    int x = (escSequence.get(pos) << 8) + escSequence.get(pos + 1);
+                    pos = pos + 2;
+                    int y = (escSequence.get(pos) << 8) + escSequence.get(pos + 1);
+                    pos = pos + 2;
+                }
+                break;
+                case 26: {
+                    // Setze Parameter für FILL AREA
+                    int ls = escSequence.get(pos++);
+                    int fa = escSequence.get(pos++);
+                    switch (fa) {
+                        case 0: {
+                            int s = escSequence.get(pos++);
+                        }
+                        break;
+                        case 1: {
+                            int s = escSequence.get(pos++);
+                        }
+                        break;
+                        case 2: {
+                            int prx = (escSequence.get(pos) << 8) + escSequence.get(pos + 1);
+                            pos = pos + 2;
+                            int pry = (escSequence.get(pos) << 8) + escSequence.get(pos + 1);
+                            pos = pos + 2;
+                        }
+                        break;
+                        case 3: {
+                            int i = escSequence.get(pos++);
+                            int s = escSequence.get(pos++);
+                        }
+                        break;
+                    }
+                }
+                break;
+                case 27: {
+                    // Starte Fuellen
+                    int kr = escSequence.get(pos++);
+                }
+                break;
+                case 30: {
+                    // Unbekannt
+                    int param1 = escSequence.get(pos++);
+                }
+                break;
+                case 31: {
+                    // Setze Request Modus
+                    int rm = escSequence.get(pos++);
+                }
+                break;
+                case 33: {
+                    // Setze Anfangswert für LOCATOR
+                    int sw = escSequence.get(pos++);
+                    if (sw != 0) {
+                        int x = (escSequence.get(pos) << 8) + escSequence.get(pos + 1);
+                        pos = pos + 2;
+                        int y = (escSequence.get(pos) << 8) + escSequence.get(pos + 1);
+                        pos = pos + 2;
+                    }
+                }
+                break;
+                case 40: {
+                    // Initialisiere GSX
+                    int lt = escSequence.get(pos++);
+                    int s1 = escSequence.get(pos++);
+                    int mt = escSequence.get(pos++);
+                    int s2 = escSequence.get(pos++);
+                }
+                break;
+                case 41: {
+                    // Generiere Kreisbogen
+                    int xm = (escSequence.get(pos) << 8) + escSequence.get(pos + 1);
+                    pos = pos + 2;
+                    int ym = (escSequence.get(pos) << 8) + escSequence.get(pos + 1);
+                    pos = pos + 2;
+                    int xa = (escSequence.get(pos) << 8) + escSequence.get(pos + 1);
+                    pos = pos + 2;
+                    int ya = (escSequence.get(pos) << 8) + escSequence.get(pos + 1);
+                    pos = pos + 2;
+                    int xe = (escSequence.get(pos) << 8) + escSequence.get(pos + 1);
+                    pos = pos + 2;
+                    int ye = (escSequence.get(pos) << 8) + escSequence.get(pos + 1);
+                    pos = pos + 2;
+                    int r = (escSequence.get(pos) << 8) + escSequence.get(pos + 1);
+                    pos = pos + 2;
+                }
+                break;
+                case 42: {
+                    // Setze Textfont
+                    int tf = escSequence.get(pos++);
+                }
+                break;
+            }
+        } while (pos < escSequence.size());
     }
 }

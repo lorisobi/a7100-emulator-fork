@@ -7,33 +7,39 @@ package a7100emulator.components.ic;
 import a7100emulator.Debug.Debugger;
 import a7100emulator.Debug.DebuggerInfo;
 import a7100emulator.Debug.Decoder;
+import a7100emulator.Debug.OpcodeStatistic;
 import a7100emulator.components.system.InterruptSystem;
 import a7100emulator.components.system.SystemClock;
 import a7100emulator.components.system.SystemMemory;
 import a7100emulator.components.system.SystemPorts;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.Serializable;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  *
  * @author Dirk
  */
-public class K1810WM86 implements Runnable {
+public class K1810WM86 implements Runnable, Serializable {
 
     /**
      * Speicher
      */
-    private SystemMemory memory = SystemMemory.getInstance();
+    private volatile SystemMemory memory = SystemMemory.getInstance();
     /**
      * E/A Ports
      */
-    private SystemPorts ports = SystemPorts.getInstance();
+    private volatile SystemPorts ports = SystemPorts.getInstance();
     /**
      * Taktgeber
      */
-    private SystemClock clock = SystemClock.getInstance();
+    private volatile SystemClock clock = SystemClock.getInstance();
     /**
      * Interrupt System
      */
-    private InterruptSystem interruptSystem = InterruptSystem.getInstance();
+    private volatile InterruptSystem interruptSystem = InterruptSystem.getInstance();
     /**
      * Nicht verwendet 0F 60-6F C0,C1,C8,C9 D6 F1 82 001,100,110 83 001,100,110
      * 8C 1xx 8E 1xx 8F 001-111 C6 001-111 C7 001-111 D0 110 D1 110 D2 110 D3
@@ -545,13 +551,17 @@ public class K1810WM86 implements Runnable {
     /**
      * Statistik
      */
-    private int[] opCodeStatistic = new int[256];
+    private volatile OpcodeStatistic opCodeStatistic = OpcodeStatistic.getInstance();
     /**
      * Debugger
      */
-    private Decoder decoder = Decoder.getInstance();
-    private Debugger debugger = Debugger.getInstance();
-    private DebuggerInfo debugInfo = DebuggerInfo.getInstance();
+    private volatile Decoder decoder = Decoder.getInstance();
+    private volatile Debugger debugger = Debugger.getInstance();
+    private volatile DebuggerInfo debugInfo = DebuggerInfo.getInstance();
+    /**
+     * Emulator Steuerung
+     */
+    private volatile boolean suspended = false;
 
     public K1810WM86() {
     }
@@ -563,9 +573,10 @@ public class K1810WM86 implements Runnable {
         if (debug && (opcode1 != PREFIX_CS && opcode1 != PREFIX_SS && opcode1 != PREFIX_DS && opcode1 != PREFIX_ES)) {
             debugInfo.setCs(cs);
             debugInfo.setIp(ip - 1 - (prefix == NO_PREFIX ? 0 : 1));
+            debugInfo.setOpcode(opcode1);
         }
 
-        opCodeStatistic[opcode1]++;
+        opCodeStatistic.addStatistic(opcode1);
 
         clock.updateClock(3);
 
@@ -1117,7 +1128,8 @@ public class K1810WM86 implements Runnable {
             break;
             case POP_SP: {
                 setReg16(REG_AH_SP, memory.readWord(ss * 16 + getReg16(REG_AH_SP)));
-                setReg16(REG_AH_SP, (getReg16(REG_AH_SP) + 2) & 0xFFFF);
+                // Schach Hack
+                // setReg16(REG_AH_SP, (getReg16(REG_AH_SP) + 2) & 0xFFFF);
                 clock.updateClock(8);
                 if (debug) {
                     debugInfo.setCode("POP SP");
@@ -3136,7 +3148,6 @@ public class K1810WM86 implements Runnable {
                 flags = memory.readWord(ss * 16 + getReg16(REG_AH_SP));
                 setReg16(REG_AH_SP, (getReg16(REG_AH_SP) + 2) & 0xFFFF);
                 clock.updateClock(32);
-                // System.out.println("End of Interrupt");
                 if (debug) {
                     debugInfo.setCode("IRET");
                     debugInfo.setOperands(String.format("%04X:%04X", cs, ip));
@@ -4391,8 +4402,9 @@ public class K1810WM86 implements Runnable {
                 switch (opcode2 & TEST_REG) {
                     case _8F_POP_MODRM_16: {
                         int data = memory.readWord(ss * 16 + getReg16(REG_AH_SP));
-                        setMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM, data, true);
                         setReg16(REG_AH_SP, (getReg16(REG_AH_SP) + 2) & 0xFFFF);
+                        setMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM, data, true);
+                        // Test
                         clock.updateClock(((opcode2 & TEST_MOD) == MOD_REG) ? 8 : 17 + getOpcodeCyclesEA(opcode2 & TEST_MOD, opcode2 & TEST_RM));
                         if (debug) {
                             debugInfo.setCode("POP " + getMODRM16String(opcode2 & TEST_MOD, opcode2 & TEST_RM, 0));
@@ -6257,6 +6269,15 @@ public class K1810WM86 implements Runnable {
     }
 
     private void interrupt(int interruptID) {
+        if (interruptID == 224 && cx == 0x0473) {
+            System.out.println("SCP-GX Aufruf:");
+            int pbaddr = ds * 16 + dx;
+            System.out.println(String.format("PB-Adresse: %05X", pbaddr));
+            int pbctrladdr = SystemMemory.getInstance().readWord(pbaddr + 2) * 16 + SystemMemory.getInstance().readWord(pbaddr);
+            System.out.println(String.format("PB-Ctrl-Adresse: %05X", pbctrladdr));
+            int ctrlcode = SystemMemory.getInstance().readByte(pbctrladdr);
+            System.out.println("Operationscode " + ctrlcode);
+        }
         setReg16(REG_AH_SP, (getReg16(REG_AH_SP) - 2) & 0xFFFF);
         memory.writeWord(ss * 16 + getReg16(REG_AH_SP), (short) flags);
         clearFlag(INTERRUPT_ENABLE_FLAG);
@@ -6285,6 +6306,40 @@ public class K1810WM86 implements Runnable {
                     interrupt(32 + irq);
                 }
             }
+
+            if (suspended) {
+                synchronized (this) {
+                    try {
+                        wait();
+                    } catch (InterruptedException ex) {
+                        Logger.getLogger(K1810WM86.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                }
+            }
         }
     }
+
+    public void setSuspend(boolean suspended) {
+        this.suspended = suspended;
+    }
+
+//    public void saveState(final DataOutputStream dos) throws IOException {
+//        dos.writeInt(ax);
+//        dos.writeInt(bx);
+//        dos.writeInt(cx);
+//        dos.writeInt(dx);
+//        dos.writeInt(sp);
+//        dos.writeInt(bp);
+//        dos.writeInt(si);
+//        dos.writeInt(di);
+//        dos.writeInt(ip);
+//        dos.writeInt(flags);
+//        dos.writeInt(cs);
+//        dos.writeInt(ds);
+//        dos.writeInt(ss);
+//        dos.writeInt(es);
+//        dos.writeInt(prefix);
+//        dos.writeInt(string_prefix);
+//        dos.writeBoolean(isHalted);
+//    }
 }

@@ -5,12 +5,13 @@
 package a7100emulator.components.ic;
 
 import a7100emulator.components.system.InterruptSystem;
+import java.io.Serializable;
 
 /**
  *
  * @author Dirk
  */
-public class KR580WW55A {
+public class KR580WW55A implements Serializable {
 
     enum In_Out {
 
@@ -23,7 +24,7 @@ public class KR580WW55A {
     private In_Out port_b_in_out = In_Out.INPUT;
     private In_Out port_a_in_out = In_Out.INPUT;
     private int bits = 0;
-    private int dataB=0;
+    private int dataB = 0;
     //private Beep beep=new Beep();
 
     public void writeInit(int control) {
@@ -77,10 +78,11 @@ public class KR580WW55A {
                     break;
                 case 7: // NMI-MASK
                     //System.out.println("NMI-MASK:" + (newState ? "ON" : "OFF"));
-                    if (newState) 
+                    if (newState) {
                         InterruptSystem.getInstance().enableParityNMI();
-                    else 
+                    } else {
                         InterruptSystem.getInstance().disableParityNMI();
+                    }
                     break;
             }
             // System.out.println("Control:" + Integer.toBinaryString(control) + " Bit:" + bit + " Bits:" + Integer.toBinaryString(bits));
@@ -91,7 +93,7 @@ public class KR580WW55A {
     }
 
     public void writePortB(int data) {
-        dataB=data;
+        dataB = data;
     }
 
     public void writePortC(int data) {

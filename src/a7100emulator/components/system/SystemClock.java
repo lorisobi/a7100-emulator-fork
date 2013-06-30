@@ -5,7 +5,7 @@
 package a7100emulator.components.system;
 
 import a7100emulator.components.modules.ClockModule;
-import java.util.ArrayList;
+import java.util.LinkedList;
 
 /**
  *
@@ -13,7 +13,7 @@ import java.util.ArrayList;
  */
 public class SystemClock {
 
-    private ArrayList<ClockModule> clockModules = new ArrayList<ClockModule>();
+    private LinkedList<ClockModule> clockModules = new LinkedList<ClockModule>();
     private long clock = 0;
     private static SystemClock instance;
 

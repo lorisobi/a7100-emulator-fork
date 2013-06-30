@@ -5,18 +5,25 @@
 package a7100emulator.components.modules;
 
 import a7100emulator.components.system.FloppyDrive;
+import java.io.Serializable;
 
 /**
  *
  * @author Dirk
  */
-public class AFS {
+public class AFS implements Serializable {
+
+    private FloppyDrive[] drives = new FloppyDrive[4];
 
     public AFS() {
-     //   FloppyDrive.getInstance(0).loadDisk(new File("./disks/spiele.bin"));
+        drives[0] = new FloppyDrive(FloppyDrive.DriveType.K5601);
+        drives[1] = new FloppyDrive(FloppyDrive.DriveType.K5601);
+        drives[2] = null;
+        drives[3] = null;
     }
 
     public FloppyDrive getFloppy(int id) {
-        return FloppyDrive.getInstance(id);
+        return drives[id];
+        //return FloppyDrive.getInstance(id);
     }
 }

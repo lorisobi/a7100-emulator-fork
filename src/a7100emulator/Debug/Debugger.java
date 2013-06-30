@@ -4,7 +4,6 @@
  */
 package a7100emulator.Debug;
 
-import a7100emulator.components.system.SystemMemory;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.PrintStream;
@@ -64,7 +63,7 @@ public class Debugger {
     }
 
     public void addLine() {
-        String debugString = String.format("%04X:%04X ", debugInfo.getCs(), debugInfo.getIp()) + debugInfo.getCode();
+        String debugString = String.format("%04X:%04X [%02X] ", debugInfo.getCs(), debugInfo.getIp(), debugInfo.getOpcode()) + debugInfo.getCode();
         if (debugInfo.getOperands() != null) {
             debugString += " (" + debugInfo.getOperands() + ")";
         }

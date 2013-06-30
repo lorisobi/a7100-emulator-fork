@@ -7,6 +7,7 @@ package a7100emulator;
 import a7100emulator.Debug.Debugger;
 import a7100emulator.Debug.Decoder;
 import a7100emulator.Debug.MemoryAnalyzer;
+import a7100emulator.Debug.OpcodeStatistic;
 import a7100emulator.components.A7100;
 import a7100emulator.components.system.FloppyDrive;
 import a7100emulator.components.system.Keyboard;
@@ -27,7 +28,10 @@ public class MainView extends JFrame {
     private final JMenu menuDevices = new JMenu("Geräte");
     private final JMenu menuDebug = new JMenu("Debug");
     private final JMenuItem menuEmulatorReset = new JMenuItem("Reset");
-    private final JMenuItem menuEmulatorPause = new JMenuItem("Pause");
+    private final JCheckBoxMenuItem menuEmulatorPause = new JCheckBoxMenuItem("Pause");
+    private final JMenuItem menuEmulatorSingle = new JMenuItem("Einzelschritt");
+    private final JMenuItem menuEmulatorSave = new JMenuItem("Zustand Speichern");
+    private final JMenuItem menuEmulatorLoad = new JMenuItem("Zustand Laden");
     private final JMenuItem menuEmulatorExit = new JMenuItem("Beenden");
     private final JMenu menuDevicesDrive0 = new JMenu("Laufwerk 0");
     private final JMenu menuDevicesDrive1 = new JMenu("Laufwerk 1");
@@ -49,6 +53,7 @@ public class MainView extends JFrame {
     private final JMenuItem menuDebugDecoderShow = new JMenuItem("zeigen");
     private final JMenuItem menuDebugDecoderDump = new JMenuItem("Dump");
     private final JMenuItem menuDebugCharacters = new JMenuItem("KGS Zeichensatz");
+    private final JMenuItem menuOpcodeStatistic = new JMenuItem("Dump Statistik");
     private MainMenuController controller = new MainMenuController();
     private final A7100 a7100;
 
@@ -60,9 +65,20 @@ public class MainView extends JFrame {
         menubar.add(menuEmulator);
         menuEmulator.add(menuEmulatorReset);
         menuEmulator.add(menuEmulatorPause);
+        menuEmulator.add(menuEmulatorSingle);
+        menuEmulator.addSeparator();
+        menuEmulator.add(menuEmulatorSave);
+        menuEmulator.add(menuEmulatorLoad);
         menuEmulator.addSeparator();
         menuEmulator.add(menuEmulatorExit);
 
+        menuEmulatorPause.addActionListener(controller);
+        menuEmulatorSingle.addActionListener(controller);
+        menuEmulatorSave.addActionListener(controller);
+        menuEmulatorLoad.addActionListener(controller);
+
+        menuEmulatorSingle.setEnabled(false);
+        
         menubar.add(menuDevices);
         menuDevices.add(menuDevicesDrive0);
         menuDevicesDrive0.add(menuDevicesDrive0Load);
@@ -98,6 +114,7 @@ public class MainView extends JFrame {
         menuDebugDecoder.add(menuDebugDecoderDump);
         menuDebug.add(menuDebugSwitch);
         menuDebug.add(menuDebugCharacters);
+        menuDebug.add(menuOpcodeStatistic);
 
         menuDebugSwitch.addActionListener(controller);
         menuDebugMemoryShow.addActionListener(controller);
@@ -105,6 +122,7 @@ public class MainView extends JFrame {
         menuDebugDecoderShow.addActionListener(controller);
         menuDebugDecoderDump.addActionListener(controller);
         menuDebugCharacters.addActionListener(controller);
+        menuOpcodeStatistic.addActionListener(controller);
 
         this.setJMenuBar(menubar);
         this.add(Screen.getInstance());
@@ -119,7 +137,20 @@ public class MainView extends JFrame {
 
         @Override
         public void actionPerformed(ActionEvent e) {
-            if (e.getSource().equals(menuDebugMemoryShow)) {
+            if (e.getSource().equals(menuEmulatorPause)) {
+                if (menuEmulatorPause.isSelected()) {
+                    a7100.getZVE().pause();
+                } else {
+                    a7100.getZVE().resume();
+                }
+                menuEmulatorSingle.setEnabled(menuEmulatorPause.isSelected());
+            } else if (e.getSource().equals(menuEmulatorSingle)) {
+                a7100.getZVE().singleStep();
+            } else if (e.getSource().equals(menuEmulatorSave)) {
+                a7100.saveState();
+            } else if (e.getSource().equals(menuEmulatorLoad)) {
+                a7100.loadState();
+            } else if (e.getSource().equals(menuDebugMemoryShow)) {
                 (new MemoryAnalyzer()).show();
             } else if (e.getSource() == menuDebugDecoderShow) {
                 Decoder.getInstance().show();
@@ -131,42 +162,44 @@ public class MainView extends JFrame {
                 Debugger.getInstance().setDebug(menuDebugSwitch.isSelected());
             } else if (e.getSource() == menuDebugCharacters) {
                 a7100.getKGS().showCharacters();
+            } else if (e.getSource() == menuOpcodeStatistic) {
+                OpcodeStatistic.getInstance().dump();
             } else if (e.getSource() == menuDevicesDrive0Load) {
                 JFileChooser loadDialog = new JFileChooser("./disks/");
                 if (loadDialog.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
                     File image = loadDialog.getSelectedFile();
-                    FloppyDrive.getInstance(0).loadDisk(image);
+                    a7100.getKES().getAFS().getFloppy(0).loadDisk(image);
                 }
             } else if (e.getSource() == menuDevicesDrive0Save) {
                 JFileChooser saveDialog = new JFileChooser("./disks/");
                 if (saveDialog.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
                     File image = saveDialog.getSelectedFile();
-                    FloppyDrive.getInstance(0).saveDisk(image);
+                    a7100.getKES().getAFS().getFloppy(0).saveDisk(image);
                 }
             } else if (e.getSource() == menuDevicesDrive0Eject) {
-                FloppyDrive.getInstance(0).ejectDisk();
+                a7100.getKES().getAFS().getFloppy(0).ejectDisk();
             } else if (e.getSource() == menuDevicesDrive0Empty) {
-                FloppyDrive.getInstance(0).newDisk();
+                a7100.getKES().getAFS().getFloppy(0).newDisk();
             } else if (e.getSource() == menuDevicesDrive0WriteProtect) {
-                FloppyDrive.getInstance(0).setWriteProtect(menuDevicesDrive0WriteProtect.isSelected());
+                a7100.getKES().getAFS().getFloppy(0).setWriteProtect(menuDevicesDrive0WriteProtect.isSelected());
             } else if (e.getSource() == menuDevicesDrive1Load) {
                 JFileChooser loadDialog = new JFileChooser("./disks/");
                 if (loadDialog.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
                     File image = loadDialog.getSelectedFile();
-                    FloppyDrive.getInstance(1).loadDisk(image);
+                    a7100.getKES().getAFS().getFloppy(1).loadDisk(image);
                 }
             } else if (e.getSource() == menuDevicesDrive1Save) {
                 JFileChooser saveDialog = new JFileChooser("./disks/");
                 if (saveDialog.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
                     File image = saveDialog.getSelectedFile();
-                    FloppyDrive.getInstance(1).saveDisk(image);
+                    a7100.getKES().getAFS().getFloppy(1).saveDisk(image);
                 }
             } else if (e.getSource() == menuDevicesDrive1Eject) {
-                FloppyDrive.getInstance(1).ejectDisk();
+                a7100.getKES().getAFS().getFloppy(1).ejectDisk();
             } else if (e.getSource() == menuDevicesDrive1Empty) {
-                FloppyDrive.getInstance(1).newDisk();
+                a7100.getKES().getAFS().getFloppy(1).newDisk();
             } else if (e.getSource() == menuDevicesDrive1WriteProtect) {
-                FloppyDrive.getInstance(1).setWriteProtect(menuDevicesDrive0WriteProtect.isSelected());
+                a7100.getKES().getAFS().getFloppy(1).setWriteProtect(menuDevicesDrive0WriteProtect.isSelected());
             }
         }
     }

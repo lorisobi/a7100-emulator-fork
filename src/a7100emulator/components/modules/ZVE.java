@@ -33,13 +33,13 @@ public final class ZVE implements PortModule, MemoryModule, ClockModule {
     /**
      * Komponenten
      */
-    private final K580WN59A pic=new K580WN59A();
+    private final K580WN59A pic = new K580WN59A();
     private final K1810WM86 cpu = new K1810WM86();
     private final KR580WW55A ppi = new KR580WW55A();
     private final KR580WI53 pti = new KR580WI53();
     private final KR580WM51A usart = new KR580WM51A();
     private final Memory memory = new Memory(32768);
-
+    
     public ZVE() {
         init();
     }
@@ -267,5 +267,22 @@ public final class ZVE implements PortModule, MemoryModule, ClockModule {
     @Override
     public void clockUpdate(int amount) {
         pti.updateClock(amount);
+    }
+
+    public void pause() {
+        cpu.setSuspend(true);
+    }
+
+    public void resume() {
+        synchronized (cpu) {
+            cpu.setSuspend(false);
+            cpu.notify();
+        }
+    }
+
+    public void singleStep() {
+        synchronized(cpu) {
+            cpu.notify();
+        }
     }
 }

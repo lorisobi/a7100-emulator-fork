@@ -6,12 +6,13 @@ package a7100emulator.components.ic;
 
 import a7100emulator.components.system.InterruptSystem;
 import a7100emulator.components.system.SystemClock;
+import java.io.Serializable;
 
 /**
  *
  * @author Dirk
  */
-public class KR580WI53 {
+public class KR580WI53 implements Serializable {
 
     private static int TEST_COUNTER = 0xC0;
     private static int TEST_RW = 0x30;
@@ -56,13 +57,12 @@ public class KR580WI53 {
 
     public void updateClock(int amount) {
         long oldclock = SystemClock.getInstance().getClock();
-        //System.out.println("--- " + ((oldclock + amount) / 4 - oldclock / 4) + " --- ");
         counter[0].update((oldclock + amount) / 4 - oldclock / 4);
         counter[1].update((oldclock + amount) / 32 - oldclock / 32);
         counter[2].update((oldclock + amount) / 4 - oldclock / 4);
     }
 
-    class Counter {
+    class Counter implements Serializable {
 
         private final int id;
         private boolean running = false;

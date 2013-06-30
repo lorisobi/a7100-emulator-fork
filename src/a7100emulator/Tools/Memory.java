@@ -4,12 +4,7 @@
  */
 package a7100emulator.Tools;
 
-import a7100emulator.components.system.SystemMemory;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -17,7 +12,7 @@ import java.util.logging.Logger;
  *
  * @author Dirk
  */
-public class Memory {
+public class Memory implements Serializable {
 
     public enum MemoryType {
 
@@ -65,7 +60,6 @@ public class Memory {
                 Logger.getLogger(Memory.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
-        //dump();
     }
 
     public void writeByte(int address, int value) {
@@ -84,21 +78,10 @@ public class Memory {
     }
 
     public int readWord(int address) {
-        int result = 0;
+        int result;
         int lb = memory[address];
         int hb = memory[address + 1];
         result = ((hb << 8) | (lb & 0xFF));
         return result & 0xFFFF;
-    }
-
-    public void dump() {
-        FileOutputStream fos = null;
-        try {
-            fos = new FileOutputStream("dump_memory.hex");
-            fos.write(memory);
-            fos.close();
-        } catch (Exception ex) {
-            Logger.getLogger(SystemMemory.class.getName()).log(Level.SEVERE, null, ex);
-        }
     }
 }

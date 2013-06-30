@@ -42,7 +42,6 @@ public class SystemMemory {
             }
         }
         SystemClock.getInstance().updateClock(0xC000);
-        //System.out.println("No module for memory address " + Integer.toHexString(address));
         return null;
     }
 

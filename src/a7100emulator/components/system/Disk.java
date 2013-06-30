@@ -12,7 +12,7 @@ import java.util.logging.Logger;
  *
  * @author Dirk
  */
-public class Disk {
+public class Disk implements Serializable {
 
     private int cylinderPerDisk = 80;
     private int tracksPerCylinder = 2;
@@ -60,6 +60,7 @@ public class Disk {
     public byte[] readData(int cylinder, int sector, int head, int cnt) {
         byte[] res = new byte[cnt];
         int pos = seek(cylinder, head, sector);
+        System.out.println("pos:"+pos);
         System.arraycopy(data, pos, res, 0, cnt);
         return res;
     }

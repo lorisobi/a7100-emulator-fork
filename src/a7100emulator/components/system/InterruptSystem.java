@@ -5,7 +5,6 @@
 package a7100emulator.components.system;
 
 import a7100emulator.components.ic.K580WN59A;
-import java.util.LinkedList;
 
 /**
  *
@@ -50,7 +49,6 @@ public class InterruptSystem {
     public void addParityNMI() {
         if (parityNMIEnable) {
             nmi = true;
-            //interrupts.add(0x02);
         }
     }
 

@@ -6,12 +6,13 @@ package a7100emulator.components.modules;
 
 import a7100emulator.Tools.Memory;
 import a7100emulator.components.system.*;
+import java.io.Serializable;
 
 /**
  *
  * @author Dirk
  */
-public final class KES implements PortModule, ClockModule {
+public final class KES implements PortModule, ClockModule, Serializable {
 
     private final int INIT_WUB_ADDRESS = 0x01000;
     private static int kes_count = 0;
@@ -243,7 +244,7 @@ public final class KES implements PortModule, ClockModule {
                 int sector = memory.readByte(ccbAddress + 0x31);
                 int head = memory.readByte(ccbAddress + 0x30);
                 int byteCnt = memory.readWord(ccbAddress + 0x36);
-                //System.out.println("Lese " + byteCnt + " Bytes von Laufwerk " + (driveNr & 0x03) + " C/H/S " + cylinder + "/" + head + "/" + sector + " nach " + String.format("%04X:%04X", memSeg, memOff));
+                System.out.println("Lese " + byteCnt + " Bytes von Laufwerk " + (driveNr & 0x03) + " C/H/S " + cylinder + "/" + head + "/" + sector + " nach " + String.format("%04X:%04X", memSeg, memOff));
                 FloppyDrive drive = afs.getFloppy(driveNr & 0x03);
                 byte[] data = drive.readData(cylinder, sector, head, byteCnt);
                 for (int i = 0; i < data.length; i++) {
@@ -342,5 +343,19 @@ public final class KES implements PortModule, ClockModule {
                 InterruptSystem.getInstance().getPIC().requestInterrupt(5);
             }
         }
+    }
+
+    /**
+     * @return the afs
+     */
+    public AFS getAFS() {
+        return afs;
+    }
+
+    /**
+     * @param afs the afs to set
+     */
+    public void setAFS(AFS afs) {
+        this.afs = afs;
     }
 }

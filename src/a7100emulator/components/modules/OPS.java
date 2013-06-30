@@ -9,12 +9,13 @@ import a7100emulator.Tools.Memory;
 import a7100emulator.components.system.InterruptSystem;
 import a7100emulator.components.system.SystemMemory;
 import a7100emulator.components.system.SystemPorts;
+import java.io.Serializable;
 
 /**
  *
  * @author Dirk
  */
-public final class OPS implements PortModule, MemoryModule {
+public final class OPS implements PortModule, MemoryModule, Serializable  {
 
     enum Parity {
 

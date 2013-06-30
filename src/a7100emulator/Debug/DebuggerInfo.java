@@ -13,6 +13,7 @@ public class DebuggerInfo {
     private long systemClock;
     private int cs;
     private int ip;
+    private int opcode;
     private String code;
     private String operands;
     private static DebuggerInfo instance;
@@ -95,5 +96,19 @@ public class DebuggerInfo {
      */
     public void setOperands(String operands) {
         this.operands = operands;
+    }
+
+    /**
+     * @return the opcode
+     */
+    public int getOpcode() {
+        return opcode;
+    }
+
+    /**
+     * @param opcode the opcode to set
+     */
+    public void setOpcode(int opcode) {
+        this.opcode = opcode;
     }
 }
