@@ -5,13 +5,15 @@
 package a7100emulator.components.ic;
 
 import a7100emulator.components.system.InterruptSystem;
-import java.io.Serializable;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
 
 /**
  *
  * @author Dirk
  */
-public class KR580WW55A implements Serializable {
+public class KR580WW55A {
 
     enum In_Out {
 
@@ -113,5 +115,27 @@ public class KR580WW55A implements Serializable {
 
     private boolean getBit(int op1, int i) {
         return (((op1 >> i) & 0x1) == 0x1);
+    }
+
+    public void saveState(DataOutputStream dos) throws IOException {
+        dos.writeInt(group_a_mode);
+        dos.writeInt(group_b_mode);
+        dos.writeUTF(port_c_lower_in_out.name());
+        dos.writeUTF(port_c_higher_in_out.name());
+        dos.writeUTF(port_b_in_out.name());
+        dos.writeUTF(port_a_in_out.name());
+        dos.writeInt(bits);
+        dos.writeInt(dataB);
+    }
+    
+    public void loadState(DataInputStream dis) throws IOException {
+        group_a_mode=dis.readInt();
+        group_b_mode=dis.readInt();
+        port_c_lower_in_out=In_Out.valueOf(dis.readUTF());
+        port_c_higher_in_out=In_Out.valueOf(dis.readUTF());
+        port_b_in_out=In_Out.valueOf(dis.readUTF());
+        port_a_in_out=In_Out.valueOf(dis.readUTF());
+        bits=dis.readInt();
+        dataB=dis.readInt();
     }
 }

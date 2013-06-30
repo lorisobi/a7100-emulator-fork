@@ -14,15 +14,15 @@ import java.util.HashMap;
 public class SystemPorts {
 
     private static SystemPorts instance;
-
+    private HashMap<Integer, PortModule> portModules = new HashMap<Integer, PortModule>();
+    
     public static SystemPorts getInstance() {
         if (instance == null) {
             instance = new SystemPorts();
         }
         return instance;
     }
-    private HashMap<Integer, PortModule> portModules = new HashMap<Integer, PortModule>();
-
+    
     public void registerPort(PortModule module, int port) {
         portModules.put(port, module);
     }

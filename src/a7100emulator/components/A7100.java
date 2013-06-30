@@ -5,10 +5,10 @@
 package a7100emulator.components;
 
 import a7100emulator.components.modules.*;
-import java.io.DataOutputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import a7100emulator.components.system.InterruptSystem;
+import a7100emulator.components.system.Keyboard;
+import a7100emulator.components.system.SystemClock;
+import java.io.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -22,7 +22,7 @@ public class A7100 {
     private ZPS zps = null;
     private OPS ops1 = new OPS();
     private OPS ops2 = new OPS();
-    private OPS ops3 = null;
+    private OPS ops3 = new OPS();
     private KGS kgs = new KGS();
     private KES kes = new KES();
     private ASP asp = null;
@@ -67,8 +67,57 @@ public class A7100 {
     }
 
     public void saveState() {
+        zve.pause();
+        try {
+            Thread.sleep(100);
+        } catch (InterruptedException ex) {
+            Logger.getLogger(A7100.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        try {
+            DataOutputStream dos = new DataOutputStream(new FileOutputStream("state.a71"));
+
+            zve.saveState(dos);
+            ops1.saveState(dos);
+            ops2.saveState(dos);
+            kgs.saveState(dos);
+            kes.saveState(dos);
+
+            InterruptSystem.getInstance().saveState(dos);
+            Keyboard.getInstance().saveState(dos);
+            SystemClock.getInstance().saveState(dos);
+            
+            dos.flush();
+            dos.close();
+        } catch (IOException ex) {
+            Logger.getLogger(A7100.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        zve.resume();
     }
 
     public void loadState() {
+        zve.pause();
+        try {
+            Thread.sleep(100);
+        } catch (InterruptedException ex) {
+            Logger.getLogger(A7100.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        try {
+            DataInputStream dis = new DataInputStream(new FileInputStream("state.a71"));
+
+            zve.loadState(dis);
+            ops1.loadState(dis);
+            ops2.loadState(dis);
+            kgs.loadState(dis);
+            kes.loadState(dis);
+
+            InterruptSystem.getInstance().loadState(dis);
+            Keyboard.getInstance().loadState(dis);
+            SystemClock.getInstance().loadState(dis);
+            
+            dis.close();
+        } catch (IOException ex) {
+            Logger.getLogger(A7100.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        zve.resume();
     }
 }

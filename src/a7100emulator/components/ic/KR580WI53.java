@@ -6,13 +6,15 @@ package a7100emulator.components.ic;
 
 import a7100emulator.components.system.InterruptSystem;
 import a7100emulator.components.system.SystemClock;
-import java.io.Serializable;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
 
 /**
  *
  * @author Dirk
  */
-public class KR580WI53 implements Serializable {
+public class KR580WI53 {
 
     private static int TEST_COUNTER = 0xC0;
     private static int TEST_RW = 0x30;
@@ -62,7 +64,19 @@ public class KR580WI53 implements Serializable {
         counter[2].update((oldclock + amount) / 4 - oldclock / 4);
     }
 
-    class Counter implements Serializable {
+    public void saveState(DataOutputStream dos) throws IOException {
+        for (int i = 0; i < 3; i++) {
+            counter[i].saveState(dos);
+        }
+    }
+
+    public void loadState(DataInputStream dis) throws IOException {
+        for (int i = 0; i < 3; i++) {
+            counter[i].loadState(dis);
+        }
+    }
+
+    class Counter {
 
         private final int id;
         private boolean running = false;
@@ -180,6 +194,28 @@ public class KR580WI53 implements Serializable {
                 }
                 //if (value>0) System.out.println("Neuer Wert:" + value);
             }
+        }
+
+        private void saveState(DataOutputStream dos) throws IOException {
+            dos.writeBoolean(running);
+            dos.writeBoolean(latched);
+            dos.writeInt(value);
+            dos.writeInt(mode);
+            dos.writeInt(type);
+            dos.writeInt(rw);
+            dos.writeInt(readWriteState);
+            dos.writeInt(latch);
+        }
+
+        private void loadState(DataInputStream dis) throws IOException {
+            running = dis.readBoolean();
+            latched = dis.readBoolean();
+            value = dis.readInt();
+            mode = dis.readInt();
+            type = dis.readInt();
+            rw = dis.readInt();
+            readWriteState = dis.readInt();
+            latch = dis.readInt();
         }
     }
 }

@@ -12,8 +12,10 @@ import a7100emulator.components.system.SystemPorts;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.image.BufferedImage;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.File;
-import java.io.Serializable;
+import java.io.IOException;
 import java.util.LinkedList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -24,7 +26,7 @@ import javax.swing.JFrame;
  *
  * @author Dirk
  */
-public final class KGS implements PortModule, ClockModule, Serializable {
+public final class KGS implements PortModule, ClockModule {
 
     // Zeichensätze
     private Memory characterCodes = new Memory(4096);
@@ -1215,5 +1217,81 @@ public final class KGS implements PortModule, ClockModule, Serializable {
                 break;
             }
         } while (pos < escSequence.size());
+    }
+
+    @Override
+    public void saveState(DataOutputStream dos) throws IOException {
+        dos.writeInt(state);
+        dos.writeInt(cursorRow);
+        dos.writeInt(cursorColumn);
+        dos.writeBoolean(receiveSequence);
+        dos.writeInt(escSequence.size());
+        for (int i = 0; i < escSequence.size(); i++) {
+            dos.writeByte(escSequence.get(i));
+        }
+        for (int i = 0; i < 80; i++) {
+            dos.writeBoolean(hTabs[i]);
+        }
+        for (int i = 0; i < 25; i++) {
+            dos.writeBoolean(vTabs[i]);
+        }
+        dos.writeBoolean(disableGraphics);
+        dos.writeBoolean(initialized);
+        dos.writeLong(interruptClock);
+        dos.writeBoolean(interruptWaiting);
+        dos.write(deviceBuffer);
+        dos.writeInt(bufferPosition);
+        dos.writeInt(cursorRowSave);
+        dos.writeInt(cursorColumnSave);
+        dos.writeBoolean(intense);
+        dos.writeBoolean(inverse);
+        dos.writeBoolean(flash);
+        dos.writeBoolean(underline);
+        dos.writeBoolean(wraparound);
+        dos.writeBoolean(wrapped);
+        dos.writeInt(deviceBuffer2.size());
+        for (int i = 0; i < deviceBuffer2.size(); i++) {
+            dos.writeByte(deviceBuffer2.get(i));
+        }
+        abg.saveState(dos);
+    }
+
+    @Override
+    public void loadState(DataInputStream dis) throws IOException {
+        state=dis.readInt();
+        cursorRow=dis.readInt();
+        cursorColumn=dis.readInt();
+        receiveSequence=dis.readBoolean();
+        int escSize=dis.readInt();
+        for (int i = 0; i < escSize; i++) {
+            escSequence.add(dis.readByte());
+        }
+        for (int i = 0; i < 80; i++) {
+            hTabs[i]=dis.readBoolean();
+        }
+        for (int i = 0; i < 25; i++) {
+            vTabs[i]=dis.readBoolean();
+        }
+        disableGraphics=dis.readBoolean();
+        initialized=dis.readBoolean();
+        interruptClock=dis.readLong();
+        interruptWaiting=dis.readBoolean();
+        dis.read(deviceBuffer);
+        bufferPosition=dis.readInt();
+        cursorRowSave=dis.readInt();
+        cursorColumnSave=dis.readInt();
+        intense=dis.readBoolean();
+        inverse=dis.readBoolean();
+        flash=dis.readBoolean();
+        underline=dis.readBoolean();
+        wraparound=dis.readBoolean();
+        wrapped=dis.readBoolean();
+        
+        int size=dis.readInt();
+        deviceBuffer2.clear();
+        for (int i = 0; i < size; i++) {
+            deviceBuffer2.add(dis.readByte());
+        }
+        abg.loadState(dis);
     }
 }

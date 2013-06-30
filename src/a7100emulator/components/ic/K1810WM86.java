@@ -12,9 +12,9 @@ import a7100emulator.components.system.InterruptSystem;
 import a7100emulator.components.system.SystemClock;
 import a7100emulator.components.system.SystemMemory;
 import a7100emulator.components.system.SystemPorts;
+import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.io.Serializable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -22,7 +22,7 @@ import java.util.logging.Logger;
  *
  * @author Dirk
  */
-public class K1810WM86 implements Runnable, Serializable {
+public class K1810WM86 implements Runnable {
 
     /**
      * Speicher
@@ -561,7 +561,7 @@ public class K1810WM86 implements Runnable, Serializable {
     /**
      * Emulator Steuerung
      */
-    private volatile boolean suspended = false;
+    private boolean suspended = false;
 
     public K1810WM86() {
     }
@@ -6291,6 +6291,7 @@ public class K1810WM86 implements Runnable, Serializable {
         isHalted = false;
     }
 
+    @Override
     public void run() {
         while (true) {
             if (!isHalted) {
@@ -6323,23 +6324,43 @@ public class K1810WM86 implements Runnable, Serializable {
         this.suspended = suspended;
     }
 
-//    public void saveState(final DataOutputStream dos) throws IOException {
-//        dos.writeInt(ax);
-//        dos.writeInt(bx);
-//        dos.writeInt(cx);
-//        dos.writeInt(dx);
-//        dos.writeInt(sp);
-//        dos.writeInt(bp);
-//        dos.writeInt(si);
-//        dos.writeInt(di);
-//        dos.writeInt(ip);
-//        dos.writeInt(flags);
-//        dos.writeInt(cs);
-//        dos.writeInt(ds);
-//        dos.writeInt(ss);
-//        dos.writeInt(es);
-//        dos.writeInt(prefix);
-//        dos.writeInt(string_prefix);
-//        dos.writeBoolean(isHalted);
-//    }
+    public void saveState(final DataOutputStream dos) throws IOException {
+        dos.writeInt(ax);
+        dos.writeInt(bx);
+        dos.writeInt(cx);
+        dos.writeInt(dx);
+        dos.writeInt(sp);
+        dos.writeInt(bp);
+        dos.writeInt(si);
+        dos.writeInt(di);
+        dos.writeInt(ip);
+        dos.writeInt(flags);
+        dos.writeInt(cs);
+        dos.writeInt(ds);
+        dos.writeInt(ss);
+        dos.writeInt(es);
+        dos.writeInt(prefix);
+        dos.writeInt(string_prefix);
+        dos.writeBoolean(isHalted);
+    }
+
+    public void loadState(DataInputStream dis) throws IOException {
+        ax = dis.readInt();
+        bx = dis.readInt();
+        cx = dis.readInt();
+        dx = dis.readInt();
+        sp = dis.readInt();
+        bp = dis.readInt();
+        si = dis.readInt();
+        di = dis.readInt();
+        ip = dis.readInt();
+        flags = dis.readInt();
+        cs = dis.readInt();
+        ds = dis.readInt();
+        ss = dis.readInt();
+        es = dis.readInt();
+        prefix = dis.readInt();
+        string_prefix = dis.readInt();
+        isHalted = dis.readBoolean();
+    }
 }

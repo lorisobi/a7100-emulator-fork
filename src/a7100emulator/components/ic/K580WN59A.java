@@ -5,7 +5,9 @@
 package a7100emulator.components.ic;
 
 import a7100emulator.components.system.InterruptSystem;
+import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.IOException;
 
 /**
  *
@@ -108,21 +110,37 @@ public class K580WN59A {
         return (((op1 >> i) & 0x1) == 0x1);
     }
 
-    public void saveState(DataOutputStream dos) {
-  /*  private int state = 0;
-    private int irr = 0;
-    private int isr = 0;
-    private int imr = 0;
-    private int icw1 = 0;
-    private int icw2 = 0;
-    private int icw3 = 0;
-    private int icw4 = 0;
-    private int ocw1 = 0;
-    private int ocw2 = 0;
-    private int ocw3 = 0;
-    private boolean icw1Send = false;
-    private boolean icw2Send = false;
-    private boolean icw3Send = false;*/
-        
+    public void saveState(DataOutputStream dos) throws IOException {
+        dos.writeInt(state);
+        dos.writeInt(irr);
+        dos.writeInt(isr);
+        dos.writeInt(imr);
+        dos.writeInt(icw1);
+        dos.writeInt(icw2);
+        dos.writeInt(icw3);
+        dos.writeInt(icw4);
+        dos.writeInt(ocw1);
+        dos.writeInt(ocw2);
+        dos.writeInt(ocw3);
+        dos.writeBoolean(icw1Send);
+        dos.writeBoolean(icw2Send);
+        dos.writeBoolean(icw3Send);
+    }
+
+    public void loadState(DataInputStream dis) throws IOException {
+        state = dis.readInt();
+        irr = dis.readInt();
+        isr = dis.readInt();
+        imr = dis.readInt();
+        icw1 = dis.readInt();
+        icw2 = dis.readInt();
+        icw3 = dis.readInt();
+        icw4 = dis.readInt();
+        ocw1 = dis.readInt();
+        ocw2 = dis.readInt();
+        ocw3 = dis.readInt();
+        icw1Send = dis.readBoolean();
+        icw2Send = dis.readBoolean();
+        icw3Send = dis.readBoolean();
     }
 }

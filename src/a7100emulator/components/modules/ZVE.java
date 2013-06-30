@@ -10,7 +10,10 @@ import a7100emulator.components.ic.*;
 import a7100emulator.components.system.SystemClock;
 import a7100emulator.components.system.SystemMemory;
 import a7100emulator.components.system.SystemPorts;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.File;
+import java.io.IOException;
 
 /**
  *
@@ -39,7 +42,7 @@ public final class ZVE implements PortModule, MemoryModule, ClockModule {
     private final KR580WI53 pti = new KR580WI53();
     private final KR580WM51A usart = new KR580WM51A();
     private final Memory memory = new Memory(32768);
-    
+
     public ZVE() {
         init();
     }
@@ -255,7 +258,7 @@ public final class ZVE implements PortModule, MemoryModule, ClockModule {
     }
 
     public void start() {
-        Thread cpuThread=new Thread(cpu);
+        Thread cpuThread = new Thread(cpu);
         cpuThread.start();
     }
 
@@ -281,8 +284,28 @@ public final class ZVE implements PortModule, MemoryModule, ClockModule {
     }
 
     public void singleStep() {
-        synchronized(cpu) {
+        synchronized (cpu) {
             cpu.notify();
         }
+    }
+
+    @Override
+    public void saveState(DataOutputStream dos) throws IOException {
+        memory.saveMemory(dos);
+        pic.saveState(dos);
+        cpu.saveState(dos);
+        ppi.saveState(dos);
+        pti.saveState(dos);
+        usart.saveState(dos);
+    }
+
+    @Override
+    public void loadState(DataInputStream dis) throws IOException {
+        memory.loadMemory(dis);
+        pic.loadState(dis);
+        cpu.loadState(dis);
+        ppi.loadState(dis);
+        pti.loadState(dis);
+        usart.loadState(dis);
     }
 }

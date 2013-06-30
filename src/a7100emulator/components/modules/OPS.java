@@ -9,13 +9,15 @@ import a7100emulator.Tools.Memory;
 import a7100emulator.components.system.InterruptSystem;
 import a7100emulator.components.system.SystemMemory;
 import a7100emulator.components.system.SystemPorts;
-import java.io.Serializable;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
 
 /**
  *
  * @author Dirk
  */
-public final class OPS implements PortModule, MemoryModule, Serializable  {
+public final class OPS implements PortModule, MemoryModule {
 
     enum Parity {
 
@@ -163,5 +165,23 @@ public final class OPS implements PortModule, MemoryModule, Serializable  {
             par ^= (0x01 & (data >> i));
         }
         return par;
+    }
+
+    @Override
+    public void saveState(DataOutputStream dos) throws IOException {
+        memory.saveMemory(dos);
+        dos.write(parityBits);
+        dos.writeInt(ops_offset);
+        dos.writeUTF(parity.name());
+        dos.writeInt(state);
+    }
+    
+    @Override
+    public void loadState(DataInputStream dis) throws IOException {
+        memory.loadMemory(dis);
+        dis.read(parityBits);
+        ops_offset=dis.readInt();
+        parity=Parity.valueOf(dis.readUTF());
+        state=dis.readInt();
     }
 }

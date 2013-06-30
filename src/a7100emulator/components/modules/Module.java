@@ -4,6 +4,10 @@
  */
 package a7100emulator.components.modules;
 
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+
 /**
  *
  * @author Dirk
@@ -11,5 +15,9 @@ package a7100emulator.components.modules;
 public interface Module {
 
     public void init();
+    
+    public void saveState(DataOutputStream dos) throws IOException;
+    
+    public void loadState(DataInputStream dis) throws IOException;
 
 }

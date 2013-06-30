@@ -6,13 +6,15 @@ package a7100emulator.components.modules;
 
 import a7100emulator.Tools.Memory;
 import a7100emulator.components.system.*;
-import java.io.Serializable;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
 
 /**
  *
  * @author Dirk
  */
-public final class KES implements PortModule, ClockModule, Serializable {
+public final class KES implements PortModule, ClockModule {
 
     private final int INIT_WUB_ADDRESS = 0x01000;
     private static int kes_count = 0;
@@ -357,5 +359,31 @@ public final class KES implements PortModule, ClockModule, Serializable {
      */
     public void setAFS(AFS afs) {
         this.afs = afs;
+    }
+
+    @Override
+    public void saveState(DataOutputStream dos) throws IOException {
+        dos.writeInt(ccbAddress);
+        dos.writeBoolean(readWUB);
+        dos.write(ccb);
+        dos.write(cib);
+        dos.write(iopb);
+        sram.saveMemory(dos);
+        afs.saveState(dos);
+        dos.writeLong(interruptClock);
+        dos.writeBoolean(interruptWaiting);
+    }
+
+    @Override
+    public void loadState(DataInputStream dis) throws IOException {
+        ccbAddress = dis.readInt();
+        readWUB = dis.readBoolean();
+        dis.read(ccb);
+        dis.read(cib);
+        dis.read(iopb);
+        sram.loadMemory(dis);
+        afs.loadState(dis);
+        interruptClock = dis.readLong();
+        interruptWaiting = dis.readBoolean();
     }
 }

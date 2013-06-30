@@ -12,7 +12,7 @@ import java.util.logging.Logger;
  *
  * @author Dirk
  */
-public class Memory implements Serializable {
+public class Memory {
 
     public enum MemoryType {
 
@@ -83,5 +83,13 @@ public class Memory implements Serializable {
         int hb = memory[address + 1];
         result = ((hb << 8) | (lb & 0xFF));
         return result & 0xFFFF;
+    }
+    
+    public void saveMemory(DataOutputStream dos) throws IOException {
+        dos.write(memory);
+    }
+    
+    public void loadMemory(DataInputStream dis) throws IOException {
+        dis.read(memory);
     }
 }

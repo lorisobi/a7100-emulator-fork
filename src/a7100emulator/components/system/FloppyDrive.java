@@ -4,19 +4,24 @@
  */
 package a7100emulator.components.system;
 
-import java.io.File;
-import java.io.Serializable;
+import java.io.*;
 
 /**
  *
  * @author Dirk
  */
-public class FloppyDrive implements Serializable {
+public class FloppyDrive {
 
+    public enum DriveType {
+
+        K5600_20, K5602_10, K5601
+    }
     private Disk disk;
-    private final DriveType driveType;
-    //private static DriveType[] DRIVE_TYPES = new DriveType[]{DriveType.K5601, DriveType.K5601, DriveType.K5602_10, DriveType.K5602_10};
-    //private static FloppyDrive instances[] = new FloppyDrive[4];
+    private DriveType driveType;
+
+    public FloppyDrive(DriveType type) {
+        this.driveType = type;
+    }
 
     public void setWriteProtect(boolean selected) {
         if (disk != null) {
@@ -39,34 +44,14 @@ public class FloppyDrive implements Serializable {
         disk.writeData(cylinder, sector, head, data);
     }
 
-    public void saveDisk(File image) {
+    public void saveDiskToFile(File image) {
         if (disk == null) {
             return;
         }
         disk.saveDisk(image);
     }
 
-    public enum DriveType {
-
-        K5600_20, K5602_10, K5601
-    }
-
-    /*public static FloppyDrive getInstance(int driveID) {
-        if (instances[driveID] == null) {
-            instances[driveID] = new FloppyDrive(DRIVE_TYPES[driveID]);
-        }
-        return instances[driveID];
-    }*/
-
-    public FloppyDrive(DriveType type) {
-        this.driveType = type;
-    }
-
-    private FloppyDrive() {
-        this.driveType = DriveType.K5601;
-    }
-
-    public final void loadDisk(File file) {
+    public void loadDiskFromFile(File file) {
         disk = new Disk(file);
     }
 
@@ -78,7 +63,6 @@ public class FloppyDrive implements Serializable {
         if (disk == null) {
             return null;
         }
-
         return disk.readData(cylinder, sector, head, cnt);
     }
 
@@ -179,5 +163,24 @@ public class FloppyDrive implements Serializable {
 
     public boolean getDiskInsert() {
         return disk != null;
+    }
+
+    public void saveState(DataOutputStream dos) throws IOException {
+        dos.writeUTF(driveType.name());
+        if (disk == null) {
+            dos.writeBoolean(false);
+        } else {
+            dos.writeBoolean(true);
+            disk.saveState(dos);
+        }
+    }
+
+    public void loadState(DataInputStream dis) throws IOException {
+        driveType = DriveType.valueOf(dis.readUTF());
+        boolean diskInserted = dis.readBoolean();
+        if (diskInserted) {
+            disk=new Disk();
+            disk.loadState(dis);
+        }
     }
 }

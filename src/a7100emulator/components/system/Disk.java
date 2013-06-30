@@ -12,14 +12,21 @@ import java.util.logging.Logger;
  *
  * @author Dirk
  */
-public class Disk implements Serializable {
+public class Disk {
 
+    public enum DiskType {
+
+        SCP,
+        BOS,
+        MUTOS
+    }
     private int cylinderPerDisk = 80;
     private int tracksPerCylinder = 2;
     private int sectorsPerTrack = 16;
     private int bytesPerSector = 256;
     private int t0BytesPerSector = 128;
-    private byte[] data = new byte[653312];
+    private int size = t0BytesPerSector * sectorsPerTrack + (cylinderPerDisk * 2 - 1) * sectorsPerTrack * bytesPerSector;
+    private byte[] data = new byte[size];
     private boolean writeProtect = false;
 
     public Disk() {
@@ -60,7 +67,7 @@ public class Disk implements Serializable {
     public byte[] readData(int cylinder, int sector, int head, int cnt) {
         byte[] res = new byte[cnt];
         int pos = seek(cylinder, head, sector);
-        System.out.println("pos:"+pos);
+        System.out.println("pos:" + pos);
         System.arraycopy(data, pos, res, 0, cnt);
         return res;
     }
@@ -115,5 +122,28 @@ public class Disk implements Serializable {
     void writeData(int cylinder, int sector, int head, byte[] data) {
         int pos = seek(cylinder, head, sector);
         System.arraycopy(data, 0, this.data, pos, data.length);
+    }
+
+    void saveState(DataOutputStream dos) throws IOException {
+        dos.writeInt(cylinderPerDisk);
+        dos.writeInt(tracksPerCylinder);
+        dos.writeInt(sectorsPerTrack);
+        dos.writeInt(bytesPerSector);
+        dos.writeInt(t0BytesPerSector);
+        dos.writeInt(size);
+        dos.write(data);
+        dos.writeBoolean(writeProtect);
+    }
+
+    void loadState(DataInputStream dis) throws IOException {
+        cylinderPerDisk = dis.readInt();
+        tracksPerCylinder = dis.readInt();
+        sectorsPerTrack = dis.readInt();
+        bytesPerSector = dis.readInt();
+        t0BytesPerSector = dis.readInt();
+        int readSize = dis.readInt();
+        data = new byte[readSize];
+        dis.read(data);
+        writeProtect = dis.readBoolean();
     }
 }

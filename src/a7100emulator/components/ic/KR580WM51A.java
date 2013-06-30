@@ -6,14 +6,16 @@ package a7100emulator.components.ic;
 
 import a7100emulator.components.system.InterruptSystem;
 import a7100emulator.components.system.Keyboard;
-import java.io.Serializable;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
 import java.util.LinkedList;
 
 /**
  *
  * @author Dirk
  */
-public class KR580WM51A implements Serializable {
+public class KR580WM51A {
 
     private final int STATE_TXRDY = 0x01;
     private final int STATE_RXRDY = 0x02;
@@ -87,5 +89,28 @@ public class KR580WM51A implements Serializable {
         }
         state |= STATE_RXRDY;
         InterruptSystem.getInstance().getPIC().requestInterrupt(6);
+    }
+
+    public void saveState(DataOutputStream dos) throws IOException {
+        dos.writeInt(command);
+        dos.writeInt(mode);
+        dos.writeInt(state);
+        dos.writeBoolean(modeInstruction);
+        dos.writeInt(deviceBuffer.size());
+        for (int i = 0; i < deviceBuffer.size(); i++) {
+            dos.writeByte(deviceBuffer.get(i));
+        }
+    }
+
+    public void loadState(DataInputStream dis) throws IOException {
+        command = dis.readInt();
+        mode = dis.readInt();
+        state = dis.readInt();
+        modeInstruction = dis.readBoolean();
+        deviceBuffer.clear();
+        int size = dis.readInt();
+        for (int i = 0; i < size; i++) {
+            deviceBuffer.add(dis.readByte());
+        }
     }
 }

@@ -9,7 +9,6 @@ import a7100emulator.Debug.Decoder;
 import a7100emulator.Debug.MemoryAnalyzer;
 import a7100emulator.Debug.OpcodeStatistic;
 import a7100emulator.components.A7100;
-import a7100emulator.components.system.FloppyDrive;
 import a7100emulator.components.system.Keyboard;
 import a7100emulator.components.system.Screen;
 import a7100emulator.components.system.SystemMemory;
@@ -62,6 +61,8 @@ public class MainView extends JFrame {
 
         this.a7100 = a7100;
         JMenuBar menubar = new JMenuBar();
+        menubar.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke("F10"), "none");
+        
         menubar.add(menuEmulator);
         menuEmulator.add(menuEmulatorReset);
         menuEmulator.add(menuEmulatorPause);
@@ -168,13 +169,13 @@ public class MainView extends JFrame {
                 JFileChooser loadDialog = new JFileChooser("./disks/");
                 if (loadDialog.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
                     File image = loadDialog.getSelectedFile();
-                    a7100.getKES().getAFS().getFloppy(0).loadDisk(image);
+                    a7100.getKES().getAFS().getFloppy(0).loadDiskFromFile(image);
                 }
             } else if (e.getSource() == menuDevicesDrive0Save) {
                 JFileChooser saveDialog = new JFileChooser("./disks/");
                 if (saveDialog.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
                     File image = saveDialog.getSelectedFile();
-                    a7100.getKES().getAFS().getFloppy(0).saveDisk(image);
+                    a7100.getKES().getAFS().getFloppy(0).saveDiskToFile(image);
                 }
             } else if (e.getSource() == menuDevicesDrive0Eject) {
                 a7100.getKES().getAFS().getFloppy(0).ejectDisk();
@@ -186,13 +187,13 @@ public class MainView extends JFrame {
                 JFileChooser loadDialog = new JFileChooser("./disks/");
                 if (loadDialog.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
                     File image = loadDialog.getSelectedFile();
-                    a7100.getKES().getAFS().getFloppy(1).loadDisk(image);
+                    a7100.getKES().getAFS().getFloppy(1).loadDiskFromFile(image);
                 }
             } else if (e.getSource() == menuDevicesDrive1Save) {
                 JFileChooser saveDialog = new JFileChooser("./disks/");
                 if (saveDialog.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
                     File image = saveDialog.getSelectedFile();
-                    a7100.getKES().getAFS().getFloppy(1).saveDisk(image);
+                    a7100.getKES().getAFS().getFloppy(1).saveDiskToFile(image);
                 }
             } else if (e.getSource() == menuDevicesDrive1Eject) {
                 a7100.getKES().getAFS().getFloppy(1).ejectDisk();

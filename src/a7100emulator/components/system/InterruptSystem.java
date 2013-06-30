@@ -5,6 +5,9 @@
 package a7100emulator.components.system;
 
 import a7100emulator.components.ic.K580WN59A;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
 
 /**
  *
@@ -62,5 +65,15 @@ public class InterruptSystem {
 
     private boolean getBit(int op1, int i) {
         return (((op1 >> i) & 0x1) == 0x1);
+    }
+
+    public void saveState(DataOutputStream dos) throws IOException {
+        dos.writeBoolean(parityNMIEnable);
+        dos.writeBoolean(nmi);
+    }
+
+    public void loadState(DataInputStream dis) throws IOException {
+        parityNMIEnable=dis.readBoolean();
+        nmi=dis.readBoolean();
     }
 }

@@ -7,6 +7,9 @@ package a7100emulator.components.system;
 import a7100emulator.components.ic.KR580WM51A;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
 
 /**
  *
@@ -427,5 +430,27 @@ public class Keyboard implements KeyListener {
             default:
                 break;
         }
+    }
+
+    public void saveState(DataOutputStream dos) throws IOException {
+        dos.writeBoolean(alt);
+        dos.writeBoolean(caps);
+        dos.writeBoolean(mode2);
+        dos.writeByte(byteCnt);
+        for (int i = 0; i < 10; i++) {
+            dos.writeByte(commands[i]);
+        }
+        dos.writeUTF(kbdType.name());
+    }
+
+    public void loadState(DataInputStream dis) throws IOException {
+        alt = dis.readBoolean();
+        caps = dis.readBoolean();
+        mode2 = dis.readBoolean();
+        byteCnt = dis.readByte();
+        for (int i = 0; i < 10; i++) {
+            commands[i] = dis.readByte();
+        }
+        kbdType = KeyboardType.valueOf(dis.readUTF());
     }
 }

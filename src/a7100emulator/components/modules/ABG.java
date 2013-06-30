@@ -10,13 +10,15 @@ import a7100emulator.components.system.SystemClock;
 import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.image.BufferedImage;
-import java.io.Serializable;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
 
 /**
  *
  * @author Dirk
  */
-public final class ABG implements Module, ClockModule, Serializable {
+public final class ABG implements Module, ClockModule {
 
     /**
      * @param cursorMode the cursorMode to set
@@ -41,10 +43,10 @@ public final class ABG implements Module, ClockModule, Serializable {
     private static final int DARK_GREEN = new Color(0, 75, 0).getRGB();
     private static final int BLACK = new Color(0, 0, 0).getRGB();
     // Bilder
-    private BufferedImage alphanumericScreen = new BufferedImage(640, 400, BufferedImage.TYPE_INT_RGB);
-    private BufferedImage alphanumericScreenBlink = new BufferedImage(640, 400, BufferedImage.TYPE_INT_RGB);
-    private BufferedImage graphicsScreen = new BufferedImage(640, 400, BufferedImage.TYPE_INT_RGB);
-    private BufferedImage screenImage = new BufferedImage(640, 400, BufferedImage.TYPE_INT_RGB);
+    private volatile BufferedImage alphanumericScreen = new BufferedImage(640, 400, BufferedImage.TYPE_INT_RGB);
+    private volatile BufferedImage alphanumericScreenBlink = new BufferedImage(640, 400, BufferedImage.TYPE_INT_RGB);
+    private volatile BufferedImage graphicsScreen = new BufferedImage(640, 400, BufferedImage.TYPE_INT_RGB);
+    private volatile BufferedImage screenImage = new BufferedImage(640, 400, BufferedImage.TYPE_INT_RGB);
     // Puffer
     private byte[][][] alphanumericBuffer = new byte[80][25][16];
     private byte[][] attributeBuffer = new byte[80][25];
@@ -123,7 +125,7 @@ public final class ABG implements Module, ClockModule, Serializable {
                 updateAlphanumericScreen(column, row);
             }
         }
-        alphanumericScreen.getGraphics().drawImage(newScreen, 0, 0, null);
+        //alphanumericScreen.getGraphics().drawImage(newScreen, 0, 0, null);
     }
 
     public void updateScreen() {
@@ -220,5 +222,58 @@ public final class ABG implements Module, ClockModule, Serializable {
         BufferedImage character = BitmapGenerator.generateBitmapFromLineCode(linecode, intense, inverse, underline, flash);
         g.drawImage(character, column * 8, row * 16, null);
         this.updateScreen();
+    }
+
+    @Override
+    public void saveState(DataOutputStream dos) throws IOException {
+        for (int i = 0; i < 80; i++) {
+            for (int j = 0; j < 25; j++) {
+                for (int k = 0; k < 16; k++) {
+                    dos.writeByte(alphanumericBuffer[i][j][k]);
+                }
+            }
+        }
+        for (int i = 0; i < 80; i++) {
+            for (int j = 0; j < 25; j++) {
+                dos.writeByte(attributeBuffer[i][j]);
+            }
+        }
+        for (int i = 0; i < 640; i++) {
+            for (int j = 0; j < 400; j++) {
+                dos.writeByte(graphicsBuffer[i][j]);
+            }
+        }
+        dos.writeInt(blinkState);
+        dos.writeInt(blinkClock);
+        dos.writeUTF(cursorMode.name());
+        dos.writeInt(cursorRow);
+        dos.writeInt(cursorColumn);
+    }
+
+    @Override
+    public void loadState(DataInputStream dis) throws IOException {
+        for (int i = 0; i < 80; i++) {
+            for (int j = 0; j < 25; j++) {
+                for (int k = 0; k < 16; k++) {
+                    alphanumericBuffer[i][j][k]=dis.readByte();
+                }
+            }
+        }
+        for (int i = 0; i < 80; i++) {
+            for (int j = 0; j < 25; j++) {
+                attributeBuffer[i][j]=dis.readByte();
+            }
+        }
+        for (int i = 0; i < 640; i++) {
+            for (int j = 0; j < 400; j++) {
+                graphicsBuffer[i][j]=dis.readByte();
+            }
+        }
+        blinkState=dis.readInt();
+        blinkClock=dis.readInt();
+        cursorMode=CursorMode.valueOf(dis.readUTF());
+        cursorRow=dis.readInt();
+        cursorColumn=dis.readInt();
+        generateAlphanumericScreen();
     }
 }
