@@ -552,7 +552,6 @@ public final class KGS implements PortModule, ClockModule {
                         int[] params = getParameters();
                         cursorRow = params[0] == -1 ? 1 : params[0];
                         cursorColumn = params.length < 2 || params[1] == -1 ? 1 : params[1];
-                        System.out.println(cursorRow + ";" + cursorColumn + "\n");
                         if (cursorRow < 1) {
                             cursorRow = 1;
                         }

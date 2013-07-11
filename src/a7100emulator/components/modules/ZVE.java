@@ -308,4 +308,8 @@ public final class ZVE implements PortModule, MemoryModule, ClockModule {
         pti.loadState(dis);
         usart.loadState(dis);
     }
+    
+    public void stopCPU() {
+        cpu.stop();
+    }
 }

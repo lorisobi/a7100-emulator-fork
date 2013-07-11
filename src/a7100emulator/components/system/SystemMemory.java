@@ -89,4 +89,8 @@ public class SystemMemory {
             Logger.getLogger(SystemMemory.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
+
+    public void reset() {
+        memoryModules.clear();
+    }
 }

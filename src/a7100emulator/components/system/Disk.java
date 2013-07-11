@@ -67,7 +67,6 @@ public class Disk {
     public byte[] readData(int cylinder, int sector, int head, int cnt) {
         byte[] res = new byte[cnt];
         int pos = seek(cylinder, head, sector);
-        System.out.println("pos:" + pos);
         System.arraycopy(data, pos, res, 0, cnt);
         return res;
     }
@@ -76,9 +75,7 @@ public class Disk {
         FileOutputStream fos;
         try {
             fos = new FileOutputStream(image);
-            for (byte b : data) {
-                fos.write(b);
-            }
+            fos.write(data);
             fos.close();
         } catch (IOException ex) {
         }

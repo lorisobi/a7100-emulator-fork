@@ -8,6 +8,9 @@ package a7100emulator.components.modules;
 import a7100emulator.Tools.AddressSpace;
 import a7100emulator.Tools.Memory;
 import a7100emulator.components.system.SystemMemory;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
 
 /**
  *
@@ -45,5 +48,15 @@ public final class ZPS implements MemoryModule {
 
     public void writeWord(int address, int data) {
         memory.writeWord(address, data);
+    }
+
+    @Override
+    public void saveState(DataOutputStream dos) throws IOException {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    @Override
+    public void loadState(DataInputStream dis) throws IOException {
+        throw new UnsupportedOperationException("Not supported yet.");
     }
 }

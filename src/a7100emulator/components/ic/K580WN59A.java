@@ -4,6 +4,7 @@
  */
 package a7100emulator.components.ic;
 
+import a7100emulator.Debug.Debugger;
 import a7100emulator.components.system.InterruptSystem;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;

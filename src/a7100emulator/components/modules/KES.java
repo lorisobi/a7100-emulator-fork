@@ -17,7 +17,7 @@ import java.io.IOException;
 public final class KES implements PortModule, ClockModule {
 
     private final int INIT_WUB_ADDRESS = 0x01000;
-    private static int kes_count = 0;
+    public static int kes_count = 0;
     private final static int PORT_KES_1_WAKEUP_1 = 0x100;
     private final static int PORT_KES_1_WAKEUP_2 = 0x101;
     private final static int PORT_KES_2_WAKEUP_1 = 0x102;
@@ -246,7 +246,7 @@ public final class KES implements PortModule, ClockModule {
                 int sector = memory.readByte(ccbAddress + 0x31);
                 int head = memory.readByte(ccbAddress + 0x30);
                 int byteCnt = memory.readWord(ccbAddress + 0x36);
-                System.out.println("Lese " + byteCnt + " Bytes von Laufwerk " + (driveNr & 0x03) + " C/H/S " + cylinder + "/" + head + "/" + sector + " nach " + String.format("%04X:%04X", memSeg, memOff));
+//                System.out.println("Lese " + byteCnt + " Bytes von Laufwerk " + (driveNr & 0x03) + " C/H/S " + cylinder + "/" + head + "/" + sector + " nach " + String.format("%04X:%04X", memSeg, memOff));
                 FloppyDrive drive = afs.getFloppy(driveNr & 0x03);
                 byte[] data = drive.readData(cylinder, sector, head, byteCnt);
                 for (int i = 0; i < data.length; i++) {
@@ -340,7 +340,8 @@ public final class KES implements PortModule, ClockModule {
     public void clockUpdate(int amount) {
         if (interruptWaiting) {
             interruptClock += amount;
-            if (interruptClock > 20) {
+            // Zeit für Operation auf 200 Zyklen gesetzt
+            if (interruptClock > 200) {
                 interruptWaiting = false;
                 InterruptSystem.getInstance().getPIC().requestInterrupt(5);
             }

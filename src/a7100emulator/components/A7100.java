@@ -5,9 +5,7 @@
 package a7100emulator.components;
 
 import a7100emulator.components.modules.*;
-import a7100emulator.components.system.InterruptSystem;
-import a7100emulator.components.system.Keyboard;
-import a7100emulator.components.system.SystemClock;
+import a7100emulator.components.system.*;
 import java.io.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -79,13 +77,14 @@ public class A7100 {
             zve.saveState(dos);
             ops1.saveState(dos);
             ops2.saveState(dos);
+            ops3.saveState(dos);
             kgs.saveState(dos);
             kes.saveState(dos);
 
             InterruptSystem.getInstance().saveState(dos);
             Keyboard.getInstance().saveState(dos);
             SystemClock.getInstance().saveState(dos);
-            
+
             dos.flush();
             dos.close();
         } catch (IOException ex) {
@@ -107,17 +106,44 @@ public class A7100 {
             zve.loadState(dis);
             ops1.loadState(dis);
             ops2.loadState(dis);
+            ops3.loadState(dis);
             kgs.loadState(dis);
             kes.loadState(dis);
 
             InterruptSystem.getInstance().loadState(dis);
             Keyboard.getInstance().loadState(dis);
             SystemClock.getInstance().loadState(dis);
-            
+
             dis.close();
         } catch (IOException ex) {
             Logger.getLogger(A7100.class.getName()).log(Level.SEVERE, null, ex);
         }
         zve.resume();
+    }
+
+    public void reset() {
+        zve.stopCPU();
+
+        SystemMemory.getInstance().reset();
+        SystemClock.getInstance().reset();
+        SystemPorts.getInstance().reset();
+        InterruptSystem.getInstance().reset();
+        Keyboard.getInstance().reset();
+
+        OPS.ops_count=0;
+        KES.kes_count=0;
+        ASP.asp_count=0;
+        
+        zve = new ZVE();
+        zps = null;
+        ops1 = new OPS();
+        ops2 = new OPS();
+        ops3 = new OPS();
+        kgs = new KGS();
+        kes = new KES();
+        asp = null;
+
+
+        zve.start();
     }
 }

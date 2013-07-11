@@ -21,7 +21,6 @@ public class Keyboard implements KeyListener {
 
         K7637, K7672;
     }
-    private KR580WM51A ifssController = null;
     // 1:1
     // Alphanumerik: A-Z, a-z, 1-0
     // Sondertasten: Backspace, ESC, Enter, Tabulator, Caps Lock, DEL, Ctrl, Alt
@@ -49,6 +48,7 @@ public class Keyboard implements KeyListener {
     // Shift+PageUp --> Erase INP
     // PageDn       --> DUP
     // Shift+PageDn --> FM
+    private KR580WM51A ifssController = null;
     private boolean alt = false;
     private boolean caps = false;
     private boolean mode2 = false;
@@ -452,5 +452,14 @@ public class Keyboard implements KeyListener {
             commands[i] = dis.readByte();
         }
         kbdType = KeyboardType.valueOf(dis.readUTF());
+    }
+
+    public void reset() {
+        ifssController = null;
+        alt = false;
+        caps = false;
+        mode2 = false;
+        byteCnt = 0;
+        commands = new byte[10];
     }
 }

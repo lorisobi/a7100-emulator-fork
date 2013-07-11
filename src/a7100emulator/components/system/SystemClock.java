@@ -56,4 +56,8 @@ public class SystemClock {
     public void loadState(DataInputStream dis) throws IOException {
         clock=dis.readLong();
     }
+
+    public void reset() {
+        clock=0;
+    }
 }

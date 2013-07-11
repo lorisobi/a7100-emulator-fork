@@ -67,4 +67,8 @@ public class SystemPorts {
         }
         return module.readPort_Word(address);
     }
+
+    public void reset() {
+        portModules.clear();
+    }
 }

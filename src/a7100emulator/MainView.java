@@ -12,6 +12,8 @@ import a7100emulator.components.A7100;
 import a7100emulator.components.system.Keyboard;
 import a7100emulator.components.system.Screen;
 import a7100emulator.components.system.SystemMemory;
+import java.awt.BorderLayout;
+import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
@@ -26,6 +28,7 @@ public class MainView extends JFrame {
     private final JMenu menuEmulator = new JMenu("Emulator");
     private final JMenu menuDevices = new JMenu("Geräte");
     private final JMenu menuDebug = new JMenu("Debug");
+    private final JMenu menuHelp = new JMenu("Hilfe");
     private final JMenuItem menuEmulatorReset = new JMenuItem("Reset");
     private final JCheckBoxMenuItem menuEmulatorPause = new JCheckBoxMenuItem("Pause");
     private final JMenuItem menuEmulatorSingle = new JMenuItem("Einzelschritt");
@@ -53,6 +56,7 @@ public class MainView extends JFrame {
     private final JMenuItem menuDebugDecoderDump = new JMenuItem("Dump");
     private final JMenuItem menuDebugCharacters = new JMenuItem("KGS Zeichensatz");
     private final JMenuItem menuOpcodeStatistic = new JMenuItem("Dump Statistik");
+    private final JMenuItem menuHelpAbout = new JMenuItem("Über");
     private MainMenuController controller = new MainMenuController();
     private final A7100 a7100;
 
@@ -62,7 +66,7 @@ public class MainView extends JFrame {
         this.a7100 = a7100;
         JMenuBar menubar = new JMenuBar();
         menubar.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke("F10"), "none");
-        
+
         menubar.add(menuEmulator);
         menuEmulator.add(menuEmulatorReset);
         menuEmulator.add(menuEmulatorPause);
@@ -73,13 +77,14 @@ public class MainView extends JFrame {
         menuEmulator.addSeparator();
         menuEmulator.add(menuEmulatorExit);
 
+        menuEmulatorReset.addActionListener(controller);
         menuEmulatorPause.addActionListener(controller);
         menuEmulatorSingle.addActionListener(controller);
         menuEmulatorSave.addActionListener(controller);
         menuEmulatorLoad.addActionListener(controller);
 
         menuEmulatorSingle.setEnabled(false);
-        
+
         menubar.add(menuDevices);
         menuDevices.add(menuDevicesDrive0);
         menuDevicesDrive0.add(menuDevicesDrive0Load);
@@ -125,10 +130,16 @@ public class MainView extends JFrame {
         menuDebugCharacters.addActionListener(controller);
         menuOpcodeStatistic.addActionListener(controller);
 
+        menubar.add(menuHelp);
+        menuHelp.add(menuHelpAbout);
+
+        menuHelpAbout.addActionListener(controller);
+
         this.setJMenuBar(menubar);
         this.add(Screen.getInstance());
         this.addKeyListener(Keyboard.getInstance());
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        this.setIconImage((new ImageIcon(this.getClass().getClassLoader().getResource("Images/Icon.png"))).getImage());
         this.setResizable(false);
         this.setVisible(true);
         this.pack();
@@ -138,7 +149,9 @@ public class MainView extends JFrame {
 
         @Override
         public void actionPerformed(ActionEvent e) {
-            if (e.getSource().equals(menuEmulatorPause)) {
+            if (e.getSource().equals(menuEmulatorReset)) {
+                a7100.reset();
+            } else if (e.getSource().equals(menuEmulatorPause)) {
                 if (menuEmulatorPause.isSelected()) {
                     a7100.getZVE().pause();
                 } else {
@@ -201,6 +214,17 @@ public class MainView extends JFrame {
                 a7100.getKES().getAFS().getFloppy(1).newDisk();
             } else if (e.getSource() == menuDevicesDrive1WriteProtect) {
                 a7100.getKES().getAFS().getFloppy(1).setWriteProtect(menuDevicesDrive0WriteProtect.isSelected());
+            } else if (e.getSource() == menuHelpAbout) {
+                JPanel pan_about = new JPanel();
+                pan_about.setLayout(new BorderLayout());
+                pan_about.add(new JLabel(new ImageIcon(this.getClass().getClassLoader().getResource("Images/Icon.png"))), BorderLayout.WEST);
+                JPanel pan_desc = new JPanel();
+                pan_desc.setBorder(BorderFactory.createEmptyBorder(0, 20, 0, 10));
+                pan_desc.setLayout(new GridLayout(2, 1));
+                pan_desc.add(new JLabel("A7100 - Emulator v0.5.13"));
+                pan_desc.add(new JLabel("2011-2013 Dirk Bräuer"));
+                pan_about.add(pan_desc, BorderLayout.CENTER);
+                JOptionPane.showMessageDialog(MainView.this, pan_about, "Über", JOptionPane.PLAIN_MESSAGE);
             }
         }
     }

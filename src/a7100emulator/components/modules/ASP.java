@@ -5,6 +5,9 @@
 package a7100emulator.components.modules;
 
 import a7100emulator.components.system.SystemPorts;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
 
 /**
  *
@@ -12,8 +15,7 @@ import a7100emulator.components.system.SystemPorts;
  */
 public final class ASP implements PortModule {
 
-    private static int asp_count=0;
-
+    public static int asp_count = 0;
     private final static int PORT_ASP_1_ENABLE_INTERRUPT = 0x300;
     private final static int PORT_ASP_1_BOS1810 = 0x301;
     private final static int PORT_ASP_1_RETI = 0x302;
@@ -258,6 +260,16 @@ public final class ASP implements PortModule {
     }
 
     public void init() {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    @Override
+    public void saveState(DataOutputStream dos) throws IOException {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    @Override
+    public void loadState(DataInputStream dis) throws IOException {
         throw new UnsupportedOperationException("Not supported yet.");
     }
 }

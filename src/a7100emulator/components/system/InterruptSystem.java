@@ -73,7 +73,12 @@ public class InterruptSystem {
     }
 
     public void loadState(DataInputStream dis) throws IOException {
-        parityNMIEnable=dis.readBoolean();
-        nmi=dis.readBoolean();
+        parityNMIEnable = dis.readBoolean();
+        nmi = dis.readBoolean();
+    }
+
+    public void reset() {
+        parityNMIEnable = false;
+        nmi = false;
     }
 }

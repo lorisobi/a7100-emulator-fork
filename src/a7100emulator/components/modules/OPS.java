@@ -23,7 +23,7 @@ public final class OPS implements PortModule, MemoryModule {
 
         EVEN, ODD;
     }
-    private static int ops_count = 0;
+    public static int ops_count = 0;
     private final static int PORT_OPS_1_PES = 0x00;
     private final static int PORT_OPS_2_PES = 0x02;
     private final static int PORT_OPS_3_PES = 0x40;
