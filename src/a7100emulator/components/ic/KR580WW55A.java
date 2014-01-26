@@ -29,6 +29,10 @@ public class KR580WW55A {
     private int dataB = 0;
     //private Beep beep=new Beep();
 
+    /**
+     * 
+     * @param control
+     */
     public void writeInit(int control) {
 //        System.out.println("Out Control: " + Integer.toHexString(control)+"/"+Integer.toBinaryString(control));
         if (getBit(control, 7)) {
@@ -91,24 +95,48 @@ public class KR580WW55A {
         }
     }
 
+    /**
+     * 
+     * @param data
+     */
     public void writePortA(int data) {
     }
 
+    /**
+     * 
+     * @param data
+     */
     public void writePortB(int data) {
         dataB = data;
     }
 
+    /**
+     * 
+     * @param data
+     */
     public void writePortC(int data) {
     }
 
+    /**
+     * 
+     * @return
+     */
     public int readPortA() {
         return 0xC0;
     }
 
+    /**
+     * 
+     * @return
+     */
     public int readPortB() {
         return dataB;
     }
 
+    /**
+     * 
+     * @return
+     */
     public int readPortC() {
         return 0;
     }
@@ -117,6 +145,11 @@ public class KR580WW55A {
         return (((op1 >> i) & 0x1) == 0x1);
     }
 
+    /**
+     * 
+     * @param dos
+     * @throws IOException
+     */
     public void saveState(DataOutputStream dos) throws IOException {
         dos.writeInt(group_a_mode);
         dos.writeInt(group_b_mode);
@@ -128,6 +161,11 @@ public class KR580WW55A {
         dos.writeInt(dataB);
     }
     
+    /**
+     * 
+     * @param dis
+     * @throws IOException
+     */
     public void loadState(DataInputStream dis) throws IOException {
         group_a_mode=dis.readInt();
         group_b_mode=dis.readInt();

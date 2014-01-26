@@ -22,6 +22,9 @@ import javax.swing.table.AbstractTableModel;
  */
 public class MemoryAnalyzer {
 
+    /**
+     * 
+     */
     public void show() {
         JTable table = new JTable(new MemoryTableModel());
         table.setShowGrid(false);
@@ -44,10 +47,12 @@ public class MemoryAnalyzer {
 
     class MemoryTableModel extends AbstractTableModel {
 
+        @Override
         public int getRowCount() {
             return 65536;
         }
 
+        @Override
         public int getColumnCount() {
             return 17;
         }
@@ -61,14 +66,17 @@ public class MemoryAnalyzer {
             }
         }
 
+        @Override
         public Class<?> getColumnClass(int column) {
             return String.class;
         }
 
+        @Override
         public boolean isCellEditable(int row, int column) {
             return false;
         }
 
+        @Override
         public Object getValueAt(int row, int column) {
             if (column == 0) {
                 return String.format("%05X", row * 16);

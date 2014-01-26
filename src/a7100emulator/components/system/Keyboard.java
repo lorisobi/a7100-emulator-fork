@@ -60,6 +60,10 @@ public class Keyboard implements KeyListener {
     private Keyboard() {
     }
 
+    /**
+     * 
+     * @return
+     */
     public static Keyboard getInstance() {
         if (instance == null) {
             instance = new Keyboard();
@@ -67,10 +71,14 @@ public class Keyboard implements KeyListener {
         return instance;
     }
 
+    /**
+     * 
+     * @param controller
+     */
     public void registerController(KR580WM51A controller) {
         ifssController = controller;
         if (kbdType.equals(KeyboardType.K7637)) {
-            sendBytes(new byte[]{0x00, (byte) 0xFF, 0x11});
+            sendBytes(new byte[]{(byte) 0xFF, 0x11});
         }
     }
 
@@ -87,12 +95,17 @@ public class Keyboard implements KeyListener {
         boolean shift = e.isShiftDown();
         boolean ctrl = e.isControlDown();
         boolean alt = e.isAltDown();
+        boolean altgr = e.isAltGraphDown();
+        
 
         //System.out.println(Integer.toHexString(code)+" "+e.getKeyChar());
 
-//        if (e.isShiftDown()) {
-//            System.out.println("Shift+");
-//        }
+        if (e.isAltDown()) {
+            System.out.println("Alt");
+        }
+        if (e.isControlDown()) {
+            System.out.println("Ctrl");
+        }
 
         switch (e.getKeyCode()) {
             case KeyEvent.VK_0:
@@ -120,10 +133,10 @@ public class Keyboard implements KeyListener {
                 sendByte(shift ? 0x2F : 0x37);
                 break;
             case KeyEvent.VK_8:
-                sendByte(shift ? 0x28 : 0x38);
+                sendByte((alt && ctrl) ? 0x5B : shift ? 0x28 : 0x38);
                 break;
             case KeyEvent.VK_9:
-                sendByte(shift ? 0x29 : 0x39);
+                sendByte((alt && ctrl) ? 0x5D : shift ? 0x29 : 0x39);
                 break;
             case KeyEvent.VK_A:
                 sendByte(ctrl ? 0x01 : shift ? 0x41 : 0x61);
@@ -310,6 +323,9 @@ public class Keyboard implements KeyListener {
             case KeyEvent.VK_PERIOD:
                 sendByte(shift ? 0x3A : 0x2E);
                 break;
+            case KeyEvent.VK_DEAD_ACUTE:
+                sendByte(shift ? 0x27 : 0x60);
+                break;
             case 0:
                 switch (e.getKeyChar()) {
                     case 'ß':
@@ -323,6 +339,10 @@ public class Keyboard implements KeyListener {
         }
     }
 
+    /**
+     * 
+     * @param bytes
+     */
     public void sendBytes(byte[] bytes) {
         ifssController.writeDataToSystem(bytes);
     }
@@ -331,12 +351,16 @@ public class Keyboard implements KeyListener {
         ifssController.writeDataToSystem((byte) (b & 0xFF));
     }
 
+    /**
+     * 
+     * @param b
+     */
     public void receiveByte(int b) {
         commands[byteCnt++] = (byte) (b & 0xFF);
         if (kbdType.equals(KeyboardType.K7637)) {
             if (b == 0x00) {
                 byteCnt = 0;
-                sendBytes(new byte[]{(byte) 0xFF, 0x11});
+                sendBytes(new byte[]{0x00, (byte) 0xFF, 0x11});
             } else {
                 sendByte(0xFF);
             }
@@ -344,6 +368,9 @@ public class Keyboard implements KeyListener {
         checkCommands();
     }
 
+    /**
+     * 
+     */
     public void checkCommands() {
         //System.out.println("Cnt:" + byteCnt);
 
@@ -363,10 +390,6 @@ public class Keyboard implements KeyListener {
                         //System.out.println("Anfrage Status");
                         byteCnt = 0;
                         sendBytes(new byte[]{0x1B, 0x5B, 0x30, 0x6E});
-                        break;
-                    case 0x55:
-                        // Reset Manuell
-                        //byteCnt=0;
                         break;
                 }
                 break;
@@ -432,6 +455,11 @@ public class Keyboard implements KeyListener {
         }
     }
 
+    /**
+     * 
+     * @param dos
+     * @throws IOException
+     */
     public void saveState(DataOutputStream dos) throws IOException {
         dos.writeBoolean(alt);
         dos.writeBoolean(caps);
@@ -443,6 +471,11 @@ public class Keyboard implements KeyListener {
         dos.writeUTF(kbdType.name());
     }
 
+    /**
+     * 
+     * @param dis
+     * @throws IOException
+     */
     public void loadState(DataInputStream dis) throws IOException {
         alt = dis.readBoolean();
         caps = dis.readBoolean();
@@ -454,6 +487,9 @@ public class Keyboard implements KeyListener {
         kbdType = KeyboardType.valueOf(dis.readUTF());
     }
 
+    /**
+     * 
+     */
     public void reset() {
         ifssController = null;
         alt = false;

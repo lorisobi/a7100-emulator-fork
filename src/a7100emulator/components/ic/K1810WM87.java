@@ -31,6 +31,9 @@ public class K1810WM87 implements Runnable {
     private PrintStream debugFile = null;
     private final boolean debug = true;
 
+    /**
+     * 
+     */
     public K1810WM87() {
         if (debug) {
             try {
@@ -49,6 +52,7 @@ public class K1810WM87 implements Runnable {
         return (((op1 >> i) & 0x1) == 0x1);
     }
 
+    @Override
     public void run() {
         while (true) {
             executeNextInstruction();

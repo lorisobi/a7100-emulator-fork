@@ -26,6 +26,10 @@ public class Debugger {
     private Debugger() {
     }
 
+    /**
+     * 
+     * @return
+     */
     public static Debugger getInstance() {
         if (instance == null) {
             instance = new Debugger();
@@ -46,7 +50,7 @@ public class Debugger {
     public void setDebug(boolean debug) {
         if (debug) {
             try {
-                debugFile = new PrintStream(new FileOutputStream("K1810WM86.log"));
+                debugFile = new PrintStream(new FileOutputStream("./debug/K1810WM86.log"));
                 //SystemMemory.getInstance().dump("start_debug.hex");
             } catch (FileNotFoundException ex) {
                 Logger.getLogger(Debugger.class.getName()).log(Level.SEVERE, null, ex);
@@ -62,6 +66,9 @@ public class Debugger {
         return debugstart;
     }
 
+    /**
+     * 
+     */
     public void addLine() {
         // Ignoriere Interrupts
         if (debugInfo.getCs() == 0x0104) {

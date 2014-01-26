@@ -21,6 +21,10 @@ public class DebuggerInfo {
     private DebuggerInfo() {
     }
 
+    /**
+     * 
+     * @return
+     */
     public static DebuggerInfo getInstance() {
         if (instance == null) {
             instance = new DebuggerInfo();

@@ -24,6 +24,10 @@ public class SystemMemory {
     private SystemMemory() {
     }
 
+    /**
+     * 
+     * @return
+     */
     public static SystemMemory getInstance() {
         if (instance == null) {
             instance = new SystemMemory();
@@ -31,6 +35,11 @@ public class SystemMemory {
         return instance;
     }
 
+    /**
+     * 
+     * @param addressSpace
+     * @param module
+     */
     public void registerMemorySpace(AddressSpace addressSpace, MemoryModule module) {
         memoryModules.put(addressSpace, module);
     }
@@ -45,6 +54,11 @@ public class SystemMemory {
         return null;
     }
 
+    /**
+     * 
+     * @param address
+     * @param value
+     */
     public void writeByte(int address, int value) {
         MemoryModule module = getModuleForAddress(address);
         if (module == null) {
@@ -53,6 +67,11 @@ public class SystemMemory {
         module.writeByte(address, value);
     }
 
+    /**
+     * 
+     * @param address
+     * @return
+     */
     public int readByte(int address) {
         MemoryModule module = getModuleForAddress(address);
         if (module == null) {
@@ -61,6 +80,11 @@ public class SystemMemory {
         return module.readByte(address);
     }
 
+    /**
+     * 
+     * @param address
+     * @param value
+     */
     public void writeWord(int address, int value) {
         MemoryModule module = getModuleForAddress(address);
         if (module == null) {
@@ -69,6 +93,11 @@ public class SystemMemory {
         module.writeWord(address, value);
     }
 
+    /**
+     * 
+     * @param address
+     * @return
+     */
     public int readWord(int address) {
         MemoryModule module = getModuleForAddress(address);
         if (module == null) {
@@ -77,6 +106,10 @@ public class SystemMemory {
         return module.readWord(address);
     }
 
+    /**
+     * 
+     * @param filename
+     */
     public void dump(String filename) {
         FileOutputStream fos;
         try {
@@ -90,6 +123,9 @@ public class SystemMemory {
         }
     }
 
+    /**
+     * 
+     */
     public void reset() {
         memoryModules.clear();
     }

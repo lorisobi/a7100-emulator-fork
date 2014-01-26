@@ -60,6 +60,10 @@ public class MainView extends JFrame {
     private MainMenuController controller = new MainMenuController();
     private final A7100 a7100;
 
+    /**
+     * 
+     * @param a7100
+     */
     public MainView(A7100 a7100) {
         super("A7100 Emulator");
 
@@ -169,7 +173,7 @@ public class MainView extends JFrame {
             } else if (e.getSource() == menuDebugDecoderShow) {
                 Decoder.getInstance().show();
             } else if (e.getSource() == menuDebugMemoryDump) {
-                SystemMemory.getInstance().dump("user_dump.hex");
+                SystemMemory.getInstance().dump("./debug/user_dump.hex");
             } else if (e.getSource() == menuDebugDecoderDump) {
                 Decoder.getInstance().save();
             } else if (e.getSource() == menuDebugSwitch) {
@@ -221,8 +225,8 @@ public class MainView extends JFrame {
                 JPanel pan_desc = new JPanel();
                 pan_desc.setBorder(BorderFactory.createEmptyBorder(0, 20, 0, 10));
                 pan_desc.setLayout(new GridLayout(2, 1));
-                pan_desc.add(new JLabel("A7100 - Emulator v0.5.13"));
-                pan_desc.add(new JLabel("2011-2013 Dirk Bräuer"));
+                pan_desc.add(new JLabel("A7100 - Emulator v0.5.21"));
+                pan_desc.add(new JLabel("2011-2014 Dirk Bräuer"));
                 pan_about.add(pan_desc, BorderLayout.CENTER);
                 JOptionPane.showMessageDialog(MainView.this, pan_about, "Über", JOptionPane.PLAIN_MESSAGE);
             }

@@ -5,7 +5,6 @@
 package a7100emulator.components.ic;
 
 import a7100emulator.components.system.InterruptSystem;
-import a7100emulator.components.system.SystemClock;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -22,12 +21,19 @@ public class KR580WI53 {
     private static int TEST_TYPE = 0x01;
     private Counter[] counter = new Counter[3];
 
+    /**
+     * 
+     */
     public KR580WI53() {
         for (int i = 0; i < 3; i++) {
             counter[i] = new Counter(i);
         }
     }
 
+    /**
+     * 
+     * @param control
+     */
     public void writeInit(int control) {
         int counterID = (control & TEST_COUNTER) >> 6;
         //System.out.print("Initialisiere Counter " + counterID + ": ");
@@ -42,34 +48,53 @@ public class KR580WI53 {
         }
     }
 
-    public void writeCounter(int i, int data) {
+    /**
+     * 
+     * @param counterID
+     * @param data
+     */
+    public void writeCounter(int counterID, int data) {
         //System.out.print("Setze Counter " + i + ": ");
-        counter[i].setValue(data);
+        counter[counterID].setValue(data);
     }
 
-    public int readCounter(int i) {
-        int val = counter[i].getValue();
+    /**
+     * 
+     * @param counterID
+     * @return
+     */
+    public int readCounter(int counterID) {
+        int val = counter[counterID].getValue();
         //System.out.println("Gelesen Counter "+i+": " + Integer.toHexString(val));
         return val;
     }
 
-    private boolean getBit(int op1, int i) {
-        return (((op1 >> i) & 0x1) == 0x1);
-    }
-
+    /**
+     * 
+     * @param amount
+     */
     public void updateClock(int amount) {
-        long oldclock = SystemClock.getInstance().getClock();
-        counter[0].update((oldclock + amount) / 4 - oldclock / 4);
-        counter[1].update((oldclock + amount) / 32 - oldclock / 32);
-        counter[2].update((oldclock + amount) / 4 - oldclock / 4);
+        counter[0].update(amount >> 2);
+        counter[1].update(amount >> 5);
+        counter[2].update(amount >> 2);
     }
 
+    /**
+     * 
+     * @param dos
+     * @throws IOException
+     */
     public void saveState(DataOutputStream dos) throws IOException {
         for (int i = 0; i < 3; i++) {
             counter[i].saveState(dos);
         }
     }
 
+    /**
+     * 
+     * @param dis
+     * @throws IOException
+     */
     public void loadState(DataInputStream dis) throws IOException {
         for (int i = 0; i < 3; i++) {
             counter[i].loadState(dis);

@@ -15,31 +15,71 @@ import java.io.IOException;
  */
 public class FloppyDrive {
 
+    /**
+     * 
+     */
     public enum DriveType {
 
-        K5600_20, K5602_10, K5601
+        /**
+         * 
+         */
+        K5600_20,
+        /**
+         *
+         */
+        K5602_10,
+        /**
+         *
+         */
+        K5601
     }
     private Disk disk;
     private DriveType driveType;
 
-    public FloppyDrive(DriveType type) {
-        this.driveType = type;
+    /**
+     * 
+     * @param driveType
+     */
+    public FloppyDrive(DriveType driveType) {
+        this.driveType = driveType;
     }
 
-    public void setWriteProtect(boolean selected) {
+    /**
+     * 
+     * @param writeProtected
+     */
+    public void setWriteProtect(boolean writeProtected) {
         if (disk != null) {
-            disk.setWriteProtect(selected);
+            disk.setWriteProtect(writeProtected);
         }
     }
 
+    /**
+     * 
+     * @param cylinder
+     * @param head
+     * @param mod
+     * @param data
+     * @param interleave
+     */
     public void format(int cylinder, int head, int mod, int[] data, int interleave) {
         disk.format(cylinder, head, mod, data, interleave);
     }
 
+    /**
+     * 
+     */
     public void newDisk() {
         disk = new Disk();
     }
 
+    /**
+     * 
+     * @param cylinder
+     * @param sector
+     * @param head
+     * @param data
+     */
     public void writeData(int cylinder, int sector, int head, byte[] data) {
         if (disk == null) {
             return;
@@ -47,6 +87,10 @@ public class FloppyDrive {
         disk.writeData(cylinder, sector, head, data);
     }
 
+    /**
+     * 
+     * @param image
+     */
     public void saveDiskToFile(File image) {
         if (disk == null) {
             return;
@@ -54,14 +98,29 @@ public class FloppyDrive {
         disk.saveDisk(image);
     }
 
+    /**
+     * 
+     * @param file
+     */
     public void loadDiskFromFile(File file) {
         disk = new Disk(file);
     }
 
+    /**
+     * 
+     */
     public void ejectDisk() {
         disk = null;
     }
 
+    /**
+     * 
+     * @param cylinder
+     * @param sector
+     * @param head
+     * @param cnt
+     * @return
+     */
     public byte[] readData(int cylinder, int sector, int head, int cnt) {
         if (disk == null) {
             return null;
@@ -69,6 +128,10 @@ public class FloppyDrive {
         return disk.readData(cylinder, sector, head, cnt);
     }
 
+    /**
+     * 
+     * @return
+     */
     public int getCylinderCount() {
         switch (driveType) {
             case K5602_10:
@@ -80,10 +143,18 @@ public class FloppyDrive {
         return 0;
     }
 
+    /**
+     * 
+     * @return
+     */
     public boolean getDoubleStep() {
         return false;
     }
 
+    /**
+     * 
+     * @return
+     */
     public int getPrecompensationCode() {
         switch (driveType) {
             case K5602_10:
@@ -94,6 +165,10 @@ public class FloppyDrive {
         return 0;
     }
 
+    /**
+     * 
+     * @return
+     */
     public int getHeads() {
         switch (driveType) {
             case K5602_10:
@@ -105,10 +180,18 @@ public class FloppyDrive {
         return 0;
     }
 
+    /**
+     * 
+     * @return
+     */
     public int getHeadSink() {
         return 0;
     }
 
+    /**
+     * 
+     * @return
+     */
     public int getStepTime() {
         switch (driveType) {
             case K5602_10:
@@ -120,6 +203,10 @@ public class FloppyDrive {
         return 0;
     }
 
+    /**
+     * 
+     * @return
+     */
     public int getHeadTime() {
         switch (driveType) {
             case K5602_10:
@@ -131,6 +218,10 @@ public class FloppyDrive {
         return 0;
     }
 
+    /**
+     * 
+     * @return
+     */
     public int getWriting() {
         switch (driveType) {
             case K5602_10:
@@ -142,6 +233,10 @@ public class FloppyDrive {
         return 0;
     }
 
+    /**
+     * 
+     * @return
+     */
     public int getSectorsPerTrack() {
         switch (driveType) {
             case K5602_10:
@@ -153,6 +248,10 @@ public class FloppyDrive {
         return 0;
     }
 
+    /**
+     * 
+     * @return
+     */
     public int getBytesPerSector() {
         switch (driveType) {
             case K5602_10:
@@ -164,10 +263,19 @@ public class FloppyDrive {
         return 0;
     }
 
+    /**
+     * 
+     * @return
+     */
     public boolean getDiskInsert() {
         return disk != null;
     }
 
+    /**
+     * 
+     * @param dos
+     * @throws IOException
+     */
     public void saveState(DataOutputStream dos) throws IOException {
         dos.writeUTF(driveType.name());
         if (disk == null) {
@@ -178,6 +286,11 @@ public class FloppyDrive {
         }
     }
 
+    /**
+     * 
+     * @param dis
+     * @throws IOException
+     */
     public void loadState(DataInputStream dis) throws IOException {
         driveType = DriveType.valueOf(dis.readUTF());
         boolean diskInserted = dis.readBoolean();

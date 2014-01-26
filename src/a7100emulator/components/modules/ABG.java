@@ -27,9 +27,27 @@ public final class ABG implements Module, ClockModule {
         this.cursorMode = cursorMode;
     }
 
+    /**
+     * 
+     */
     public enum CursorMode {
 
-        CURSOR_INVISIBLE, CURSOR_BLINK_LINE, CURSOR_BLINK_BLOCK, CURSOR_STATIC_BLOCK;
+        /**
+         * Unsichtbarer Cursor
+         */
+        CURSOR_INVISIBLE,
+        /**
+         * Blinkender Unterstrich
+         */
+        CURSOR_BLINK_LINE,
+        /**
+         * Blinkender Block
+         */
+        CURSOR_BLINK_BLOCK,
+        /**
+         * Permanenter Block
+         */
+        CURSOR_STATIC_BLOCK;
     }
     // Attribute
     private static final int ATTRIBUTE_INTENSE = 0x01;
@@ -57,10 +75,16 @@ public final class ABG implements Module, ClockModule {
     private int cursorRow = 1;
     private int cursorColumn = 1;
 
+    /**
+     * 
+     */
     public ABG() {
         init();
     }
 
+    /**
+     * 
+     */
     @Override
     public void init() {
         Graphics g = alphanumericScreen.getGraphics();
@@ -91,10 +115,25 @@ public final class ABG implements Module, ClockModule {
         return graphicsScreen;
     }
 
+    /**
+     * 
+     * @return
+     */
     public BufferedImage Screen() {
         return alphanumericScreen;
     }
 
+    /**
+     * 
+     * @param row
+     * @param column
+     * @param linecodes
+     * @param intense
+     * @param flash
+     * @param cursor
+     * @param underline
+     * @param inverse
+     */
     public void setLineCodes(int row, int column, byte[] linecodes, boolean intense, boolean flash, boolean cursor, boolean underline, boolean inverse) {
         alphanumericBuffer[column][row] = linecodes;
         byte attribute = 0;
@@ -118,16 +157,16 @@ public final class ABG implements Module, ClockModule {
     }
 
     private void generateAlphanumericScreen() {
-        BufferedImage newScreen = new BufferedImage(640, 400, BufferedImage.TYPE_INT_RGB);
-        Graphics g = newScreen.getGraphics();
         for (int row = 0; row < 25; row++) {
             for (int column = 0; column < 80; column++) {
                 updateAlphanumericScreen(column, row);
             }
         }
-        //alphanumericScreen.getGraphics().drawImage(newScreen, 0, 0, null);
     }
 
+    /**
+     * 
+     */
     public void updateScreen() {
         Screen.getInstance().repaint();
     }
@@ -146,11 +185,18 @@ public final class ABG implements Module, ClockModule {
         Screen.getInstance().setImage(screenImage);
     }
 
+    /**
+     * 
+     */
     @Override
     public void registerClocks() {
         SystemClock.getInstance().registerClock(this);
     }
 
+    /**
+     * 
+     * @param amount
+     */
     @Override
     public void clockUpdate(int amount) {
         blinkClock += amount;
@@ -171,12 +217,11 @@ public final class ABG implements Module, ClockModule {
         updateAlphanumericScreen((cursorColumn == 80) ? 79 : cursorColumn, cursorRow);
     }
 
-    void setCursor(int cursorRow, int cursorColumn) {
-        attributeBuffer[(cursorColumn == 80) ? 79 : cursorColumn][cursorRow] |= ATTRIBUTE_CURSOR;
-        updateAlphanumericScreen((cursorColumn == 80) ? 79 : cursorColumn, cursorRow);
-        this.cursorColumn = (cursorColumn == 80) ? 79 : cursorColumn;
-        this.cursorRow = cursorRow;
-
+    void setCursor(int newCursorRow, int newCursorColumn) {
+        cursorColumn = (newCursorColumn == 80) ? 79 : newCursorColumn;
+        cursorRow = newCursorRow;
+        attributeBuffer[cursorColumn][cursorRow] |= ATTRIBUTE_CURSOR;
+        updateAlphanumericScreen(cursorColumn, cursorRow);
     }
 
     private void updateAlphanumericScreen(int column, int row) {
@@ -224,6 +269,11 @@ public final class ABG implements Module, ClockModule {
         this.updateScreen();
     }
 
+    /**
+     * 
+     * @param dos
+     * @throws IOException
+     */
     @Override
     public void saveState(DataOutputStream dos) throws IOException {
         for (int i = 0; i < 80; i++) {
@@ -250,6 +300,11 @@ public final class ABG implements Module, ClockModule {
         dos.writeInt(cursorColumn);
     }
 
+    /**
+     * 
+     * @param dis
+     * @throws IOException
+     */
     @Override
     public void loadState(DataInputStream dis) throws IOException {
         for (int i = 0; i < 80; i++) {

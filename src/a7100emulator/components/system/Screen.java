@@ -23,6 +23,10 @@ public class Screen extends JComponent {
         setPreferredSize(new Dimension(640, 400));
     }
 
+    /**
+     * 
+     * @return
+     */
     public static Screen getInstance() {
         if (instance == null) {
             instance = new Screen();
@@ -30,6 +34,10 @@ public class Screen extends JComponent {
         return instance;
     }
 
+    /**
+     * 
+     * @param screenImage
+     */
     public void setImage(BufferedImage screenImage) {
         this.screenImage = screenImage;
         repaint();

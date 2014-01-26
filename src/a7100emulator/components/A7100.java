@@ -25,6 +25,9 @@ public class A7100 {
     private KES kes = new KES();
     private ASP asp = null;
 
+    /**
+     * 
+     */
     public A7100() {
         zve.start();
     }
@@ -64,6 +67,9 @@ public class A7100 {
         return kes;
     }
 
+    /**
+     * 
+     */
     public void saveState() {
         zve.pause();
         try {
@@ -72,7 +78,7 @@ public class A7100 {
             Logger.getLogger(A7100.class.getName()).log(Level.SEVERE, null, ex);
         }
         try {
-            DataOutputStream dos = new DataOutputStream(new FileOutputStream("state.a71"));
+            DataOutputStream dos = new DataOutputStream(new FileOutputStream("./state/state.a7100"));
 
             zve.saveState(dos);
             ops1.saveState(dos);
@@ -93,6 +99,9 @@ public class A7100 {
         zve.resume();
     }
 
+    /**
+     * 
+     */
     public void loadState() {
         zve.pause();
         try {
@@ -101,7 +110,7 @@ public class A7100 {
             Logger.getLogger(A7100.class.getName()).log(Level.SEVERE, null, ex);
         }
         try {
-            DataInputStream dis = new DataInputStream(new FileInputStream("state.a71"));
+            DataInputStream dis = new DataInputStream(new FileInputStream("./state/state.a7100"));
 
             zve.loadState(dis);
             ops1.loadState(dis);
@@ -121,6 +130,9 @@ public class A7100 {
         zve.resume();
     }
 
+    /**
+     * 
+     */
     public void reset() {
         zve.stopCPU();
 

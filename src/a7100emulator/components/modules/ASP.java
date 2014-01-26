@@ -15,6 +15,9 @@ import java.io.IOException;
  */
 public final class ASP implements PortModule {
 
+    /**
+     * 
+     */
     public static int asp_count = 0;
     private final static int PORT_ASP_1_ENABLE_INTERRUPT = 0x300;
     private final static int PORT_ASP_1_BOS1810 = 0x301;
@@ -52,11 +55,18 @@ public final class ASP implements PortModule {
     private final static int PORT_ASP_2_U856_CONTROL_IFSS_V24 = 0x33E;
     private final int asp_id;
 
+    /**
+     * 
+     */
     public ASP() {
         asp_id = asp_count++;
         registerPorts();
     }
 
+    /**
+     * 
+     */
+    @Override
     public void registerPorts() {
 
         switch (asp_id) {
@@ -101,6 +111,12 @@ public final class ASP implements PortModule {
         }
     }
 
+    /**
+     * 
+     * @param port
+     * @param data
+     */
+    @Override
     public void writePort_Byte(int port, int data) {
         switch (port) {
             case PORT_ASP_1_ENABLE_INTERRUPT:
@@ -140,6 +156,12 @@ public final class ASP implements PortModule {
         }
     }
 
+    /**
+     * 
+     * @param port
+     * @param data
+     */
+    @Override
     public void writePort_Word(int port, int data) {
         switch (port) {
             case PORT_ASP_1_ENABLE_INTERRUPT:
@@ -179,6 +201,12 @@ public final class ASP implements PortModule {
         }
     }
 
+    /**
+     * 
+     * @param port
+     * @return
+     */
+    @Override
     public int readPort_Byte(int port) {
         switch (port) {
             case PORT_ASP_1_ENABLE_INTERRUPT:
@@ -219,6 +247,12 @@ public final class ASP implements PortModule {
         return 0;
     }
 
+    /**
+     * 
+     * @param port
+     * @return
+     */
+    @Override
     public int readPort_Word(int port) {
         switch (port) {
             case PORT_ASP_1_ENABLE_INTERRUPT:
@@ -259,15 +293,29 @@ public final class ASP implements PortModule {
         return 0;
     }
 
+    /**
+     * 
+     */
+    @Override
     public void init() {
         throw new UnsupportedOperationException("Not supported yet.");
     }
 
+    /**
+     * 
+     * @param dos
+     * @throws IOException
+     */
     @Override
     public void saveState(DataOutputStream dos) throws IOException {
         throw new UnsupportedOperationException("Not supported yet.");
     }
 
+    /**
+     * 
+     * @param dis
+     * @throws IOException
+     */
     @Override
     public void loadState(DataInputStream dis) throws IOException {
         throw new UnsupportedOperationException("Not supported yet.");

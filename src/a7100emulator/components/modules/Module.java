@@ -14,10 +14,23 @@ import java.io.IOException;
  */
 public interface Module {
 
+    /**
+     * 
+     */
     public void init();
     
+    /**
+     * 
+     * @param dos
+     * @throws IOException
+     */
     public void saveState(DataOutputStream dos) throws IOException;
     
+    /**
+     * 
+     * @param dis
+     * @throws IOException
+     */
     public void loadState(DataInputStream dis) throws IOException;
 
 }

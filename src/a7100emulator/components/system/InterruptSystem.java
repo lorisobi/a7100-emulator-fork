@@ -26,6 +26,10 @@ public class InterruptSystem {
     private InterruptSystem() {
     }
 
+    /**
+     * 
+     * @return
+     */
     public static InterruptSystem getInstance() {
         if (instance == null) {
             instance = new InterruptSystem();
@@ -33,14 +37,26 @@ public class InterruptSystem {
         return instance;
     }
 
+    /**
+     * 
+     * @param pic
+     */
     public void setPIC(K580WN59A pic) {
         this.pic = pic;
     }
 
+    /**
+     * 
+     * @return
+     */
     public K580WN59A getPIC() {
         return pic;
     }
 
+    /**
+     * 
+     * @return
+     */
     public boolean getNMI() {
         if (nmi) {
             nmi = false;
@@ -49,34 +65,52 @@ public class InterruptSystem {
         return false;
     }
 
+    /**
+     * 
+     */
     public void addParityNMI() {
         if (parityNMIEnable) {
             nmi = true;
         }
     }
 
+    /**
+     * 
+     */
     public void enableParityNMI() {
         parityNMIEnable = true;
     }
 
+    /**
+     * 
+     */
     public void disableParityNMI() {
         parityNMIEnable = false;
     }
 
-    private boolean getBit(int op1, int i) {
-        return (((op1 >> i) & 0x1) == 0x1);
-    }
-
+    /**
+     * 
+     * @param dos
+     * @throws IOException
+     */
     public void saveState(DataOutputStream dos) throws IOException {
         dos.writeBoolean(parityNMIEnable);
         dos.writeBoolean(nmi);
     }
 
+    /**
+     * 
+     * @param dis
+     * @throws IOException
+     */
     public void loadState(DataInputStream dis) throws IOException {
         parityNMIEnable = dis.readBoolean();
         nmi = dis.readBoolean();
     }
 
+    /**
+     * 
+     */
     public void reset() {
         parityNMIEnable = false;
         nmi = false;

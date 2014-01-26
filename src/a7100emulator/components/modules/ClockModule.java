@@ -11,8 +11,15 @@ package a7100emulator.components.modules;
  */
 public interface ClockModule extends Module {
 
+    /**
+     * 
+     */
     void registerClocks();
 
+    /**
+     * 
+     * @param amount
+     */
     void clockUpdate(int amount);
 
 }

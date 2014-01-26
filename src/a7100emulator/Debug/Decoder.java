@@ -31,6 +31,10 @@ public class Decoder {
     private Decoder() {
     }
 
+    /**
+     * 
+     * @return
+     */
     public static Decoder getInstance() {
         if (instance == null) {
             instance = new Decoder();
@@ -38,10 +42,18 @@ public class Decoder {
         return instance;
     }
 
+    /**
+     * 
+     * @param address
+     * @param code
+     */
     public void addItem(int address, String code) {
         decoder.put(address, code);
     }
 
+    /**
+     * 
+     */
     public void show() {
         JTable table = new JTable(new DecoderTableModel());
         JFrame frame = new JFrame("Disassembler");
@@ -56,12 +68,16 @@ public class Decoder {
         }
     }
     
+    /**
+     * 
+     */
     public void save() {
         try {
-            PrintStream decoderFile = new PrintStream(new FileOutputStream("Decoder.log"));
+            PrintStream decoderFile = new PrintStream(new FileOutputStream("./debug/Decoder.log"));
             Object[] dec=decoder.values().toArray();
-            for (int i=0;i<dec.length;i++)
+            for (int i=0;i<dec.length;i++) {
                 decoderFile.println(dec[i].toString());
+            }
             decoderFile.close();
         } catch (FileNotFoundException ex) {
             Logger.getLogger(Decoder.class.getName()).log(Level.SEVERE, null, ex);
@@ -69,6 +85,9 @@ public class Decoder {
         
     }
 
+    /**
+     * 
+     */
     public void addItem() {
         String debugString = String.format("%04X:%04X ", debugInfo.getCs(), debugInfo.getIp()) + debugInfo.getCode();
         decoder.put(debugInfo.getCs()*16+debugInfo.getIp(), debugString);
@@ -76,10 +95,12 @@ public class Decoder {
 
     class DecoderTableModel extends AbstractTableModel {
 
+        @Override
         public int getRowCount() {
             return decoder.size();
         }
 
+        @Override
         public int getColumnCount() {
             return 2;
         }
@@ -96,14 +117,17 @@ public class Decoder {
             }
         }
 
+        @Override
         public Class<?> getColumnClass(int column) {
             return String.class;
         }
 
+        @Override
         public boolean isCellEditable(int row, int column) {
             return false;
         }
 
+        @Override
         public Object getValueAt(int row, int column) {
             if (column == 0) {
                 return ((String) decoder.values().toArray()[row]).substring(0, 9);

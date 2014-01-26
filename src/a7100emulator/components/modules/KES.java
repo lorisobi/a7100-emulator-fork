@@ -17,6 +17,9 @@ import java.io.IOException;
 public final class KES implements PortModule, ClockModule {
 
     private final int INIT_WUB_ADDRESS = 0x01000;
+    /**
+     * 
+     */
     public static int kes_count = 0;
     private final static int PORT_KES_1_WAKEUP_1 = 0x100;
     private final static int PORT_KES_1_WAKEUP_2 = 0x101;
@@ -34,12 +37,18 @@ public final class KES implements PortModule, ClockModule {
     private long interruptClock = 0;
     private boolean interruptWaiting = false;
 
+    /**
+     * 
+     */
     public KES() {
         kes_id = kes_count++;
         registerPorts();
         registerClocks();
     }
 
+    /**
+     * 
+     */
     @Override
     public void registerPorts() {
         switch (kes_id) {
@@ -54,6 +63,11 @@ public final class KES implements PortModule, ClockModule {
         }
     }
 
+    /**
+     * 
+     * @param port
+     * @param data
+     */
     @Override
     public void writePort_Byte(int port, int data) {
         switch (port) {
@@ -82,6 +96,11 @@ public final class KES implements PortModule, ClockModule {
         }
     }
 
+    /**
+     * 
+     * @param port
+     * @param data
+     */
     @Override
     public void writePort_Word(int port, int data) {
         switch (port) {
@@ -92,6 +111,11 @@ public final class KES implements PortModule, ClockModule {
         }
     }
 
+    /**
+     * 
+     * @param port
+     * @return
+     */
     @Override
     public int readPort_Byte(int port) {
         switch (port) {
@@ -102,6 +126,11 @@ public final class KES implements PortModule, ClockModule {
         return 0;
     }
 
+    /**
+     * 
+     * @param port
+     * @return
+     */
     @Override
     public int readPort_Word(int port) {
         switch (port) {
@@ -112,6 +141,9 @@ public final class KES implements PortModule, ClockModule {
         return 0;
     }
 
+    /**
+     * 
+     */
     @Override
     public void init() {
         throw new UnsupportedOperationException("Not supported yet.");
@@ -122,7 +154,7 @@ public final class KES implements PortModule, ClockModule {
             int seg = memory.readWord(INIT_WUB_ADDRESS + 4);
             int off = memory.readWord(INIT_WUB_ADDRESS + 2);
             //System.out.println("WUB: " + Integer.toHexString(seg) + ":" + Integer.toHexString(off));
-            ccbAddress = seg * 16 + off;
+            ccbAddress = (seg << 4) + off;
             readWUB = false;
         }
         for (int i = 0; i < 30; i++) {
@@ -172,7 +204,7 @@ public final class KES implements PortModule, ClockModule {
             case 0x01: {
                 // Statusabfrage
                 int driveNr = memory.readByte(ccbAddress + 0x2A);
-                int memAddr = memory.readWord(ccbAddress + 0x34) * 16 + memory.readWord(ccbAddress + 0x32);
+                int memAddr = (memory.readWord(ccbAddress + 0x34) <<4) + memory.readWord(ccbAddress + 0x32);
                 int status = 0x01;
                 if (getBit(driveNr, 4)) {
                     FloppyDrive drive = afs.getFloppy(driveNr & 0x03);
@@ -216,7 +248,7 @@ public final class KES implements PortModule, ClockModule {
                 int driveNr = memory.readByte(ccbAddress + 0x2A);
                 int memSeg = memory.readWord(ccbAddress + 0x34);
                 int memOff = memory.readWord(ccbAddress + 0x32);
-                int memAddr = memSeg * 16 + memOff;
+                int memAddr = (memSeg <<4) + memOff;
                 int cylinder = memory.readWord(ccbAddress + 0x2E);
                 int head = memory.readByte(ccbAddress + 0x30);
                 int mod = memory.readByte(ccbAddress + 0x2C);
@@ -241,7 +273,7 @@ public final class KES implements PortModule, ClockModule {
                 int driveNr = memory.readByte(ccbAddress + 0x2A);
                 int memSeg = memory.readWord(ccbAddress + 0x34);
                 int memOff = memory.readWord(ccbAddress + 0x32);
-                int memAddr = memSeg * 16 + memOff;
+                int memAddr = (memSeg <<4) + memOff;
                 int cylinder = memory.readWord(ccbAddress + 0x2E);
                 int sector = memory.readByte(ccbAddress + 0x31);
                 int head = memory.readByte(ccbAddress + 0x30);
@@ -270,7 +302,7 @@ public final class KES implements PortModule, ClockModule {
                 int driveNr = memory.readByte(ccbAddress + 0x2A);
                 int memSeg = memory.readWord(ccbAddress + 0x34);
                 int memOff = memory.readWord(ccbAddress + 0x32);
-                int memAddr = memSeg * 16 + memOff;
+                int memAddr = (memSeg <<4) + memOff;
                 int cylinder = memory.readWord(ccbAddress + 0x2E);
                 int sector = memory.readByte(ccbAddress + 0x31);
                 int head = memory.readByte(ccbAddress + 0x30);
@@ -305,7 +337,7 @@ public final class KES implements PortModule, ClockModule {
             case 0x0E: {
                 // KES-Puffer Ein-/Ausgabe
                 int kesAddr = memory.readWord(ccbAddress + 0x2E);
-                int memAddr = memory.readWord(ccbAddress + 0x34) * 16 + memory.readWord(ccbAddress + 0x32);
+                int memAddr = (memory.readWord(ccbAddress + 0x34) <<4) + memory.readWord(ccbAddress + 0x32);
                 int cnt = memory.readWord(ccbAddress + 0x36);
                 boolean toKES = memory.readByte(ccbAddress + 0x30) == 0xFF;
                 for (int i = 0; i < cnt; i++) {
@@ -331,11 +363,18 @@ public final class KES implements PortModule, ClockModule {
         return (((op1 >> i) & 0x1) == 0x1);
     }
 
+    /**
+     * 
+     */
     @Override
     public void registerClocks() {
         SystemClock.getInstance().registerClock(this);
     }
 
+    /**
+     * 
+     * @param amount
+     */
     @Override
     public void clockUpdate(int amount) {
         if (interruptWaiting) {
@@ -362,6 +401,11 @@ public final class KES implements PortModule, ClockModule {
         this.afs = afs;
     }
 
+    /**
+     * 
+     * @param dos
+     * @throws IOException
+     */
     @Override
     public void saveState(DataOutputStream dos) throws IOException {
         dos.writeInt(ccbAddress);
@@ -375,6 +419,11 @@ public final class KES implements PortModule, ClockModule {
         dos.writeBoolean(interruptWaiting);
     }
 
+    /**
+     * 
+     * @param dis
+     * @throws IOException
+     */
     @Override
     public void loadState(DataInputStream dis) throws IOException {
         ccbAddress = dis.readInt();

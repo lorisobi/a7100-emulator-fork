@@ -29,7 +29,7 @@ import javax.swing.JFrame;
 public final class KGS implements PortModule, ClockModule {
 
     // Zeichensätze
-    private Memory characterCodes = new Memory(4096);
+    private Memory ram = new Memory(32768);
     // Zeichencodes
     private final static int CODE_NUL = 0x00;
     private final static int CODE_SOH = 0x01;
@@ -95,17 +95,43 @@ public final class KGS implements PortModule, ClockModule {
     private boolean wraparound = false;
     private boolean wrapped = false;
     private LinkedList<Byte> deviceBuffer2 = new LinkedList<Byte>();
+    // GSX-Parameter
+    private boolean gsx_AALP = true;
+    private boolean gsx_ALOC = false;
+    private boolean gsx_AZUG = false;
+    private int[] gsx_linetype = {1, 1, 1};
+    private int[] gsx_linewidth = {1, 1, 1};
+    private int[] gsx_linememory = {2, 2, 2};
+    private int[] gsx_markertype = {3, 2};
+    private int[] gsx_markermemory = {2, 2};
+    private int gsx_writetype = 1;
+    private int gsx_paletteregister = 1;
+    private int gsx_window_x1 = 0;
+    private int gsx_window_y1 = 0;
+    private int gsx_window_x2 = 639;
+    private int gsx_window_y2 = 399;
 
+    /**
+     *
+     */
     public KGS() {
         init();
     }
 
+    /**
+     *
+     */
     @Override
     public void registerPorts() {
         SystemPorts.getInstance().registerPort(this, PORT_KGS_STATE);
         SystemPorts.getInstance().registerPort(this, PORT_KGS_DATA);
     }
 
+    /**
+     *
+     * @param port
+     * @param data
+     */
     @Override
     public void writePort_Byte(int port, int data) {
         //System.out.println("OUT Byte " + Integer.toHexString(data) + "(" + Integer.toBinaryString(data) + ")" + " to port " + Integer.toHexString(port));
@@ -130,6 +156,11 @@ public final class KGS implements PortModule, ClockModule {
         }
     }
 
+    /**
+     *
+     * @param port
+     * @param data
+     */
     @Override
     public void writePort_Word(int port, int data) {
         //System.out.println("OUT Word " + Integer.toHexString(data) + "(" + Integer.toBinaryString(data) + ")" + " to port " + Integer.toHexString(port));
@@ -141,6 +172,11 @@ public final class KGS implements PortModule, ClockModule {
         }
     }
 
+    /**
+     *
+     * @param port
+     * @return
+     */
     @Override
     public int readPort_Byte(int port) {
         int result = 0;
@@ -166,6 +202,11 @@ public final class KGS implements PortModule, ClockModule {
         return result;
     }
 
+    /**
+     *
+     * @param port
+     * @return
+     */
     @Override
     public int readPort_Word(int port) {
         int result = 0;
@@ -191,9 +232,12 @@ public final class KGS implements PortModule, ClockModule {
         return result;
     }
 
+    /**
+     *
+     */
     @Override
     public void init() {
-        characterCodes.loadFile(0x00, new File("./eproms/CHARGEN.bin"), Memory.FileLoadMode.LOW_AND_HIGH_BYTE);
+        ram.loadFile(0x00, new File("./eproms/KGS-K7070-152.bin"), Memory.FileLoadMode.LOW_AND_HIGH_BYTE);
         initTabs();
         abg = new ABG();
         registerPorts();
@@ -204,7 +248,7 @@ public final class KGS implements PortModule, ClockModule {
         // Darstellbares Zeichen
         byte[] linecode = new byte[16];
         for (byte line = 0; line < 16; line++) {
-            linecode[line] = (byte) (characterCodes.readByte(16 * data + line) & 0xFF);
+            linecode[line] = (byte) (ram.readByte(0x1800 + (data << 4) + line) & 0xFF);
         }
         abg.setLineCodes(row - 1, column - 1, linecode, intense, flash, false, underline, inverse);
     }
@@ -408,7 +452,7 @@ public final class KGS implements PortModule, ClockModule {
             if (escSequence.size() == 18) {
                 code |= 0x80;
                 for (byte line = 0; line < 16; line++) {
-                    characterCodes.writeByte(16 * code + line, escSequence.get(2 + line) & 0xFF);
+                    ram.writeByte(0x1800 + (code << 4) + line, escSequence.get(2 + line) & 0xFF);
                 }
                 receiveSequence = false;
             }
@@ -421,8 +465,12 @@ public final class KGS implements PortModule, ClockModule {
         } else if (escSequence.peekFirst() == 0x02) {
             if (escSequence.size() >= 3) {
                 int byteCnt = (escSequence.get(2) << 8) + escSequence.get(1);
-                System.out.println("Anzahl der Bytes: " + byteCnt);
                 if (escSequence.size() >= byteCnt + 3) {
+                    System.out.print("Anzahl der Bytes: " + byteCnt+ "(");
+                    for (byte b : escSequence) {
+                        System.out.print(String.format(" %03d", b));
+                    }
+                    System.out.println(" )");
                     executeGraphicsBuffer();
                     receiveSequence = false;
                 }
@@ -883,7 +931,7 @@ public final class KGS implements PortModule, ClockModule {
         int[] result = new int[params2.length];
         for (int i = 0; i < params2.length; i++) {
             String str = params2[i];
-            if (str.equals("")) {
+            if (str.isEmpty()) {
                 result[i] = -1;
             } else {
                 result[i] = Integer.parseInt(str);
@@ -892,11 +940,18 @@ public final class KGS implements PortModule, ClockModule {
         return result;
     }
 
+    /**
+     *
+     */
     @Override
     public void registerClocks() {
         SystemClock.getInstance().registerClock(this);
     }
 
+    /**
+     *
+     * @param amount
+     */
     @Override
     public void clockUpdate(int amount) {
         if (interruptWaiting) {
@@ -917,6 +972,9 @@ public final class KGS implements PortModule, ClockModule {
         setBit(OBF_BIT);
     }
 
+    /**
+     *
+     */
     public void showCharacters() {
         final BufferedImage characterImage = new BufferedImage(512, 384, BufferedImage.TYPE_INT_RGB);
         for (int i = 0; i < 256; i++) {
@@ -925,7 +983,7 @@ public final class KGS implements PortModule, ClockModule {
             // Darstellbares Zeichen
             byte[] linecode = new byte[16];
             for (byte line = 0; line < 16; line++) {
-                linecode[line] = (byte) (characterCodes.readByte(16 * i + line) & 0xFF);
+                linecode[line] = (byte) (ram.readByte(0x1800 + (i << 4) + line) & 0xFF);
             }
             BufferedImage character = BitmapGenerator.generateBitmapFromLineCode(linecode, intense, inverse, underline, false);
             characterImage.getGraphics().drawImage(character, x, y, null);
@@ -962,6 +1020,7 @@ public final class KGS implements PortModule, ClockModule {
                 case 1: {
                     // Setze Funktionskennzeichen
                     int fk = escSequence.get(pos++);
+                    System.out.println("Setze Funktionskennzeichen fk=" + fk);
                 }
                 break;
                 case 2: {
@@ -970,17 +1029,20 @@ public final class KGS implements PortModule, ClockModule {
                     pos = pos + 2;
                     int y = (escSequence.get(pos) << 8) + escSequence.get(pos + 1);
                     pos = pos + 2;
+                    System.out.println("Setze Register grafischer Kursor x=" + x + ",y=" + y);
                 }
                 break;
                 case 4: {
                     // Setze Splitgrenze
                     int z = escSequence.get(pos++);
+                    System.out.println("Setze Splitgrenze z=" + z);
                 }
                 break;
                 case 7: {
                     // Initialisiere Speicher
                     int im = escSequence.get(pos++);
                     int s = escSequence.get(pos++);
+                    System.out.println("Initialisiere Speicher im=" + im + ",s=" + s);
                 }
                 break;
                 case 8: {
@@ -991,7 +1053,7 @@ public final class KGS implements PortModule, ClockModule {
                     pos = pos + 2;
                     int ye = (escSequence.get(pos) << 8) + escSequence.get(pos + 1);
                     pos = pos + 2;
-
+                    System.out.println("Initialisiere Speicherabschnitt im=" + im + ",s=" + s + ",ya=" + ya + ",ye=" + ye);
                 }
                 break;
                 case 9: {
@@ -1006,7 +1068,7 @@ public final class KGS implements PortModule, ClockModule {
                     pos = pos + 2;
                     int ye = (escSequence.get(pos) << 8) + escSequence.get(pos + 1);
                     pos = pos + 2;
-
+                    System.out.println("Initialisiere Speicherausschnitt im=" + im + ",s=" + s + ",xa=" + xa + ",xe=" + xe + ",ya=" + ya + ",ye=" + ye);
                 }
                 break;
                 case 10: {
@@ -1016,12 +1078,13 @@ public final class KGS implements PortModule, ClockModule {
                     int e2 = escSequence.get(pos++);
                     int e3 = escSequence.get(pos++);
                     int e4 = escSequence.get(pos++);
-
+                    System.out.println("Übernehme Palettenregisterbelegung vi=" + vi + ",e1=" + e1 + ",e2=" + e2 + ",e3=" + e3 + ",e4=" + e4);
                 }
                 break;
                 case 11: {
                     // Aktiviere Palettenregisterbelegung
                     int vi = escSequence.get(pos++);
+                    System.out.println("Aktiviere Palettenregisterbelegung vi=" + vi);
                 }
                 break;
                 case 13: {
@@ -1031,6 +1094,7 @@ public final class KGS implements PortModule, ClockModule {
                     int pfy = escSequence.get(pos++);
                     int nz = escSequence.get(pos++);
                     int ns = escSequence.get(pos++);
+                    System.out.println("Übernehme Musterbox pfx=" + pfx + ",pfy=" + pfy + ",nz=" + nz + ",ns=" + ns);
                 }
                 break;
                 case 14: {
@@ -1043,11 +1107,13 @@ public final class KGS implements PortModule, ClockModule {
                     pos = pos + 2;
                     int y2 = (escSequence.get(pos) << 8) + escSequence.get(pos + 1);
                     pos = pos + 2;
+                    System.out.println("Setze Window x1=" + x1 + ",y1=" + y1 + ",x2=" + x2 + ",y2=" + y2);
                 }
                 break;
                 case 15: {
                     // Windowdarstellung
                     int s = escSequence.get(pos++);
+                    System.out.println("Windowsdarstellung s=" + s);
                 }
                 break;
                 case 16: {
@@ -1057,6 +1123,7 @@ public final class KGS implements PortModule, ClockModule {
                     pos = pos + 2;
                     int y = (escSequence.get(pos) << 8) + escSequence.get(pos + 1);
                     pos = pos + 2;
+                    System.out.println("Setze Startpunkt für Liniengenerierung li=" + li + ",x=" + x + ",y=" + y);
                 }
                 break;
                 case 17: {
@@ -1065,6 +1132,7 @@ public final class KGS implements PortModule, ClockModule {
                     pos = pos + 2;
                     int y = (escSequence.get(pos) << 8) + escSequence.get(pos + 1);
                     pos = pos + 2;
+                    System.out.println("Generiere Linie x=" + x + ",y=" + y);
                 }
                 break;
                 case 18: {
@@ -1073,6 +1141,7 @@ public final class KGS implements PortModule, ClockModule {
                     pos = pos + 2;
                     int y = (escSequence.get(pos) << 8) + escSequence.get(pos + 1);
                     pos = pos + 2;
+                    System.out.println("Setze Marker x=" + x + ",y=" + y);
                 }
                 break;
                 case 19: {
@@ -1081,6 +1150,7 @@ public final class KGS implements PortModule, ClockModule {
                     pos = pos + 2;
                     int y = (escSequence.get(pos) << 8) + escSequence.get(pos + 1);
                     pos = pos + 2;
+                    System.out.println("Setze Schreibposition x=" + x + ",y=" + y);
                 }
                 break;
                 case 20: {
@@ -1090,6 +1160,7 @@ public final class KGS implements PortModule, ClockModule {
                     for (int i = 0; i < n; i++) {
                         c[i] = escSequence.get(pos++);
                     }
+                    System.out.println("Generiere Text Länge n=" + n);
                 }
                 break;
                 case 21: {
@@ -1098,6 +1169,7 @@ public final class KGS implements PortModule, ClockModule {
                     int lt = escSequence.get(pos++);
                     int ls = escSequence.get(pos++);
                     int s = escSequence.get(pos++);
+                    System.out.println("Setze Linientyp/Speicherebenenauswahl li=" + li + ",lt=" + lt + ",ls=" + ls + ",s=" + s);
                 }
                 break;
                 case 22: {
@@ -1105,12 +1177,13 @@ public final class KGS implements PortModule, ClockModule {
                     int mi = escSequence.get(pos++);
                     int mt = escSequence.get(pos++);
                     int s = escSequence.get(pos++);
-
+                    System.out.println("Setze Markertyp mi=" + mi + ",mt=" + mt + ",s=" + s);
                 }
                 break;
                 case 23: {
                     // Setze Schreibtyp
                     int st = escSequence.get(pos++);
+                    System.out.println("Setze Schreibtyp st=" + st);
                 }
                 break;
                 case 24: {
@@ -1119,6 +1192,7 @@ public final class KGS implements PortModule, ClockModule {
                     pos = pos + 2;
                     int y = (escSequence.get(pos) << 8) + escSequence.get(pos + 1);
                     pos = pos + 2;
+                    System.out.println("Setze Eckpunkt Typ 0 füllende Fläche x=" + x + ",y=" + y);
                 }
                 break;
                 case 25: {
@@ -1127,6 +1201,7 @@ public final class KGS implements PortModule, ClockModule {
                     pos = pos + 2;
                     int y = (escSequence.get(pos) << 8) + escSequence.get(pos + 1);
                     pos = pos + 2;
+                    System.out.println("Setze Eckpunkt Typ 1 füllende Fläche x=" + x + ",y=" + y);
                 }
                 break;
                 case 26: {
@@ -1136,10 +1211,12 @@ public final class KGS implements PortModule, ClockModule {
                     switch (fa) {
                         case 0: {
                             int s = escSequence.get(pos++);
+                            System.out.println("Setze Parameter für FILL AREA ls=" + ls + ",fa=" + fa + ",s=" + s);
                         }
                         break;
                         case 1: {
                             int s = escSequence.get(pos++);
+                            System.out.println("Setze Parameter für FILL AREA ls=" + ls + ",fa=" + fa + ",s=" + s);
                         }
                         break;
                         case 2: {
@@ -1147,11 +1224,13 @@ public final class KGS implements PortModule, ClockModule {
                             pos = pos + 2;
                             int pry = (escSequence.get(pos) << 8) + escSequence.get(pos + 1);
                             pos = pos + 2;
+                            System.out.println("Setze Parameter für FILL AREA ls=" + ls + ",fa=" + fa + ",prx=" + prx + ",pry=" + pry);
                         }
                         break;
                         case 3: {
                             int i = escSequence.get(pos++);
                             int s = escSequence.get(pos++);
+                            System.out.println("Setze Parameter für FILL AREA ls=" + ls + ",fa=" + fa + ",i=" + i + ",s=" + s);
                         }
                         break;
                     }
@@ -1160,16 +1239,19 @@ public final class KGS implements PortModule, ClockModule {
                 case 27: {
                     // Starte Fuellen
                     int kr = escSequence.get(pos++);
+                    System.out.println("Starte Füllen kr=" + kr);
                 }
                 break;
                 case 30: {
                     // Unbekannt
                     int param1 = escSequence.get(pos++);
+                    System.out.println("Unbekanntes Kommando param1=" + param1);
                 }
                 break;
                 case 31: {
                     // Setze Request Modus
                     int rm = escSequence.get(pos++);
+                    System.out.println("Setze Request Modus rm=" + rm);
                 }
                 break;
                 case 33: {
@@ -1180,7 +1262,9 @@ public final class KGS implements PortModule, ClockModule {
                         pos = pos + 2;
                         int y = (escSequence.get(pos) << 8) + escSequence.get(pos + 1);
                         pos = pos + 2;
+                        System.out.println("Setze Anfangswert für Locator sw=" + sw + ",x=" + x + ",y=" + y);
                     }
+                    System.out.println("Setze Anfangswert für Locator sw=" + sw);
                 }
                 break;
                 case 40: {
@@ -1189,6 +1273,7 @@ public final class KGS implements PortModule, ClockModule {
                     int s1 = escSequence.get(pos++);
                     int mt = escSequence.get(pos++);
                     int s2 = escSequence.get(pos++);
+                    System.out.println("Initialisiere GSX lt=" + lt + ",s1=" + s1 + ",mt=" + mt + ",s2=" + s2);
                 }
                 break;
                 case 41: {
@@ -1207,17 +1292,24 @@ public final class KGS implements PortModule, ClockModule {
                     pos = pos + 2;
                     int r = (escSequence.get(pos) << 8) + escSequence.get(pos + 1);
                     pos = pos + 2;
+                    System.out.println("Generiere Kreisbogen xm=" + xm + ",ym=" + ym + ",xa=" + xa + ",ya=" + ya + ",xe=" + xe + ",ye=" + ye + ",r=" + r);
                 }
                 break;
                 case 42: {
                     // Setze Textfont
                     int tf = escSequence.get(pos++);
+                    System.out.println("Setze Textfont tf=" + tf);
                 }
                 break;
             }
         } while (pos < escSequence.size());
     }
 
+    /**
+     *
+     * @param dos
+     * @throws IOException
+     */
     @Override
     public void saveState(DataOutputStream dos) throws IOException {
         dos.writeInt(state);
@@ -1255,38 +1347,43 @@ public final class KGS implements PortModule, ClockModule {
         abg.saveState(dos);
     }
 
+    /**
+     *
+     * @param dis
+     * @throws IOException
+     */
     @Override
     public void loadState(DataInputStream dis) throws IOException {
-        state=dis.readInt();
-        cursorRow=dis.readInt();
-        cursorColumn=dis.readInt();
-        receiveSequence=dis.readBoolean();
-        int escSize=dis.readInt();
+        state = dis.readInt();
+        cursorRow = dis.readInt();
+        cursorColumn = dis.readInt();
+        receiveSequence = dis.readBoolean();
+        int escSize = dis.readInt();
         for (int i = 0; i < escSize; i++) {
             escSequence.add(dis.readByte());
         }
         for (int i = 0; i < 80; i++) {
-            hTabs[i]=dis.readBoolean();
+            hTabs[i] = dis.readBoolean();
         }
         for (int i = 0; i < 25; i++) {
-            vTabs[i]=dis.readBoolean();
+            vTabs[i] = dis.readBoolean();
         }
-        disableGraphics=dis.readBoolean();
-        initialized=dis.readBoolean();
-        interruptClock=dis.readLong();
-        interruptWaiting=dis.readBoolean();
+        disableGraphics = dis.readBoolean();
+        initialized = dis.readBoolean();
+        interruptClock = dis.readLong();
+        interruptWaiting = dis.readBoolean();
         dis.read(deviceBuffer);
-        bufferPosition=dis.readInt();
-        cursorRowSave=dis.readInt();
-        cursorColumnSave=dis.readInt();
-        intense=dis.readBoolean();
-        inverse=dis.readBoolean();
-        flash=dis.readBoolean();
-        underline=dis.readBoolean();
-        wraparound=dis.readBoolean();
-        wrapped=dis.readBoolean();
-        
-        int size=dis.readInt();
+        bufferPosition = dis.readInt();
+        cursorRowSave = dis.readInt();
+        cursorColumnSave = dis.readInt();
+        intense = dis.readBoolean();
+        inverse = dis.readBoolean();
+        flash = dis.readBoolean();
+        underline = dis.readBoolean();
+        wraparound = dis.readBoolean();
+        wrapped = dis.readBoolean();
+
+        int size = dis.readInt();
         deviceBuffer2.clear();
         for (int i = 0; i < size; i++) {
             deviceBuffer2.add(dis.readByte());

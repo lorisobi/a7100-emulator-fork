@@ -4,7 +4,6 @@
  */
 package a7100emulator.components.ic;
 
-import a7100emulator.Debug.Debugger;
 import a7100emulator.components.system.InterruptSystem;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -31,18 +30,33 @@ public class K580WN59A {
     private boolean icw2Send = false;
     private boolean icw3Send = false;
 
+    /**
+     * 
+     */
     public K580WN59A() {
         InterruptSystem.getInstance().setPIC(this);
     }
 
+    /**
+     * 
+     * @return
+     */
     public int readStatus() {
         return state;
     }
 
+    /**
+     * 
+     * @return
+     */
     public int readOCW() {
         return imr;
     }
 
+    /**
+     * 
+     * @param data
+     */
     public void writePort0(int data) {
         if (getBit(data, 4)) {
             // ICW1
@@ -62,6 +76,10 @@ public class K580WN59A {
         }
     }
 
+    /**
+     * 
+     * @param data
+     */
     public void writePort1(int data) {
         if (icw1Send) {
             //ICW2
@@ -88,6 +106,10 @@ public class K580WN59A {
         }
     }
 
+    /**
+     * 
+     * @param id
+     */
     public void requestInterrupt(int id) {
         if (id < 0 || id > 7) {
             return;
@@ -97,6 +119,10 @@ public class K580WN59A {
         }
     }
 
+    /**
+     * 
+     * @return
+     */
     public int getInterrupt() {
         for (int i = 0; i <= 7; i++) {
             if (getBit(irr, i)) {
@@ -111,6 +137,11 @@ public class K580WN59A {
         return (((op1 >> i) & 0x1) == 0x1);
     }
 
+    /**
+     * 
+     * @param dos
+     * @throws IOException
+     */
     public void saveState(DataOutputStream dos) throws IOException {
         dos.writeInt(state);
         dos.writeInt(irr);
@@ -128,6 +159,11 @@ public class K580WN59A {
         dos.writeBoolean(icw3Send);
     }
 
+    /**
+     * 
+     * @param dis
+     * @throws IOException
+     */
     public void loadState(DataInputStream dis) throws IOException {
         state = dis.readInt();
         irr = dis.readInt();

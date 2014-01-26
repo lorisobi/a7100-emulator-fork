@@ -14,10 +14,22 @@ import java.util.logging.Logger;
  */
 public class Disk {
 
+    /**
+     * 
+     */
     public enum DiskType {
 
+        /**
+         * 
+         */
         SCP,
+        /**
+         * 
+         */
         BOS,
+        /**
+         * 
+         */
         MUTOS
     }
     private int cylinderPerDisk = 80;
@@ -29,9 +41,16 @@ public class Disk {
     private byte[] data = new byte[size];
     private boolean writeProtect = false;
 
+    /**
+     * 
+     */
     public Disk() {
     }
 
+    /**
+     * 
+     * @param file
+     */
     public Disk(File file) {
         InputStream in = null;
 
@@ -45,7 +64,7 @@ public class Disk {
             for (byte b : buffer) {
                 data[address++] = b;
             }
-        } catch (Exception ex) {
+        } catch (IOException ex) {
             Logger.getLogger(FloppyDrive.class.getName()).log(Level.SEVERE, null, ex);
         } finally {
             try {
@@ -56,14 +75,30 @@ public class Disk {
         }
     }
 
+    /**
+     * 
+     * @return
+     */
     public boolean isWriteProtect() {
         return writeProtect;
     }
 
+    /**
+     * 
+     * @param writeProtect
+     */
     public void setWriteProtect(boolean writeProtect) {
         this.writeProtect = writeProtect;
     }
 
+    /**
+     * 
+     * @param cylinder
+     * @param sector
+     * @param head
+     * @param cnt
+     * @return
+     */
     public byte[] readData(int cylinder, int sector, int head, int cnt) {
         byte[] res = new byte[cnt];
         int pos = seek(cylinder, head, sector);
@@ -71,6 +106,10 @@ public class Disk {
         return res;
     }
 
+    /**
+     * 
+     * @param image
+     */
     public void saveDisk(File image) {
         FileOutputStream fos;
         try {
@@ -81,7 +120,15 @@ public class Disk {
         }
     }
 
-    void format(int cylinder, int head, int mod, int[] formatData, int interleave) {
+    /**
+     *
+     * @param cylinder
+     * @param head
+     * @param mod
+     * @param formatData
+     * @param interleave
+     */
+    public void format(int cylinder, int head, int mod, int[] formatData, int interleave) {
         // TODO: mod und interleave
         int pos = seek(cylinder, head, 1);
         for (int sector = 0; sector < sectorsPerTrack; sector++) {
@@ -100,7 +147,7 @@ public class Disk {
 
     private int seek(int track, int head, int sector) {
         int pos;
-        sector = sector - 1;
+        sector--;
         if (track == 0) {
             // Systemspur
             if (head == 0) {

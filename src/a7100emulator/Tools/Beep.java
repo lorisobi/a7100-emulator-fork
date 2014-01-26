@@ -20,6 +20,9 @@ public class Beep {
 
     private Clip c = null;
 
+    /**
+     * 
+     */
     public Beep() {
         try {
             AudioFormat af = new AudioFormat(44100, 16, 1, true, false);
@@ -27,7 +30,6 @@ public class Beep {
             c = (Clip) AudioSystem.getLine(new Line.Info(Clip.class));
             c.open(af, soundData, 0, soundData.length);
         } catch (Exception ex) {
-            ex.printStackTrace();
         }
     }
 
@@ -49,6 +51,9 @@ public class Beep {
         return data;
     }
 
+    /**
+     * 
+     */
     public synchronized void play() {
         c.start();
         try {

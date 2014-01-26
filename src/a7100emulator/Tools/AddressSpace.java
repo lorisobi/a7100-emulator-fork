@@ -14,6 +14,11 @@ public class AddressSpace {
     private final int lowerAddress;
     private final int higherAddress;
 
+    /**
+     * 
+     * @param low
+     * @param high
+     */
     public AddressSpace(int low, int high) {
         this.lowerAddress=low;
         this.higherAddress=high;

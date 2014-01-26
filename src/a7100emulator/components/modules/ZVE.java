@@ -43,10 +43,16 @@ public final class ZVE implements PortModule, MemoryModule, ClockModule {
     private final KR580WM51A usart = new KR580WM51A();
     private final Memory memory = new Memory(32768);
 
+    /**
+     * 
+     */
     public ZVE() {
         init();
     }
 
+    /**
+     * 
+     */
     @Override
     public void init() {
         cpu.reset();
@@ -56,6 +62,9 @@ public final class ZVE implements PortModule, MemoryModule, ClockModule {
         initEPROMS();
     }
 
+    /**
+     * 
+     */
     @Override
     public void registerPorts() {
         SystemPorts.getInstance().registerPort(this, PORT_ZVE_8259A_1);
@@ -72,6 +81,11 @@ public final class ZVE implements PortModule, MemoryModule, ClockModule {
         SystemPorts.getInstance().registerPort(this, PORT_ZVE_8251A_COMMAND);
     }
 
+    /**
+     * 
+     * @param port
+     * @param data
+     */
     @Override
     public void writePort_Byte(int port, int data) {
         //System.out.println("OUT Byte " + Integer.toHexString(data) + "(" + Integer.toBinaryString(data) + ")" + " to port " + Integer.toHexString(port));
@@ -115,6 +129,11 @@ public final class ZVE implements PortModule, MemoryModule, ClockModule {
         }
     }
 
+    /**
+     * 
+     * @param port
+     * @param data
+     */
     @Override
     public void writePort_Word(int port, int data) {
 //        System.out.println("OUT Word " + Integer.toHexString(data) + " to port " + Integer.toHexString(port));
@@ -146,6 +165,11 @@ public final class ZVE implements PortModule, MemoryModule, ClockModule {
         }
     }
 
+    /**
+     * 
+     * @param port
+     * @return
+     */
     @Override
     public int readPort_Byte(int port) {
         //System.out.println("IN Byte from port " + Integer.toHexString(port));
@@ -177,6 +201,11 @@ public final class ZVE implements PortModule, MemoryModule, ClockModule {
         return 0;
     }
 
+    /**
+     * 
+     * @param port
+     * @return
+     */
     @Override
     public int readPort_Word(int port) {
         System.out.println("IN Word from port " + Integer.toHexString(port));
@@ -201,39 +230,57 @@ public final class ZVE implements PortModule, MemoryModule, ClockModule {
         return 0;
     }
 
+    /**
+     * 
+     * @param address
+     * @return
+     */
     @Override
     public int readByte(int address) {
         return memory.readByte(address - 0xF8000);
     }
 
+    /**
+     * 
+     * @param address
+     * @return
+     */
     @Override
     public int readWord(int address) {
         return memory.readWord(address - 0xF8000);
     }
 
+    /**
+     * 
+     */
     @Override
     public void registerMemory() {
         AddressSpace addressSpace = new AddressSpace(0xF8000, 0xFFFFF);
         SystemMemory.getInstance().registerMemorySpace(addressSpace, this);
     }
 
+    /**
+     * 
+     * @param address
+     * @param data
+     */
     @Override
     public void writeByte(int address, int data) {
         throw new IllegalArgumentException("Cannot Write to ZVE-ROM");
     }
 
+    /**
+     * 
+     * @param address
+     * @param data
+     */
     @Override
     public void writeWord(int address, int data) {
         throw new IllegalArgumentException("Cannot Write to ZVE-ROM");
     }
 
     private void initEPROMS() {
-        // A7100
-        File AHCL = new File("./eproms/259.rom");
-        File AWCL = new File("./eproms/260.rom");
-        File BOCL = new File("./eproms/261.rom");
-        File CGCL = new File("./eproms/262.rom");
-
+        // A7150
         // ACT 2.1
 //        File AHCL = new File("./eproms/265.bin");
 //        File AWCL = new File("./eproms/266.bin");
@@ -250,32 +297,52 @@ public final class ZVE implements PortModule, MemoryModule, ClockModule {
 //        File BOCL = new File("./eproms/275.ROM");
 //        File CGCL = new File("./eproms/276.ROM");
 
+        // A7100
+        File AHCL = new File("./eproms/ZVE-K2771.10-259.rom");
+        File AWCL = new File("./eproms/ZVE-K2771.10-260.rom");
+        File BOCL = new File("./eproms/ZVE-K2771.10-261.rom");
+        File CGCL = new File("./eproms/ZVE-K2771.10-262.rom");
         memory.loadFile(0xF8000 - 0xF8000, CGCL, Memory.FileLoadMode.LOW_BYTE_ONLY);
         memory.loadFile(0xF8000 - 0xF8000, AWCL, Memory.FileLoadMode.HIGH_BYTE_ONLY);
         memory.loadFile(0xFC000 - 0xF8000, BOCL, Memory.FileLoadMode.LOW_BYTE_ONLY);
         memory.loadFile(0xFC000 - 0xF8000, AHCL, Memory.FileLoadMode.HIGH_BYTE_ONLY);
-
     }
 
+    /**
+     * 
+     */
     public void start() {
         Thread cpuThread = new Thread(cpu);
         cpuThread.start();
     }
 
+    /**
+     * 
+     */
     @Override
     public void registerClocks() {
         SystemClock.getInstance().registerClock(this);
     }
 
+    /**
+     * 
+     * @param amount
+     */
     @Override
     public void clockUpdate(int amount) {
         pti.updateClock(amount);
     }
 
+    /**
+     * 
+     */
     public void pause() {
         cpu.setSuspend(true);
     }
 
+    /**
+     * 
+     */
     public void resume() {
         synchronized (cpu) {
             cpu.setSuspend(false);
@@ -283,12 +350,20 @@ public final class ZVE implements PortModule, MemoryModule, ClockModule {
         }
     }
 
+    /**
+     * 
+     */
     public void singleStep() {
         synchronized (cpu) {
             cpu.notify();
         }
     }
 
+    /**
+     * 
+     * @param dos
+     * @throws IOException
+     */
     @Override
     public void saveState(DataOutputStream dos) throws IOException {
         memory.saveMemory(dos);
@@ -299,6 +374,11 @@ public final class ZVE implements PortModule, MemoryModule, ClockModule {
         usart.saveState(dos);
     }
 
+    /**
+     * 
+     * @param dis
+     * @throws IOException
+     */
     @Override
     public void loadState(DataInputStream dis) throws IOException {
         memory.loadMemory(dis);
@@ -309,6 +389,9 @@ public final class ZVE implements PortModule, MemoryModule, ClockModule {
         usart.loadState(dis);
     }
     
+    /**
+     * 
+     */
     public void stopCPU() {
         cpu.stop();
     }

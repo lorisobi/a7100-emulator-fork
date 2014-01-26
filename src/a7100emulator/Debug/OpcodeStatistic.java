@@ -20,6 +20,10 @@ public class OpcodeStatistic {
     private OpcodeStatistic() {
     }
 
+    /**
+     * 
+     * @return
+     */
     public static OpcodeStatistic getInstance() {
         if (instance == null) {
             instance = new OpcodeStatistic();
@@ -27,13 +31,20 @@ public class OpcodeStatistic {
         return instance;
     }
 
+    /**
+     * 
+     * @param code
+     */
     public void addStatistic(int code) {
         opCodeStatistic[code]++;
     }
 
+    /**
+     * 
+     */
     public void dump() {
         try {
-            opcodeFile = new PrintStream(new FileOutputStream("opcodes.log"));
+            opcodeFile = new PrintStream(new FileOutputStream("./debug/OpcodeStatistic.log"));
             for (int i = 0; i < 256; i++) {
                 opcodeFile.println("" + opCodeStatistic[i]);
             }

@@ -16,6 +16,10 @@ public class SystemPorts {
     private static SystemPorts instance;
     private HashMap<Integer, PortModule> portModules = new HashMap<Integer, PortModule>();
     
+    /**
+     * 
+     * @return
+     */
     public static SystemPorts getInstance() {
         if (instance == null) {
             instance = new SystemPorts();
@@ -23,10 +27,20 @@ public class SystemPorts {
         return instance;
     }
     
+    /**
+     * 
+     * @param module
+     * @param port
+     */
     public void registerPort(PortModule module, int port) {
         portModules.put(port, module);
     }
 
+    /**
+     * 
+     * @param address
+     * @param value
+     */
     public void writeByte(int address, int value) {
         PortModule module = portModules.get(address);
         if (module == null) {
@@ -37,6 +51,11 @@ public class SystemPorts {
         }
     }
 
+    /**
+     * 
+     * @param address
+     * @return
+     */
     public int readByte(int address) {
         PortModule module = portModules.get(address);
         if (module == null) {
@@ -48,6 +67,11 @@ public class SystemPorts {
         }
     }
 
+    /**
+     * 
+     * @param address
+     * @param value
+     */
     public void writeWord(int address, int value) {
         PortModule module = portModules.get(address);
         if (module == null) {
@@ -58,6 +82,11 @@ public class SystemPorts {
         }
     }
 
+    /**
+     * 
+     * @param address
+     * @return
+     */
     public int readWord(int address) {
         PortModule module = portModules.get(address);
         if (module == null) {
@@ -68,6 +97,9 @@ public class SystemPorts {
         return module.readPort_Word(address);
     }
 
+    /**
+     * 
+     */
     public void reset() {
         portModules.clear();
     }

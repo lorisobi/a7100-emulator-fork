@@ -23,6 +23,10 @@ public class SystemClock {
     private SystemClock() {
     }
 
+    /**
+     * 
+     * @return
+     */
     public static SystemClock getInstance() {
         if (instance == null) {
             instance = new SystemClock();
@@ -30,15 +34,27 @@ public class SystemClock {
         return instance;
     }
 
+    /**
+     * 
+     * @param amount
+     */
     public void updateClock(int amount) {
         updateModules(amount);
         clock += amount;
     }
 
+    /**
+     * 
+     * @return
+     */
     public long getClock() {
         return clock;
     }
 
+    /**
+     * 
+     * @param module
+     */
     public void registerClock(ClockModule module) {
         clockModules.add(module);
     }
@@ -49,14 +65,27 @@ public class SystemClock {
         }
     }
 
+    /**
+     * 
+     * @param dos
+     * @throws IOException
+     */
     public void saveState(DataOutputStream dos) throws IOException {
         dos.writeLong(clock);
     }
 
+    /**
+     * 
+     * @param dis
+     * @throws IOException
+     */
     public void loadState(DataInputStream dis) throws IOException {
         clock=dis.readLong();
     }
 
+    /**
+     * 
+     */
     public void reset() {
         clock=0;
     }

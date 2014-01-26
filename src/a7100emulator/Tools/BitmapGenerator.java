@@ -5,7 +5,6 @@
 package a7100emulator.Tools;
 
 import java.awt.Color;
-import java.awt.Graphics;
 import java.awt.image.BufferedImage;
 
 /**
@@ -21,6 +20,15 @@ public class BitmapGenerator {
     private BitmapGenerator() {
     }
 
+    /**
+     * 
+     * @param linecode
+     * @param intense
+     * @param inverse
+     * @param underline
+     * @param flash
+     * @return
+     */
     public static BufferedImage generateBitmapFromLineCode(byte[] linecode, boolean intense, boolean inverse, boolean underline, boolean flash) {
         BufferedImage image = new BufferedImage(8, 16, BufferedImage.TYPE_INT_RGB);
 
@@ -33,7 +41,7 @@ public class BitmapGenerator {
         } else if (intense) {
             f_color = INTENSE_GREEN;
         } else if (flash) {
-            // TODO
+            // TODO - Blinkende Schrift, momentan dargestellt durch rot
             f_color=new Color(255,0,0).getRGB();
         }
 

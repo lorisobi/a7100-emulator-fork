@@ -23,6 +23,9 @@ public final class OPS implements PortModule, MemoryModule {
 
         EVEN, ODD;
     }
+    /**
+     * 
+     */
     public static int ops_count = 0;
     private final static int PORT_OPS_1_PES = 0x00;
     private final static int PORT_OPS_2_PES = 0x02;
@@ -35,11 +38,17 @@ public final class OPS implements PortModule, MemoryModule {
     private Parity parity;
     private int state = 0x0F;
 
+    /**
+     * 
+     */
     public OPS() {
         ops_id = ops_count++;
         init();
     }
 
+    /**
+     * 
+     */
     @Override
     public void registerPorts() {
         switch (ops_id) {
@@ -58,6 +67,11 @@ public final class OPS implements PortModule, MemoryModule {
         }
     }
 
+    /**
+     * 
+     * @param port
+     * @param data
+     */
     @Override
     public void writePort_Byte(int port, int data) {
         if (data == 0) {
@@ -68,30 +82,51 @@ public final class OPS implements PortModule, MemoryModule {
         state = 0x0F;
     }
 
+    /**
+     * 
+     * @param port
+     * @param data
+     */
     @Override
     public void writePort_Word(int port, int data) {
         //System.out.println("OUT Word " + Integer.toHexString(data) + " to port " + Integer.toHexString(port));
         //System.out.println("write Word auf OPS Port nicht implementiert");
     }
 
+    /**
+     * 
+     * @param port
+     * @return
+     */
     @Override
     public int readPort_Byte(int port) {
         //System.out.println("Lese Status OPS Port " + Integer.toHexString(port) + ": " + Integer.toBinaryString(state));
         return state;
     }
 
+    /**
+     * 
+     * @param port
+     * @return
+     */
     @Override
     public int readPort_Word(int port) {
         //System.out.println("read Word auf OPS Port nicht implementiert");
         return 0;
     }
 
+    /**
+     * 
+     */
     @Override
     public void init() {
         registerPorts();
         registerMemory();
     }
 
+    /**
+     * 
+     */
     @Override
     public void registerMemory() {
         ops_offset = (ZPS.zps_count == 1) ? 0x20000 : 0;
@@ -113,6 +148,11 @@ public final class OPS implements PortModule, MemoryModule {
         SystemMemory.getInstance().registerMemorySpace(new AddressSpace(ops_offset, ops_offset + 0x3FFFF), this);
     }
 
+    /**
+     * 
+     * @param address
+     * @return
+     */
     @Override
     public int readByte(int address) {
         // Parity Hack für A C T
@@ -126,6 +166,11 @@ public final class OPS implements PortModule, MemoryModule {
         return memory.readByte(address - ops_offset);
     }
 
+    /**
+     * 
+     * @param address
+     * @return
+     */
     @Override
     public int readWord(int address) {
         // Parity Hack für A C T
@@ -140,6 +185,11 @@ public final class OPS implements PortModule, MemoryModule {
         return memory.readWord(address - ops_offset);
     }
 
+    /**
+     * 
+     * @param address
+     * @param data
+     */
     @Override
     public void writeByte(int address, int data) {
         memory.writeByte(address - ops_offset, data);
@@ -149,6 +199,11 @@ public final class OPS implements PortModule, MemoryModule {
         }
     }
 
+    /**
+     * 
+     * @param address
+     * @param data
+     */
     @Override
     public void writeWord(int address, int data) {
         memory.writeWord(address - ops_offset, data);
@@ -167,6 +222,11 @@ public final class OPS implements PortModule, MemoryModule {
         return par;
     }
 
+    /**
+     * 
+     * @param dos
+     * @throws IOException
+     */
     @Override
     public void saveState(DataOutputStream dos) throws IOException {
         memory.saveMemory(dos);
@@ -176,6 +236,11 @@ public final class OPS implements PortModule, MemoryModule {
         dos.writeInt(state);
     }
     
+    /**
+     * 
+     * @param dis
+     * @throws IOException
+     */
     @Override
     public void loadState(DataInputStream dis) throws IOException {
         memory.loadMemory(dis);
