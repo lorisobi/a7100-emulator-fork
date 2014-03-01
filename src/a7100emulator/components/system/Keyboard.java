@@ -61,7 +61,7 @@ public class Keyboard implements KeyListener {
     }
 
     /**
-     * 
+     *
      * @return
      */
     public static Keyboard getInstance() {
@@ -72,7 +72,7 @@ public class Keyboard implements KeyListener {
     }
 
     /**
-     * 
+     *
      * @param controller
      */
     public void registerController(KR580WM51A controller) {
@@ -96,10 +96,8 @@ public class Keyboard implements KeyListener {
         boolean ctrl = e.isControlDown();
         boolean alt = e.isAltDown();
         boolean altgr = e.isAltGraphDown();
-        
 
         //System.out.println(Integer.toHexString(code)+" "+e.getKeyChar());
-
         if (e.isAltDown()) {
             System.out.println("Alt");
         }
@@ -217,40 +215,40 @@ public class Keyboard implements KeyListener {
                 sendByte(ctrl ? 0x1A : shift ? 0x5A : 0x7A);
                 break;
             case KeyEvent.VK_F1:    // PF1
-                sendBytes(new byte[]{0x1B, 0x30, 0x50});
+                sendBytes(new byte[]{0x1B, 0x4F, 0x50});
                 break;
             case KeyEvent.VK_F2:    // PF2
-                sendBytes(new byte[]{0x1B, 0x30, 0x51});
+                sendBytes(new byte[]{0x1B, 0x4F, 0x51});
                 break;
             case KeyEvent.VK_F3:    // PF3
-                sendBytes(new byte[]{0x1B, 0x30, 0x52});
+                sendBytes(new byte[]{0x1B, 0x4F, 0x52});
                 break;
             case KeyEvent.VK_F4:    // PF4
-                sendBytes(new byte[]{0x1B, 0x30, 0x53});
+                sendBytes(new byte[]{0x1B, 0x4F, 0x53});
                 break;
             case KeyEvent.VK_F5:    // PF5
-                sendBytes(new byte[]{0x1B, 0x30, 0x70});
+                sendBytes(new byte[]{0x1B, 0x4F, 0x70});
                 break;
             case KeyEvent.VK_F6:    // PF6
-                sendBytes(new byte[]{0x1B, 0x30, 0x71});
+                sendBytes(new byte[]{0x1B, 0x4F, 0x71});
                 break;
             case KeyEvent.VK_F7:    // PF7
-                sendBytes(new byte[]{0x1B, 0x30, 0x72});
+                sendBytes(new byte[]{0x1B, 0x4F, 0x72});
                 break;
             case KeyEvent.VK_F8:    // PF8
-                sendBytes(new byte[]{0x1B, 0x30, 0x73});
+                sendBytes(new byte[]{0x1B, 0x4F, 0x73});
                 break;
             case KeyEvent.VK_F9:    // PF9
-                sendBytes(new byte[]{0x1B, 0x30, 0x74});
+                sendBytes(new byte[]{0x1B, 0x4F, 0x74});
                 break;
             case KeyEvent.VK_F10:   // PF10
-                sendBytes(new byte[]{0x1B, 0x30, 0x75});
+                sendBytes(new byte[]{0x1B, 0x4F, 0x75});
                 break;
             case KeyEvent.VK_F11:   // PF11
-                sendBytes(new byte[]{0x1B, 0x30, 0x76});
+                sendBytes(new byte[]{0x1B, 0x4F, 0x76});
                 break;
             case KeyEvent.VK_F12:   // PF12
-                sendBytes(new byte[]{0x1B, 0x30, 0x77});
+                sendBytes(new byte[]{0x1B, 0x4F, 0x77});
                 break;
             case KeyEvent.VK_UP:    // Up
                 sendBytes(new byte[]{0x1B, 0x5B, 0x41});
@@ -306,7 +304,7 @@ public class Keyboard implements KeyListener {
                 sendByte(0x20);
                 break;
             case KeyEvent.VK_PLUS:
-                sendByte(shift ? 0x29 : 0x2A);
+                sendByte(shift ? 0x2A : 0x2B);
                 break;
             case KeyEvent.VK_COMMA:
                 sendByte(shift ? 0x3B : 0x2C);
@@ -326,6 +324,36 @@ public class Keyboard implements KeyListener {
             case KeyEvent.VK_DEAD_ACUTE:
                 sendByte(shift ? 0x27 : 0x60);
                 break;
+            case KeyEvent.VK_NUMPAD0:
+                sendByte(ctrl ? 0x8E : 0x30);
+                break;
+            case KeyEvent.VK_NUMPAD1:
+                sendByte(ctrl ? 0x8C : 0x31);
+                break;
+            case KeyEvent.VK_NUMPAD2:
+                sendByte(ctrl ? 0x9C : 0x32);
+                break;
+            case KeyEvent.VK_NUMPAD3:
+                sendByte(ctrl ? 0x87 : 0x33);
+                break;
+            case KeyEvent.VK_NUMPAD4:
+                sendByte(ctrl ? 0x94 : 0x34);
+                break;
+            case KeyEvent.VK_NUMPAD5:
+                sendByte(ctrl ? 0x92 : 0x35);
+                break;
+            case KeyEvent.VK_NUMPAD6:
+                sendByte(ctrl ? 0x90 : 0x36);
+                break;
+            case KeyEvent.VK_NUMPAD7:
+                sendByte(ctrl ? 0x91 : 0x37);
+                break;
+            case KeyEvent.VK_NUMPAD8:
+                sendByte(ctrl ? 0x93 : 0x38);
+                break;
+            case KeyEvent.VK_NUMPAD9:
+                sendByte(ctrl ? 0x95 : 0x39);
+                break;
             case 0:
                 switch (e.getKeyChar()) {
                     case 'ß':
@@ -340,7 +368,7 @@ public class Keyboard implements KeyListener {
     }
 
     /**
-     * 
+     *
      * @param bytes
      */
     public void sendBytes(byte[] bytes) {
@@ -352,7 +380,7 @@ public class Keyboard implements KeyListener {
     }
 
     /**
-     * 
+     *
      * @param b
      */
     public void receiveByte(int b) {
@@ -369,7 +397,7 @@ public class Keyboard implements KeyListener {
     }
 
     /**
-     * 
+     *
      */
     public void checkCommands() {
         //System.out.println("Cnt:" + byteCnt);
@@ -456,7 +484,7 @@ public class Keyboard implements KeyListener {
     }
 
     /**
-     * 
+     *
      * @param dos
      * @throws IOException
      */
@@ -472,7 +500,7 @@ public class Keyboard implements KeyListener {
     }
 
     /**
-     * 
+     *
      * @param dis
      * @throws IOException
      */
@@ -488,7 +516,7 @@ public class Keyboard implements KeyListener {
     }
 
     /**
-     * 
+     *
      */
     public void reset() {
         ifssController = null;

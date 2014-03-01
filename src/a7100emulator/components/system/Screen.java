@@ -24,7 +24,7 @@ public class Screen extends JComponent {
     }
 
     /**
-     * 
+     *
      * @return
      */
     public static Screen getInstance() {
@@ -35,7 +35,7 @@ public class Screen extends JComponent {
     }
 
     /**
-     * 
+     *
      * @param screenImage
      */
     public void setImage(BufferedImage screenImage) {
@@ -45,6 +45,7 @@ public class Screen extends JComponent {
 
     @Override
     protected void paintComponent(Graphics g) {
-        g.drawImage(screenImage, 0, 0, this);
+        Dimension dim = getSize();
+        g.drawImage(screenImage, 0, 0, dim.width, dim.height, 0, 0, 640, 400, this);
     }
 }

@@ -71,9 +71,9 @@ public class Debugger {
      */
     public void addLine() {
         // Ignoriere Interrupts
-        if (debugInfo.getCs() == 0x0104) {
-            return;
-        }
+       // if (debugInfo.getCs() == 0x0104) {
+       //     return;
+       // }
 
         String debugString = String.format("%04X:%04X [%02X] ", debugInfo.getCs(), debugInfo.getIp(), debugInfo.getOpcode()) + debugInfo.getCode();
         if (debugInfo.getOperands() != null) {

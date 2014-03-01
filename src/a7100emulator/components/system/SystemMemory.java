@@ -17,9 +17,9 @@ import java.util.logging.Logger;
  */
 public class SystemMemory {
 
-    private HashMap<AddressSpace, MemoryModule> memoryModules = new HashMap<AddressSpace, MemoryModule>();
+    private final HashMap<AddressSpace, MemoryModule> memoryModules = new HashMap<AddressSpace, MemoryModule>();
     private static SystemMemory instance;
-    private static int MAX_ADDRESS = 0xFFFFF;
+    private static final int MAX_ADDRESS = 0xFFFFF;
 
     private SystemMemory() {
     }

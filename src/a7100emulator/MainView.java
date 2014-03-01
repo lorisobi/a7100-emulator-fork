@@ -35,6 +35,7 @@ public class MainView extends JFrame {
     private final JMenuItem menuEmulatorSave = new JMenuItem("Zustand Speichern");
     private final JMenuItem menuEmulatorLoad = new JMenuItem("Zustand Laden");
     private final JMenuItem menuEmulatorExit = new JMenuItem("Beenden");
+    
     private final JMenu menuDevicesDrive0 = new JMenu("Laufwerk 0");
     private final JMenu menuDevicesDrive1 = new JMenu("Laufwerk 1");
     private final JMenuItem menuDevicesDrive0Load = new JMenuItem("Lade Image");
@@ -47,6 +48,7 @@ public class MainView extends JFrame {
     private final JMenuItem menuDevicesDrive1Eject = new JMenuItem("Auswerfen");
     private final JMenuItem menuDevicesDrive1Empty = new JMenuItem("Leere Diskette");
     private final JCheckBoxMenuItem menuDevicesDrive1WriteProtect = new JCheckBoxMenuItem("Schreibschutz");
+    
     private final JMenu menuDebugMemory = new JMenu("Speicher");
     private final JMenu menuDebugDecoder = new JMenu("Decoder");
     private final JCheckBoxMenuItem menuDebugSwitch = new JCheckBoxMenuItem("Debugger");
@@ -56,8 +58,12 @@ public class MainView extends JFrame {
     private final JMenuItem menuDebugDecoderDump = new JMenuItem("Dump");
     private final JMenuItem menuDebugCharacters = new JMenuItem("KGS Zeichensatz");
     private final JMenuItem menuOpcodeStatistic = new JMenuItem("Dump Statistik");
+    
     private final JMenuItem menuHelpAbout = new JMenuItem("Über");
-    private MainMenuController controller = new MainMenuController();
+    private final MainMenuController controller = new MainMenuController();
+    
+    private final JLabel statusBar=new JLabel("Status");
+    
     private final A7100 a7100;
 
     /**
@@ -140,11 +146,12 @@ public class MainView extends JFrame {
         menuHelpAbout.addActionListener(controller);
 
         this.setJMenuBar(menubar);
-        this.add(Screen.getInstance());
+        this.add(Screen.getInstance(),BorderLayout.CENTER);
+        //this.add(statusBar,BorderLayout.SOUTH);
         this.addKeyListener(Keyboard.getInstance());
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         this.setIconImage((new ImageIcon(this.getClass().getClassLoader().getResource("Images/Icon.png"))).getImage());
-        this.setResizable(false);
+        this.setResizable(true);
         this.setVisible(true);
         this.pack();
     }
@@ -225,7 +232,7 @@ public class MainView extends JFrame {
                 JPanel pan_desc = new JPanel();
                 pan_desc.setBorder(BorderFactory.createEmptyBorder(0, 20, 0, 10));
                 pan_desc.setLayout(new GridLayout(2, 1));
-                pan_desc.add(new JLabel("A7100 - Emulator v0.5.21"));
+                pan_desc.add(new JLabel("A7100 - Emulator v0.5.30"));
                 pan_desc.add(new JLabel("2011-2014 Dirk Bräuer"));
                 pan_about.add(pan_desc, BorderLayout.CENTER);
                 JOptionPane.showMessageDialog(MainView.this, pan_about, "Über", JOptionPane.PLAIN_MESSAGE);

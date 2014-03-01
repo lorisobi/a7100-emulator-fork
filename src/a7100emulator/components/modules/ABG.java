@@ -135,6 +135,8 @@ public final class ABG implements Module, ClockModule {
      * @param inverse
      */
     public void setLineCodes(int row, int column, byte[] linecodes, boolean intense, boolean flash, boolean cursor, boolean underline, boolean inverse) {
+        if (column>79)column=79;
+        
         alphanumericBuffer[column][row] = linecodes;
         byte attribute = 0;
         if (intense) {
@@ -213,12 +215,12 @@ public final class ABG implements Module, ClockModule {
     }
 
     void removeCursor(int cursorRow, int cursorColumn) {
-        attributeBuffer[(cursorColumn == 80) ? 79 : cursorColumn][cursorRow] &= ~ATTRIBUTE_CURSOR;
-        updateAlphanumericScreen((cursorColumn == 80) ? 79 : cursorColumn, cursorRow);
+        attributeBuffer[(cursorColumn >= 80) ? 79 : cursorColumn][cursorRow] &= ~ATTRIBUTE_CURSOR;
+        updateAlphanumericScreen((cursorColumn >= 80) ? 79 : cursorColumn, cursorRow);
     }
 
     void setCursor(int newCursorRow, int newCursorColumn) {
-        cursorColumn = (newCursorColumn == 80) ? 79 : newCursorColumn;
+        cursorColumn = (newCursorColumn >= 80) ? 79 : newCursorColumn;
         cursorRow = newCursorRow;
         attributeBuffer[cursorColumn][cursorRow] |= ATTRIBUTE_CURSOR;
         updateAlphanumericScreen(cursorColumn, cursorRow);

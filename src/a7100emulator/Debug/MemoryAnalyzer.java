@@ -30,10 +30,11 @@ public class MemoryAnalyzer {
         table.setShowGrid(false);
         table.getColumn("").setCellRenderer(new RowHeadRenderer());
         table.getColumn("").setPreferredWidth(150);
+        table.getColumn("ASCII").setMinWidth(150);
         table.setFont(new Font("Monospaced", Font.PLAIN, 14));
         JFrame frame = new JFrame("Memory");
-        frame.setMinimumSize(new Dimension(600, 600));
-        frame.setPreferredSize(new Dimension(600, 600));
+        frame.setMinimumSize(new Dimension(800, 600));
+        frame.setPreferredSize(new Dimension(800, 600));
         frame.getContentPane().add(new JScrollPane(table), BorderLayout.CENTER);
         frame.setVisible(true);
         try {
@@ -54,13 +55,15 @@ public class MemoryAnalyzer {
 
         @Override
         public int getColumnCount() {
-            return 17;
+            return 18;
         }
 
         @Override
         public String getColumnName(int column) {
-            if (column > 0) {
+            if (column > 0 && column < 17) {
                 return "" + Integer.toHexString(column - 1).toUpperCase();
+            } else if (column==17) {
+                return "ASCII";
             } else {
                 return "";
             }
@@ -80,7 +83,15 @@ public class MemoryAnalyzer {
         public Object getValueAt(int row, int column) {
             if (column == 0) {
                 return String.format("%05X", row * 16);
-            } else {
+            } else if (column==17) {
+                String ascii="";
+                for (int i=0;i<16;i++) {
+                    Integer val=SystemMemory.getInstance().readByte(row * 16 + i);
+                    if (val<0x20||val==127) ascii+='.'; 
+                    else ascii+=(char)(val&0xFF);
+                }
+                return ascii;
+            }else {
                 return String.format("%02X", SystemMemory.getInstance().readByte(row * 16 + column - 1));
             }
         }

@@ -293,17 +293,18 @@ public final class KGS implements PortModule, ClockModule {
                             }
                         }
                     }
+                    //System.out.println((char)data);
                     drawCharacter(data, cursorRow, cursorColumn++);
-                    if (cursorColumn == 81) {
+                    /*if (cursorColumn == 81) {
                         if (!wraparound) {
                             cursorColumn = 1;
                             if (cursorRow != 25) {
                                 cursorRow++;
                             } else {
-                                abg.rollAlphanumericScreen();
+                               abg.rollAlphanumericScreen();
                             }
                         }
-                    }
+                    }*/
                 } else {
                     // Steuerzeichen
                     switch (data) {
@@ -516,7 +517,7 @@ public final class KGS implements PortModule, ClockModule {
                         receiveSequence = false;
                     } else {
                         cursorColumn -= getParameter();
-                        if (cursorRow < 1) {
+                        if (cursorColumn < 1) {
                             cursorColumn = 1;
                         }
                         receiveSequence = false;
@@ -525,7 +526,7 @@ public final class KGS implements PortModule, ClockModule {
                 case 0x6A:
                     // [ Pn j Cursor nach links
                     cursorColumn -= getParameter();
-                    if (cursorRow < 1) {
+                    if (cursorColumn < 1) {
                         cursorColumn = 1;
                     }
                     receiveSequence = false;
@@ -755,7 +756,7 @@ public final class KGS implements PortModule, ClockModule {
                 case 0x4B: {
                     // [ Ps; Ps; ... ;Ps K Löschen eines Zeichenbereiches in der aktiven Zeile
                     int[] params = getParameters();
-                    switch (params[0]) {
+                    switch (params[0]==-1?0:params[0]) {
                         case 0:
                             for (int i = cursorColumn; i <= 80; i++) {
                                 drawCharacter(0x20, cursorRow, i);
@@ -907,6 +908,7 @@ public final class KGS implements PortModule, ClockModule {
     }
 
     private int getParameter() {
+        escSequence.removeFirst();
         if (escSequence.size() == 4) {
             return (escSequence.get(1) - 0x30) * 10 + (escSequence.get(2) - 0x30);
         } else if (escSequence.size() == 3) {
@@ -914,7 +916,7 @@ public final class KGS implements PortModule, ClockModule {
         } else if (escSequence.size() == 2) {
             return 1;
         }
-        throw new IllegalArgumentException("Falsche ESC-Sequenz");
+        throw new IllegalArgumentException("Falsche ESC-Sequenz" +escSequence.size());
     }
 
     private int[] getParameters() {

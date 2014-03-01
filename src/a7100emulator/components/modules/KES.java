@@ -18,7 +18,7 @@ public final class KES implements PortModule, ClockModule {
 
     private final int INIT_WUB_ADDRESS = 0x01000;
     /**
-     * 
+     *
      */
     public static int kes_count = 0;
     private final static int PORT_KES_1_WAKEUP_1 = 0x100;
@@ -38,7 +38,7 @@ public final class KES implements PortModule, ClockModule {
     private boolean interruptWaiting = false;
 
     /**
-     * 
+     *
      */
     public KES() {
         kes_id = kes_count++;
@@ -47,7 +47,7 @@ public final class KES implements PortModule, ClockModule {
     }
 
     /**
-     * 
+     *
      */
     @Override
     public void registerPorts() {
@@ -64,7 +64,7 @@ public final class KES implements PortModule, ClockModule {
     }
 
     /**
-     * 
+     *
      * @param port
      * @param data
      */
@@ -97,7 +97,7 @@ public final class KES implements PortModule, ClockModule {
     }
 
     /**
-     * 
+     *
      * @param port
      * @param data
      */
@@ -112,7 +112,7 @@ public final class KES implements PortModule, ClockModule {
     }
 
     /**
-     * 
+     *
      * @param port
      * @return
      */
@@ -127,7 +127,7 @@ public final class KES implements PortModule, ClockModule {
     }
 
     /**
-     * 
+     *
      * @param port
      * @return
      */
@@ -142,7 +142,7 @@ public final class KES implements PortModule, ClockModule {
     }
 
     /**
-     * 
+     *
      */
     @Override
     public void init() {
@@ -157,6 +157,7 @@ public final class KES implements PortModule, ClockModule {
             ccbAddress = (seg << 4) + off;
             readWUB = false;
         }
+        //System.out.println("CCB: " + Integer.toHexString(ccbAddress));
         for (int i = 0; i < 30; i++) {
             if (i < 16) {
                 ccb[i] = (byte) memory.readByte(ccbAddress + i);
@@ -172,6 +173,7 @@ public final class KES implements PortModule, ClockModule {
     }
 
     private void checkIOPB() {
+        // TODO: Festplatten Laufwerke überall prüfen
 //        System.out.println("20-23 (leer): " + Integer.toHexString(iopb[0]) + "," + Integer.toHexString(iopb[1]) + "," + Integer.toHexString(iopb[2]) + "," + Integer.toHexString(iopb[3]));
 //        System.out.println("24-25 (Zähler/Firmware): " + Integer.toHexString(iopb[4]) + "," + Integer.toHexString(iopb[5]));
 //        System.out.println("26-27 (Leer/Firmware): " + Integer.toHexString(iopb[6]) + "," + Integer.toHexString(iopb[7]));
@@ -190,13 +192,26 @@ public final class KES implements PortModule, ClockModule {
             case 0x00: {
                 // Intialisierung
                 int driveNr = memory.readByte(ccbAddress + 0x2A);
-                FloppyDrive drive = afs.getFloppy(driveNr & 0x03);
-                int status = 0x01;
-                // Typ Floppy
-                status |= 0x08;
-                // Laufwerksnummer
-                status |= (driveNr & 0x03) << 4;
-                status |= (drive.getDiskInsert()) ? 0x00 : 0xC0;
+                int deviceCode = memory.readByte(ccbAddress + 0x28);
+                int status = 0;
+                switch (deviceCode) {
+                    case 0x00:
+                    case 0x02:
+                        // Festplatte
+                        status = 0x01;
+                        status |= 0xC0;
+                        break;
+                    case 0x03:
+                        // 5.25" Floppy
+                        FloppyDrive drive = afs.getFloppy(driveNr & 0x03);
+                        status = 0x01;
+                        // Typ Floppy
+                        status |= 0x08;
+                        // Laufwerksnummer
+                        status |= (driveNr & 0x03) << 4;
+                        status |= (drive.getDiskInsert()) ? 0x00 : 0xC0;
+                        break;
+                }
                 memory.writeByte(ccbAddress + 0x13, 0xFF);
                 memory.writeByte(ccbAddress + 0x11, status);
             }
@@ -204,7 +219,7 @@ public final class KES implements PortModule, ClockModule {
             case 0x01: {
                 // Statusabfrage
                 int driveNr = memory.readByte(ccbAddress + 0x2A);
-                int memAddr = (memory.readWord(ccbAddress + 0x34) <<4) + memory.readWord(ccbAddress + 0x32);
+                int memAddr = (memory.readWord(ccbAddress + 0x34) << 4) + memory.readWord(ccbAddress + 0x32);
                 int status = 0x01;
                 if (getBit(driveNr, 4)) {
                     FloppyDrive drive = afs.getFloppy(driveNr & 0x03);
@@ -212,7 +227,6 @@ public final class KES implements PortModule, ClockModule {
                     status |= 0x08;
                     // Laufwerksnummer
                     status |= (driveNr & 0x03) << 4;
-
                     // Hard Error
                     memory.writeByte(memAddr + 0x0, 0);
                     memory.writeByte(memAddr + 0x1, (drive.getDiskInsert()) ? 0x00 : 0x40);
@@ -248,7 +262,7 @@ public final class KES implements PortModule, ClockModule {
                 int driveNr = memory.readByte(ccbAddress + 0x2A);
                 int memSeg = memory.readWord(ccbAddress + 0x34);
                 int memOff = memory.readWord(ccbAddress + 0x32);
-                int memAddr = (memSeg <<4) + memOff;
+                int memAddr = (memSeg << 4) + memOff;
                 int cylinder = memory.readWord(ccbAddress + 0x2E);
                 int head = memory.readByte(ccbAddress + 0x30);
                 int mod = memory.readByte(ccbAddress + 0x2C);
@@ -256,9 +270,9 @@ public final class KES implements PortModule, ClockModule {
                 int interleave = memory.readByte(memAddr + 5);
 
                 FloppyDrive drive = afs.getFloppy(driveNr & 0x03);
-                System.out.println("Formatiere Laufwerk " + (driveNr & 0x03) + " C/H " + cylinder + "/" + head);
-                System.out.println("Datenbytes: " + String.format("%02X %02X %02X %02X", memory.readByte(memAddr + 1), memory.readByte(memAddr + 2), memory.readByte(memAddr + 3), memory.readByte(memAddr + 4)) + " Interleave: " + String.format("%02X", memory.readByte(memAddr + 5)));
-                System.out.println("Modifizierung: " + Integer.toBinaryString(mod));
+//                System.out.println("Formatiere Laufwerk " + (driveNr & 0x03) + " C/H " + cylinder + "/" + head);
+//                System.out.println("Datenbytes: " + String.format("%02X %02X %02X %02X", memory.readByte(memAddr + 1), memory.readByte(memAddr + 2), memory.readByte(memAddr + 3), memory.readByte(memAddr + 4)) + " Interleave: " + String.format("%02X", memory.readByte(memAddr + 5)));
+//                System.out.println("Modifizierung: " + Integer.toBinaryString(mod));
                 drive.format(cylinder, head, mod, data, interleave);
                 memory.writeByte(ccbAddress + 0x13, 0xFF);
                 memory.writeByte(ccbAddress + 0x11, 0x01);
@@ -270,27 +284,43 @@ public final class KES implements PortModule, ClockModule {
                 break;
             case 0x04: {
                 // Daten lesen
+                int deviceCode = memory.readByte(ccbAddress + 0x28);
                 int driveNr = memory.readByte(ccbAddress + 0x2A);
                 int memSeg = memory.readWord(ccbAddress + 0x34);
                 int memOff = memory.readWord(ccbAddress + 0x32);
-                int memAddr = (memSeg <<4) + memOff;
+                int memAddr = (memSeg << 4) + memOff;
                 int cylinder = memory.readWord(ccbAddress + 0x2E);
                 int sector = memory.readByte(ccbAddress + 0x31);
                 int head = memory.readByte(ccbAddress + 0x30);
                 int byteCnt = memory.readWord(ccbAddress + 0x36);
+                int status = 0;
 //                System.out.println("Lese " + byteCnt + " Bytes von Laufwerk " + (driveNr & 0x03) + " C/H/S " + cylinder + "/" + head + "/" + sector + " nach " + String.format("%04X:%04X", memSeg, memOff));
-                FloppyDrive drive = afs.getFloppy(driveNr & 0x03);
-                byte[] data = drive.readData(cylinder, sector, head, byteCnt);
-                for (int i = 0; i < data.length; i++) {
-                    memory.writeByte(memAddr + i, data[i]);
+
+                switch (deviceCode) {
+                    case 0x00:
+                    case 0x02:
+                        status = 0x01;
+                        status |= 0xC0;
+                        break;
+                    case 0x03:
+                        FloppyDrive drive = afs.getFloppy(driveNr & 0x03);
+                        byte[] data = drive.readData(cylinder, sector, head, byteCnt);
+//                String ascii="";
+                        for (int i = 0; i < data.length; i++) {
+                            memory.writeByte(memAddr + i, data[i]);
 //                    System.out.print(String.format("%02X", data[i] & 0xFF) + " ");
+//                    ascii+=((data[i]<0x20)||(data[i]==127))?'.':(char)(data[i]&0xFF);
 //                    if ((i + 1) % 16 == 0) {
-//                        System.out.println();
+//                        System.out.println(" "+ascii);
+//                        ascii="";
 //                    }
+                        }
+//                System.out.println();
+                        status=0x01;
+                        break;
                 }
-                //System.out.println();
                 memory.writeByte(ccbAddress + 0x13, 0xFF);
-                memory.writeByte(ccbAddress + 0x11, 0x01);
+                memory.writeByte(ccbAddress + 0x11, status);
             }
             break;
             case 0x05:
@@ -302,7 +332,7 @@ public final class KES implements PortModule, ClockModule {
                 int driveNr = memory.readByte(ccbAddress + 0x2A);
                 int memSeg = memory.readWord(ccbAddress + 0x34);
                 int memOff = memory.readWord(ccbAddress + 0x32);
-                int memAddr = (memSeg <<4) + memOff;
+                int memAddr = (memSeg << 4) + memOff;
                 int cylinder = memory.readWord(ccbAddress + 0x2E);
                 int sector = memory.readByte(ccbAddress + 0x31);
                 int head = memory.readByte(ccbAddress + 0x30);
@@ -337,7 +367,7 @@ public final class KES implements PortModule, ClockModule {
             case 0x0E: {
                 // KES-Puffer Ein-/Ausgabe
                 int kesAddr = memory.readWord(ccbAddress + 0x2E);
-                int memAddr = (memory.readWord(ccbAddress + 0x34) <<4) + memory.readWord(ccbAddress + 0x32);
+                int memAddr = (memory.readWord(ccbAddress + 0x34) << 4) + memory.readWord(ccbAddress + 0x32);
                 int cnt = memory.readWord(ccbAddress + 0x36);
                 boolean toKES = memory.readByte(ccbAddress + 0x30) == 0xFF;
                 for (int i = 0; i < cnt; i++) {
@@ -364,7 +394,7 @@ public final class KES implements PortModule, ClockModule {
     }
 
     /**
-     * 
+     *
      */
     @Override
     public void registerClocks() {
@@ -372,7 +402,7 @@ public final class KES implements PortModule, ClockModule {
     }
 
     /**
-     * 
+     *
      * @param amount
      */
     @Override
@@ -402,7 +432,7 @@ public final class KES implements PortModule, ClockModule {
     }
 
     /**
-     * 
+     *
      * @param dos
      * @throws IOException
      */
@@ -420,7 +450,7 @@ public final class KES implements PortModule, ClockModule {
     }
 
     /**
-     * 
+     *
      * @param dis
      * @throws IOException
      */
