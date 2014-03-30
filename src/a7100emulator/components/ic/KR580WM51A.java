@@ -24,7 +24,7 @@ public class KR580WM51A {
     private int mode;
     private int state = 0x05;
     private boolean modeInstruction = false;
-    private LinkedList<Byte> deviceBuffer = new LinkedList<Byte>();
+    private final LinkedList<Byte> deviceBuffer = new LinkedList<Byte>();
 
     /**
      *
@@ -67,7 +67,7 @@ public class KR580WM51A {
             } else {
             }
         }
-        //System.out.println("Out Command " + Integer.toHexString(command) + "/" + Integer.toBinaryString(command));
+//        System.out.println("Out Command " + Integer.toHexString(command) + "/" + Integer.toBinaryString(command));
     }
 
     /**

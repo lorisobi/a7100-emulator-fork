@@ -16,11 +16,8 @@ import java.io.IOException;
  */
 public final class KES implements PortModule, ClockModule {
 
-    private final int INIT_WUB_ADDRESS = 0x01000;
-    /**
-     *
-     */
     public static int kes_count = 0;
+    private final int INIT_WUB_ADDRESS = 0x01000;
     private final static int PORT_KES_1_WAKEUP_1 = 0x100;
     private final static int PORT_KES_1_WAKEUP_2 = 0x101;
     private final static int PORT_KES_2_WAKEUP_1 = 0x102;
@@ -28,11 +25,11 @@ public final class KES implements PortModule, ClockModule {
     private final int kes_id;
     private int ccbAddress = 0;
     private boolean readWUB = true;
-    private SystemMemory memory = SystemMemory.getInstance();
-    private byte[] ccb = new byte[16];
-    private byte[] cib = new byte[16];
-    private byte[] iopb = new byte[30];
-    private Memory sram = new Memory(0x4000);
+    private final SystemMemory memory = SystemMemory.getInstance();
+    private final byte[] ccb = new byte[16];
+    private final byte[] cib = new byte[16];
+    private final byte[] iopb = new byte[30];
+    private final Memory sram = new Memory(0x4000);
     private AFS afs = new AFS();
     private long interruptClock = 0;
     private boolean interruptWaiting = false;

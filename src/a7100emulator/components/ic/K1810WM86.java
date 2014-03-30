@@ -1187,11 +1187,12 @@ public class K1810WM86 implements Runnable {
             break;
             case LEA_MEM_REG: {
                 int opcode2 = memory.readByte((cs << 4) + (ip++));
-                setReg16(opcode2 & TEST_REG, getOffset(opcode2 & TEST_MOD, opcode2 & TEST_RM, true) & 0xFFFF);
+                int offset = getOffset(opcode2 & TEST_MOD, opcode2 & TEST_RM, true);
+                setReg16(opcode2 & TEST_REG, offset & 0xFFFF);
                 clock.updateClock(2 + getOpcodeCyclesEA(opcode2 & TEST_MOD, opcode2 & TEST_RM));
                 if (debug) {
                     debugInfo.setCode("LEA " + getReg16String(opcode2 & TEST_REG) + "," + getOffsetString(opcode2 & TEST_MOD, opcode2 & TEST_RM, 0));
-                    debugInfo.setOperands(null);
+                    debugInfo.setOperands(String.format("%04Xh", offset));
                 }
             }
             break;
@@ -4937,8 +4938,12 @@ public class K1810WM86 implements Runnable {
             if (debugInfo.getCode() != null) {
                 decoder.addItem();
                 debugger.addLine();
+                try {
+                    Thread.sleep(debugger.getSlowdown());
+                } catch (InterruptedException ex) {
+                    Logger.getLogger(K1810WM86.class.getName()).log(Level.SEVERE, null, ex);
+                }
             }
-            //debugFile.println(getRegisterString());
         } else {
             if ((cs << 4) + ip == Debugger.getInstance().getDebugstart()) {
                 Debugger.getInstance().setDebug(true);
@@ -5037,9 +5042,9 @@ public class K1810WM86 implements Runnable {
         checkAuxiliaryCarryFlagSub(op1, op2);
         return res;
     }
-    
+
     private int dec8(int op) {
-        int res=op-1;
+        int res = op - 1;
         checkZeroFlag8(res);
         checkSignFlag8((byte) res);
         checkOverflowFlagSub8(op, 1, res);
@@ -5047,9 +5052,9 @@ public class K1810WM86 implements Runnable {
         checkAuxiliaryCarryFlagSub(op, 1);
         return res;
     }
-    
+
     private int dec16(int op) {
-        int res=op-1;
+        int res = op - 1;
         checkZeroFlag16(res);
         checkSignFlag16((byte) res);
         checkOverflowFlagSub16(op, 1, res);
@@ -5087,7 +5092,7 @@ public class K1810WM86 implements Runnable {
     }
 
     private int inc8(int op) {
-        int res=op+1;
+        int res = op + 1;
         checkZeroFlag8(res);
         checkSignFlag8(res);
         checkOverflowFlagAdd8(op, 1, res);
@@ -5095,9 +5100,9 @@ public class K1810WM86 implements Runnable {
         checkAuxiliaryCarryFlagAdd(op, 1);
         return res;
     }
-    
+
     private int inc16(int op) {
-        int res=op+1;
+        int res = op + 1;
         checkZeroFlag16(res);
         checkSignFlag16(res);
         checkOverflowFlagAdd16(op, 1, res);
@@ -5105,7 +5110,7 @@ public class K1810WM86 implements Runnable {
         checkAuxiliaryCarryFlagAdd(op, 1);
         return res;
     }
-    
+
     private int pop() {
         int result = memory.readWord((ss << 4) + getReg16(REG_AH_SP));
         setReg16(REG_AH_SP, (getReg16(REG_AH_SP) + 2) & 0xFFFF);
@@ -5632,7 +5637,7 @@ public class K1810WM86 implements Runnable {
     private int getAddressMODRM(int MOD, int RM, boolean updateIP) {
         int segmentAddress = getSegmentAddress(MOD, RM);
         int offset = getOffset(MOD, RM, updateIP) & 0xFFFF;
-        return segmentAddress + offset;
+        return (segmentAddress + offset) & 0xFFFFF;
     }
 
     private int getOpcodeCyclesEA(int MOD, int RM) {

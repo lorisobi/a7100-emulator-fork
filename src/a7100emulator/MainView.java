@@ -4,6 +4,8 @@
  */
 package a7100emulator;
 
+import a7100emulator.Apps.SCPDiskViewer.SCPDiskModel;
+import a7100emulator.Apps.SCPDiskViewer.SCPDiskViewer;
 import a7100emulator.Debug.Debugger;
 import a7100emulator.Debug.Decoder;
 import a7100emulator.Debug.MemoryAnalyzer;
@@ -35,7 +37,7 @@ public class MainView extends JFrame {
     private final JMenuItem menuEmulatorSave = new JMenuItem("Zustand Speichern");
     private final JMenuItem menuEmulatorLoad = new JMenuItem("Zustand Laden");
     private final JMenuItem menuEmulatorExit = new JMenuItem("Beenden");
-    
+
     private final JMenu menuDevicesDrive0 = new JMenu("Laufwerk 0");
     private final JMenu menuDevicesDrive1 = new JMenu("Laufwerk 1");
     private final JMenuItem menuDevicesDrive0Load = new JMenuItem("Lade Image");
@@ -48,26 +50,31 @@ public class MainView extends JFrame {
     private final JMenuItem menuDevicesDrive1Eject = new JMenuItem("Auswerfen");
     private final JMenuItem menuDevicesDrive1Empty = new JMenuItem("Leere Diskette");
     private final JCheckBoxMenuItem menuDevicesDrive1WriteProtect = new JCheckBoxMenuItem("Schreibschutz");
-    
+
     private final JMenu menuDebugMemory = new JMenu("Speicher");
     private final JMenu menuDebugDecoder = new JMenu("Decoder");
-    private final JCheckBoxMenuItem menuDebugSwitch = new JCheckBoxMenuItem("Debugger");
+    private final JMenu menuDebugDebugger = new JMenu("Debugger");
+    private final JCheckBoxMenuItem menuDebugDebuggerSwitch = new JCheckBoxMenuItem("Debugger");
+    private final JMenuItem menuDebugDebuggerSlowdown = new JMenuItem("Setze Verzögerung");
     private final JMenuItem menuDebugMemoryShow = new JMenuItem("zeigen");
     private final JMenuItem menuDebugMemoryDump = new JMenuItem("Dump");
     private final JMenuItem menuDebugDecoderShow = new JMenuItem("zeigen");
     private final JMenuItem menuDebugDecoderDump = new JMenuItem("Dump");
     private final JMenuItem menuDebugCharacters = new JMenuItem("KGS Zeichensatz");
     private final JMenuItem menuOpcodeStatistic = new JMenuItem("Dump Statistik");
-    
+
+    private final JMenu menuTools = new JMenu("Tools");
+    private final JMenuItem menuToolsSCPDiskViewer = new JMenuItem("SCP-Disk Betrachter");
+
     private final JMenuItem menuHelpAbout = new JMenuItem("Über");
     private final MainMenuController controller = new MainMenuController();
-    
-    private final JLabel statusBar=new JLabel("Status");
-    
+
+    private final JLabel statusBar = new JLabel("Status");
+
     private final A7100 a7100;
 
     /**
-     * 
+     *
      * @param a7100
      */
     public MainView(A7100 a7100) {
@@ -120,7 +127,6 @@ public class MainView extends JFrame {
         menuDevicesDrive1Empty.addActionListener(controller);
         menuDevicesDrive1WriteProtect.addActionListener(controller);
 
-
         menubar.add(menuDebug);
         menuDebug.add(menuDebugMemory);
         menuDebugMemory.add(menuDebugMemoryShow);
@@ -128,11 +134,14 @@ public class MainView extends JFrame {
         menuDebug.add(menuDebugDecoder);
         menuDebugDecoder.add(menuDebugDecoderShow);
         menuDebugDecoder.add(menuDebugDecoderDump);
-        menuDebug.add(menuDebugSwitch);
+        menuDebug.add(menuDebugDebugger);
+        menuDebugDebugger.add(menuDebugDebuggerSwitch);
+        menuDebugDebugger.add(menuDebugDebuggerSlowdown);
         menuDebug.add(menuDebugCharacters);
         menuDebug.add(menuOpcodeStatistic);
 
-        menuDebugSwitch.addActionListener(controller);
+        menuDebugDebuggerSwitch.addActionListener(controller);
+        menuDebugDebuggerSlowdown.addActionListener(controller);
         menuDebugMemoryShow.addActionListener(controller);
         menuDebugMemoryDump.addActionListener(controller);
         menuDebugDecoderShow.addActionListener(controller);
@@ -140,13 +149,18 @@ public class MainView extends JFrame {
         menuDebugCharacters.addActionListener(controller);
         menuOpcodeStatistic.addActionListener(controller);
 
+        menubar.add(menuTools);
+        menuTools.add(menuToolsSCPDiskViewer);
+
+        menuToolsSCPDiskViewer.addActionListener(controller);
+
         menubar.add(menuHelp);
         menuHelp.add(menuHelpAbout);
 
         menuHelpAbout.addActionListener(controller);
 
         this.setJMenuBar(menubar);
-        this.add(Screen.getInstance(),BorderLayout.CENTER);
+        this.add(Screen.getInstance(), BorderLayout.CENTER);
         //this.add(statusBar,BorderLayout.SOUTH);
         this.addKeyListener(Keyboard.getInstance());
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -154,6 +168,7 @@ public class MainView extends JFrame {
         this.setResizable(true);
         this.setVisible(true);
         this.pack();
+        this.setLocationRelativeTo(null);
     }
 
     private class MainMenuController implements ActionListener {
@@ -183,8 +198,19 @@ public class MainView extends JFrame {
                 SystemMemory.getInstance().dump("./debug/user_dump.hex");
             } else if (e.getSource() == menuDebugDecoderDump) {
                 Decoder.getInstance().save();
-            } else if (e.getSource() == menuDebugSwitch) {
-                Debugger.getInstance().setDebug(menuDebugSwitch.isSelected());
+            } else if (e.getSource() == menuDebugDebuggerSwitch) {
+                boolean debug = menuDebugDebuggerSwitch.isSelected();
+                Debugger.getInstance().setDebug(debug);
+                if (debug) {
+                    Decoder.getInstance().clear();
+                }
+            } else if (e.getSource() == menuDebugDebuggerSlowdown) {
+                try {
+                    int slowdown = Integer.parseInt(JOptionPane.showInputDialog(null, "Verzögerung in ms:", Debugger.getInstance().getSlowdown()));
+                    Debugger.getInstance().setSlowdown(slowdown);
+                } catch (NumberFormatException ex) {
+
+                }
             } else if (e.getSource() == menuDebugCharacters) {
                 a7100.getKGS().showCharacters();
             } else if (e.getSource() == menuOpcodeStatistic) {
@@ -225,6 +251,10 @@ public class MainView extends JFrame {
                 a7100.getKES().getAFS().getFloppy(1).newDisk();
             } else if (e.getSource() == menuDevicesDrive1WriteProtect) {
                 a7100.getKES().getAFS().getFloppy(1).setWriteProtect(menuDevicesDrive0WriteProtect.isSelected());
+            } else if (e.getSource() == menuToolsSCPDiskViewer) {
+                SCPDiskModel model = new SCPDiskModel();
+                SCPDiskViewer view = new SCPDiskViewer(model);
+                model.setView(view);
             } else if (e.getSource() == menuHelpAbout) {
                 JPanel pan_about = new JPanel();
                 pan_about.setLayout(new BorderLayout());
@@ -232,7 +262,7 @@ public class MainView extends JFrame {
                 JPanel pan_desc = new JPanel();
                 pan_desc.setBorder(BorderFactory.createEmptyBorder(0, 20, 0, 10));
                 pan_desc.setLayout(new GridLayout(2, 1));
-                pan_desc.add(new JLabel("A7100 - Emulator v0.5.30"));
+                pan_desc.add(new JLabel("A7100 - Emulator v0.5.31"));
                 pan_desc.add(new JLabel("2011-2014 Dirk Bräuer"));
                 pan_about.add(pan_desc, BorderLayout.CENTER);
                 JOptionPane.showMessageDialog(MainView.this, pan_about, "Über", JOptionPane.PLAIN_MESSAGE);

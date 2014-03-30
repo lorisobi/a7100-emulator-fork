@@ -15,11 +15,11 @@ import java.io.IOException;
  */
 public class KR580WI53 {
 
-    private static int TEST_COUNTER = 0xC0;
-    private static int TEST_RW = 0x30;
-    private static int TEST_MODE = 0x0E;
-    private static int TEST_TYPE = 0x01;
-    private Counter[] counter = new Counter[3];
+    private static final int TEST_COUNTER = 0xC0;
+    private static final int TEST_RW = 0x30;
+    private static final int TEST_MODE = 0x0E;
+    private static final int TEST_TYPE = 0x01;
+    private final Counter[] counter = new Counter[3];
 
     /**
      * 

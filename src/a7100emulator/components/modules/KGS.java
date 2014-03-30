@@ -29,7 +29,7 @@ import javax.swing.JFrame;
 public final class KGS implements PortModule, ClockModule {
 
     // Zeichensätze
-    private Memory ram = new Memory(32768);
+    private final Memory ram = new Memory(0x8000);
     // Zeichencodes
     private final static int CODE_NUL = 0x00;
     private final static int CODE_SOH = 0x01;
@@ -76,15 +76,15 @@ public final class KGS implements PortModule, ClockModule {
     private int cursorRow = 1;
     private int cursorColumn = 1;
     private boolean receiveSequence = false;
-    private LinkedList<Byte> escSequence = new LinkedList<Byte>();
-    private boolean[] hTabs = new boolean[80];
-    private boolean[] vTabs = new boolean[25];
+    private final LinkedList<Byte> escSequence = new LinkedList<Byte>();
+    private final boolean[] hTabs = new boolean[80];
+    private final boolean[] vTabs = new boolean[25];
     private ABG abg;
     private boolean disableGraphics = false;
     private boolean initialized = false;
     private long interruptClock = 0;
     private boolean interruptWaiting = false;
-    private byte[] deviceBuffer = new byte[100];
+    private final byte[] deviceBuffer = new byte[100];
     private int bufferPosition = 0;
     private int cursorRowSave = 1;
     private int cursorColumnSave = 1;
@@ -94,7 +94,7 @@ public final class KGS implements PortModule, ClockModule {
     private boolean underline = false;
     private boolean wraparound = false;
     private boolean wrapped = false;
-    private LinkedList<Byte> deviceBuffer2 = new LinkedList<Byte>();
+    private final LinkedList<Byte> deviceBuffer2 = new LinkedList<Byte>();
     // GSX-Parameter
     private boolean gsx_AALP = true;
     private boolean gsx_ALOC = false;
@@ -279,7 +279,7 @@ public final class KGS implements PortModule, ClockModule {
             abg.removeCursor(cursorRow - 1, cursorColumn - 1);
             if (receiveSequence) {
                 escSequence.add((byte) (data & 0xFF));
-                System.out.print((char) data);
+                //System.out.print((char) data);
                 checkESC();
             } else {
                 if (data >= 0x20 && data != CODE_DEL) {
@@ -313,21 +313,21 @@ public final class KGS implements PortModule, ClockModule {
                             break;
                         case CODE_SOH:
                             // Start Grafiktastencode
-                            System.out.println("Starte Grafik-Tastencode");
+                            //System.out.println("Starte Grafik-Tastencode");
                             receiveSequence = true;
                             escSequence.clear();
                             escSequence.add((byte) 0x01);
                             break;
                         case CODE_STX:
                             // Start Grafik-Kommando
-                            System.out.println("Starte Grafik-Kommando");
+                            //System.out.println("Starte Grafik-Kommando");
                             receiveSequence = true;
                             escSequence.clear();
                             escSequence.add((byte) 0x02);
                             break;
                         case CODE_ETX:
                             // Ende Grafikkommando
-                            System.out.println("Ende Grafik-Kommando");
+                            //System.out.println("Ende Grafik-Kommando");
                             setBit(INT_BIT);
                             receiveSequence = false;
                             break;
@@ -375,12 +375,12 @@ public final class KGS implements PortModule, ClockModule {
                             break;
                         case CODE_SO:
                             // Shift Out
-                            System.out.println("Shift OUT");
+                            //System.out.println("Shift OUT");
                             // TODO
                             break;
                         case CODE_SI:
                             // Shift In
-                            System.out.println("Shift In");
+                            //System.out.println("Shift In");
                             // TODO
                             break;
                         case CODE_DLE:
@@ -399,7 +399,7 @@ public final class KGS implements PortModule, ClockModule {
                             receiveSequence = true;
                             escSequence.clear();
                             escSequence.add((byte) 0x1B);
-                            System.out.print("ESC ");
+                            //System.out.print("ESC ");
                             break;
                         case CODE_RS:
                             cursorColumn = 1;
@@ -460,18 +460,18 @@ public final class KGS implements PortModule, ClockModule {
         } else if (escSequence.peekFirst() == 0x01) {
             if (escSequence.size() == 2) {
                 int code = escSequence.peekLast() & 0xFF;
-                System.out.println(String.format("Tastaturkommando: %02X", code));
+                //System.out.println(String.format("Tastaturkommando: %02X", code));
                 receiveSequence = false;
             }
         } else if (escSequence.peekFirst() == 0x02) {
             if (escSequence.size() >= 3) {
                 int byteCnt = (escSequence.get(2) << 8) + escSequence.get(1);
                 if (escSequence.size() >= byteCnt + 3) {
-                    System.out.print("Anzahl der Bytes: " + byteCnt+ "(");
-                    for (byte b : escSequence) {
-                        System.out.print(String.format(" %03d", b));
-                    }
-                    System.out.println(" )");
+                  //  System.out.print("Anzahl der Bytes: " + byteCnt+ "(");
+                    //for (byte b : escSequence) {
+                    //    System.out.print(String.format(" %03d", b));
+                    //}
+                    //System.out.println(" )");
                     executeGraphicsBuffer();
                     receiveSequence = false;
                 }
@@ -699,10 +699,10 @@ public final class KGS implements PortModule, ClockModule {
                     for (int p : params) {
                         switch (p) {
                             case 4:
-                                System.out.println("Weiches Rollen Bildlinienweise");
+                                //System.out.println("Weiches Rollen Bildlinienweise");
                                 break;
                             case 7:
-                                System.out.println("Wraparound");
+                                //System.out.println("Wraparound");
                                 wraparound = true;
                                 break;
                             case 10:
@@ -710,11 +710,11 @@ public final class KGS implements PortModule, ClockModule {
                                 //System.out.println("Cursor blinkender Unterstrich");
                                 break;
                             case 14:
-                                System.out.println("Cursor sichtbar");
+                                //System.out.println("Cursor sichtbar");
                                 abg.setCursorMode(ABG.CursorMode.CURSOR_BLINK_LINE);
                                 break;
                             case 16:
-                                System.out.println("Weiches Rollen normal");
+                                //System.out.println("Weiches Rollen normal");
                                 break;
                         }
                     }
@@ -725,28 +725,28 @@ public final class KGS implements PortModule, ClockModule {
                     // [ Ps; Ps; ... ;Ps l Rücksetzen Modus
                     int[] params = getParameters();
                     for (int p : params) {
-                        System.out.println("" + p);
+                        //System.out.println("" + p);
                         switch (p) {
                             case 2:
-                                System.out.println("Modus 2");
+                                //System.out.println("Modus 2");
                                 break;
                             case 4:
-                                System.out.println("Hartes Rollen Bildlinienweise");
+                                //System.out.println("Hartes Rollen Bildlinienweise");
                                 break;
                             case 7:
-                                System.out.println("kein Wraparound");
+                                //System.out.println("kein Wraparound");
                                 wraparound = false;
                                 break;
                             case 10:
-                                System.out.println("Cursor nicht blinkender Block");
+                                //System.out.println("Cursor nicht blinkender Block");
                                 abg.setCursorMode(ABG.CursorMode.CURSOR_STATIC_BLOCK);
                                 break;
                             case 14:
-                                System.out.println("Cursor unsichtbar");
+                                //System.out.println("Cursor unsichtbar");
                                 abg.setCursorMode(ABG.CursorMode.CURSOR_INVISIBLE);
                                 break;
                             case 16:
-                                System.out.println("Schnelles Weiches Rollen");
+                                //System.out.println("Schnelles Weiches Rollen");
                                 break;
                         }
                     }
@@ -888,7 +888,7 @@ public final class KGS implements PortModule, ClockModule {
                     // [ p Unterdrücken Grafikanzeige
                     if (escSequence.size() == 3 && escSequence.get(1) == 0x5B) {
                         disableGraphics = true;
-                        System.out.println("Grafikmodus abgeschaltet");
+                        //System.out.println("Grafikmodus abgeschaltet");
                         receiveSequence = false;
                     }
                     break;
@@ -896,14 +896,14 @@ public final class KGS implements PortModule, ClockModule {
                     // [ s Erlauben Grafikanzeige
                     if (escSequence.size() == 3 && escSequence.get(1) == 0x5B) {
                         disableGraphics = false;
-                        System.out.println("Grafikmodus erlaubt");
+                        //System.out.println("Grafikmodus erlaubt");
                         receiveSequence = false;
                     }
                     break;
             }
         }
         if (!receiveSequence) {
-            System.out.println();
+            //System.out.println();
         }
     }
 
@@ -1346,6 +1346,7 @@ public final class KGS implements PortModule, ClockModule {
         for (int i = 0; i < deviceBuffer2.size(); i++) {
             dos.writeByte(deviceBuffer2.get(i));
         }
+        ram.saveMemory(dos);
         abg.saveState(dos);
     }
 
@@ -1390,6 +1391,7 @@ public final class KGS implements PortModule, ClockModule {
         for (int i = 0; i < size; i++) {
             deviceBuffer2.add(dis.readByte());
         }
+        ram.loadMemory(dis);
         abg.loadState(dis);
     }
 }

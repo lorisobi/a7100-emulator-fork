@@ -98,12 +98,12 @@ public class Keyboard implements KeyListener {
         boolean altgr = e.isAltGraphDown();
 
         //System.out.println(Integer.toHexString(code)+" "+e.getKeyChar());
-        if (e.isAltDown()) {
-            System.out.println("Alt");
-        }
-        if (e.isControlDown()) {
-            System.out.println("Ctrl");
-        }
+//        if (e.isAltDown()) {
+//            System.out.println("Alt");
+//        }
+//        if (e.isControlDown()) {
+//            System.out.println("Ctrl");
+//        }
 
         switch (e.getKeyCode()) {
             case KeyEvent.VK_0:

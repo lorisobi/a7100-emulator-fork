@@ -62,6 +62,7 @@ public class SystemMemory {
     public void writeByte(int address, int value) {
         MemoryModule module = getModuleForAddress(address);
         if (module == null) {
+            //System.out.println("Zugriff auf nicht vorhandenen Speicher");            
             return;
         }
         module.writeByte(address, value);
@@ -75,6 +76,7 @@ public class SystemMemory {
     public int readByte(int address) {
         MemoryModule module = getModuleForAddress(address);
         if (module == null) {
+            //System.out.println("Zugriff auf nicht vorhandenen Speicher");
             return 0;
         }
         return module.readByte(address);
@@ -88,6 +90,7 @@ public class SystemMemory {
     public void writeWord(int address, int value) {
         MemoryModule module = getModuleForAddress(address);
         if (module == null) {
+            //System.out.println("Zugriff auf nicht vorhandenen Speicher");
             return;
         }
         module.writeWord(address, value);
@@ -101,6 +104,7 @@ public class SystemMemory {
     public int readWord(int address) {
         MemoryModule module = getModuleForAddress(address);
         if (module == null) {
+            //System.out.println("Zugriff auf nicht vorhandenen Speicher");
             return 0;
         }
         return module.readWord(address);

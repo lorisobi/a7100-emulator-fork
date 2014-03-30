@@ -66,9 +66,9 @@ public final class ABG implements Module, ClockModule {
     private volatile BufferedImage graphicsScreen = new BufferedImage(640, 400, BufferedImage.TYPE_INT_RGB);
     private volatile BufferedImage screenImage = new BufferedImage(640, 400, BufferedImage.TYPE_INT_RGB);
     // Puffer
-    private byte[][][] alphanumericBuffer = new byte[80][25][16];
-    private byte[][] attributeBuffer = new byte[80][25];
-    private byte[][] graphicsBuffer = new byte[640][400];
+    private final byte[][][] alphanumericBuffer = new byte[80][25][16];
+    private final byte[][] attributeBuffer = new byte[80][25];
+    private final byte[][] graphicsBuffer = new byte[640][400];
     private int blinkState = 0;
     private int blinkClock = 0;
     private CursorMode cursorMode = CursorMode.CURSOR_BLINK_LINE;

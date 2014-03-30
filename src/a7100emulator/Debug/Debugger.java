@@ -22,12 +22,13 @@ public class Debugger {
     //private int debugstart = -1;
     private static Debugger instance;
     private final DebuggerInfo debugInfo = DebuggerInfo.getInstance();
+    private int slowdown = 0;
 
     private Debugger() {
     }
 
     /**
-     * 
+     *
      * @return
      */
     public static Debugger getInstance() {
@@ -67,13 +68,13 @@ public class Debugger {
     }
 
     /**
-     * 
+     *
      */
     public void addLine() {
         // Ignoriere Interrupts
-       // if (debugInfo.getCs() == 0x0104) {
-       //     return;
-       // }
+        if (debugInfo.getCs() == 0x0104) {
+            return;
+        }
 
         String debugString = String.format("%04X:%04X [%02X] ", debugInfo.getCs(), debugInfo.getIp(), debugInfo.getOpcode()) + debugInfo.getCode();
         if (debugInfo.getOperands() != null) {
@@ -81,5 +82,19 @@ public class Debugger {
         }
         debugFile.println(debugString);
         debugFile.flush();
+    }
+
+    /**
+     * @return the slowdown
+     */
+    public int getSlowdown() {
+        return slowdown;
+    }
+
+    /**
+     * @param slowdown the slowdown to set
+     */
+    public void setSlowdown(int slowdown) {
+        this.slowdown = slowdown;
     }
 }

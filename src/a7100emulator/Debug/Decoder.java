@@ -24,15 +24,17 @@ import javax.swing.table.AbstractTableModel;
  */
 public class Decoder {
 
-    private TreeMap<Integer, String> decoder = new TreeMap();
+    private final TreeMap<Integer, String[]> decoder = new TreeMap();
     private static Decoder instance;
     private final DebuggerInfo debugInfo = DebuggerInfo.getInstance();
+    private int lastAddress = 0;
+    private final JTable table = new JTable(new DecoderTableModel());
 
     private Decoder() {
     }
 
     /**
-     * 
+     *
      * @return
      */
     public static Decoder getInstance() {
@@ -43,22 +45,13 @@ public class Decoder {
     }
 
     /**
-     * 
-     * @param address
-     * @param code
-     */
-    public void addItem(int address, String code) {
-        decoder.put(address, code);
-    }
-
-    /**
-     * 
+     *
      */
     public void show() {
-        JTable table = new JTable(new DecoderTableModel());
+
         JFrame frame = new JFrame("Disassembler");
-        frame.setMinimumSize(new Dimension(300, 200));
-        frame.setPreferredSize(new Dimension(300, 200));
+        frame.setMinimumSize(new Dimension(600, 500));
+        frame.setPreferredSize(new Dimension(600, 500));
         frame.getContentPane().add(new JScrollPane(table), BorderLayout.CENTER);
         frame.setVisible(true);
         try {
@@ -67,30 +60,38 @@ public class Decoder {
             Logger.getLogger(BitmapGenerator.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
-    
+
     /**
-     * 
+     *
      */
     public void save() {
         try {
             PrintStream decoderFile = new PrintStream(new FileOutputStream("./debug/Decoder.log"));
-            Object[] dec=decoder.values().toArray();
-            for (int i=0;i<dec.length;i++) {
-                decoderFile.println(dec[i].toString());
+            Object[] dec = decoder.values().toArray();
+            for (Object dec1 : dec) {
+                decoderFile.println(dec1.toString());
             }
             decoderFile.close();
         } catch (FileNotFoundException ex) {
             Logger.getLogger(Decoder.class.getName()).log(Level.SEVERE, null, ex);
         }
-        
+
     }
 
     /**
-     * 
+     *
      */
     public void addItem() {
-        String debugString = String.format("%04X:%04X ", debugInfo.getCs(), debugInfo.getIp()) + debugInfo.getCode();
-        decoder.put(debugInfo.getCs()*16+debugInfo.getIp(), debugString);
+//        String debugString = String.format("%04X:%04X ", debugInfo.getCs(), debugInfo.getIp()) + debugInfo.getCode();
+        lastAddress = debugInfo.getCs() * 16 + debugInfo.getIp();
+        synchronized (decoder) {
+            decoder.put(lastAddress, new String[]{String.format("%04X:%04X", debugInfo.getCs(), debugInfo.getIp()), debugInfo.getCode(), debugInfo.getOperands() == null ? "" : debugInfo.getOperands()});
+        }
+        ((AbstractTableModel) table.getModel()).fireTableDataChanged();
+    }
+
+    public void clear() {
+        decoder.clear();
     }
 
     class DecoderTableModel extends AbstractTableModel {
@@ -102,7 +103,7 @@ public class Decoder {
 
         @Override
         public int getColumnCount() {
-            return 2;
+            return 3;
         }
 
         @Override
@@ -112,6 +113,8 @@ public class Decoder {
                     return "Adresse";
                 case 1:
                     return "Befehl";
+                case 2:
+                    return "Operanden";
                 default:
                     throw new IllegalArgumentException("Column " + column + " existiert nicht!");
             }
@@ -129,10 +132,11 @@ public class Decoder {
 
         @Override
         public Object getValueAt(int row, int column) {
-            if (column == 0) {
-                return ((String) decoder.values().toArray()[row]).substring(0, 9);
-            } else {
-                return ((String) decoder.values().toArray()[row]).substring(10);
+            synchronized (decoder) {
+                if (((Integer) decoder.keySet().toArray()[row]) == lastAddress) {
+                    table.setRowSelectionInterval(row, row);
+                }
+                return ((String[]) decoder.values().toArray()[row])[column];
             }
         }
 

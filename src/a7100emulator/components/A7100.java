@@ -20,7 +20,7 @@ public class A7100 {
     private ZPS zps = null;
     private OPS ops1 = new OPS();
     private OPS ops2 = new OPS();
-    private OPS ops3 = new OPS();
+   // private OPS ops3 = new OPS();
     private KGS kgs = new KGS();
     private KES kes = new KES();
     private ASP asp = null;
@@ -83,7 +83,7 @@ public class A7100 {
             zve.saveState(dos);
             ops1.saveState(dos);
             ops2.saveState(dos);
-            ops3.saveState(dos);
+           // ops3.saveState(dos);
             kgs.saveState(dos);
             kes.saveState(dos);
 
@@ -115,7 +115,7 @@ public class A7100 {
             zve.loadState(dis);
             ops1.loadState(dis);
             ops2.loadState(dis);
-            ops3.loadState(dis);
+          //  ops3.loadState(dis);
             kgs.loadState(dis);
             kes.loadState(dis);
 
@@ -150,7 +150,7 @@ public class A7100 {
         zps = null;
         ops1 = new OPS();
         ops2 = new OPS();
-        ops3 = new OPS();
+        //ops3 = new OPS();
         kgs = new KGS();
         kes = new KES();
         asp = null;
