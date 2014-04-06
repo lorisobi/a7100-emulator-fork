@@ -1,6 +1,12 @@
 /*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
+ * RowHeadRenderer.java
+ * 
+ * Diese Datei gehört zum Projekt A7100 Emulator 
+ * (c) 2011-2014 Dirk Bräuer
+ * 
+ * Letzte Änderungen:
+ *   05.04.2014 Kommentare vervollständigt
+ *
  */
 package GUITools;
 
@@ -11,23 +17,25 @@ import javax.swing.SwingConstants;
 import javax.swing.table.TableCellRenderer;
 
 /**
+ * Renderer für Spaltenheader
  *
- * @author Dirk
+ * @author Dirk Bräuer
  */
 public class RowHeadRenderer implements TableCellRenderer {
 
     /**
-     * Gibt die Darzustellende Komponente zur++ck
+     * Gibt die Darzustellende Komponente zurück
+     *
      * @param table Tabelle
      * @param value Wert
      * @param isSelected wahr, wenn Selektiert
      * @param hasFocus wahr, wenn Fokus
      * @param row Zeile
-     * @param col Spalte
+     * @param column Spalte
      * @return Komponente
      */
     @Override
-    public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int col) {
+    public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
         JLabel lab = new JLabel(value.toString());
         lab.setOpaque(true);
         lab.setFont(table.getFont());

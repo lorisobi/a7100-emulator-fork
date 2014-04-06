@@ -1,6 +1,12 @@
 /*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
+ * ASP.java
+ * 
+ * Diese Datei gehört zum Projekt A7100 Emulator 
+ * (c) 2011-2014 Dirk Bräuer
+ * 
+ * Letzte Änderungen:
+ *   02.04.2014 Kommentare vervollständigt
+ *
  */
 package a7100emulator.components.modules;
 
@@ -10,13 +16,16 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 
 /**
+ * Klasse zur Abbildung der ASP (Anschlußsteuerung seriell/parallel)
+ * <p>
+ * TODO: Diese Klasse ist noch nicht vollständig implementiert
  *
- * @author Dirk
+ * @author Dirk Bräuer
  */
 public final class ASP implements PortModule {
 
     /**
-     * 
+     *
      */
     public static int asp_count = 0;
     private final static int PORT_ASP_1_ENABLE_INTERRUPT = 0x300;
@@ -56,7 +65,7 @@ public final class ASP implements PortModule {
     private final int asp_id;
 
     /**
-     * 
+     *
      */
     public ASP() {
         asp_id = asp_count++;
@@ -64,7 +73,7 @@ public final class ASP implements PortModule {
     }
 
     /**
-     * 
+     *
      */
     @Override
     public void registerPorts() {
@@ -112,7 +121,7 @@ public final class ASP implements PortModule {
     }
 
     /**
-     * 
+     *
      * @param port
      * @param data
      */
@@ -157,7 +166,7 @@ public final class ASP implements PortModule {
     }
 
     /**
-     * 
+     *
      * @param port
      * @param data
      */
@@ -202,7 +211,7 @@ public final class ASP implements PortModule {
     }
 
     /**
-     * 
+     *
      * @param port
      * @return
      */
@@ -248,7 +257,7 @@ public final class ASP implements PortModule {
     }
 
     /**
-     * 
+     *
      * @param port
      * @return
      */
@@ -294,7 +303,7 @@ public final class ASP implements PortModule {
     }
 
     /**
-     * 
+     *
      */
     @Override
     public void init() {
@@ -302,7 +311,7 @@ public final class ASP implements PortModule {
     }
 
     /**
-     * 
+     *
      * @param dos
      * @throws IOException
      */
@@ -312,7 +321,7 @@ public final class ASP implements PortModule {
     }
 
     /**
-     * 
+     *
      * @param dis
      * @throws IOException
      */

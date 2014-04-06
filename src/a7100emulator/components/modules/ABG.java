@@ -1,6 +1,12 @@
 /*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
+ * ABG.java
+ * 
+ * Diese Datei gehört zum Projekt A7100 Emulator 
+ * (c) 2011-2014 Dirk Bräuer
+ * 
+ * Letzte Änderungen:
+ *   01.04.2014 Kommentare vervollständigt
+ *
  */
 package a7100emulator.components.modules;
 
@@ -15,20 +21,14 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 
 /**
+ * Klasse zur Abbildung der ABG (Anschlußsteuerung für grafischen Bildschirm)
  *
- * @author Dirk
+ * @author Dirk Bräuer
  */
 public final class ABG implements Module, ClockModule {
 
     /**
-     * @param cursorMode the cursorMode to set
-     */
-    public void setCursorMode(CursorMode cursorMode) {
-        this.cursorMode = cursorMode;
-    }
-
-    /**
-     * 
+     * Enum zur Abbildung der möglichen Cursordarstellungen
      */
     public enum CursorMode {
 
@@ -49,41 +49,90 @@ public final class ABG implements Module, ClockModule {
          */
         CURSOR_STATIC_BLOCK;
     }
-    // Attribute
+
+    /**
+     * Attribut intensive Darstellung
+     */
     private static final int ATTRIBUTE_INTENSE = 0x01;
+    /**
+     * Attribut Blinkende Darstellung
+     */
     private static final int ATTRIBUTE_FLASH = 0x02;
+    /**
+     * Attribute Cursor
+     */
     private static final int ATTRIBUTE_CURSOR = 0x04;
+    /**
+     * Attribut unterstrichene Darstellung
+     */
     private static final int ATTRIBUTE_UNDERLINE = 0x08;
+    /**
+     * Attribut inverse Darstellung
+     */
     private static final int ATTRIBUTE_INVERSE = 0x10;
-    // Farben
-    private static final int GREEN = new Color(0, 150, 0).getRGB();
-    private static final int INTENSE_GREEN = new Color(0, 255, 0).getRGB();
-    private static final int DARK_GREEN = new Color(0, 75, 0).getRGB();
+    /**
+     * Farbe Schwarz
+     */
     private static final int BLACK = new Color(0, 0, 0).getRGB();
-    // Bilder
-    private volatile BufferedImage alphanumericScreen = new BufferedImage(640, 400, BufferedImage.TYPE_INT_RGB);
-    private volatile BufferedImage alphanumericScreenBlink = new BufferedImage(640, 400, BufferedImage.TYPE_INT_RGB);
-    private volatile BufferedImage graphicsScreen = new BufferedImage(640, 400, BufferedImage.TYPE_INT_RGB);
-    private volatile BufferedImage screenImage = new BufferedImage(640, 400, BufferedImage.TYPE_INT_RGB);
-    // Puffer
+    /**
+     * Alphanumerik-Bildschirm
+     */
+    private BufferedImage alphanumericScreen = new BufferedImage(640, 400, BufferedImage.TYPE_INT_RGB);
+    /**
+     * Alphanumerik-Bildschirm blinkend
+     */
+    private final BufferedImage alphanumericScreenBlink = new BufferedImage(640, 400, BufferedImage.TYPE_INT_RGB);
+    /**
+     * Grafikbildschirm
+     */
+    private final BufferedImage graphicsScreen = new BufferedImage(640, 400, BufferedImage.TYPE_INT_RGB);
+    /**
+     * aktuell Dargestellter Bildschirm
+     */
+    private BufferedImage screenImage = new BufferedImage(640, 400, BufferedImage.TYPE_INT_RGB);
+    /**
+     * Puffer für darstellbare Zeichen
+     */
     private final byte[][][] alphanumericBuffer = new byte[80][25][16];
+    /**
+     * Puffer für Attribute
+     */
     private final byte[][] attributeBuffer = new byte[80][25];
+    /**
+     * Puffer für grafischen Bildschirm
+     */
     private final byte[][] graphicsBuffer = new byte[640][400];
+    /**
+     * Aktueller Zustand für blinkenden Text / Cursor 0 - Nicht dargestellt / 1
+     * - dargestellt
+     */
     private int blinkState = 0;
+    /**
+     * Zähler für Wechsel des Zustands blinken
+     */
     private int blinkClock = 0;
+    /**
+     * Aktueller Cursor
+     */
     private CursorMode cursorMode = CursorMode.CURSOR_BLINK_LINE;
+    /**
+     * Aktuelle Zeile des Cursors
+     */
     private int cursorRow = 1;
+    /**
+     * Aktuelle Spalte des Cursors
+     */
     private int cursorColumn = 1;
 
     /**
-     * 
+     * Erstellt eine neue ABG und initialisiert diese
      */
     public ABG() {
         init();
     }
 
     /**
-     * 
+     * Intitialisiert die ABG
      */
     @Override
     public void init() {
@@ -102,41 +151,41 @@ public final class ABG implements Module, ClockModule {
     }
 
     /**
-     * @return the alphanumericScreen
+     * Gibt den Verweis auf den Alphanumerik-Bildschirm zurück
+     *
+     * @return Alphanumerik Bildschirm
      */
-    public BufferedImage getAlphanumericScreen() {
+    BufferedImage getAlphanumericScreen() {
         return alphanumericScreen;
     }
 
     /**
-     * @return the graphicsScreen
+     * Gibt den Verweis auf den Grafikbildschirm zurück
+     *
+     * @return Grafikbildschirm
      */
-    public BufferedImage getGraphicsScreen() {
+    BufferedImage getGraphicsScreen() {
         return graphicsScreen;
     }
 
     /**
-     * 
-     * @return
+     * Setzt den Liniencode sowie die Attribute für ein Zeichen des
+     * Alphanumerik-Bildschirms
+     *
+     * @param row Zeilennummer
+     * @param column Spaltennummer
+     * @param linecodes Liniencode des Zeichens
+     * @param intense Intensive Darstellung
+     * @param flash Blinkende Darstellung
+     * @param cursor Darstellung des Cursors
+     * @param underline Unterstrichene Darstellung
+     * @param inverse Inverse Darstellung
      */
-    public BufferedImage Screen() {
-        return alphanumericScreen;
-    }
+    void setLineCodes(int row, int column, byte[] linecodes, boolean intense, boolean flash, boolean cursor, boolean underline, boolean inverse) {
+        if (column > 79) {
+            column = 79;
+        }
 
-    /**
-     * 
-     * @param row
-     * @param column
-     * @param linecodes
-     * @param intense
-     * @param flash
-     * @param cursor
-     * @param underline
-     * @param inverse
-     */
-    public void setLineCodes(int row, int column, byte[] linecodes, boolean intense, boolean flash, boolean cursor, boolean underline, boolean inverse) {
-        if (column>79)column=79;
-        
         alphanumericBuffer[column][row] = linecodes;
         byte attribute = 0;
         if (intense) {
@@ -155,24 +204,19 @@ public final class ABG implements Module, ClockModule {
             attribute |= ATTRIBUTE_INVERSE;
         }
         attributeBuffer[column][row] = attribute;
-        updateAlphanumericScreen(column, row);
-    }
-
-    private void generateAlphanumericScreen() {
-        for (int row = 0; row < 25; row++) {
-            for (int column = 0; column < 80; column++) {
-                updateAlphanumericScreen(column, row);
-            }
-        }
+        updateAlphanumericScreen(row, column);
     }
 
     /**
-     * 
+     * Zeichnet die Komponente neu und aktualisiert damit die Ansicht
      */
-    public void updateScreen() {
+    private void updateScreen() {
         Screen.getInstance().repaint();
     }
 
+    /**
+     * Schiebt den Alphanumerik-Bildschirm eine Zeile nach oben
+     */
     void rollAlphanumericScreen() {
         for (int column = 0; column < 80; column++) {
             System.arraycopy(alphanumericBuffer[column], 1, alphanumericBuffer[column], 0, 24);
@@ -188,7 +232,7 @@ public final class ABG implements Module, ClockModule {
     }
 
     /**
-     * 
+     * Registriert das Modul für Änderungen der Systemzeit
      */
     @Override
     public void registerClocks() {
@@ -196,8 +240,9 @@ public final class ABG implements Module, ClockModule {
     }
 
     /**
-     * 
-     * @param amount
+     * Verarbeitet die geänderte Systemzeit
+     *
+     * @param amount Anzahl der Ticks
      */
     @Override
     public void clockUpdate(int amount) {
@@ -210,23 +255,50 @@ public final class ABG implements Module, ClockModule {
             } else {
                 blinkState = 0;
             }
-            updateAlphanumericScreen(cursorColumn, cursorRow);
+            updateAlphanumericScreen(cursorRow, cursorColumn);
         }
     }
 
+    /**
+     * Entfernt den Cursor von der angegebenen Position
+     *
+     * @param cursorRow Zeile
+     * @param cursorColumn Spalte
+     */
     void removeCursor(int cursorRow, int cursorColumn) {
         attributeBuffer[(cursorColumn >= 80) ? 79 : cursorColumn][cursorRow] &= ~ATTRIBUTE_CURSOR;
-        updateAlphanumericScreen((cursorColumn >= 80) ? 79 : cursorColumn, cursorRow);
+        updateAlphanumericScreen(cursorRow, (cursorColumn >= 80) ? 79 : cursorColumn);
     }
 
+    /**
+     * Setzt den Cursor auf die angegebene Position
+     *
+     * @param newCursorRow Zeile
+     * @param newCursorColumn Spalte
+     */
     void setCursor(int newCursorRow, int newCursorColumn) {
         cursorColumn = (newCursorColumn >= 80) ? 79 : newCursorColumn;
         cursorRow = newCursorRow;
         attributeBuffer[cursorColumn][cursorRow] |= ATTRIBUTE_CURSOR;
-        updateAlphanumericScreen(cursorColumn, cursorRow);
+        updateAlphanumericScreen(cursorRow, cursorColumn);
     }
 
-    private void updateAlphanumericScreen(int column, int row) {
+    /**
+     * Setzt den aktuellen Cursor-Modus
+     *
+     * @param cursorMode the cursorMode to set
+     */
+    void setCursorMode(CursorMode cursorMode) {
+        this.cursorMode = cursorMode;
+    }
+
+    /**
+     * Aktualisiert ein Zeichen des Alphanumerik-Bildschirms
+     *
+     * @param row Zeile
+     * @param column Spalte
+     */
+    private void updateAlphanumericScreen(int row, int column) {
         Graphics g = alphanumericScreen.getGraphics();
 
         boolean flash = (attributeBuffer[column][row] & ATTRIBUTE_FLASH) == ATTRIBUTE_FLASH;
@@ -268,13 +340,14 @@ public final class ABG implements Module, ClockModule {
 
         BufferedImage character = BitmapGenerator.generateBitmapFromLineCode(linecode, intense, inverse, underline, flash);
         g.drawImage(character, column * 8, row * 16, null);
-        this.updateScreen();
+        updateScreen();
     }
 
     /**
-     * 
-     * @param dos
-     * @throws IOException
+     * Speichert den Zustand der ABG in eine Datei
+     *
+     * @param dos Stream zur Datei
+     * @throws IOException Wenn das Schreiben nicht erfolgreich war
      */
     @Override
     public void saveState(DataOutputStream dos) throws IOException {
@@ -303,34 +376,46 @@ public final class ABG implements Module, ClockModule {
     }
 
     /**
-     * 
-     * @param dis
-     * @throws IOException
+     * Lädt den Zustand der ABG aus einer datei
+     *
+     * @param dis Stream der Datei
+     * @throws IOException Wenn das Lesen nicht erfolgreich war
      */
     @Override
     public void loadState(DataInputStream dis) throws IOException {
         for (int i = 0; i < 80; i++) {
             for (int j = 0; j < 25; j++) {
                 for (int k = 0; k < 16; k++) {
-                    alphanumericBuffer[i][j][k]=dis.readByte();
+                    alphanumericBuffer[i][j][k] = dis.readByte();
                 }
             }
         }
         for (int i = 0; i < 80; i++) {
             for (int j = 0; j < 25; j++) {
-                attributeBuffer[i][j]=dis.readByte();
+                attributeBuffer[i][j] = dis.readByte();
             }
         }
         for (int i = 0; i < 640; i++) {
             for (int j = 0; j < 400; j++) {
-                graphicsBuffer[i][j]=dis.readByte();
+                graphicsBuffer[i][j] = dis.readByte();
             }
         }
-        blinkState=dis.readInt();
-        blinkClock=dis.readInt();
-        cursorMode=CursorMode.valueOf(dis.readUTF());
-        cursorRow=dis.readInt();
-        cursorColumn=dis.readInt();
+        blinkState = dis.readInt();
+        blinkClock = dis.readInt();
+        cursorMode = CursorMode.valueOf(dis.readUTF());
+        cursorRow = dis.readInt();
+        cursorColumn = dis.readInt();
         generateAlphanumericScreen();
+    }
+
+    /**
+     * Erstellt den Alphanumerik-Bildschirm neu
+     */
+    private void generateAlphanumericScreen() {
+        for (int row = 0; row < 25; row++) {
+            for (int column = 0; column < 80; column++) {
+                updateAlphanumericScreen(row, column);
+            }
+        }
     }
 }

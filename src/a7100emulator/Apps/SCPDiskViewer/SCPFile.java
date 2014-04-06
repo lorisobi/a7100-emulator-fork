@@ -1,134 +1,203 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+ * SCPFile.java
+ * 
+ * Diese Datei gehört zum Projekt A7100 Emulator 
+ * (c) 2011-2014 Dirk Bräuer
+ * 
+ * Letzte Änderungen:
+ *   05.04.2014 Kommentare vervollständigt
+ *
  */
-
 package a7100emulator.Apps.SCPDiskViewer;
 
 /**
+ * Klasse zur Verarbeitung einer SCP-Datei
  *
- * @author Dirk
+ * @author Dirk Bräuer
  */
 public class SCPFile {
+
+    /**
+     * User
+     */
     private int user;
+    /**
+     * Dateiname
+     */
     private String name;
+    /**
+     * Endung
+     */
     private String extension;
+    /**
+     * Gibt an ob die Datei schreibgeschützt ist
+     */
     private boolean readOnly;
+    /**
+     * Gibt an ob es sich um eine Systemdatei handelt
+     */
     private boolean system;
+    /**
+     * Gibt an, ob das Attribut extra gesetzt ist
+     */
     private boolean extra;
+    /**
+     * Inhalt der Datei
+     */
     private byte[] data;
 
-    
-    public SCPFile(String name, String extension, boolean readOnly, boolean system, boolean extra, int user) {
-        this.name=name;
-        this.extension=extension;
-        this.readOnly=readOnly;
-        this.system=system;
-        this.extra=extra;
-        this.user=user;
-    }
-    
     /**
-     * @return the name
+     * Erstellt eine neue SCP-Datei
+     *
+     * @param name Name
+     * @param extension Endung
+     * @param readOnly Schreibschutz
+     * @param system Systemdatei
+     * @param extra Extra-Attribut
+     * @param user Nutzernummer
      */
-    public String getName() {
-        return name;
-    }
-
-    /**
-     * @param name the name to set
-     */
-    public void setName(String name) {
+    SCPFile(String name, String extension, boolean readOnly, boolean system, boolean extra, int user) {
         this.name = name;
-    }
-
-    /**
-     * @return the extension
-     */
-    public String getExtension() {
-        return extension;
-    }
-
-    /**
-     * @param extension the extension to set
-     */
-    public void setExtension(String extension) {
         this.extension = extension;
-    }
-    
-    public String getFullName() {
-        return name.trim()+"."+extension.trim();
-    }
-
-    /**
-     * @return the readOnlyFile
-     */
-    public boolean isReadOnlyFile() {
-        return readOnly;
-    }
-
-    /**
-     * @param readOnlyFile the readOnlyFile to set
-     */
-    public void setReadOnlyFile(boolean readOnlyFile) {
-        this.readOnly = readOnlyFile;
-    }
-
-    /**
-     * @return the systemFile
-     */
-    public boolean isSystemFile() {
-        return system;
-    }
-
-    /**
-     * @param systemFile the systemFile to set
-     */
-    public void setSystemFile(boolean systemFile) {
-        this.system = systemFile;
-    }
-
-    /**
-     * @return the data
-     */
-    public byte[] getData() {
-        return data;
-    }
-
-    /**
-     * @param data the data to set
-     */
-    public void setData(byte[] data) {
-        this.data = data;
-    }
-
-    /**
-     * @return the user
-     */
-    public int getUser() {
-        return user;
-    }
-
-    /**
-     * @param user the user to set
-     */
-    public void setUser(int user) {
+        this.readOnly = readOnly;
+        this.system = system;
+        this.extra = extra;
         this.user = user;
     }
 
     /**
-     * @return the extra
+     * Gibt den Namen der DAtei zurück
+     *
+     * @return Name
      */
-    public boolean isExtra() {
+    String getName() {
+        return name;
+    }
+
+    /**
+     * Setzt den Namen der DAtei
+     *
+     * @param name Neuer DAteiname
+     */
+    void setName(String name) {
+        this.name = name;
+    }
+
+    /**
+     * Gibt die Erweiterung der DAtei zurück
+     *
+     * @return Erweiterung
+     */
+    String getExtension() {
+        return extension;
+    }
+
+    /**
+     * Setzt die Dateierweiterung
+     *
+     * @param extension Neue Erweiterung
+     */
+    void setExtension(String extension) {
+        this.extension = extension;
+    }
+
+    /**
+     * Gibt den NAmen+Erweiterung zurück
+     *
+     * @return Voller Dateiname
+     */
+    String getFullName() {
+        return name.trim() + "." + extension.trim();
+    }
+
+    /**
+     * Gibt an, ob die Datei schreibgeschützt ist
+     *
+     * @return true - wenn schreibgeschützt , false - sonst
+     */
+    boolean isReadOnlyFile() {
+        return readOnly;
+    }
+
+    /**
+     * Setzt den Schreibschutz der Datei
+     *
+     * @param readOnlyFile true - wenn schreibgeschützt , false - sonst
+     */
+    void setReadOnlyFile(boolean readOnlyFile) {
+        this.readOnly = readOnlyFile;
+    }
+
+    /**
+     * Gibt an, ob es sich um eine Systemdatei handelt
+     *
+     * @return true - wenn Systemdatei , false - sonst
+     */
+    boolean isSystemFile() {
+        return system;
+    }
+
+    /**
+     * Setzt den System-Status einer DAtei
+     *
+     * @param systemFile true - wenn Systemdatei , false - sonst
+     */
+    void setSystemFile(boolean systemFile) {
+        this.system = systemFile;
+    }
+
+    /**
+     * Gibt die Daten der Datei zurück
+     *
+     * @return Daten
+     */
+    byte[] getData() {
+        return data;
+    }
+
+    /**
+     * Setzt die Daten der Datei
+     *
+     * @param data neue Daten
+     */
+    void setData(byte[] data) {
+        this.data = data;
+    }
+
+    /**
+     * Gibt die Nutzernummer der Datei zurück
+     *
+     * @return Nutzernummer
+     */
+    int getUser() {
+        return user;
+    }
+
+    /**
+     * Setzt die Nutzernummer der DAtei
+     *
+     * @param user Neue Nutzernumer
+     */
+    void setUser(int user) {
+        this.user = user;
+    }
+
+    /**
+     * Gibt das Extra-Attribut der Datei zurück
+     *
+     * @return true - wenn Extra gesetzt , false - sonst
+     */
+    boolean isExtra() {
         return extra;
     }
 
     /**
-     * @param extra the extra to set
+     * Setzt das Extra-Attribut
+     *
+     * @param extra true - wenn Extra Attribut gesetzt werden soll, false -
+     * sonst
      */
-    public void setExtra(boolean extra) {
+    void setExtra(boolean extra) {
         this.extra = extra;
     }
-    
 }

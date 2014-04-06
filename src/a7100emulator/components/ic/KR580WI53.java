@@ -1,6 +1,12 @@
 /*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
+ * KR580WI53.java
+ * 
+ * Diese Datei gehört zum Projekt A7100 Emulator 
+ * (c) 2011-2014 Dirk Bräuer
+ * 
+ * Letzte Änderungen:
+ *   03.04.2014 Kommentare vervollständigt
+ *
  */
 package a7100emulator.components.ic;
 
@@ -10,19 +16,35 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 
 /**
+ * Klasse zur Realisierung des Timer-Schaltkreises PIT
  *
- * @author Dirk
+ * @author Dirk Bräuer
  */
 public class KR580WI53 {
 
+    /**
+     * Bitmaske zum Prüfen des angesprochenen Timers
+     */
     private static final int TEST_COUNTER = 0xC0;
+    /**
+     * Bitmaske zum Prüfen des Counter Zugriffs (Lesen, Schreiben, Latch)
+     */
     private static final int TEST_RW = 0x30;
+    /**
+     * Bitmaske zum Prüfen des Counter Modus
+     */
     private static final int TEST_MODE = 0x0E;
+    /**
+     * Bitmaske zum Prüfen des Zählertyps
+     */
     private static final int TEST_TYPE = 0x01;
+    /**
+     * Array der drei implementierten Zähler
+     */
     private final Counter[] counter = new Counter[3];
 
     /**
-     * 
+     * Erzeugt einen neuen PIT
      */
     public KR580WI53() {
         for (int i = 0; i < 3; i++) {
@@ -31,8 +53,9 @@ public class KR580WI53 {
     }
 
     /**
-     * 
-     * @param control
+     * Gibt ein Byte an den PIT aus
+     *
+     * @param control daten
      */
     public void writeInit(int control) {
         int counterID = (control & TEST_COUNTER) >> 6;
@@ -49,9 +72,10 @@ public class KR580WI53 {
     }
 
     /**
-     * 
-     * @param counterID
-     * @param data
+     * Setzt den Wert des gewählten Zählers
+     *
+     * @param counterID ID des Zählers
+     * @param data Wert
      */
     public void writeCounter(int counterID, int data) {
         //System.out.print("Setze Counter " + i + ": ");
@@ -59,9 +83,10 @@ public class KR580WI53 {
     }
 
     /**
-     * 
-     * @param counterID
-     * @return
+     * Liest den aktuellen Wert des gewählten Zählers
+     *
+     * @param counterID ID des Zählers
+     * @return Aktueller Zählerwert
      */
     public int readCounter(int counterID) {
         int val = counter[counterID].getValue();
@@ -70,8 +95,9 @@ public class KR580WI53 {
     }
 
     /**
-     * 
-     * @param amount
+     * Verarbeitet die geänderte Systemzeit und erhöht die Werte der Zähler
+     *
+     * @param amount Anzahl der Ticks
      */
     public void updateClock(int amount) {
         counter[0].update(amount >> 2);
@@ -80,9 +106,10 @@ public class KR580WI53 {
     }
 
     /**
-     * 
-     * @param dos
-     * @throws IOException
+     * Speichert den Zustand des PIT in einer Datei
+     *
+     * @param dos Stream zur Datei
+     * @throws IOException Wenn Schreiben nicht erfolgreiche war
      */
     public void saveState(DataOutputStream dos) throws IOException {
         for (int i = 0; i < 3; i++) {
@@ -91,9 +118,10 @@ public class KR580WI53 {
     }
 
     /**
-     * 
-     * @param dis
-     * @throws IOException
+     * Liest den Zustand des PIT aus einer Datei
+     *
+     * @param dis Stream zur Datei
+     * @throws IOException Wenn Lesen nicht erfolgreich war
      */
     public void loadState(DataInputStream dis) throws IOException {
         for (int i = 0; i < 3; i++) {
@@ -101,23 +129,65 @@ public class KR580WI53 {
         }
     }
 
-    class Counter {
+    /**
+     * Klasse zur Realisierung eines Zählers
+     */
+    private class Counter {
 
+        /**
+         * Nummer des Zählers
+         */
         private final int id;
+        /**
+         * Gibt an ob der Zähler gegenwärtig läuft
+         */
         private boolean running = false;
+        /**
+         * Gibt an ob der Counter-Latch Modus aktiviert ist (Wert speichern für
+         * Auslesen)
+         */
         private boolean latched = false;
+        /**
+         * Aktueller Wert des Counters
+         */
         private int value = 0;
+        /**
+         * Modus
+         */
         private int mode;
+        /**
+         * Counterart
+         */
         private int type;
+        /**
+         * Zugriffsmodus (Lesen, Schreiben, Latch)
+         */
         private int rw;
+        /**
+         * Status des Lesens/Schreibens, wird für sequentiellen Zugriff auf
+         * beide Bytes des Zählers verwendet
+         */
         private int readWriteState = 0;
+        /**
+         * Zwischenspeicher nach Latch für späteres Auslesen
+         */
         private int latch = 0;
 
-        public Counter(int id) {
+        /**
+         * Erstellt einen neuen Zähler
+         *
+         * @param id Nummer des Zählers
+         */
+        private Counter(int id) {
             this.id = id;
         }
 
-        public void setCounterInit(int control) {
+        /**
+         * Konfiguriert den Zähler
+         *
+         * @param control Steuerwort
+         */
+        private void setCounterInit(int control) {
             if (((TEST_RW & control) >> 4) == 0) {
                 if (!latched) {
                     latch = value;
@@ -132,7 +202,12 @@ public class KR580WI53 {
             //System.out.println("MODE:" + mode + " RW:" + rw + " Type:" + type);
         }
 
-        public void setValue(int val) {
+        /**
+         * Setzt den Wert des Zählers
+         *
+         * @param val Neuer Wert (bzw. ein Byte des Wertes)
+         */
+        private void setValue(int val) {
             switch (rw) {
                 case 0:
                     break;
@@ -162,7 +237,12 @@ public class KR580WI53 {
             //  System.out.println("Counter "+id+" - Neuer Wert:" + value);
         }
 
-        public int getValue() {
+        /**
+         * Liest den Wert des Zählers
+         *
+         * @return aktueller Wert (bzw. ein Byte des Wertes)
+         */
+        private int getValue() {
             switch (rw) {
                 case 0:
                     //return latch;
@@ -205,6 +285,12 @@ public class KR580WI53 {
             }
         }
 
+        /**
+         * Verarbeitet Änderungen der Systemzeit und setzt die entsprechenden
+         * Zählerwerte, für Counter 0 wird ggf. ein Interrupt ausgelöst
+         *
+         * @param amount Anzahl der Ticks
+         */
         private void update(long amount) {
             if (running) {
                 value -= amount;
@@ -221,6 +307,12 @@ public class KR580WI53 {
             }
         }
 
+        /**
+         * Speichert den Zustand des Zählers in einer Datei
+         *
+         * @param dos Stream zur Datei
+         * @throws IOException Wenn Schreiben nicht erfolgreich war
+         */
         private void saveState(DataOutputStream dos) throws IOException {
             dos.writeBoolean(running);
             dos.writeBoolean(latched);
@@ -232,6 +324,12 @@ public class KR580WI53 {
             dos.writeInt(latch);
         }
 
+        /**
+         * Lädt den Zustand des Zählers aus einer Datei
+         *
+         * @param dis Stream zur Datei
+         * @throws IOException Wenn Laden nicht erfolgreich war
+         */
         private void loadState(DataInputStream dis) throws IOException {
             running = dis.readBoolean();
             latched = dis.readBoolean();

@@ -1,29 +1,61 @@
 /*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
+ * DebuggerInfo.java
+ * 
+ * Diese Datei gehört zum Projekt A7100 Emulator 
+ * (c) 2011-2014 Dirk Bräuer
+ * 
+ * Letzte Änderungen:
+ *   05.04.2014 Kommentare vervollständigt
+ *
  */
 package a7100emulator.Debug;
 
 /**
+ * Klasse zum Bereitstellen der Debugger Informationen
  *
- * @author Dirk
+ * @author Dirk Bräuer
  */
 public class DebuggerInfo {
 
+    /**
+     * Aktuelle Systemzeit
+     */
     private long systemClock;
+    /**
+     * Codesegment
+     */
     private int cs;
+    /**
+     * Instruction-Pointer
+     */
     private int ip;
+    /**
+     * Opcode
+     */
     private int opcode;
+    /**
+     * Debug-String des Befehls
+     */
     private String code;
+    /**
+     * Debug-String der Operanden
+     */
     private String operands;
+    /**
+     * Singleton Instanz
+     */
     private static DebuggerInfo instance;
 
+    /**
+     * Erstellt eine neue DebuggerInfo
+     */
     private DebuggerInfo() {
     }
 
     /**
-     * 
-     * @return
+     * Gibt die Singleton Instanz zurück
+     *
+     * @return Instanz
      */
     public static DebuggerInfo getInstance() {
         if (instance == null) {
@@ -33,84 +65,108 @@ public class DebuggerInfo {
     }
 
     /**
-     * @return the systemClock
+     * Liefert die Systemzeit zurück
+     *
+     * @return Systemzeit
      */
-    public long getSystemClock() {
+    long getSystemClock() {
         return systemClock;
     }
 
     /**
-     * @param systemClock the systemClock to set
+     * Setzt die Systemzeit
+     *
+     * @param systemClock Systemzeit
      */
     public void setSystemClock(long systemClock) {
         this.systemClock = systemClock;
     }
 
     /**
-     * @return the cs
+     * Liefert das Codesegment zurück
+     *
+     * @return Codesegment
      */
-    public int getCs() {
+    int getCs() {
         return cs;
     }
 
     /**
-     * @param cs the cs to set
+     * Setzt das Codesegment
+     *
+     * @param cs Codsegment
      */
     public void setCs(int cs) {
         this.cs = cs;
     }
 
     /**
-     * @return the ip
+     * Gibt den Instruction-Pointer zurück
+     *
+     * @return Instruction-Pointer
      */
-    public int getIp() {
+    int getIp() {
         return ip;
     }
 
     /**
-     * @param ip the ip to set
+     * Setzt den Instruction-Pointer
+     *
+     * @param ip Instruction-Pointer
      */
     public void setIp(int ip) {
         this.ip = ip;
     }
 
     /**
-     * @return the code
+     * Gibt den Debug-String des Befehls zurück
+     *
+     * @return Debug-String
      */
     public String getCode() {
         return code;
     }
 
     /**
-     * @param code the code to set
+     * Setzt den Debug-String des Befehls
+     *
+     * @param code Debug-String
      */
     public void setCode(String code) {
         this.code = code;
     }
 
     /**
-     * @return the operands
+     * Gibt den Debug-String der Operanden zurück
+     *
+     * @return Debug-String
      */
-    public String getOperands() {
+    String getOperands() {
         return operands;
     }
 
     /**
-     * @param operands the operands to set
+     * Setzt den Debug-String der Operanden
+     *
+     * @param operands Debug-String
      */
     public void setOperands(String operands) {
         this.operands = operands;
     }
 
     /**
-     * @return the opcode
+     * Gibt den Opcode zurück
+     *
+     * @return Opcode
      */
-    public int getOpcode() {
+    int getOpcode() {
         return opcode;
     }
 
     /**
-     * @param opcode the opcode to set
+     * Setzt den Opcode
+     *
+     * @param opcode Opcode
      */
     public void setOpcode(int opcode) {
         this.opcode = opcode;

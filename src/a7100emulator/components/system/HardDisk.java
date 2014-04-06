@@ -1,15 +1,22 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+ * HardDisk.java
+ * 
+ * Diese Datei gehört zum Projekt A7100 Emulator 
+ * (c) 2011-2014 Dirk Bräuer
+ * 
+ * Letzte Änderungen:
+ *   05.04.2014 Kommentare vervollständigt
+ *
  */
-
 package a7100emulator.components.system;
 
 /**
+ * Klasse zur Abbildung einer Festplatte
+ * <p>
+ * TODO: Diese Klasse ist noch nicht vollständig implementiert
  *
- * @author Dirk
+ * @author Dirk Bräuer
  */
 public class HardDisk {
-    
+
 }

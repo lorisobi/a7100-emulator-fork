@@ -1,6 +1,12 @@
 /*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
+ * Beep.java
+ * 
+ * Diese Datei gehört zum Projekt A7100 Emulator 
+ * (c) 2011-2014 Dirk Bräuer
+ * 
+ * Letzte Änderungen:
+ *   05.04.2014 Kommentare vervollständigt
+ *
  */
 package a7100emulator.Tools;
 
@@ -10,18 +16,20 @@ import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.Clip;
 import javax.sound.sampled.Line;
-import javax.sound.sampled.LineUnavailableException;
 
 /**
+ * Klasse zur Realisierung des Tongebers
+ * <p>
+ * TODO: Diese Klasse ist noch nicht vollständig implementiert
  *
- * @author Dirk
+ * @author Dirk Bräuer
  */
 public class Beep {
 
     private Clip c = null;
 
     /**
-     * 
+     *
      */
     public Beep() {
         try {
@@ -52,7 +60,7 @@ public class Beep {
     }
 
     /**
-     * 
+     *
      */
     public synchronized void play() {
         c.start();

@@ -1,6 +1,12 @@
 /*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
+ * SystemPorts.java
+ * 
+ * Diese Datei gehört zum Projekt A7100 Emulator 
+ * (c) 2011-2014 Dirk Bräuer
+ * 
+ * Letzte Änderungen:
+ *   05.04.2014 Kommentare vervollständigt
+ *
  */
 package a7100emulator.components.system;
 
@@ -8,17 +14,23 @@ import a7100emulator.components.modules.PortModule;
 import java.util.HashMap;
 
 /**
- *
- * @author Dirk
+ * Singleton-Klasse zur Abbildung der E/A-Ports
+ * @author Dirk Bräuer
  */
 public class SystemPorts {
 
+    /**
+     * Instanz
+     */
     private static SystemPorts instance;
+    /**
+     * Liste der Module mit E/A Ressourcen
+     */
     private HashMap<Integer, PortModule> portModules = new HashMap<Integer, PortModule>();
     
     /**
-     * 
-     * @return
+     * Gibt die Instanz der SystemPorts zurück
+     * @return Instanz
      */
     public static SystemPorts getInstance() {
         if (instance == null) {
@@ -28,18 +40,18 @@ public class SystemPorts {
     }
     
     /**
-     * 
-     * @param module
-     * @param port
+     * Registriert ein Modul für einen Port
+     * @param module Modul
+     * @param port Port
      */
     public void registerPort(PortModule module, int port) {
         portModules.put(port, module);
     }
 
     /**
-     * 
-     * @param address
-     * @param value
+     * Gibt ein Byte auf einem Port aus
+     * @param address Port
+     * @param value Daten
      */
     public void writeByte(int address, int value) {
         PortModule module = portModules.get(address);
@@ -52,9 +64,9 @@ public class SystemPorts {
     }
 
     /**
-     * 
-     * @param address
-     * @return
+     * Liest ein Byte von einem Port
+     * @param address Port
+     * @return gelesenes Byte
      */
     public int readByte(int address) {
         PortModule module = portModules.get(address);
@@ -68,9 +80,9 @@ public class SystemPorts {
     }
 
     /**
-     * 
-     * @param address
-     * @param value
+     * Gibt ein Wort auf einem Port aus
+     * @param address Port
+     * @param value Daten
      */
     public void writeWord(int address, int value) {
         PortModule module = portModules.get(address);
@@ -83,9 +95,9 @@ public class SystemPorts {
     }
 
     /**
-     * 
-     * @param address
-     * @return
+     * Liest ein Wort von einem Port
+     * @param address Port
+     * @return gelesenes Wort
      */
     public int readWord(int address) {
         PortModule module = portModules.get(address);
@@ -98,7 +110,7 @@ public class SystemPorts {
     }
 
     /**
-     * 
+     * Löscht die Liste der Module
      */
     public void reset() {
         portModules.clear();

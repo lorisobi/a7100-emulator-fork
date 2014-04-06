@@ -1,6 +1,12 @@
 /*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
+ * A7100.java
+ * 
+ * Diese Datei gehört zum Projekt A7100 Emulator 
+ * (c) 2011-2014 Dirk Bräuer
+ * 
+ * Letzte Änderungen:
+ *   01.04.2014 Kommentare vervollständigt
+ *
  */
 package a7100emulator.components;
 
@@ -11,64 +17,86 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
+ * A7100 Hauptklasse
  *
- * @author Dirk
+ * @author Dirk Bräuer
  */
 public class A7100 {
 
+    /**
+     * ZVE-Modul
+     */
     private ZVE zve = new ZVE();
+    /**
+     * ZPS-Modul
+     */
     private ZPS zps = null;
+    /**
+     * 1. OPS-Modul
+     */
     private OPS ops1 = new OPS();
+    /**
+     * 2. OPS-Modul
+     */
     private OPS ops2 = new OPS();
-   // private OPS ops3 = new OPS();
+    /**
+     * 3. OPS-Modul
+     */
+    private OPS ops3 = new OPS();
+    /**
+     * KGS-Modul
+     */
     private KGS kgs = new KGS();
+    /**
+     * KES-Modul
+     */
     private KES kes = new KES();
+    /**
+     * ASP-Modul
+     */
     private ASP asp = null;
 
     /**
-     * 
+     * Erstellt einen neuen virtuellen A7100 und startet ihn
      */
     public A7100() {
         zve.start();
     }
 
     /**
-     * @return the zve
+     * Gibt die Referenz auf das ZVE-Modul zurück. Wird für Debug-Ausgaben und
+     * Emulator-Funktionen verwendet.
+     *
+     * @return ZVE-Modul
      */
     public ZVE getZVE() {
         return zve;
     }
 
     /**
-     * @return the ops1
-     */
-    public OPS getOPS1() {
-        return ops1;
-    }
-
-    /**
-     * @return the ops2
-     */
-    public OPS getOPS2() {
-        return ops2;
-    }
-
-    /**
-     * @return the kgs
+     * Gibt die Referenz auf das KGS-Modul zurück. Wird für Debug-Ausgaben
+     * verwendet
+     *
+     * @return KGS-Modul
      */
     public KGS getKGS() {
         return kgs;
     }
 
     /**
-     * @return the kes
+     * Gitb Referenz auf das KES-Modul zurück. Wird für die Verwaltung der
+     * Disketten-Images verwendet.
+     *
+     * @return KES-Modul
      */
     public KES getKES() {
         return kes;
     }
 
     /**
-     * 
+     * Speichert den aktuellen Zustand des Emulators in der Datei
+     * "./state/state.a7100" Dabei werden die saveState Methoden der Module
+     * sowie der verwendeten Peripherie aufgerufen.
      */
     public void saveState() {
         zve.pause();
@@ -83,7 +111,7 @@ public class A7100 {
             zve.saveState(dos);
             ops1.saveState(dos);
             ops2.saveState(dos);
-           // ops3.saveState(dos);
+            ops3.saveState(dos);
             kgs.saveState(dos);
             kes.saveState(dos);
 
@@ -100,7 +128,9 @@ public class A7100 {
     }
 
     /**
-     * 
+     * Lädt den aktuellen Zustand des Emulators aus der Datei
+     * "./state/state.a7100" Dabei werden die loadState Methoden der Module
+     * sowie der verwendeten Peripherie aufgerufen.
      */
     public void loadState() {
         zve.pause();
@@ -115,7 +145,7 @@ public class A7100 {
             zve.loadState(dis);
             ops1.loadState(dis);
             ops2.loadState(dis);
-          //  ops3.loadState(dis);
+            ops3.loadState(dis);
             kgs.loadState(dis);
             kes.loadState(dis);
 
@@ -131,7 +161,8 @@ public class A7100 {
     }
 
     /**
-     * 
+     * Setzt den Zustand des Emulators auf die Starteinstellung zurück. Dabei
+     * werden die reset Funktionen der Module sowie der Peripherie aufgerufen.
      */
     public void reset() {
         zve.stopCPU();
@@ -142,19 +173,18 @@ public class A7100 {
         InterruptSystem.getInstance().reset();
         Keyboard.getInstance().reset();
 
-        OPS.ops_count=0;
-        KES.kes_count=0;
-        ASP.asp_count=0;
-        
+        OPS.ops_count = 0;
+        KES.kes_count = 0;
+        ASP.asp_count = 0;
+
         zve = new ZVE();
         zps = null;
         ops1 = new OPS();
         ops2 = new OPS();
-        //ops3 = new OPS();
+        ops3 = new OPS();
         kgs = new KGS();
         kes = new KES();
         asp = null;
-
 
         zve.start();
     }

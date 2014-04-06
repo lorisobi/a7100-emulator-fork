@@ -1,6 +1,12 @@
 /*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
+ * Debugger.java
+ * 
+ * Diese Datei gehört zum Projekt A7100 Emulator 
+ * (c) 2011-2014 Dirk Bräuer
+ * 
+ * Letzte Änderungen:
+ *   05.04.2014 Kommentare vervollständigt
+ *
  */
 package a7100emulator.Debug;
 
@@ -11,25 +17,47 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
+ * Singleton-Klasse für Debugger der CPU
  *
- * @author Dirk
+ * @author Dirk Bräuer
  */
 public class Debugger {
 
+    /**
+     * Ausgabedatei
+     */
     private PrintStream debugFile = null;
+    /**
+     * Gibt an ob der Debugger aktiviert ist
+     */
     private boolean debug = false;
-    private int debugstart = 0x812 * 16 + 0x58C;
-    //private int debugstart = -1;
+    /**
+     * Instanz des Debuggers
+     */
     private static Debugger instance;
+    /**
+     * Referenz auf Debugger Informationen
+     */
     private final DebuggerInfo debugInfo = DebuggerInfo.getInstance();
+    /**
+     * Verzögerung im Debug-Modus in ms
+     */
     private int slowdown = 0;
+    /**
+     * Adresse für automatischen Start des Debuggers
+     */
+    private final int debugStart = 0;
 
+    /**
+     * Erstellt einen neuen Debugger
+     */
     private Debugger() {
     }
 
     /**
+     * Gibt die Singleton-Instanz des Debuggers zurück
      *
-     * @return
+     * @return Instanz
      */
     public static Debugger getInstance() {
         if (instance == null) {
@@ -39,20 +67,23 @@ public class Debugger {
     }
 
     /**
-     * @return the debug
+     * Gibt an ob der Debugger aktuell aktiv ist
+     *
+     * @return true - Debugger aktiv , false - Debugger inaktiv
      */
     public boolean isDebug() {
         return debug;
     }
 
     /**
-     * @param debug the debug to set
+     * Startet den Debugger oder hält ihn an
+     *
+     * @param debug true - wenn Debugger gestartet werden soll , false - sonst
      */
     public void setDebug(boolean debug) {
         if (debug) {
             try {
                 debugFile = new PrintStream(new FileOutputStream("./debug/K1810WM86.log"));
-                //SystemMemory.getInstance().dump("start_debug.hex");
             } catch (FileNotFoundException ex) {
                 Logger.getLogger(Debugger.class.getName()).log(Level.SEVERE, null, ex);
             }
@@ -61,14 +92,8 @@ public class Debugger {
     }
 
     /**
-     * @return the debugstart
-     */
-    public int getDebugstart() {
-        return debugstart;
-    }
-
-    /**
-     *
+     * Fügt einen Zeile zur Debug-Ausgabe hinzu basierend auf den aktuellen
+     * Debugger Informationen
      */
     public void addLine() {
         // Ignoriere Interrupts
@@ -85,16 +110,29 @@ public class Debugger {
     }
 
     /**
-     * @return the slowdown
+     * Liefert die aktuelle Verzögerung des Debuggers in ms
+     *
+     * @return Verzögerung
      */
     public int getSlowdown() {
         return slowdown;
     }
 
     /**
-     * @param slowdown the slowdown to set
+     * Setzt die aktuelle Verzögerung des Debuggers
+     *
+     * @param slowdown Verzögerung in ma
      */
     public void setSlowdown(int slowdown) {
         this.slowdown = slowdown;
+    }
+
+    /**
+     * Liefert die Adresse für automatischen Start des Debuggers
+     *
+     * @return Startadresse
+     */
+    public int getDebugStart() {
+        return debugStart;
     }
 }

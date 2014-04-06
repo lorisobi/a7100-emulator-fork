@@ -1,46 +1,56 @@
 /*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
+ * PortModule.java
+ * 
+ * Diese Datei gehört zum Projekt A7100 Emulator 
+ * (c) 2011-2014 Dirk Bräuer
+ * 
+ * Letzte Änderungen:
+ *   02.04.2014 Kommentare vervollständigt
+ *
  */
-
 package a7100emulator.components.modules;
 
 /**
+ * Interface für Module welche E/A Ports verwenden
  *
- * @author Dirk
+ * @author Dirk Bräuer
  */
 public interface PortModule extends Module {
 
     /**
-     * 
-     * @param port
-     * @return
-     */
-    int readPort_Byte(int port);
-
-    /**
-     * 
-     * @param port
-     * @return
-     */
-    int readPort_Word(int port);
-
-    /**
-     * 
+     * Registriert das Modul im E/A Bereich
      */
     void registerPorts();
 
     /**
-     * 
-     * @param port
-     * @param data
+     * Liest ein Byte von einem Port
+     *
+     * @param port Port
+     * @return gelesenes Byte
+     */
+    int readPort_Byte(int port);
+
+    /**
+     * Liest ein Wort von einem Port
+     *
+     * @param port Port
+     * @return gelesenes Wort
+     */
+    int readPort_Word(int port);
+
+    /**
+     * Gibt ein Byte auf einem Port aus
+     *
+     * @param port Port
+     * @param data Daten
      */
     void writePort_Byte(int port, int data);
 
     /**
-     * 
-     * @param port
-     * @param data
+     * Gibt ein Wort auf einem Port aus
+     *
+     * @param port Port
+     * @param data Daten
      */
     void writePort_Word(int port, int data);
 

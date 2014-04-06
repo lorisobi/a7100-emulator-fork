@@ -1,28 +1,45 @@
 /*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
+ * OpcodeStatistic.java
+ * 
+ * Diese Datei gehört zum Projekt A7100 Emulator 
+ * (c) 2011-2014 Dirk Bräuer
+ * 
+ * Letzte Änderungen:
+ *   05.04.2014 Kommentare vervollständigt
+ *
  */
 package a7100emulator.Debug;
 
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.PrintStream;
 
 /**
+ * Singleton-Klasse zum Sammeln der Opcode Statistik
  *
- * @author Dirk
+ * @author Dirk Bräuer
  */
 public class OpcodeStatistic {
 
+    /**
+     * Instanz
+     */
     private static OpcodeStatistic instance;
-    private int[] opCodeStatistic = new int[256];
-    private PrintStream opcodeFile = null;
+    /**
+     * Array mit Opcodezählern
+     */
+    private final int[] opCodeStatistic = new int[256];
 
+    /**
+     * Erstellt eine neue OpcodeStatistic
+     */
     private OpcodeStatistic() {
     }
 
     /**
-     * 
-     * @return
+     * Gibt die Instanz der OpcodeStatistic zurück
+     *
+     * @return Instanz
      */
     public static OpcodeStatistic getInstance() {
         if (instance == null) {
@@ -32,25 +49,26 @@ public class OpcodeStatistic {
     }
 
     /**
-     * 
-     * @param code
+     * Aktualisiert die Statistik basierend auf neuem Opcode
+     *
+     * @param code Opcode
      */
     public void addStatistic(int code) {
         opCodeStatistic[code]++;
     }
 
     /**
-     * 
+     * Speichert die Statistik in der Datei ./debug/OpcodeStatistic.log
      */
     public void dump() {
         try {
-            opcodeFile = new PrintStream(new FileOutputStream("./debug/OpcodeStatistic.log"));
+            PrintStream opcodeFile = new PrintStream(new FileOutputStream("./debug/OpcodeStatistic.log"));
             for (int i = 0; i < 256; i++) {
                 opcodeFile.println("" + opCodeStatistic[i]);
             }
             opcodeFile.flush();
             opcodeFile.close();
-        } catch (Exception e) {
+        } catch (FileNotFoundException e) {
         }
     }
 }

@@ -1,6 +1,12 @@
 /*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
+ * Decoder.java
+ * 
+ * Diese Datei gehört zum Projekt A7100 Emulator 
+ * (c) 2011-2014 Dirk Bräuer
+ * 
+ * Letzte Änderungen:
+ *   05.04.2014 Kommentare vervollständigt
+ *
  */
 package a7100emulator.Debug;
 
@@ -19,23 +25,43 @@ import javax.swing.JTable;
 import javax.swing.table.AbstractTableModel;
 
 /**
+ * Singleton-Klasse zum Bereitstellen von Decoder Informationen
  *
- * @author Dirk
+ * @author Dirk Bräuer
  */
 public class Decoder {
 
+    /**
+     * Decoder Informationen mit Adresse: Befehl, Operanden
+     */
     private final TreeMap<Integer, String[]> decoder = new TreeMap();
+    /**
+     * Instanz des Decoders
+     */
     private static Decoder instance;
+    /**
+     * Referenz auf Debugger Informationen
+     */
     private final DebuggerInfo debugInfo = DebuggerInfo.getInstance();
+    /**
+     * Zuletzt hinzugefügte Adresse
+     */
     private int lastAddress = 0;
+    /**
+     * Tabelle zur Anzeige der Decoder-Informationen
+     */
     private final JTable table = new JTable(new DecoderTableModel());
 
+    /**
+     * Erstellt einen neuen Decoder
+     */
     private Decoder() {
     }
 
     /**
+     * Gibt die Instanz des Decoders zurück
      *
-     * @return
+     * @return Instanz
      */
     public static Decoder getInstance() {
         if (instance == null) {
@@ -45,10 +71,10 @@ public class Decoder {
     }
 
     /**
-     *
+     * Zeigt die Decoder-Informationen in einem Fensteran
      */
     public void show() {
-
+        
         JFrame frame = new JFrame("Disassembler");
         frame.setMinimumSize(new Dimension(600, 500));
         frame.setPreferredSize(new Dimension(600, 500));
@@ -62,7 +88,7 @@ public class Decoder {
     }
 
     /**
-     *
+     * Speichert die Decoder-Informationen in der Datei ./debug/Decoder.log
      */
     public void save() {
         try {
@@ -79,7 +105,7 @@ public class Decoder {
     }
 
     /**
-     *
+     * Fügt die aktuellen Debug-Informationen dem Decoder hinzu
      */
     public void addItem() {
 //        String debugString = String.format("%04X:%04X ", debugInfo.getCs(), debugInfo.getIp()) + debugInfo.getCode();
@@ -90,22 +116,46 @@ public class Decoder {
         ((AbstractTableModel) table.getModel()).fireTableDataChanged();
     }
 
+    /**
+     * Löscht den Decoderinhalt
+     */
     public void clear() {
         decoder.clear();
     }
 
-    class DecoderTableModel extends AbstractTableModel {
+    /**
+     * Tabellenmodell zur Anzeige von Decoder-Informationen
+     *
+     * @author Dirk Bräuer
+     */
+    private class DecoderTableModel extends AbstractTableModel {
 
+        /**
+         * Gibt die Anzahl der Tabellenzeilen zurück
+         *
+         * @return Zeilenanzahl
+         */
         @Override
         public int getRowCount() {
             return decoder.size();
         }
 
+        /**
+         * Gibt die Anzahl der Spalten zurück
+         *
+         * @return Spaltenanzahl
+         */
         @Override
         public int getColumnCount() {
             return 3;
         }
 
+        /**
+         * Gibt die Spaltennamen zurück
+         *
+         * @param column Spaltennummer
+         * @return Spaltenname
+         */
         @Override
         public String getColumnName(int column) {
             switch (column) {
@@ -120,16 +170,36 @@ public class Decoder {
             }
         }
 
+        /**
+         * Gibt die Klasse der Spaltendaten zurück
+         *
+         * @param column Spaltennummer
+         * @return Klasse
+         */
         @Override
         public Class<?> getColumnClass(int column) {
             return String.class;
         }
 
+        /**
+         * Gibt an ob die gewählte Zelle editierbar ist
+         *
+         * @param row Zeilennummer
+         * @param column Spaltennummer
+         * @return true - wenn editierbar , false - sonst
+         */
         @Override
         public boolean isCellEditable(int row, int column) {
             return false;
         }
 
+        /**
+         * Gibt das Objekt an der gegebenen Poision zurück
+         *
+         * @param row Zeilennummer
+         * @param column Spaltennummer
+         * @return Objekt der Zelle
+         */
         @Override
         public Object getValueAt(int row, int column) {
             synchronized (decoder) {
@@ -140,6 +210,13 @@ public class Decoder {
             }
         }
 
+        /**
+         * Setzt das Objekt der Zelle
+         *
+         * @param value Objekt
+         * @param row Zeilennummer
+         * @param column Spaltennummer
+         */
         @Override
         public void setValueAt(Object value, int row, int column) {
         }

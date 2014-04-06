@@ -1,6 +1,12 @@
 /*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
+ * KR580WW55A.java
+ * 
+ * Diese Datei gehört zum Projekt A7100 Emulator 
+ * (c) 2011-2014 Dirk Bräuer
+ * 
+ * Letzte Änderungen:
+ *   03.04.2014 Kommentare vervollständigt
+ *
  */
 package a7100emulator.components.ic;
 
@@ -10,28 +16,71 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 
 /**
+ * Klasse zur Abbildung des Parallel-E/A-Schaltkreises PPI
  *
- * @author Dirk
+ * @author Dirk Bräuer
  */
 public class KR580WW55A {
 
+    /**
+     * Aktueller Modus des jeweiligen Ports
+     */
     enum In_Out {
 
-        INPUT, OUTPUT;
+        /**
+         * Eingabe Modus
+         */
+        INPUT,
+        /**
+         * Ausgabe Modus
+         */
+        OUTPUT;
     }
-    private int group_a_mode = 0;
-    private int group_b_mode = 0;
-    private In_Out port_c_lower_in_out = In_Out.INPUT;
-    private In_Out port_c_higher_in_out = In_Out.INPUT;
-    private In_Out port_b_in_out = In_Out.INPUT;
-    private In_Out port_a_in_out = In_Out.INPUT;
-    private int bits = 0;
-    private int dataB = 0;
-    //private Beep beep=new Beep();
 
     /**
-     * 
-     * @param control
+     * Modus Gruppe A
+     */
+    private int group_a_mode = 0;
+
+    /**
+     * Modus Gruppe B
+     */
+    private int group_b_mode = 0;
+
+    /**
+     * Modus Port C unteres Nibble
+     */
+    private In_Out port_c_lower_in_out = In_Out.INPUT;
+
+    /**
+     * Modus Port C oberes Nibble
+     */
+    private In_Out port_c_higher_in_out = In_Out.INPUT;
+
+    /**
+     * Modus Port B
+     */
+    private In_Out port_b_in_out = In_Out.INPUT;
+
+    /**
+     * Modus Port A
+     */
+    private In_Out port_a_in_out = In_Out.INPUT;
+
+    /**
+     * Aktuelle Bitkonfiguration
+     */
+    private int bits = 0;
+
+    /**
+     * Daten des Ports B
+     */
+    private int dataB = 0;
+
+    /**
+     * Setzt den Zustand des PPI
+     *
+     * @param control Control-Wort
      */
     public void writeInit(int control) {
 //        System.out.println("Out Control: " + Integer.toHexString(control)+"/"+Integer.toBinaryString(control));
@@ -96,29 +145,33 @@ public class KR580WW55A {
     }
 
     /**
-     * 
+     * Gibt ein Zeichen auf Port A aus
+     *
      * @param data
      */
     public void writePortA(int data) {
     }
 
     /**
-     * 
-     * @param data
+     * Gibt ein Zeichen auf Port B aus
+     *
+     * @param data Daten
      */
     public void writePortB(int data) {
         dataB = data;
     }
 
     /**
-     * 
-     * @param data
+     * Gibt ein Zeichen auf Port C aus
+     *
+     * @param data Daten
      */
     public void writePortC(int data) {
     }
 
     /**
-     * 
+     * Liest ein Zeichen vom Port A
+     *
      * @return
      */
     public int readPortA() {
@@ -126,7 +179,8 @@ public class KR580WW55A {
     }
 
     /**
-     * 
+     * Liest ein Zeichen vom Port B
+     *
      * @return
      */
     public int readPortB() {
@@ -134,21 +188,30 @@ public class KR580WW55A {
     }
 
     /**
-     * 
+     * Liest ein Zeichen vom Port C
+     *
      * @return
      */
     public int readPortC() {
         return 0;
     }
 
-    private boolean getBit(int op1, int i) {
-        return (((op1 >> i) & 0x1) == 0x1);
+    /**
+     * Gibt an ob ein Bit des Operanden gesetzt ist
+     *
+     * @param op Operand
+     * @param i Zu prüfendes Bit
+     * @return true - wenn Bit gesetzt, false - sonst
+     */
+    private boolean getBit(int op, int i) {
+        return (((op >> i) & 0x1) == 0x1);
     }
 
     /**
-     * 
-     * @param dos
-     * @throws IOException
+     * Schreibt den Zustand des PPI in eine Datei
+     *
+     * @param dos Stream zur Datei
+     * @throws IOException Wenn Schreiben nicht erfolgreich war
      */
     public void saveState(DataOutputStream dos) throws IOException {
         dos.writeInt(group_a_mode);
@@ -160,20 +223,21 @@ public class KR580WW55A {
         dos.writeInt(bits);
         dos.writeInt(dataB);
     }
-    
+
     /**
-     * 
-     * @param dis
-     * @throws IOException
+     * Liest den Zustand des PPI aus einer Datei
+     *
+     * @param dis Stream zur Datei
+     * @throws IOException Wenn Lesen nicht erfolgreich war
      */
     public void loadState(DataInputStream dis) throws IOException {
-        group_a_mode=dis.readInt();
-        group_b_mode=dis.readInt();
-        port_c_lower_in_out=In_Out.valueOf(dis.readUTF());
-        port_c_higher_in_out=In_Out.valueOf(dis.readUTF());
-        port_b_in_out=In_Out.valueOf(dis.readUTF());
-        port_a_in_out=In_Out.valueOf(dis.readUTF());
-        bits=dis.readInt();
-        dataB=dis.readInt();
+        group_a_mode = dis.readInt();
+        group_b_mode = dis.readInt();
+        port_c_lower_in_out = In_Out.valueOf(dis.readUTF());
+        port_c_higher_in_out = In_Out.valueOf(dis.readUTF());
+        port_b_in_out = In_Out.valueOf(dis.readUTF());
+        port_a_in_out = In_Out.valueOf(dis.readUTF());
+        bits = dis.readInt();
+        dataB = dis.readInt();
     }
 }

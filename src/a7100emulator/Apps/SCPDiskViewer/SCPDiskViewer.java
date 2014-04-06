@@ -1,7 +1,12 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+ * SCPFileViewer.java
+ * 
+ * Diese Datei gehört zum Projekt A7100 Emulator 
+ * (c) 2011-2014 Dirk Bräuer
+ * 
+ * Letzte Änderungen:
+ *   05.04.2014 Kommentare vervollständigt
+ *
  */
 package a7100emulator.Apps.SCPDiskViewer;
 
@@ -25,28 +30,65 @@ import javax.swing.SwingConstants;
 import javax.swing.table.AbstractTableModel;
 
 /**
- *
- * @author Dirk
+ * Ansicht des SCP-Disketten-Tools
+ * @author Dirk Bräuer
  */
 public class SCPDiskViewer extends JFrame {
 
+    /**
+     * Tabelle mit Dateien
+     */
     private final JTable fileTable = new JTable(new SCPDiskTableModel());
+    /**
+     * Controller
+     */
     private final SCPDiskController controller = new SCPDiskController();
+    /**
+     * Modell
+     */
     private final SCPDiskModel diskModel;
+    /**
+     * Button - Disketten Image öffnen
+     */
     private final JButton buttonOpenDisk = new JButton("Disketten Image öffnen");
+    /**
+     * Button - Datei extrahieren
+     */
     private final JButton buttonExtractSingleFile = new JButton("Datei extrahieren");
+    /**
+     * Button - alle Dateien extrahieren
+     */
     private final JButton buttonExtractAllFiles = new JButton("Alle Dateien extrahieren");
+    /**
+     * Button - Systemspur extrahieren
+     */
     private final JButton buttonExtractBootloader = new JButton("Anfangslader speichern");
+    /**
+     * Button - Beenden
+     */
     private final JButton buttonExit = new JButton("Beenden");
+    /**
+     * Anzeige - Dateiinformationen
+     */
     private final JLabel labelFileInfo = new JLabel(" ");
+    /**
+     * Anzeige Disketteninformationen
+     */
     private final JLabel labelDiskInfo = new JLabel(" ");
 
+    /**
+     * Erstellt eine neue Ansicht
+     * @param model Modell
+     */
     public SCPDiskViewer(SCPDiskModel model) {
         super("SCP-Disk Tool");
         this.diskModel = model;
         initialize();
     }
 
+    /**
+     * Initialisiert die Ansicht
+     */
     private void initialize() {
         this.setPreferredSize(new Dimension(700, 400));
         this.getContentPane().setLayout(new BorderLayout());
@@ -99,14 +141,26 @@ public class SCPDiskViewer extends JFrame {
         this.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
     }
 
+    /**
+     * Aktualisiert die Ansicht
+     */
     void updateView() {
         ((SCPDiskTableModel) fileTable.getModel()).fireTableDataChanged();
         labelFileInfo.setText(diskModel.getImageName());
         labelDiskInfo.setText(diskModel.getDiskInfo());
     }
 
-    class SCPDiskController implements ActionListener {
+    /**
+     * Controller für SCP-Disketten Tool
+     * 
+     * @author Dirk Bräuer
+     */
+    private class SCPDiskController implements ActionListener {
 
+        /**
+         * Verarbeitet ein Action-Event
+         * @param e Event
+         */
         @Override
         public void actionPerformed(ActionEvent e) {
             if (e.getSource() == buttonOpenDisk) {
@@ -146,18 +200,36 @@ public class SCPDiskViewer extends JFrame {
         }
     }
 
-    class SCPDiskTableModel extends AbstractTableModel {
+    /**
+     * Tabellenmodell für SCP-Dateien
+     * 
+     * @author Dirk Bräuer
+     */
+    private class SCPDiskTableModel extends AbstractTableModel {
 
+        /**
+         * Gibt die Anzahl der Zeilen zurück
+         * @return Anzahl der Zeilen
+         */
         @Override
         public int getRowCount() {
             return diskModel.getFiles().size();
         }
 
+        /**
+         * Gibt die Anzahl der Spalten zurück
+         * @return Anzahl der Spalten
+         */
         @Override
         public int getColumnCount() {
             return 6;
         }
 
+        /**
+         * Gibt den Spaltennamen zurück
+         * @param column Spaltennummer
+         * @return Spaltenname
+         */
         @Override
         public String getColumnName(int column) {
             switch (column) {
@@ -178,6 +250,12 @@ public class SCPDiskViewer extends JFrame {
             }
         }
 
+                /**
+         * Gibt die Klasse der Spaltendaten zurück
+         *
+         * @param column Spaltennummer
+         * @return Klasse
+         */
         @Override
         public Class<?> getColumnClass(int column) {
             switch (column) {
@@ -195,11 +273,25 @@ public class SCPDiskViewer extends JFrame {
             }
         }
 
+                /**
+         * Gibt an ob die gewählte Zelle editierbar ist
+         *
+         * @param row Zeilennummer
+         * @param column Spaltennummer
+         * @return true - wenn editierbar , false - sonst
+         */
         @Override
         public boolean isCellEditable(int row, int column) {
             return false;
         }
-
+        
+        /**
+         * Gibt das Objekt an der gegebenen Poision zurück
+         *
+         * @param row Zeilennummer
+         * @param column Spaltennummer
+         * @return Objekt der Zelle
+         */
         @Override
         public Object getValueAt(int row, int column) {
             SCPFile file = diskModel.getFiles().get(row);
@@ -221,7 +313,14 @@ public class SCPDiskViewer extends JFrame {
                     throw new IllegalArgumentException("Column " + column + " existiert nicht!");
             }
         }
-
+        
+        /**
+         * Setzt das Objekt der Zelle
+         *
+         * @param value Objekt
+         * @param row Zeilennummer
+         * @param column Spaltennummer
+         */
         @Override
         public void setValueAt(Object value, int row, int column) {
         }

@@ -1,7 +1,12 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+ * SCPFileModel.java
+ * 
+ * Diese Datei gehört zum Projekt A7100 Emulator 
+ * (c) 2011-2014 Dirk Bräuer
+ * 
+ * Letzte Änderungen:
+ *   05.04.2014 Kommentare vervollständigt
+ *
  */
 package a7100emulator.Apps.SCPDiskViewer;
 
@@ -16,31 +21,61 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- *
- * @author Dirk
+ * Modell des SCP-Disketten Tools
+ * @author Dirk Bräuer
  */
 public class SCPDiskModel {
 
+    /**
+     * Liste der Dateien
+     */
     private final ArrayList<SCPFile> files = new ArrayList<SCPFile>();
+    /**
+     * Refernz auf Ansicht
+     */
     private SCPDiskViewer view;
+    /**
+     * Offset für das Lesen der Verzeichnisinformationen
+     */
     private final int DIRECTORY_OFFSET = 0x3800;
+    /**
+     * Länge der Verzeichnisinformationen
+     */
     private final int DIRECTORY_LENGTH = 0x1000;
+    /**
+     * Name des geöffneten Images
+     */
     private String imageName = "kein Image geöffnet";
+    /**
+     * Anzahl der belegten Blöcke
+     */
     private int usedBlocks;
-    private byte[] bootloader=new byte[0x1A00];
+    /**
+     * Inhalt des Bootloaders
+     */
+    private final byte[] bootloader=new byte[0x1A00];
 
     /**
-     * @return the files
+     * Gibt die Liste der SCP-Dateien zurück
+     * @return Dateien
      */
-    public ArrayList<SCPFile> getFiles() {
+    ArrayList<SCPFile> getFiles() {
         return files;
     }
 
+    /**
+     * Setzt die Ansicht
+     * @param view Ansicht
+     */
     public void setView(SCPDiskViewer view) {
         this.view = view;
     }
 
-    public void readImage(File image) {
+    /**
+     * Liest ein Diskettenabbild ein
+     * @param image Abbild
+     */
+    void readImage(File image) {
         try {
             byte[] buffer = new byte[(int) image.length()];
             InputStream in = new FileInputStream(image);
@@ -121,12 +156,18 @@ public class SCPDiskModel {
     }
 
     /**
-     * @return the imageName
+     * Gibt den Namen des Abbilds zurück
+     * @return Name
      */
-    public String getImageName() {
+    String getImageName() {
         return imageName;
     }
 
+    /**
+     * Speichert eine SCP-Datei
+     * @param index Nummer der Datei
+     * @param file Ausgabedatei
+     */
     void saveFile(int index, File file) {
         try {
             SCPFile scpFile = files.get(index);
@@ -140,6 +181,10 @@ public class SCPDiskModel {
         }
     }
 
+    /**
+     * Speichert alle Dateien des Abbildes
+     * @param directory Verzeichniss für Ausgabe
+     */
     void saveAllFiles(File directory) {
         for (int i = 0; i < files.size(); i++) {
             SCPFile scpFile = files.get(i);
@@ -154,10 +199,18 @@ public class SCPDiskModel {
         saveBootloader(new File(directory.getAbsolutePath() + File.separator+"bootloader"));
     }
 
+    /**
+     * Gibt die Disketteninformationen zurück
+     * @return Disketteninformationen
+     */
     String getDiskInfo() {
         return usedBlocks*2+"K belegt,"+(620-usedBlocks*2)+"K frei";
     }
     
+    /**
+     * Speichert den Bootloader
+     * @param file Ausgabedatei
+     */
     void saveBootloader(File file) {
         try {
             OutputStream out;

@@ -1,6 +1,12 @@
 /*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
+ * InterruptSystem.java
+ * 
+ * Diese Datei gehört zum Projekt A7100 Emulator 
+ * (c) 2011-2014 Dirk Bräuer
+ * 
+ * Letzte Änderungen:
+ *   05.04.2014 Kommentare vervollständigt
+ *
  */
 package a7100emulator.components.system;
 
@@ -10,25 +16,39 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 
 /**
+ * Singleton-Klasse zur Realisierung des Interrupt-Systems
  *
- * @author Dirk
+ * @author Dirk Bräuer
  */
 public class InterruptSystem {
 
     /**
-     * Interrupt Anforderungen
+     * Gibt an ob der Parity NMI aktiv ist
      */
     private boolean parityNMIEnable = true;
+    /**
+     * Instanz des Interrupt-Systems
+     */
     private static InterruptSystem instance;
+    /**
+     * Gibt an ob ein NMI aufgetreten ist
+     */
     private boolean nmi = false;
+    /**
+     * Referenz auf Interrupt Controller
+     */
     private K580WN59A pic;
 
+    /**
+     * Erstellt ein neues Interrupt-System
+     */
     private InterruptSystem() {
     }
 
     /**
-     * 
-     * @return
+     * Gibt die Instanz des Interrupt-Systems zurück
+     *
+     * @return Instanz
      */
     public static InterruptSystem getInstance() {
         if (instance == null) {
@@ -38,24 +58,27 @@ public class InterruptSystem {
     }
 
     /**
-     * 
-     * @param pic
+     * Setzt den Interruptcontroller PIC
+     *
+     * @param pic PIC
      */
     public void setPIC(K580WN59A pic) {
         this.pic = pic;
     }
 
     /**
-     * 
-     * @return
+     * Liefert den Interruptcontroller zurück
+     *
+     * @return Interruptcontroller
      */
     public K580WN59A getPIC() {
         return pic;
     }
 
     /**
-     * 
-     * @return
+     * Gibt an ob ein NMI aufgetreten ist und schaltet diesen ggf. ab
+     *
+     * @return true - wenn NMI aufgetreten , false - sonst
      */
     public boolean getNMI() {
         if (nmi) {
@@ -66,7 +89,7 @@ public class InterruptSystem {
     }
 
     /**
-     * 
+     * Setzt den Parity-NMI
      */
     public void addParityNMI() {
         if (parityNMIEnable) {
@@ -75,23 +98,24 @@ public class InterruptSystem {
     }
 
     /**
-     * 
+     * Aktiviert den Empfang von Parity-NMI
      */
     public void enableParityNMI() {
         parityNMIEnable = true;
     }
 
     /**
-     * 
+     * Deaktiviert den Empfang von Parity-NMI
      */
     public void disableParityNMI() {
         parityNMIEnable = false;
     }
 
     /**
-     * 
-     * @param dos
-     * @throws IOException
+     * Speichert den Zustand des Interrupt-Systems in einer Datei
+     *
+     * @param dos Stream zur Datei
+     * @throws IOException Wenn Schreiben nicht erfolgreich war
      */
     public void saveState(DataOutputStream dos) throws IOException {
         dos.writeBoolean(parityNMIEnable);
@@ -99,9 +123,10 @@ public class InterruptSystem {
     }
 
     /**
-     * 
-     * @param dis
-     * @throws IOException
+     * Lädt den Zustand des Interrupt-Systems aus einer Datei
+     *
+     * @param dis Stream zur Datei
+     * @throws IOException Wenn Laden nicht erfolgreich war
      */
     public void loadState(DataInputStream dis) throws IOException {
         parityNMIEnable = dis.readBoolean();
@@ -109,7 +134,7 @@ public class InterruptSystem {
     }
 
     /**
-     * 
+     * Setzt das Interrupt-System in den Grundzustand zurück
      */
     public void reset() {
         parityNMIEnable = false;

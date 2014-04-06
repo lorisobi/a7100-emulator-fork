@@ -1,6 +1,12 @@
 /*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
+ * Disk.java
+ * 
+ * Diese Datei gehört zum Projekt A7100 Emulator 
+ * (c) 2011-2014 Dirk Bräuer
+ * 
+ * Letzte Änderungen:
+ *   02.04.2014 Kommentare vervollständigt
+ *
  */
 package a7100emulator.components.system;
 
@@ -9,47 +15,81 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
+ * Klasse zur Verwaltung einer Diskette
  *
- * @author Dirk
+ * @author Dirk Bräuer
  */
 public class Disk {
 
     /**
-     * 
+     * Diskettentypen
      */
     public enum DiskType {
 
         /**
-         * 
+         * SCP-Diskette
          */
         SCP,
         /**
-         * 
+         * BOS-Diskette
          */
         BOS,
         /**
-         * 
+         * MUTOS-Diskette
          */
         MUTOS
     }
+
+    /**
+     * Anzahl der Zylinder der Diskette
+     */
     private int cylinderPerDisk = 80;
+
+    /**
+     * Anzahl der Spuren pro Zylinder
+     */
     private int tracksPerCylinder = 2;
+
+    /**
+     * Anzahl der Sektoren pro Spur
+     */
     private int sectorsPerTrack = 16;
+
+    /**
+     * Anzahl der Bytes pro Sektor
+     */
     private int bytesPerSector = 256;
+
+    /**
+     * Anzahl der Bytes pro Sektor für Spur 0
+     */
     private int t0BytesPerSector = 128;
+
+    /**
+     * Größe der Diskette in Bytes
+     */
     private int size = t0BytesPerSector * sectorsPerTrack + (cylinderPerDisk * 2 - 1) * sectorsPerTrack * bytesPerSector;
+
+    /**
+     * Daten der Diskette
+     */
     private byte[] data = new byte[size];
+
+    /**
+     * Schreibschutz
+     */
     private boolean writeProtect = false;
 
     /**
-     * 
+     * Erstellt eine leere Diskette
      */
     public Disk() {
     }
 
     /**
-     * 
-     * @param file
+     * Erstellt eine Diskette basierend auf einer Datei
+     *
+     * @param file Datei zum Laden
      */
     public Disk(File file) {
         InputStream in = null;
@@ -76,30 +116,34 @@ public class Disk {
     }
 
     /**
-     * 
-     * @return
+     * Gibt an ob die Diskette schreibgeschützt ist
+     *
+     * @return truw wenn schreibgeschützt, false sonst
      */
     public boolean isWriteProtect() {
         return writeProtect;
     }
 
     /**
-     * 
-     * @param writeProtect
+     * Setzt den Schreibschutz der Diskette
+     *
+     * @param writeProtect true - Schreibschutz setzen / false - Schreibschutz
+     * aufheben
      */
     public void setWriteProtect(boolean writeProtect) {
         this.writeProtect = writeProtect;
     }
 
     /**
-     * 
-     * @param cylinder
-     * @param sector
-     * @param head
-     * @param cnt
-     * @return
+     * Liest Daten an der angegebenen Position von der Diskette
+     *
+     * @param cylinder Zylindernummer
+     * @param sector Sektornummer
+     * @param head Kopfnummer
+     * @param cnt Anzahl de Bytes
+     * @return gelesene Daten
      */
-    public byte[] readData(int cylinder, int sector, int head, int cnt) {
+    byte[] readData(int cylinder, int sector, int head, int cnt) {
         byte[] res = new byte[cnt];
         int pos = seek(cylinder, head, sector);
         System.arraycopy(data, pos, res, 0, cnt);
@@ -107,8 +151,9 @@ public class Disk {
     }
 
     /**
-     * 
-     * @param image
+     * Speichert die Diskette in die angegebene Datei
+     *
+     * @param image Datei
      */
     public void saveDisk(File image) {
         FileOutputStream fos;
@@ -121,14 +166,15 @@ public class Disk {
     }
 
     /**
+     * Formatiert den angegebenen Bereich der Diskette
      *
-     * @param cylinder
-     * @param head
-     * @param mod
-     * @param formatData
-     * @param interleave
+     * @param cylinder Zylindernummer
+     * @param head Kopfnummer
+     * @param mod Modifizierung
+     * @param formatData Datenbytes
+     * @param interleave Interleave-Faktor
      */
-    public void format(int cylinder, int head, int mod, int[] formatData, int interleave) {
+    void format(int cylinder, int head, int mod, int[] formatData, int interleave) {
         // TODO: mod und interleave
         int pos = seek(cylinder, head, 1);
         for (int sector = 0; sector < sectorsPerTrack; sector++) {
@@ -145,6 +191,14 @@ public class Disk {
         }
     }
 
+    /**
+     * Berechnet die absolute Adresse für Diskettenzugriff
+     *
+     * @param track Spur
+     * @param head Kopfnummer
+     * @param sector Sektornummer
+     * @return absolute Position
+     */
     private int seek(int track, int head, int sector) {
         int pos;
         sector--;
@@ -163,11 +217,25 @@ public class Disk {
         return pos;
     }
 
+    /**
+     * Schreibt Daten auf die Diskette
+     *
+     * @param cylinder Zylindernummer
+     * @param sector Sektornummer
+     * @param head Kopfnummer
+     * @param data Zu schreibende Daten
+     */
     void writeData(int cylinder, int sector, int head, byte[] data) {
         int pos = seek(cylinder, head, sector);
         System.arraycopy(data, 0, this.data, pos, data.length);
     }
 
+    /**
+     * Speichert die Diskette in eine Datei
+     *
+     * @param dos Stream zur Datei
+     * @throws IOException Wenn Schreiben nicht erfolgreich
+     */
     void saveState(DataOutputStream dos) throws IOException {
         dos.writeInt(cylinderPerDisk);
         dos.writeInt(tracksPerCylinder);
@@ -179,6 +247,12 @@ public class Disk {
         dos.writeBoolean(writeProtect);
     }
 
+    /**
+     * Liest die Diskette aus einer Datei
+     *
+     * @param dis Stream zur Datei
+     * @throws IOException Wenn Lesen nicht erfolgreich war
+     */
     void loadState(DataInputStream dis) throws IOException {
         cylinderPerDisk = dis.readInt();
         tracksPerCylinder = dis.readInt();

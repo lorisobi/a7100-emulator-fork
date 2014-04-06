@@ -1,6 +1,12 @@
 /*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
+ * Memory.java
+ * 
+ * Diese Datei gehört zum Projekt A7100 Emulator 
+ * (c) 2011-2014 Dirk Bräuer
+ * 
+ * Letzte Änderungen:
+ *   05.04.2014 Kommentare vervollständigt
+ *
  */
 package a7100emulator.Tools;
 
@@ -9,67 +15,65 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
+ * Klasse zur Abbildung eines Speichers
  *
- * @author Dirk
+ * @author Dirk Bräuer
  */
 public class Memory {
 
     /**
-     * 
+     * Speichertyp
      */
     public enum MemoryType {
 
         /**
-         * 
+         * Ram
          */
         RAM,
         /**
-         * 
+         * Rom
          */
         ROM;
     }
 
     /**
-     * 
+     * Modus zum Laden von Roms aus Dateien
      */
     public enum FileLoadMode {
 
         /**
-         * 
+         * Nur das niedere Byte laden
          */
         LOW_BYTE_ONLY,
         /**
-         * 
+         * Nur das höhere Byte laden
          */
         HIGH_BYTE_ONLY,
         /**
-         * 
+         * Niederes und Höheres Byte laden
          */
         LOW_AND_HIGH_BYTE;
     }
+    /**
+     * Speicherinhalt
+     */
     private final byte[] memory;
 
     /**
-     * 
-     * @param size
+     * Erstellt einen neuen Speicher
+     *
+     * @param size Größe in Byte
      */
     public Memory(int size) {
         memory = new byte[size];
     }
 
     /**
-     * 
-     * @param memory
-     */
-    public Memory(byte[] memory) {
-        this.memory = memory;
-    }
-
-    /**
-     * 
-     * @param baseAddress
-     * @param file
-     * @param loadMode
+     * Lädt einen Speicherinhalt aus einer Datei
+     *
+     * @param baseAddress Basisadresse
+     * @param file Datei mit Speicherinhalt
+     * @param loadMode Lademodus
      */
     public void loadFile(int baseAddress, File file, FileLoadMode loadMode) {
         InputStream in = null;
@@ -86,7 +90,7 @@ public class Memory {
                     address++;
                 }
             }
-        } catch (Exception ex) {
+        } catch (IOException ex) {
             Logger.getLogger(Memory.class.getName()).log(Level.SEVERE, null, ex);
         } finally {
             try {
@@ -98,27 +102,30 @@ public class Memory {
     }
 
     /**
-     * 
-     * @param address
-     * @param value
+     * Schreibt ein Byte in den Speicher
+     *
+     * @param address Adresse
+     * @param value Daten
      */
     public void writeByte(int address, int value) {
         memory[address] = (byte) value;
     }
 
     /**
-     * 
-     * @param address
-     * @return
+     * Liest ein Byte aus dem Speicher
+     *
+     * @param address Adresse
+     * @return gelesene Daten
      */
     public int readByte(int address) {
         return memory[address] & 0xFF;
     }
 
     /**
-     * 
-     * @param address
-     * @param value
+     * Schreibt ein Wort in den Speicher
+     *
+     * @param address Adresse
+     * @param value Daten
      */
     public void writeWord(int address, int value) {
         byte hb = (byte) (value >> 8);
@@ -128,9 +135,10 @@ public class Memory {
     }
 
     /**
-     * 
-     * @param address
-     * @return
+     * Liest ein Wort aus dem Speicher
+     *
+     * @param address Adresse
+     * @return gelesene Daten
      */
     public int readWord(int address) {
         int result;
@@ -139,20 +147,22 @@ public class Memory {
         result = ((hb << 8) | (lb & 0xFF));
         return result & 0xFFFF;
     }
-    
+
     /**
-     * 
-     * @param dos
-     * @throws IOException
+     * Schreibt den Speicherinhalt in eine Datei
+     *
+     * @param dos Stream zur DAtei
+     * @throws IOException Wenn Schreiben nicht erfolgreich war
      */
     public void saveMemory(DataOutputStream dos) throws IOException {
         dos.write(memory);
     }
-    
+
     /**
-     * 
-     * @param dis
-     * @throws IOException
+     * Liest einen Speicherinhalt aus einer Datei
+     *
+     * @param dis Stream zur Datei
+     * @throws IOException Wenn Laden nicht erfolgreich war
      */
     public void loadMemory(DataInputStream dis) throws IOException {
         dis.read(memory);

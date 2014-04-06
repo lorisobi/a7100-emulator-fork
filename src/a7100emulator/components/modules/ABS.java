@@ -1,6 +1,12 @@
 /*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
+ * ABS.java
+ * 
+ * Diese Datei gehört zum Projekt A7100 Emulator 
+ * (c) 2011-2014 Dirk Bräuer
+ * 
+ * Letzte Änderungen:
+ *   02.04.2014 Kommentare vervollständigt
+ *
  */
 package a7100emulator.components.modules;
 
@@ -10,8 +16,11 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 
 /**
+ * Klasse zur Abbildung der ABS (Alphanumerische Bildschirmsteuerung) 
+ * <p>
+ * TODO: Diese Klasse ist noch nicht vollständig implementiert
  *
- * @author Dirk
+ * @author Dirk Bräuer
  */
 public class ABS implements PortModule {
 
@@ -19,7 +28,7 @@ public class ABS implements PortModule {
     private final static int PORT_ABS_DATA = 0x202;
 
     /**
-     * 
+     *
      */
     @Override
     public void registerPorts() {
@@ -28,7 +37,7 @@ public class ABS implements PortModule {
     }
 
     /**
-     * 
+     *
      * @param port
      * @param data
      */
@@ -43,7 +52,7 @@ public class ABS implements PortModule {
     }
 
     /**
-     * 
+     *
      * @param port
      * @param data
      */
@@ -58,7 +67,7 @@ public class ABS implements PortModule {
     }
 
     /**
-     * 
+     *
      * @param port
      * @return
      */
@@ -74,7 +83,7 @@ public class ABS implements PortModule {
     }
 
     /**
-     * 
+     *
      * @param port
      * @return
      */
@@ -90,7 +99,7 @@ public class ABS implements PortModule {
     }
 
     /**
-     * 
+     *
      */
     @Override
     public void init() {
@@ -98,7 +107,7 @@ public class ABS implements PortModule {
     }
 
     /**
-     * 
+     *
      * @param dos
      * @throws IOException
      */
@@ -108,7 +117,7 @@ public class ABS implements PortModule {
     }
 
     /**
-     * 
+     *
      * @param dis
      * @throws IOException
      */

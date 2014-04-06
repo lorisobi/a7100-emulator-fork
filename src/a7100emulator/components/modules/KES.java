@@ -1,6 +1,12 @@
 /*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
+ * KES.java
+ * 
+ * Diese Datei gehört zum Projekt A7100 Emulator 
+ * (c) 2011-2014 Dirk Bräuer
+ * 
+ * Letzte Änderungen:
+ *   02.04.2014 Kommentare vervollständigt
+ *
  */
 package a7100emulator.components.modules;
 
@@ -11,40 +17,91 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 
 /**
+ * Klasse zur Abbildung der KES (Kontroller für Externspeicher)
  *
- * @author Dirk
+ * @author Dirk Bräuer
  */
 public final class KES implements PortModule, ClockModule {
 
+    /**
+     * Anzahl der im System vorhandenen KES-Module
+     */
     public static int kes_count = 0;
+    /**
+     * Startadresse des Wake-Up-Blocks
+     */
     private final int INIT_WUB_ADDRESS = 0x01000;
-    private final static int PORT_KES_1_WAKEUP_1 = 0x100;
-    private final static int PORT_KES_1_WAKEUP_2 = 0x101;
-    private final static int PORT_KES_2_WAKEUP_1 = 0x102;
-    private final static int PORT_KES_2_WAKEUP_2 = 0x103;
-    private final int kes_id;
-    private int ccbAddress = 0;
+    /**
+     * Lesen des Wake-Up-Blocks notwendig
+     */
     private boolean readWUB = true;
+    /**
+     * Adresse des 1. Wake-Up E/A-Ports 1. KES
+     */
+    private final static int PORT_KES_1_WAKEUP_1 = 0x100;
+    /**
+     * Adresse des 2. Wake-Up E/A-Ports 1. KES
+     */
+    private final static int PORT_KES_1_WAKEUP_2 = 0x101;
+    /**
+     * Adresse des 1. Wake-Up E/A-Ports 2. KES
+     */
+    private final static int PORT_KES_2_WAKEUP_1 = 0x102;
+    /**
+     * Adresse des 2. Wake-Up E/A-Ports 2. KES
+     */
+    private final static int PORT_KES_2_WAKEUP_2 = 0x103;
+    /**
+     * Nummer des KES-Moduls
+     */
+    private final int kes_id;
+    /**
+     * Referenz auf den Systemspeicher
+     */
     private final SystemMemory memory = SystemMemory.getInstance();
+    /**
+     * Adresse des Channel-Control-Blocks
+     */
+    private int ccbAddress = 0;
+    /**
+     * Speicher des Channel Control Blocks
+     */
     private final byte[] ccb = new byte[16];
+    /**
+     * Speicher des Controller Invocation Blocks
+     */
     private final byte[] cib = new byte[16];
+    /**
+     * Speicher des I/O Parameter Blocks
+     */
     private final byte[] iopb = new byte[30];
+    /**
+     * KES Speciher
+     */
     private final Memory sram = new Memory(0x4000);
+    /**
+     * Referenz auf angeschlossene AFS (Anschlußsteuerung für Folienspeicher)
+     */
     private AFS afs = new AFS();
+    /**
+     * Counter für Interrupt Freigabe
+     */
     private long interruptClock = 0;
+    /**
+     * Gibt an ob auf einen Interrupt der KES gewartet wird
+     */
     private boolean interruptWaiting = false;
 
     /**
-     *
+     * Erstellt ein neues KES-Modul
      */
     public KES() {
         kes_id = kes_count++;
-        registerPorts();
-        registerClocks();
+        init();
     }
 
     /**
-     *
+     * Registriert die E/A Ports der KES
      */
     @Override
     public void registerPorts() {
@@ -61,9 +118,10 @@ public final class KES implements PortModule, ClockModule {
     }
 
     /**
+     * Gibt ein Byte an einem Port aus
      *
-     * @param port
-     * @param data
+     * @param port Port
+     * @param data Daten
      */
     @Override
     public void writePort_Byte(int port, int data) {
@@ -94,9 +152,10 @@ public final class KES implements PortModule, ClockModule {
     }
 
     /**
+     * Gibt ein Wort an einem Port aus
      *
-     * @param port
-     * @param data
+     * @param port Port
+     * @param data Daten
      */
     @Override
     public void writePort_Word(int port, int data) {
@@ -109,9 +168,10 @@ public final class KES implements PortModule, ClockModule {
     }
 
     /**
+     * Liest ein Byte von einem Port
      *
-     * @param port
-     * @return
+     * @param port Port
+     * @return gelesene Daten
      */
     @Override
     public int readPort_Byte(int port) {
@@ -124,9 +184,10 @@ public final class KES implements PortModule, ClockModule {
     }
 
     /**
+     * Liest ein Wort von einem Port
      *
-     * @param port
-     * @return
+     * @param port Port
+     * @return gelesene Daten
      */
     @Override
     public int readPort_Word(int port) {
@@ -139,22 +200,24 @@ public final class KES implements PortModule, ClockModule {
     }
 
     /**
-     *
+     * Initialisiert die KES
      */
     @Override
     public void init() {
-        throw new UnsupportedOperationException("Not supported yet.");
+        registerPorts();
+        registerClocks();
     }
 
+    /**
+     * Startet ausgelöst durch einen Interrupt die Bearbeitung durch die KES
+     */
     private void startOperation() {
         if (readWUB) {
             int seg = memory.readWord(INIT_WUB_ADDRESS + 4);
             int off = memory.readWord(INIT_WUB_ADDRESS + 2);
-            //System.out.println("WUB: " + Integer.toHexString(seg) + ":" + Integer.toHexString(off));
             ccbAddress = (seg << 4) + off;
             readWUB = false;
         }
-        //System.out.println("CCB: " + Integer.toHexString(ccbAddress));
         for (int i = 0; i < 30; i++) {
             if (i < 16) {
                 ccb[i] = (byte) memory.readByte(ccbAddress + i);
@@ -169,6 +232,10 @@ public final class KES implements PortModule, ClockModule {
         interruptClock = 0;
     }
 
+    /**
+     * Führt die Operationen entsprechend den Daten des I/O Parameter Blocks
+     * durch
+     */
     private void checkIOPB() {
         // TODO: Festplatten Laufwerke überall prüfen
 //        System.out.println("20-23 (leer): " + Integer.toHexString(iopb[0]) + "," + Integer.toHexString(iopb[1]) + "," + Integer.toHexString(iopb[2]) + "," + Integer.toHexString(iopb[3]));
@@ -291,7 +358,7 @@ public final class KES implements PortModule, ClockModule {
                 int head = memory.readByte(ccbAddress + 0x30);
                 int byteCnt = memory.readWord(ccbAddress + 0x36);
                 int status = 0;
-//                System.out.println("Lese " + byteCnt + " Bytes von Laufwerk " + (driveNr & 0x03) + " C/H/S " + cylinder + "/" + head + "/" + sector + " nach " + String.format("%04X:%04X", memSeg, memOff));
+                //System.out.println("Lese " + byteCnt + " Bytes von Laufwerk " + (driveNr & 0x03) + " C/H/S " + cylinder + "/" + head + "/" + sector + " nach " + String.format("%04X:%04X", memSeg, memOff));
 
                 switch (deviceCode) {
                     case 0x00:
@@ -313,7 +380,7 @@ public final class KES implements PortModule, ClockModule {
 //                    }
                         }
 //                System.out.println();
-                        status=0x01;
+                        status = 0x01;
                         break;
                 }
                 memory.writeByte(ccbAddress + 0x13, 0xFF);
@@ -386,12 +453,19 @@ public final class KES implements PortModule, ClockModule {
         }
     }
 
-    private boolean getBit(int op1, int i) {
-        return (((op1 >> i) & 0x1) == 0x1);
+    /**
+     * Prüft ein Bit im gegebenen Operanden
+     *
+     * @param op Operand
+     * @param i Nummer des Bits
+     * @return true wenn Bit gesetzt, false sonst
+     */
+    private boolean getBit(int op, int i) {
+        return (((op >> i) & 0x1) == 0x1);
     }
 
     /**
-     *
+     * Registiert das Modul für Änderungen der Systemzeit
      */
     @Override
     public void registerClocks() {
@@ -399,8 +473,9 @@ public final class KES implements PortModule, ClockModule {
     }
 
     /**
+     * Verarbeitet die geänderte Systemzeit
      *
-     * @param amount
+     * @param amount Anzahl der Ticks
      */
     @Override
     public void clockUpdate(int amount) {
@@ -415,23 +490,19 @@ public final class KES implements PortModule, ClockModule {
     }
 
     /**
-     * @return the afs
+     * Gibt die Referenz auf das angeschlossene AFS-Modul zurück
+     *
+     * @return AFS-Modul
      */
     public AFS getAFS() {
         return afs;
     }
 
     /**
-     * @param afs the afs to set
-     */
-    public void setAFS(AFS afs) {
-        this.afs = afs;
-    }
-
-    /**
+     * Schreibt den Zustand der KES in eine Datei
      *
-     * @param dos
-     * @throws IOException
+     * @param dos Stream zur Datei
+     * @throws IOException Wenn Schreiben nicht erfolgreich war
      */
     @Override
     public void saveState(DataOutputStream dos) throws IOException {
@@ -447,9 +518,10 @@ public final class KES implements PortModule, ClockModule {
     }
 
     /**
+     * Liest den Zustand der KES aus einer Datei
      *
-     * @param dis
-     * @throws IOException
+     * @param dis Stream zur Datei
+     * @throws IOException Wenn Lesen nicht erfolgreich war
      */
     @Override
     public void loadState(DataInputStream dis) throws IOException {

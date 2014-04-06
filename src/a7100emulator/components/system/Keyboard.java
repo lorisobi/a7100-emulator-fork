@@ -1,6 +1,12 @@
 /*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
+ * Keyboard.java
+ * 
+ * Diese Datei gehört zum Projekt A7100 Emulator 
+ * (c) 2011-2014 Dirk Bräuer
+ * 
+ * Letzte Änderungen:
+ *   05.04.2014 Kommentare vervollständigt
+ *
  */
 package a7100emulator.components.system;
 
@@ -12,14 +18,27 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 
 /**
+ * Klasse zur Realisierung der A7100 Tastaturen
+ * <p>
+ * TODO: Tastaturtyp K7672 noch nicht implementiert
  *
- * @author Dirk
+ * @author Dirk Bräuer
  */
 public class Keyboard implements KeyListener {
 
-    enum KeyboardType {
+    /**
+     * Enum der Tastaturtypen
+     */
+    private enum KeyboardType {
 
-        K7637, K7672;
+        /**
+         * Tastaturtyp K7637
+         */
+        K7637,
+        /**
+         * Tastaturtyp K7672
+         */
+        K7672;
     }
     // 1:1
     // Alphanumerik: A-Z, a-z, 1-0
@@ -48,21 +67,49 @@ public class Keyboard implements KeyListener {
     // Shift+PageUp --> Erase INP
     // PageDn       --> DUP
     // Shift+PageDn --> FM
+    /**
+     * USART Controller
+     */
     private KR580WM51A ifssController = null;
+    /**
+     * Gibt an, ob der ALT-Modus aktiv ist
+     */
     private boolean alt = false;
+    /**
+     * Gibt an, ob CAPS aktiv ist
+     */
     private boolean caps = false;
+    /**
+     * Gibt an, MODE 2 aktiv ist
+     */
     private boolean mode2 = false;
+    /**
+     * Instanz
+     */
     private static Keyboard instance = null;
+    /**
+     * Puffergröße
+     */
     private int byteCnt = 0;
+    /**
+     * Puffer mit Zeichen von der Tastatur
+     */
     private byte[] commands = new byte[10];
+    /**
+     * Tastaturtyp
+     */
     private KeyboardType kbdType = KeyboardType.K7637;
 
+    /**
+     * Erstellt eine neue Tastatur
+     */
     private Keyboard() {
     }
 
     /**
+     * Gibt die Instanz der Tastatur zurück
      *
-     * @return
+     * @return Instanz
      */
     public static Keyboard getInstance() {
         if (instance == null) {
@@ -72,8 +119,9 @@ public class Keyboard implements KeyListener {
     }
 
     /**
+     * Registriert den USART Controller bei der Tastatur
      *
-     * @param controller
+     * @param controller USART-Controller
      */
     public void registerController(KR580WM51A controller) {
         ifssController = controller;
@@ -82,14 +130,29 @@ public class Keyboard implements KeyListener {
         }
     }
 
+    /**
+     * Verarbeitet das Drücken einer Taste
+     *
+     * @param e Event
+     */
     @Override
     public void keyTyped(KeyEvent e) {
     }
 
+    /**
+     * Verarbeitet das Drücken und loslassen einer Taste
+     *
+     * @param e Event
+     */
     @Override
     public void keyPressed(KeyEvent e) {
     }
 
+    /**
+     * Verarbeitet das Loslassen einer Taste
+     *
+     * @param e Event
+     */
     @Override
     public void keyReleased(KeyEvent e) {
         boolean shift = e.isShiftDown();
@@ -104,7 +167,6 @@ public class Keyboard implements KeyListener {
 //        if (e.isControlDown()) {
 //            System.out.println("Ctrl");
 //        }
-
         switch (e.getKeyCode()) {
             case KeyEvent.VK_0:
                 sendByte(shift ? 0x3D : 0x30);
@@ -368,20 +430,27 @@ public class Keyboard implements KeyListener {
     }
 
     /**
+     * Sendet Daten von der Tastatur zum USART-Controller
      *
-     * @param bytes
+     * @param bytes Daten
      */
     public void sendBytes(byte[] bytes) {
         ifssController.writeDataToSystem(bytes);
     }
 
+    /**
+     * Sendet ein Byte von der Tastatur zum USART-Controller
+     *
+     * @param b Daten
+     */
     private void sendByte(int b) {
         ifssController.writeDataToSystem((byte) (b & 0xFF));
     }
 
     /**
+     * Empfängt und verarbeitet ein Byte vom USART-Controller
      *
-     * @param b
+     * @param b Daten
      */
     public void receiveByte(int b) {
         commands[byteCnt++] = (byte) (b & 0xFF);
@@ -397,7 +466,7 @@ public class Keyboard implements KeyListener {
     }
 
     /**
-     *
+     * Prüft die vom Controller empfangenen Zeichen und verarbeitet diese
      */
     public void checkCommands() {
         //System.out.println("Cnt:" + byteCnt);
@@ -484,9 +553,10 @@ public class Keyboard implements KeyListener {
     }
 
     /**
+     * Schreibt den Zustand der Tastatur in eine Datei
      *
-     * @param dos
-     * @throws IOException
+     * @param dos Stream zur Datei
+     * @throws IOException Wenn Schreiben nicht erfolgreich war
      */
     public void saveState(DataOutputStream dos) throws IOException {
         dos.writeBoolean(alt);
@@ -500,9 +570,10 @@ public class Keyboard implements KeyListener {
     }
 
     /**
+     * Liest den Zustand der Tastatur aus einer Datei
      *
-     * @param dis
-     * @throws IOException
+     * @param dis Stream zur Datei
+     * @throws IOException Wenn Laden nicht erfolgreich war
      */
     public void loadState(DataInputStream dis) throws IOException {
         alt = dis.readBoolean();
@@ -516,7 +587,7 @@ public class Keyboard implements KeyListener {
     }
 
     /**
-     *
+     * Setzt die Tastatur in den Grundzustand
      */
     public void reset() {
         ifssController = null;

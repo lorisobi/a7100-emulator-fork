@@ -1,6 +1,12 @@
 /*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
+ * KGS.java
+ * 
+ * Diese Datei gehört zum Projekt A7100 Emulator 
+ * (c) 2011-2014 Dirk Bräuer
+ * 
+ * Letzte Änderungen:
+ *   02.04.2014 Kommentare vervollständigt
+ *
  */
 package a7100emulator.components.modules;
 
@@ -21,105 +27,388 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JComponent;
 import javax.swing.JFrame;
+import javax.swing.JOptionPane;
 
 /**
+ * Klasse zur Abbildung der KGS (Kontroller für grafisches Subsytem)
  *
- * @author Dirk
+ * @author Dirk Bräuer
  */
 public final class KGS implements PortModule, ClockModule {
 
-    // Zeichensätze
+    /**
+     * Arbeistspeicher der KGS
+     */
     private final Memory ram = new Memory(0x8000);
-    // Zeichencodes
+    /**
+     * Zeichencode Null
+     */
     private final static int CODE_NUL = 0x00;
-    private final static int CODE_SOH = 0x01;
-    private final static int CODE_STX = 0x02;
-    private final static int CODE_ETX = 0x03;
-    private final static int CODE_EOT = 0x04;
-    private final static int CODE_ENQ = 0x05;
-    private final static int CODE_ACK = 0x06;
-    private final static int CODE_BEL = 0x07;
-    private final static int CODE_BS = 0x08;
-    private final static int CODE_HT = 0x09;
-    private final static int CODE_LF = 0x0A;
-    private final static int CODE_VT = 0x0B;
-    private final static int CODE_FF = 0x0C;
-    private final static int CODE_CR = 0x0D;
-    private final static int CODE_SO = 0x0E;
-    private final static int CODE_SI = 0x0F;
-    private final static int CODE_DLE = 0x10;
-    private final static int CODE_DC1 = 0x11;
-    private final static int CODE_DC2 = 0x12;
-    private final static int CODE_DC3 = 0x13;
-    private final static int CODE_DC4 = 0x14;
-    private final static int CODE_NAK = 0x15;
-    private final static int CODE_SYN = 0x16;
-    private final static int CODE_ETB = 0x17;
-    private final static int CODE_CAN = 0x18;
-    private final static int CODE_EM = 0x19;
-    private final static int CODE_SUB = 0x1A;
-    private final static int CODE_ESC = 0x1B;
-    private final static int CODE_FS = 0x1C;
-    private final static int CODE_GS = 0x1D;
-    private final static int CODE_RS = 0x1E;
-    private final static int CODE_US = 0x1F;
-    private final static int CODE_DEL = 0x7F;
-    // Ports
-    private final static int PORT_KGS_STATE = 0x200;
-    private final static int PORT_KGS_DATA = 0x202;
-    // Status Bits
-    private static final int ERR_BIT = 0x80;
-    private static final int INT_BIT = 0x04;
-    private static final int IBF_BIT = 0x02;
-    private static final int OBF_BIT = 0x01;
-    private int state = 1;
-    private int cursorRow = 1;
-    private int cursorColumn = 1;
-    private boolean receiveSequence = false;
-    private final LinkedList<Byte> escSequence = new LinkedList<Byte>();
-    private final boolean[] hTabs = new boolean[80];
-    private final boolean[] vTabs = new boolean[25];
-    private ABG abg;
-    private boolean disableGraphics = false;
-    private boolean initialized = false;
-    private long interruptClock = 0;
-    private boolean interruptWaiting = false;
-    private final byte[] deviceBuffer = new byte[100];
-    private int bufferPosition = 0;
-    private int cursorRowSave = 1;
-    private int cursorColumnSave = 1;
-    private boolean intense = false;
-    private boolean inverse = false;
-    private boolean flash = false;
-    private boolean underline = false;
-    private boolean wraparound = false;
-    private boolean wrapped = false;
-    private final LinkedList<Byte> deviceBuffer2 = new LinkedList<Byte>();
-    // GSX-Parameter
-    private boolean gsx_AALP = true;
-    private boolean gsx_ALOC = false;
-    private boolean gsx_AZUG = false;
-    private int[] gsx_linetype = {1, 1, 1};
-    private int[] gsx_linewidth = {1, 1, 1};
-    private int[] gsx_linememory = {2, 2, 2};
-    private int[] gsx_markertype = {3, 2};
-    private int[] gsx_markermemory = {2, 2};
-    private int gsx_writetype = 1;
-    private int gsx_paletteregister = 1;
-    private int gsx_window_x1 = 0;
-    private int gsx_window_y1 = 0;
-    private int gsx_window_x2 = 639;
-    private int gsx_window_y2 = 399;
 
     /**
-     *
+     * Zeichencode Start Head
+     */
+    private final static int CODE_SOH = 0x01;
+
+    /**
+     * Zeichncode Start Text
+     */
+    private final static int CODE_STX = 0x02;
+
+    /**
+     * Zeichencode End Text
+     */
+    private final static int CODE_ETX = 0x03;
+
+    /**
+     * Zeichencode EOT
+     */
+    private final static int CODE_EOT = 0x04;
+
+    /**
+     * Zeichencode ENQ
+     */
+    private final static int CODE_ENQ = 0x05;
+
+    /**
+     * Zeichencode ACK
+     */
+    private final static int CODE_ACK = 0x06;
+
+    /**
+     * Zeichencode BEL
+     */
+    private final static int CODE_BEL = 0x07;
+
+    /**
+     * Zeichencode Backspace
+     */
+    private final static int CODE_BS = 0x08;
+
+    /**
+     * Zeichencode Horizontaltabulator
+     */
+    private final static int CODE_HT = 0x09;
+
+    /**
+     * Zeichencode Line Feed
+     */
+    private final static int CODE_LF = 0x0A;
+
+    /**
+     * Zeichencode Vertikaltabulator
+     */
+    private final static int CODE_VT = 0x0B;
+
+    /**
+     * Zeichencode Form Feed
+     */
+    private final static int CODE_FF = 0x0C;
+
+    /**
+     * Zeichncode Carriage Return
+     */
+    private final static int CODE_CR = 0x0D;
+
+    /**
+     * Zeichencode Shift Out
+     */
+    private final static int CODE_SO = 0x0E;
+
+    /**
+     * Zeichencode Shift in
+     */
+    private final static int CODE_SI = 0x0F;
+
+    /**
+     * Zeichencode Data Link Escape
+     */
+    private final static int CODE_DLE = 0x10;
+
+    /**
+     * Zeichencode DC1
+     */
+    private final static int CODE_DC1 = 0x11;
+
+    /**
+     * Zeichencode DC2
+     */
+    private final static int CODE_DC2 = 0x12;
+
+    /**
+     * Zeichencode DC3
+     */
+    private final static int CODE_DC3 = 0x13;
+
+    /**
+     * Zeichencode DC4
+     */
+    private final static int CODE_DC4 = 0x14;
+
+    /**
+     * Zeichencode NAK
+     */
+    private final static int CODE_NAK = 0x15;
+
+    /**
+     * Zeichencode SYN
+     */
+    private final static int CODE_SYN = 0x16;
+
+    /**
+     * Zeichencode ETB
+     */
+    private final static int CODE_ETB = 0x17;
+
+    /**
+     * Zeichencode Cancel
+     */
+    private final static int CODE_CAN = 0x18;
+
+    /**
+     * Zeichencode EM
+     */
+    private final static int CODE_EM = 0x19;
+
+    /**
+     * Zeichencode SUB
+     */
+    private final static int CODE_SUB = 0x1A;
+
+    /**
+     * Zeichencode Escape
+     */
+    private final static int CODE_ESC = 0x1B;
+
+    /**
+     * Zeichencode FS
+     */
+    private final static int CODE_FS = 0x1C;
+
+    /**
+     * Zeichencode GS
+     */
+    private final static int CODE_GS = 0x1D;
+
+    /**
+     * Zeichencode Record Separator
+     */
+    private final static int CODE_RS = 0x1E;
+
+    /**
+     * Zeichencode US
+     */
+    private final static int CODE_US = 0x1F;
+
+    /**
+     * Zeichencode Delete
+     */
+    private final static int CODE_DEL = 0x7F;
+
+    /**
+     * Port KGS-Zustand
+     */
+    private final static int PORT_KGS_STATE = 0x200;
+
+    /**
+     * Port KGS-Daten
+     */
+    private final static int PORT_KGS_DATA = 0x202;
+
+    /**
+     * Error-Bit
+     */
+    private static final int ERR_BIT = 0x80;
+
+    /**
+     * Interrupt-Bit
+     */
+    private static final int INT_BIT = 0x04;
+
+    /**
+     * Input-Buffer-Full-Bit
+     */
+    private static final int IBF_BIT = 0x02;
+
+    /**
+     * Output-Buffer-Full-Bit
+     */
+    private static final int OBF_BIT = 0x01;
+
+    /**
+     * Statusbyte
+     */
+    private int state = 0x01;
+
+    /**
+     * Aktuelle Zeile des Cursors
+     */
+    private int cursorRow = 1;
+
+    /**
+     * Aktuelle Spalte des Cursors
+     */
+    private int cursorColumn = 1;
+
+    /**
+     * Gibt an ob gerade eine ESC-Steuerfolge empfangen wird
+     */
+    private boolean receiveSequence = false;
+
+    /**
+     * Zeichen der ESC-Steuerfolge
+     */
+    private final LinkedList<Byte> escSequence = new LinkedList<Byte>();
+
+    /**
+     * Postitionen der Horizontaltabulatoren
+     */
+    private final boolean[] hTabs = new boolean[80];
+
+    /**
+     * Positionen der Vertikaltabulatoren
+     */
+    private final boolean[] vTabs = new boolean[25];
+
+    /**
+     * Referenz auf die ABG (Anschlußsteuerung für grafischen Bildschirm)
+     */
+    private ABG abg;
+
+    /**
+     * Gibt an ob der Grafikbildschirm unterdrückt ist
+     */
+    private boolean disableGraphics = false;
+
+    /**
+     * Gibt an ob die KGS bereits initialisiert ist
+     */
+    private boolean initialized = false;
+
+    /**
+     * Gibt den aktuellen Zähler für Interrupt-Weietrgabe an
+     */
+    private long interruptClock = 0;
+
+    /**
+     * Gibt an ob auf einen Interrupt der KGS gewartet wird
+     */
+    private boolean interruptWaiting = false;
+
+    /**
+     * Puffer für die Übertragung von Daten zur ZVE
+     */
+    private final byte[] deviceBuffer = new byte[100];
+
+    /**
+     * Aktuelle Position im Puffer
+     */
+    private int bufferPosition = 0;
+
+    /**
+     * Gespeicherte Cursorzeile
+     */
+    private int cursorRowSave = 1;
+
+    /**
+     * Gespeicherte Cursorspalte
+     */
+    private int cursorColumnSave = 1;
+
+    /**
+     * Darstellung intensiver Zeichen
+     */
+    private boolean intense = false;
+
+    /**
+     * Darstellung inverser Zeichen
+     */
+    private boolean inverse = false;
+
+    /**
+     * Darstellung blinkender Zeichen
+     */
+    private boolean flash = false;
+
+    /**
+     * darstellung unterstrichener Zeichen
+     */
+    private boolean underline = false;
+
+    /**
+     * Status des Wraparound Modus
+     */
+    private boolean wraparound = false;
+
+    /**
+     * Zweite Implementierung des Puffers zur ZVE TODO: Puffer zusammenführen
+     */
+    private final LinkedList<Byte> deviceBuffer2 = new LinkedList<Byte>();
+
+    /**
+     * Funktionskennzeichen AALP (Anzeige Splitgrenze)
+     */
+    private boolean gsx_AALP = true;
+
+    /**
+     * Funktionskennzeichen ALOC (Sichtbarkeit grafischer Cursor)
+     */
+    private boolean gsx_ALOC = false;
+
+    /**
+     * Funktionskennzeichen AZUG (Dunkeltastung Bildschirm)
+     */
+    private boolean gsx_AZUG = false;
+
+    /**
+     * Linienoption Linientyp
+     */
+    private int[] gsx_linetype = {1, 1, 1};
+
+    /**
+     * Linienoption Linienstärke
+     */
+    private int[] gsx_linewidth = {1, 1, 1};
+
+    /**
+     * Linienoption Speicherebene
+     */
+    private int[] gsx_linememory = {2, 2, 2};
+
+    /**
+     * Markeroption Markertyp
+     */
+    private int[] gsx_markertype = {3, 2};
+
+    /**
+     * Markeroption Speicherebene
+     */
+    private int[] gsx_markermemory = {2, 2};
+
+    /**
+     * Schreibtyp
+     */
+    private int gsx_writetype = 1;
+
+    /**
+     * Palettenregister
+     */
+    private int gsx_paletteregister = 1;
+
+    /**
+     * Grenzen Bildausschnitt
+     */
+    private int[] gsx_window = {0, 0, 639, 399};
+
+    /**
+     * Erstellt eine neue KGS
      */
     public KGS() {
         init();
     }
 
     /**
-     *
+     * Registriert die Ports der KGS
      */
     @Override
     public void registerPorts() {
@@ -128,9 +417,10 @@ public final class KGS implements PortModule, ClockModule {
     }
 
     /**
+     * Gibt ein Byte auf einem Port aus
      *
-     * @param port
-     * @param data
+     * @param port Port
+     * @param data Daten
      */
     @Override
     public void writePort_Byte(int port, int data) {
@@ -157,9 +447,10 @@ public final class KGS implements PortModule, ClockModule {
     }
 
     /**
+     * Gibt ein Wort auf einem Port aus
      *
-     * @param port
-     * @param data
+     * @param port Port
+     * @param data Daten
      */
     @Override
     public void writePort_Word(int port, int data) {
@@ -173,9 +464,10 @@ public final class KGS implements PortModule, ClockModule {
     }
 
     /**
+     * Liest ein Byte von einem Port
      *
-     * @param port
-     * @return
+     * @param port Port
+     * @return gelesenes Byte
      */
     @Override
     public int readPort_Byte(int port) {
@@ -203,9 +495,10 @@ public final class KGS implements PortModule, ClockModule {
     }
 
     /**
+     * Liest ein Wort von einem Port
      *
-     * @param port
-     * @return
+     * @param port Port
+     * @return gelesenes Wort
      */
     @Override
     public int readPort_Word(int port) {
@@ -233,17 +526,30 @@ public final class KGS implements PortModule, ClockModule {
     }
 
     /**
-     *
+     * Initialisiert die KGS
      */
     @Override
     public void init() {
-        ram.loadFile(0x00, new File("./eproms/KGS-K7070-152.bin"), Memory.FileLoadMode.LOW_AND_HIGH_BYTE);
+        final File kgsRom = new File("./eproms/KGS-K7070-152.rom");
+        if (!kgsRom.exists()) {
+            JOptionPane.showMessageDialog(null, "Eprom: " + kgsRom.getName() + " nicht gefunden!", "Eprom nicht gefunden", JOptionPane.ERROR_MESSAGE);
+            System.exit(0);
+        }
+
+        ram.loadFile(0x00, kgsRom, Memory.FileLoadMode.LOW_AND_HIGH_BYTE);
         initTabs();
         abg = new ABG();
         registerPorts();
         registerClocks();
     }
 
+    /**
+     * Gibt ein Zeichen auf dem Bildschirm aus
+     *
+     * @param data Code des Zeichens
+     * @param row Zeile für Ausgabe
+     * @param column Spalte für Ausgabe
+     */
     private void drawCharacter(int data, int row, int column) {
         // Darstellbares Zeichen
         byte[] linecode = new byte[16];
@@ -253,6 +559,9 @@ public final class KGS implements PortModule, ClockModule {
         abg.setLineCodes(row - 1, column - 1, linecode, intense, flash, false, underline, inverse);
     }
 
+    /**
+     * Initialisiert die Tabulatoren auf Default-Werte
+     */
     private void initTabs() {
         for (int i = 0; i < 73; i = i + 8) {
             hTabs[i] = true;
@@ -262,18 +571,29 @@ public final class KGS implements PortModule, ClockModule {
         }
     }
 
+    /**
+     * Setzt ein Bit im Statusbyte
+     *
+     * @param bit zu setzendes Bit
+     */
     private void setBit(int bit) {
         state |= bit;
     }
 
+    /**
+     * Löscht ein Bit im Satusbyte
+     *
+     * @param bit Zu löschendes Bit
+     */
     private void clearBit(int bit) {
         state &= ~bit;
     }
 
-    private boolean getBit(int bit) {
-        return (state & bit) != 0;
-    }
-
+    /**
+     * Verarbeitet von der ZVE empfangene Daten
+     *
+     * @param data Daten
+     */
     private void dataReceived(int data) {
         if (initialized) {
             abg.removeCursor(cursorRow - 1, cursorColumn - 1);
@@ -296,15 +616,15 @@ public final class KGS implements PortModule, ClockModule {
                     //System.out.println((char)data);
                     drawCharacter(data, cursorRow, cursorColumn++);
                     /*if (cursorColumn == 81) {
-                        if (!wraparound) {
-                            cursorColumn = 1;
-                            if (cursorRow != 25) {
-                                cursorRow++;
-                            } else {
-                               abg.rollAlphanumericScreen();
-                            }
-                        }
-                    }*/
+                     if (!wraparound) {
+                     cursorColumn = 1;
+                     if (cursorRow != 25) {
+                     cursorRow++;
+                     } else {
+                     abg.rollAlphanumericScreen();
+                     }
+                     }
+                     }*/
                 } else {
                     // Steuerzeichen
                     switch (data) {
@@ -447,6 +767,9 @@ public final class KGS implements PortModule, ClockModule {
         }
     }
 
+    /**
+     * Prüft die aktuelle ESC Sequenz auf Gültigkeit und führt diese ggf. aus
+     */
     private void checkESC() {
         if (escSequence.peekFirst() == 0x10) {
             int code = escSequence.get(1) & 0xFF;
@@ -467,7 +790,7 @@ public final class KGS implements PortModule, ClockModule {
             if (escSequence.size() >= 3) {
                 int byteCnt = (escSequence.get(2) << 8) + escSequence.get(1);
                 if (escSequence.size() >= byteCnt + 3) {
-                  //  System.out.print("Anzahl der Bytes: " + byteCnt+ "(");
+                    //  System.out.print("Anzahl der Bytes: " + byteCnt+ "(");
                     //for (byte b : escSequence) {
                     //    System.out.print(String.format(" %03d", b));
                     //}
@@ -756,7 +1079,7 @@ public final class KGS implements PortModule, ClockModule {
                 case 0x4B: {
                     // [ Ps; Ps; ... ;Ps K Löschen eines Zeichenbereiches in der aktiven Zeile
                     int[] params = getParameters();
-                    switch (params[0]==-1?0:params[0]) {
+                    switch (params[0] == -1 ? 0 : params[0]) {
                         case 0:
                             for (int i = cursorColumn; i <= 80; i++) {
                                 drawCharacter(0x20, cursorRow, i);
@@ -907,6 +1230,11 @@ public final class KGS implements PortModule, ClockModule {
         }
     }
 
+    /**
+     * Liest einen Parameter aus der ESC-Steuerfolge
+     *
+     * @return Parameter
+     */
     private int getParameter() {
         escSequence.removeFirst();
         if (escSequence.size() == 4) {
@@ -916,9 +1244,14 @@ public final class KGS implements PortModule, ClockModule {
         } else if (escSequence.size() == 2) {
             return 1;
         }
-        throw new IllegalArgumentException("Falsche ESC-Sequenz" +escSequence.size());
+        throw new IllegalArgumentException("Falsche ESC-Sequenz" + escSequence.size());
     }
 
+    /**
+     * Liest mehrere Parameter aus der ESC-Steuerfolge
+     *
+     * @return Parameter
+     */
     private int[] getParameters() {
         String escString = "";
         escSequence.removeFirst();
@@ -943,7 +1276,7 @@ public final class KGS implements PortModule, ClockModule {
     }
 
     /**
-     *
+     * Registriert das Modul für Änderungen der Systemzeit
      */
     @Override
     public void registerClocks() {
@@ -951,8 +1284,9 @@ public final class KGS implements PortModule, ClockModule {
     }
 
     /**
+     * Verarbeitet Änderungen der Systemzeit
      *
-     * @param amount
+     * @param amount Anzahl der Ticks
      */
     @Override
     public void clockUpdate(int amount) {
@@ -965,6 +1299,11 @@ public final class KGS implements PortModule, ClockModule {
         }
     }
 
+    /**
+     * Schreibt mehrere Bytes in den Ausgabe Puffer zur ZVE
+     *
+     * @param bytes zu schreibende Bytes
+     */
     private void writeOutputBuffer(byte[] bytes) {
         deviceBuffer2.clear();
         bufferPosition = 0;
@@ -975,7 +1314,7 @@ public final class KGS implements PortModule, ClockModule {
     }
 
     /**
-     *
+     * Zeigt den aktuellen Zeichensatz in einem separaten Fenster an
      */
     public void showCharacters() {
         final BufferedImage characterImage = new BufferedImage(512, 384, BufferedImage.TYPE_INT_RGB);
@@ -1014,6 +1353,9 @@ public final class KGS implements PortModule, ClockModule {
         frame.pack();
     }
 
+    /**
+     * Führt die Anweisungen aus dem Grafik-Puffer aus
+     */
     private void executeGraphicsBuffer() {
 //        int byteCnt = (escSequence.get(2) << 8) + escSequence.get(1);
         int pos = 3;
@@ -1308,9 +1650,10 @@ public final class KGS implements PortModule, ClockModule {
     }
 
     /**
+     * Speichert den Zustand der KGS in einer Datei
      *
-     * @param dos
-     * @throws IOException
+     * @param dos Stream zur Datei
+     * @throws IOException Wenn Schreiben nicht erfolgreich war
      */
     @Override
     public void saveState(DataOutputStream dos) throws IOException {
@@ -1341,7 +1684,6 @@ public final class KGS implements PortModule, ClockModule {
         dos.writeBoolean(flash);
         dos.writeBoolean(underline);
         dos.writeBoolean(wraparound);
-        dos.writeBoolean(wrapped);
         dos.writeInt(deviceBuffer2.size());
         for (int i = 0; i < deviceBuffer2.size(); i++) {
             dos.writeByte(deviceBuffer2.get(i));
@@ -1351,9 +1693,10 @@ public final class KGS implements PortModule, ClockModule {
     }
 
     /**
+     * Liest den Zustand der KGS aus einer Datei
      *
-     * @param dis
-     * @throws IOException
+     * @param dis Stream zur Datei
+     * @throws IOException Wenn Lesen nicht erfolgreich war
      */
     @Override
     public void loadState(DataInputStream dis) throws IOException {
@@ -1384,7 +1727,6 @@ public final class KGS implements PortModule, ClockModule {
         flash = dis.readBoolean();
         underline = dis.readBoolean();
         wraparound = dis.readBoolean();
-        wrapped = dis.readBoolean();
 
         int size = dis.readInt();
         deviceBuffer2.clear();

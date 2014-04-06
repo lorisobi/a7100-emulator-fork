@@ -1,6 +1,12 @@
 /*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
+ * ZPS.java
+ * 
+ * Diese Datei gehört zum Projekt A7100 Emulator 
+ * (c) 2011-2014 Dirk Bräuer
+ * 
+ * Letzte Änderungen:
+ *   02.04.2014 Kommentare vervollständigt
+ *
  */
 package a7100emulator.components.modules;
 
@@ -12,19 +18,23 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 
 /**
+ * Klasse zur Abbildung der ZPS (Zweiportspeicher)
  *
- * @author Dirk
+ * @author Dirk Bräuer
  */
 public final class ZPS implements MemoryModule {
 
     /**
-     *
+     * Anzahl der ZPS Module im System
      */
     public static int zps_count = 0;
+    /**
+     * Speicher der ZPS
+     */
     private final Memory memory = new Memory(131072);
 
     /**
-     *
+     * Erstellt eine neue ZPS
      */
     public ZPS() {
         zps_count++;
@@ -32,7 +42,7 @@ public final class ZPS implements MemoryModule {
     }
 
     /**
-     *
+     * Initialisiert die ZPS
      */
     @Override
     public void init() {
@@ -40,7 +50,7 @@ public final class ZPS implements MemoryModule {
     }
 
     /**
-     *
+     * Registriert den 128kB Speicherberei der ZPS im Systemspeicher
      */
     @Override
     public void registerMemory() {
@@ -48,9 +58,10 @@ public final class ZPS implements MemoryModule {
     }
 
     /**
+     * Liest ein Byte von der Angegebenen Adresse
      *
-     * @param address
-     * @return
+     * @param address Adresse
+     * @return Daten
      */
     @Override
     public int readByte(int address) {
@@ -58,9 +69,10 @@ public final class ZPS implements MemoryModule {
     }
 
     /**
+     * Liest ein Wort von der angegebenen Adresse
      *
-     * @param address
-     * @return
+     * @param address Adresse
+     * @return Daten
      */
     @Override
     public int readWord(int address) {
@@ -68,9 +80,10 @@ public final class ZPS implements MemoryModule {
     }
 
     /**
+     * Schreibt ein Byte an die Angegebene Adresse
      *
-     * @param address
-     * @param data
+     * @param address Adresse
+     * @param data Daten
      */
     @Override
     public void writeByte(int address, int data) {
@@ -78,9 +91,10 @@ public final class ZPS implements MemoryModule {
     }
 
     /**
+     * Schreibt ein Wort an die angegebene Adresse
      *
-     * @param address
-     * @param data
+     * @param address Adresse
+     * @param data Wort
      */
     @Override
     public void writeWord(int address, int data) {
@@ -88,22 +102,24 @@ public final class ZPS implements MemoryModule {
     }
 
     /**
+     * Speichert den Zustand der ZPS in einer Datei
      *
-     * @param dos
-     * @throws IOException
+     * @param dos Stream zur Datei
+     * @throws IOException Wenn Schreiben nicht erfolgreich war
      */
     @Override
     public void saveState(DataOutputStream dos) throws IOException {
-        throw new UnsupportedOperationException("Not supported yet.");
+        memory.saveMemory(dos);
     }
 
     /**
+     * Liest den Zustand der ZPS aus einer Datei
      *
-     * @param dis
-     * @throws IOException
+     * @param dis Stream zur Datei
+     * @throws IOException Wenn Lesen nicht erfolgreich war
      */
     @Override
     public void loadState(DataInputStream dis) throws IOException {
-        throw new UnsupportedOperationException("Not supported yet.");
+        memory.loadMemory(dis);
     }
 }

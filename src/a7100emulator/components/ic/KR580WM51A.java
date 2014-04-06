@@ -1,6 +1,12 @@
 /*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
+ * KR580WW51A.java
+ * 
+ * Diese Datei gehört zum Projekt A7100 Emulator 
+ * (c) 2011-2014 Dirk Bräuer
+ * 
+ * Letzte Änderungen:
+ *   03.04.2014 Kommentare vervollständigt
+ *
  */
 package a7100emulator.components.ic;
 
@@ -12,30 +18,65 @@ import java.io.IOException;
 import java.util.LinkedList;
 
 /**
+ * Klasse zur Abbildung des USART-Schaltkreises
  *
- * @author Dirk
+ * @author Dirk Bräuer
  */
 public class KR580WM51A {
 
+    /**
+     * Statusbit Transmitter Ready
+     */
     private final int STATE_TXRDY = 0x01;
+
+    /**
+     * Statusbit Receive Ready
+     */
     private final int STATE_RXRDY = 0x02;
+
+    /**
+     * Statusbit Transmitter Empty
+     */
     private final int STATE_TXE = 0x04;
+
+    /**
+     * Kommando
+     */
     private int command;
+
+    /**
+     * Aktueller Betriebsmodus
+     */
     private int mode;
+
+    /**
+     * Aktueller Status
+     */
     private int state = 0x05;
+
+    /**
+     * Gibt an ob bereits ein Mode Word empfangen wurde
+     */
     private boolean modeInstruction = false;
+
+    /**
+     * Puffer mit empfangenen Zeichen
+     */
     private final LinkedList<Byte> deviceBuffer = new LinkedList<Byte>();
 
     /**
-     *
+     * Erstellt einen neuen USART Schaltkreis und registriert ihn bei der
+     * Tastatur
      */
     public KR580WM51A() {
         Keyboard.getInstance().registerController(this);
     }
 
     /**
+     * Verarbeitet ein ankommendes Kommandu und konfiguriert den USART
+     * entsprechend
      *
-     * @param command
+     * @param command Kommando
      */
     public void writeCommand(int command) {
         if (modeInstruction) {
@@ -57,7 +98,7 @@ public class KR580WM51A {
 //            System.out.print(" Receive-Enable:" + getBit(command, 2));
 //            System.out.print(" DTR:" + getBit(command, 1));
 //            System.out.println(" Transmit-Enable:" + getBit(command, 0));
-            if (getBit(command,6)) { // Reset
+            if (getBit(command, 6)) { // Reset
                 modeInstruction = true;
                 deviceBuffer.clear();
                 //deviceBuffer.add((byte) 0);
@@ -71,8 +112,9 @@ public class KR580WM51A {
     }
 
     /**
+     * Gibt ein Zeichen an die angeschlossene Tastatur aus
      *
-     * @param data
+     * @param data Daten
      */
     public void writeDataToDevice(int data) {
 //        System.out.println("Sende an Tastatur:" + String.format("%02X", data));
@@ -81,18 +123,9 @@ public class KR580WM51A {
     }
 
     /**
+     * Liest den Status des USART-Schaltkreises
      *
-     * @param deviceData
-     */
-    public void writeDataToSystem(int deviceData) {
-        deviceBuffer.add((byte) (deviceData & 0xFF));
-        state |= STATE_RXRDY;
-        InterruptSystem.getInstance().getPIC().requestInterrupt(6);
-    }
-
-    /**
-     *
-     * @return
+     * @return Status-Byte
      */
     public int readStatus() {
         // XX0001XX
@@ -101,8 +134,9 @@ public class KR580WM51A {
     }
 
     /**
+     * Liest ein Byte aus dem Puffer (vom angeschlossenen Gerät)
      *
-     * @return
+     * @return gelesenes Byte
      */
     public int readFromDevice() {
         int value = 0;
@@ -119,17 +153,32 @@ public class KR580WM51A {
         return value;
     }
 
+    /**
+     * Gibt den Puffer in der Konsole aus
+     */
     private void printBuffer() {
         System.out.print("Puffergröße: " + deviceBuffer.size() + "( ");
         for (byte b : deviceBuffer) {
-            System.out.print(String.format("%02X ",b));
+            System.out.print(String.format("%02X ", b));
         }
         System.out.println(")");
     }
 
     /**
+     * Schreibt ein Byte in den Puffer des USART
      *
-     * @param bytes
+     * @param deviceData Zu speicherndes Byte
+     */
+    public void writeDataToSystem(int deviceData) {
+        deviceBuffer.add((byte) (deviceData & 0xFF));
+        state |= STATE_RXRDY;
+        InterruptSystem.getInstance().getPIC().requestInterrupt(6);
+    }
+
+    /**
+     * Speichert die angegebenen Zeichen im Puffer des USART
+     *
+     * @param bytes Zu speichernde Bytes
      */
     public void writeDataToSystem(byte[] bytes) {
         for (int i = 0; i < bytes.length; i++) {
@@ -139,14 +188,22 @@ public class KR580WM51A {
         InterruptSystem.getInstance().getPIC().requestInterrupt(6);
     }
 
+    /**
+     * Gibt an ob ein Bit des Operanden gesetzt ist
+     *
+     * @param op Operand
+     * @param i Zu prüfendes Bit
+     * @return true - wenn Bit gesetzt, false - sonst
+     */
     private boolean getBit(int op1, int i) {
         return (((op1 >> i) & 0x1) == 0x1);
     }
 
     /**
+     * Speichert den Zustand des USART in eine Datei
      *
-     * @param dos
-     * @throws IOException
+     * @param dos Stream zur Datei
+     * @throws IOException Wenn Schreiben nicht erfolgreich war
      */
     public void saveState(DataOutputStream dos) throws IOException {
         dos.writeInt(command);
@@ -160,9 +217,10 @@ public class KR580WM51A {
     }
 
     /**
+     * Lädt den Zustand des USART aus einer Datei
      *
-     * @param dis
-     * @throws IOException
+     * @param dis Stream zur Datei
+     * @throws IOException Wenn Laden nicht erfolgreich war
      */
     public void loadState(DataInputStream dis) throws IOException {
         command = dis.readInt();

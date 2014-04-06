@@ -1,6 +1,12 @@
 /*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
+ * FloppyDrive.java
+ * 
+ * Diese Datei gehört zum Projekt A7100 Emulator 
+ * (c) 2011-2014 Dirk Bräuer
+ * 
+ * Letzte Änderungen:
+ *   05.04.2014 Kommentare vervollständigt
+ *
  */
 package a7100emulator.components.system;
 
@@ -10,43 +16,53 @@ import java.io.File;
 import java.io.IOException;
 
 /**
+ * Klasse zur Realisierung eines Diskettenlaufwerkes
  *
- * @author Dirk
+ * @author Dirk Bräuer
  */
 public class FloppyDrive {
 
     /**
-     * 
+     * Laufwerkstyp
      */
     public enum DriveType {
 
         /**
-         * 
+         * Diskettenlaufwerk K5600.20: 5.25" 96tpi DD SS
          */
         K5600_20,
         /**
-         *
+         * Diskettenlaufwerk K5602.10: 8" 48tpi SD
          */
         K5602_10,
         /**
-         *
+         * Diskettenlaufwerk K5601: 5.25" 96tpi DD DS
          */
         K5601
     }
+    /**
+     * Referenz auf eingelegte Diskette
+     */
     private Disk disk;
+    /**
+     * Laufwerkstyp
+     */
     private DriveType driveType;
 
     /**
-     * 
-     * @param driveType
+     * Erstellt ein neues Diskettenlaufwerk
+     *
+     * @param driveType Laufwerkstyp
      */
     public FloppyDrive(DriveType driveType) {
         this.driveType = driveType;
     }
 
     /**
-     * 
-     * @param writeProtected
+     * Setzt oder löscht den Schreibschutz für die eingelegte Diskette
+     *
+     * @param writeProtected true - wenn Diskette schreibgeschützt werden soll ,
+     * false - sonst
      */
     public void setWriteProtect(boolean writeProtected) {
         if (disk != null) {
@@ -55,30 +71,32 @@ public class FloppyDrive {
     }
 
     /**
-     * 
-     * @param cylinder
-     * @param head
-     * @param mod
-     * @param data
-     * @param interleave
+     * Formatiert den angegebenen Bereich der eingelegten Diskette
+     *
+     * @param cylinder Zylindernummer
+     * @param head Kopfnummer
+     * @param mod Modifizierung
+     * @param data Datenbytes
+     * @param interleave Interleave-Faktor
      */
     public void format(int cylinder, int head, int mod, int[] data, int interleave) {
         disk.format(cylinder, head, mod, data, interleave);
     }
 
     /**
-     * 
+     * Erzeugt eine leere Diskette
      */
     public void newDisk() {
         disk = new Disk();
     }
 
     /**
-     * 
-     * @param cylinder
-     * @param sector
-     * @param head
-     * @param data
+     * Schreibt Daten auf die eingelegte Diskette
+     *
+     * @param cylinder Zylindernummer
+     * @param sector Sektornummer
+     * @param head Kopfnummer
+     * @param data Daten
      */
     public void writeData(int cylinder, int sector, int head, byte[] data) {
         if (disk == null) {
@@ -88,8 +106,9 @@ public class FloppyDrive {
     }
 
     /**
-     * 
-     * @param image
+     * Speichert die Diskette als Image
+     *
+     * @param image Image-File
      */
     public void saveDiskToFile(File image) {
         if (disk == null) {
@@ -99,27 +118,29 @@ public class FloppyDrive {
     }
 
     /**
-     * 
-     * @param file
+     * Lädt eine Diskette aus einer Datei
+     *
+     * @param file Image
      */
     public void loadDiskFromFile(File file) {
         disk = new Disk(file);
     }
 
     /**
-     * 
+     * Wirft die Diskette aus
      */
     public void ejectDisk() {
         disk = null;
     }
 
     /**
-     * 
-     * @param cylinder
-     * @param sector
-     * @param head
-     * @param cnt
-     * @return
+     * Liest Daten von der Diskette
+     *
+     * @param cylinder Zylindernummer
+     * @param sector Sketornummer
+     * @param head Kopfnummer
+     * @param cnt Anzahl der zu lesenden Bytes
+     * @return gelesene Daten
      */
     public byte[] readData(int cylinder, int sector, int head, int cnt) {
         if (disk == null) {
@@ -129,8 +150,9 @@ public class FloppyDrive {
     }
 
     /**
-     * 
-     * @return
+     * Gibt die Anzahl der Zylinder des Laufwerks zurück
+     *
+     * @return Anzahl der Zylinder
      */
     public int getCylinderCount() {
         switch (driveType) {
@@ -144,16 +166,18 @@ public class FloppyDrive {
     }
 
     /**
-     * 
-     * @return
+     * Gibt an ob das Laufwerk Double-Step verwendet
+     *
+     * @return true - wenn Double Step verwendet wird , false -sonst
      */
     public boolean getDoubleStep() {
         return false;
     }
 
     /**
-     * 
-     * @return
+     * Gibt den Präkompensationscode zurück
+     *
+     * @return Präkompensationscode
      */
     public int getPrecompensationCode() {
         switch (driveType) {
@@ -166,8 +190,9 @@ public class FloppyDrive {
     }
 
     /**
-     * 
-     * @return
+     * Gibt die Anzahl der Köpfe des Laufwerks zurück
+     *
+     * @return Anzahl der Köpfe
      */
     public int getHeads() {
         switch (driveType) {
@@ -181,16 +206,18 @@ public class FloppyDrive {
     }
 
     /**
-     * 
-     * @return
+     * Gibt die Verzögerung für das Abschwenken der Köpfe an
+     *
+     * @return Verzögerung
      */
     public int getHeadSink() {
         return 0;
     }
 
     /**
-     * 
-     * @return
+     * Gibt die Schrittrate des Laufwerks an
+     *
+     * @return Schrittrate
      */
     public int getStepTime() {
         switch (driveType) {
@@ -204,8 +231,9 @@ public class FloppyDrive {
     }
 
     /**
-     * 
-     * @return
+     * Gibt die Kopfladezeit zurück
+     *
+     * @return Kopfladezeit
      */
     public int getHeadTime() {
         switch (driveType) {
@@ -219,8 +247,9 @@ public class FloppyDrive {
     }
 
     /**
-     * 
-     * @return
+     * Gibt das Aufzeichnungsverfahren zurück
+     *
+     * @return Aufzeichnungsverfahren 0 - FM , 1 - MFM
      */
     public int getWriting() {
         switch (driveType) {
@@ -234,8 +263,9 @@ public class FloppyDrive {
     }
 
     /**
-     * 
-     * @return
+     * Liefert die Anzahl der Sektoren je Spur zurück
+     *
+     * @return Anzahl Sektoren/Spur
      */
     public int getSectorsPerTrack() {
         switch (driveType) {
@@ -249,8 +279,9 @@ public class FloppyDrive {
     }
 
     /**
-     * 
-     * @return
+     * Liefert die Anzahl der bytes pro Sektor zurück
+     *
+     * @return Bytes/Sektor
      */
     public int getBytesPerSector() {
         switch (driveType) {
@@ -264,17 +295,19 @@ public class FloppyDrive {
     }
 
     /**
-     * 
-     * @return
+     * Gibt an, ob eine Diskette eingelegt ist
+     *
+     * @return true - wenn Diskette eingelegt , false - sonst
      */
     public boolean getDiskInsert() {
         return disk != null;
     }
 
     /**
-     * 
-     * @param dos
-     * @throws IOException
+     * Speichert den Zustand des Laufwerks in einer Datei
+     *
+     * @param dos Stream zur Datei
+     * @throws IOException Wenn Schreiben nicht erfolgreich war
      */
     public void saveState(DataOutputStream dos) throws IOException {
         dos.writeUTF(driveType.name());
@@ -287,15 +320,16 @@ public class FloppyDrive {
     }
 
     /**
-     * 
-     * @param dis
-     * @throws IOException
+     * Lädt den Zustand des Laufwerks aus einer Datei
+     *
+     * @param dis Stream zur Datei
+     * @throws IOException Wenn Lesen nicht erfolgreich war
      */
     public void loadState(DataInputStream dis) throws IOException {
         driveType = DriveType.valueOf(dis.readUTF());
         boolean diskInserted = dis.readBoolean();
         if (diskInserted) {
-            disk=new Disk();
+            disk = new Disk();
             disk.loadState(dis);
         }
     }

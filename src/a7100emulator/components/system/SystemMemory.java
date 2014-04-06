@@ -1,32 +1,51 @@
 /*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
+ * SystemMemory.java
+ * 
+ * Diese Datei gehört zum Projekt A7100 Emulator 
+ * (c) 2011-2014 Dirk Bräuer
+ * 
+ * Letzte Änderungen:
+ *   05.04.2014 Kommentare vervollständigt
+ *
  */
 package a7100emulator.components.system;
 
 import a7100emulator.Tools.AddressSpace;
 import a7100emulator.components.modules.MemoryModule;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- *
- * @author Dirk
+ * Singleton-Klasse zur Abbildung des Systemspeichers
+ * @author Dirk Bräuer
  */
 public class SystemMemory {
 
+    /**
+     * Module mit Anteil am Systemspeicher
+     */
     private final HashMap<AddressSpace, MemoryModule> memoryModules = new HashMap<AddressSpace, MemoryModule>();
+    /**
+     * Instanz
+     */
     private static SystemMemory instance;
+    /**
+     * Größte mögliche Speicheradresse
+     */
     private static final int MAX_ADDRESS = 0xFFFFF;
 
+    /**
+     * Erstellt den Systemspeicher
+     */
     private SystemMemory() {
     }
 
     /**
-     * 
-     * @return
+     * Gibt die Instanz des Systemspeichers zurück
+     * @return Instanz
      */
     public static SystemMemory getInstance() {
         if (instance == null) {
@@ -36,14 +55,19 @@ public class SystemMemory {
     }
 
     /**
-     * 
-     * @param addressSpace
-     * @param module
+     * Registriert den Speicherbereich eines Moduls im Systemspeicher
+     * @param addressSpace Adressbereich
+     * @param module Modul
      */
     public void registerMemorySpace(AddressSpace addressSpace, MemoryModule module) {
         memoryModules.put(addressSpace, module);
     }
 
+    /**
+     * Liefert ein Modul für den angegebenen Speicherbereich
+     * @param address Adresse
+     * @return Modul oder null, wenn kein Modul für diesen Speicherbereich vorhanden ist
+     */
     private MemoryModule getModuleForAddress(int address) {
         for (AddressSpace addressSpace : memoryModules.keySet()) {
             if (address >= addressSpace.getLowerAddress() && address <= addressSpace.getHigherAddress()) {
@@ -55,9 +79,9 @@ public class SystemMemory {
     }
 
     /**
-     * 
-     * @param address
-     * @param value
+     * Schreibt ein Byte in den Systemspeicher
+     * @param address Adresse
+     * @param value Daten
      */
     public void writeByte(int address, int value) {
         MemoryModule module = getModuleForAddress(address);
@@ -69,9 +93,9 @@ public class SystemMemory {
     }
 
     /**
-     * 
-     * @param address
-     * @return
+     * Liest ein Byte aus dem Systemspeicher
+     * @param address Adresse
+     * @return gelesenes Byte
      */
     public int readByte(int address) {
         MemoryModule module = getModuleForAddress(address);
@@ -83,9 +107,9 @@ public class SystemMemory {
     }
 
     /**
-     * 
-     * @param address
-     * @param value
+     * Schreibt ein Wort in den Systemspeicher
+     * @param address Adresse
+     * @param value Daten
      */
     public void writeWord(int address, int value) {
         MemoryModule module = getModuleForAddress(address);
@@ -97,9 +121,9 @@ public class SystemMemory {
     }
 
     /**
-     * 
-     * @param address
-     * @return
+     * Liest ein Wort aus dem Systemspeicher
+     * @param address Adresse
+     * @return gelesenes Wort
      */
     public int readWord(int address) {
         MemoryModule module = getModuleForAddress(address);
@@ -111,8 +135,8 @@ public class SystemMemory {
     }
 
     /**
-     * 
-     * @param filename
+     * Schreibt den Inhalt des Speichers in eine Datei
+     * @param filename Dateiname
      */
     public void dump(String filename) {
         FileOutputStream fos;
@@ -122,13 +146,13 @@ public class SystemMemory {
                 fos.write(readByte(i));
             }
             fos.close();
-        } catch (Exception ex) {
+        } catch (IOException ex) {
             Logger.getLogger(SystemMemory.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
 
     /**
-     * 
+     * Löscht die Liste der Module
      */
     public void reset() {
         memoryModules.clear();

@@ -1,6 +1,12 @@
 /*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
+ * OPS.java
+ * 
+ * Diese Datei gehört zum Projekt A7100 Emulator 
+ * (c) 2011-2014 Dirk Bräuer
+ * 
+ * Letzte Änderungen:
+ *   01.04.2014 Kommentare vervollständigt
+ *
  */
 package a7100emulator.components.modules;
 
@@ -14,32 +20,83 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 
 /**
- *
- * @author Dirk
+ * Klasse zur Abbildung der OPS (Operativspeicher)
+ * @author Dirk Bräuer
  */
 public final class OPS implements PortModule, MemoryModule {
 
+    /**
+     * Enum für verwendete Paritäten
+     */
     enum Parity {
 
-        EVEN, ODD;
+        /**
+         * Gerade Parität
+         */
+        EVEN,
+
+        /**
+         * Ungerade Parität
+         */
+        ODD;
     }
     /**
-     * 
+     * Gesamtzahl der vorhandenen OPS-Module
      */
     public static int ops_count = 0;
+
+    /**
+     * Port der 1. OPS
+     */
     private final static int PORT_OPS_1_PES = 0x00;
+
+    /**
+     * Port der 2. OPS
+     */
     private final static int PORT_OPS_2_PES = 0x02;
+
+    /**
+     * Port der 3. OPS
+     */
     private final static int PORT_OPS_3_PES = 0x40;
+
+    /**
+     * Port der 4. OPS
+     */
     private final static int PORT_OPS_4_PES = 0x42;
+
+    /**
+     * Nummer der OPS
+     */
     private final int ops_id;
+
+    /**
+     * Speicher
+     */
     private final Memory memory = new Memory(262144);
+
+    /**
+     * Array mit Paritäts-Bits
+     */
     private final byte[] parityBits = new byte[262144];
+
+    /**
+     * Offset zum Speicherbereich der OPS
+     */
     private int ops_offset = 0;
+
+    /**
+     * Aktuell gesetzte Parität
+     */
     private Parity parity;
+
+    /**
+     * Status der OPS
+     */
     private int state = 0x0F;
 
     /**
-     * 
+     * Erstellt eine neue OPS
      */
     public OPS() {
         ops_id = ops_count++;
@@ -47,7 +104,7 @@ public final class OPS implements PortModule, MemoryModule {
     }
 
     /**
-     * 
+     * Registriert die Ports im System
      */
     @Override
     public void registerPorts() {
@@ -68,9 +125,9 @@ public final class OPS implements PortModule, MemoryModule {
     }
 
     /**
-     * 
-     * @param port
-     * @param data
+     * Gibt ein Byte auf einem Port aus
+     * @param port Port
+     * @param data Daten
      */
     @Override
     public void writePort_Byte(int port, int data) {
@@ -83,31 +140,29 @@ public final class OPS implements PortModule, MemoryModule {
     }
 
     /**
-     * 
-     * @param port
-     * @param data
+     * Gibt ein Wort auf einem Port aus
+     * @param port Port
+     * @param data Daten
      */
     @Override
     public void writePort_Word(int port, int data) {
-        //System.out.println("OUT Word " + Integer.toHexString(data) + " to port " + Integer.toHexString(port));
         //System.out.println("write Word auf OPS Port nicht implementiert");
     }
 
     /**
-     * 
-     * @param port
-     * @return
+     * Liest ein Byte von einem Port
+     * @param port Port
+     * @return gelesenes Byte
      */
     @Override
     public int readPort_Byte(int port) {
-        //System.out.println("Lese Status OPS Port " + Integer.toHexString(port) + ": " + Integer.toBinaryString(state));
         return state;
     }
 
     /**
-     * 
-     * @param port
-     * @return
+     * Liest ein Wort von einem Port
+     * @param port Port
+     * @return gelesenes Wort
      */
     @Override
     public int readPort_Word(int port) {
@@ -116,7 +171,7 @@ public final class OPS implements PortModule, MemoryModule {
     }
 
     /**
-     * 
+     * Initialisiert die OPS
      */
     @Override
     public void init() {
@@ -125,7 +180,7 @@ public final class OPS implements PortModule, MemoryModule {
     }
 
     /**
-     * 
+     * Registriert den Speicherbereich im Systemspeicher
      */
     @Override
     public void registerMemory() {
@@ -149,9 +204,9 @@ public final class OPS implements PortModule, MemoryModule {
     }
 
     /**
-     * 
-     * @param address
-     * @return
+     * Liest ein Byte aus dem Speicher
+     * @param address Adresse
+     * @return gelesenes Byte
      */
     @Override
     public int readByte(int address) {
@@ -167,9 +222,9 @@ public final class OPS implements PortModule, MemoryModule {
     }
 
     /**
-     * 
-     * @param address
-     * @return
+     * Liest ein Wort aus dem Speicher
+     * @param address Adresse
+     * @return gelesenes Wort
      */
     @Override
     public int readWord(int address) {
@@ -186,9 +241,9 @@ public final class OPS implements PortModule, MemoryModule {
     }
 
     /**
-     * 
-     * @param address
-     * @param data
+     * Schreibt ein Byte in den Speicher
+     * @param address Adresse
+     * @param data Daten
      */
     @Override
     public void writeByte(int address, int data) {
@@ -200,9 +255,9 @@ public final class OPS implements PortModule, MemoryModule {
     }
 
     /**
-     * 
-     * @param address
-     * @param data
+     * Schreibt ein Wort in den Speicher
+     * @param address Adresse
+     * @param data Daten
      */
     @Override
     public void writeWord(int address, int data) {
@@ -214,6 +269,11 @@ public final class OPS implements PortModule, MemoryModule {
         }
     }
 
+    /**
+     * Prüft die parität eines Bytes
+     * @param data Daten
+     * @return Parität (0-gerade / 1-ungerade)
+     */
     private int checkParity(int data) {
         int par = (parity == Parity.EVEN) ? 0x00 : 0x01;
         for (int i = 0; i < 8; i++) {
@@ -223,9 +283,9 @@ public final class OPS implements PortModule, MemoryModule {
     }
 
     /**
-     * 
-     * @param dos
-     * @throws IOException
+     * Schreibt den Zustand der OPS in eine Datei
+     * @param dos Stream der Datei
+     * @throws IOException Wenn Schreiben nicht erfolgreich
      */
     @Override
     public void saveState(DataOutputStream dos) throws IOException {
@@ -237,9 +297,9 @@ public final class OPS implements PortModule, MemoryModule {
     }
     
     /**
-     * 
-     * @param dis
-     * @throws IOException
+     * Liest den Zustand der OPS aus einer Datei
+     * @param dis Stream der Datei
+     * @throws IOException Wenn Lesen nicht erfolreich war
      */
     @Override
     public void loadState(DataInputStream dis) throws IOException {
