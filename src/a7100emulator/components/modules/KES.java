@@ -6,6 +6,7 @@
  * 
  * Letzte Änderungen:
  *   02.04.2014 Kommentare vervollständigt
+ *   12.04.2014 Verarbeitung der Init Parameter
  *
  */
 package a7100emulator.components.modules;
@@ -258,6 +259,20 @@ public final class KES implements PortModule, ClockModule {
                 int driveNr = memory.readByte(ccbAddress + 0x2A);
                 int deviceCode = memory.readByte(ccbAddress + 0x28);
                 int status = 0;
+                int memAddr = (memory.readWord(ccbAddress + 0x34) << 4) + memory.readWord(ccbAddress + 0x32);
+                int cylinder = memory.readWord(memAddr);
+                int fixedHeads = memory.readByte(memAddr + 2);
+                int moveHeads = memory.readByte(memAddr + 3);
+                int sectorsPerTrack = memory.readByte(memAddr + 4);
+                int bytesPerSector = memory.readWord(memAddr + 5);
+                int replaceCylinders = memory.readByte(memAddr + 7);
+
+//                System.out.println("cyl:" + cylinder);
+//                System.out.println("fixedHead:" + fixedHeads);
+//                System.out.println("moveHead:" + moveHeads);
+//                System.out.println("sectorsPerTrack:" + sectorsPerTrack);
+//                System.out.println("bytesPerSector:" + bytesPerSector);
+//                System.out.println("replaceCylinders:"+replaceCylinders);
                 switch (deviceCode) {
                     case 0x00:
                     case 0x02:
@@ -274,6 +289,18 @@ public final class KES implements PortModule, ClockModule {
                         // Laufwerksnummer
                         status |= (driveNr & 0x03) << 4;
                         status |= (drive.getDiskInsert()) ? 0x00 : 0xC0;
+
+                        drive.setCylinder(cylinder & 0x7FFF);
+                        drive.setDoubleStep(getBit(cylinder, 15));
+                        drive.setPrecompensation(fixedHeads & 0x3);
+                        drive.setReduceCurrent((fixedHeads >> 2) & 0x3);
+                        drive.setHeadSink((fixedHeads >> 6) & 0x1);
+                        drive.setHeads(moveHeads);
+                        drive.setSectorsPerTrack(sectorsPerTrack);
+                        drive.setBytesPerSector(bytesPerSector);
+                        drive.setMfmMode(getBit(replaceCylinders, 0));
+                        drive.setStepTime((replaceCylinders >> 1) & 0x7);
+                        drive.setHeadTime((replaceCylinders >> 4) & 0x15);
                         break;
                 }
                 memory.writeByte(ccbAddress + 0x13, 0xFF);

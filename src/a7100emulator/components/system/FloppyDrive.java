@@ -6,6 +6,7 @@
  * 
  * Letzte Änderungen:
  *   05.04.2014 Kommentare vervollständigt
+ *   12.04.2014 Parameter für Initialisierung hinzugefügt, Formatierung überarbeitet
  *
  */
 package a7100emulator.components.system;
@@ -48,6 +49,50 @@ public class FloppyDrive {
      * Laufwerkstyp
      */
     private DriveType driveType;
+    /**
+     * Anzahl der Zylinder
+     */
+    private int cylinder;
+    /**
+     * Anzahl der Köpfe
+     */
+    private int heads;
+    /**
+     * Anzahl der Sektoren je Track
+     */
+    private int sectorsPerTrack;
+    /**
+     * Anzahl der Bytes pro Sektor
+     */
+    private int bytesPerSector;
+    /**
+     * Doppelschritt
+     */
+    private boolean doubleStep;
+    /**
+     * Zylinder für Schreibpraekompensation
+     */
+    private int precompensation;
+    /**
+     * Zylinder für reduzierten Schreibstrom
+     */
+    private int reduceCurrent;
+    /**
+     * HeadSink
+     */
+    private int headSink;
+    /**
+     * MFM Modus
+     */
+    private boolean mfmMode;
+    /**
+     * Schrittrate
+     */
+    private int stepTime;
+    /**
+     * Kopfladezeit
+     */
+    private int headTime;
 
     /**
      * Erstellt ein neues Diskettenlaufwerk
@@ -80,7 +125,21 @@ public class FloppyDrive {
      * @param interleave Interleave-Faktor
      */
     public void format(int cylinder, int head, int mod, int[] data, int interleave) {
-        disk.format(cylinder, head, mod, data, interleave);
+        if (cylinder == 0 && head == 0 && getBit(mod, 7)) {
+            switch (driveType) {
+                // 5.25" Diskette 16 Sektoren mit 128 Bytes
+                case K5600_20:
+                case K5601:
+                    disk.format(cylinder, head, mod, data, interleave, 16, 128);
+                    break;
+                // 8" Diskette 26 Sektoren mit 128 Bytes
+                case K5602_10:
+                    disk.format(cylinder, head, mod, data, interleave, 26, 128);
+                    break;
+            }
+        } else {
+            disk.format(cylinder, head, mod, data, interleave, sectorsPerTrack, bytesPerSector);
+        }
     }
 
     /**
@@ -121,9 +180,26 @@ public class FloppyDrive {
      * Lädt eine Diskette aus einer Datei
      *
      * @param file Image
+     * @param imageType Typ der Image-Datei
      */
-    public void loadDiskFromFile(File file) {
-        disk = new Disk(file);
+    public void loadDiskFromFile(File file, Disk.ImageType imageType) {
+        disk = new Disk(file, imageType);
+    }
+
+    /**
+     * Lädt eine Diskette aus einer Binärdatei unter verwendung der angegebenen
+     * Parameter
+     *
+     * @param file Image
+     * @param cylinders Anzahl der Zylinder
+     * @param heads Anzahl der Köpfe
+     * @param sectorsPerTrack Anzahl der Sektoren pro Spur
+     * @param bytesPerSector Anzahl der Bytes pro Sektor
+     * @param sectorsInTrack0 Anzahl der Sektoren in Spur 0
+     * @param bytesPerSectorTrack0 Anzahl der Bytes pro Sektor in Spur 0
+     */
+    public void loadDiskFromFile(File file, int cylinders, int heads, int sectorsPerTrack, int bytesPerSector, int sectorsInTrack0, int bytesPerSectorTrack0) {
+        disk = new Disk(file, cylinders, heads, sectorsPerTrack, bytesPerSector, sectorsInTrack0, bytesPerSectorTrack0);
     }
 
     /**
@@ -150,43 +226,21 @@ public class FloppyDrive {
     }
 
     /**
-     * Gibt die Anzahl der Zylinder des Laufwerks zurück
+     * Gibt die Anzahl der eingestellten Zylinder zurück
      *
      * @return Anzahl der Zylinder
      */
-    public int getCylinderCount() {
-        switch (driveType) {
-            case K5602_10:
-                return 77;
-            case K5600_20:
-            case K5601:
-                return 80;
-        }
-        return 0;
+    public int getCylinder() {
+        return cylinder;
     }
 
     /**
-     * Gibt an ob das Laufwerk Double-Step verwendet
+     * Setzt die Anzahl der Zylinder
      *
-     * @return true - wenn Double Step verwendet wird , false -sonst
+     * @param cylinder Zylinderanzahl
      */
-    public boolean getDoubleStep() {
-        return false;
-    }
-
-    /**
-     * Gibt den Präkompensationscode zurück
-     *
-     * @return Präkompensationscode
-     */
-    public int getPrecompensationCode() {
-        switch (driveType) {
-            case K5602_10:
-            case K5600_20:
-            case K5601:
-                return 0;
-        }
-        return 0;
+    public void setCylinder(int cylinder) {
+        this.cylinder = cylinder;
     }
 
     /**
@@ -195,71 +249,16 @@ public class FloppyDrive {
      * @return Anzahl der Köpfe
      */
     public int getHeads() {
-        switch (driveType) {
-            case K5602_10:
-            case K5600_20:
-                return 1;
-            case K5601:
-                return 2;
-        }
-        return 0;
+        return heads;
     }
 
     /**
-     * Gibt die Verzögerung für das Abschwenken der Köpfe an
+     * Setzt die Anzahl der Köpfe
      *
-     * @return Verzögerung
+     * @param heads Anzahl der Köpfe
      */
-    public int getHeadSink() {
-        return 0;
-    }
-
-    /**
-     * Gibt die Schrittrate des Laufwerks an
-     *
-     * @return Schrittrate
-     */
-    public int getStepTime() {
-        switch (driveType) {
-            case K5602_10:
-            case K5600_20:
-                return 0x03;
-            case K5601:
-                return 0x02;
-        }
-        return 0;
-    }
-
-    /**
-     * Gibt die Kopfladezeit zurück
-     *
-     * @return Kopfladezeit
-     */
-    public int getHeadTime() {
-        switch (driveType) {
-            case K5602_10:
-            case K5600_20:
-                return 0x05;
-            case K5601:
-                return 0x05;
-        }
-        return 0;
-    }
-
-    /**
-     * Gibt das Aufzeichnungsverfahren zurück
-     *
-     * @return Aufzeichnungsverfahren 0 - FM , 1 - MFM
-     */
-    public int getWriting() {
-        switch (driveType) {
-            case K5602_10:
-                return 0x00;
-            case K5600_20:
-            case K5601:
-                return 0x01;
-        }
-        return 0;
+    public void setHeads(int heads) {
+        this.heads = heads;
     }
 
     /**
@@ -268,30 +267,163 @@ public class FloppyDrive {
      * @return Anzahl Sektoren/Spur
      */
     public int getSectorsPerTrack() {
-        switch (driveType) {
-            case K5602_10:
-                return 26;
-            case K5600_20:
-            case K5601:
-                return 16;
-        }
-        return 0;
+        return sectorsPerTrack;
     }
 
     /**
-     * Liefert die Anzahl der bytes pro Sektor zurück
+     * Setzt die Anzahl der Sektoren pro Spur
+     *
+     * @param sectorsPerTrack Anzahl der Sektoren je Spur
+     */
+    public void setSectorsPerTrack(int sectorsPerTrack) {
+        this.sectorsPerTrack = sectorsPerTrack;
+    }
+
+    /**
+     * Liefert die Anzahl der Bytes pro Sektor zurück
      *
      * @return Bytes/Sektor
      */
     public int getBytesPerSector() {
-        switch (driveType) {
-            case K5602_10:
-                return 128;
-            case K5600_20:
-            case K5601:
-                return 256;
-        }
-        return 0;
+        return bytesPerSector;
+    }
+
+    /**
+     * Setzt die Anzahl der Bytes pro Sktor
+     *
+     * @param bytesPerSector Anzahl der Bytes pro Sektor
+     */
+    public void setBytesPerSector(int bytesPerSector) {
+        this.bytesPerSector = bytesPerSector;
+    }
+
+    /**
+     * Gibt an ob das Laufwerk Doppelschritt verwendet
+     *
+     * @return true - Wenn Doppelschritt verwendet wird, false - sonst
+     */
+    public boolean isDoubleStep() {
+        return doubleStep;
+    }
+
+    /**
+     * Legt fest, ob das Laufwerk Doppelschritt verwenden soll
+     *
+     * @param doubleStep true - Wenn Doppelschritt verwendet wird, false - sonst
+     */
+    public void setDoubleStep(boolean doubleStep) {
+        this.doubleStep = doubleStep;
+    }
+
+    /**
+     * Gibt den Code für den Zylinder zurück, bei welchem Schreibpräkompensation
+     * beginnt
+     *
+     * @return Code für Präkompensation
+     */
+    public int getPrecompensation() {
+        return precompensation;
+    }
+
+    /**
+     * Setzt den Code für den Zylinder, bei welchem Präkompensation beginnt
+     *
+     * @param precompensation Code für Präkompensation
+     */
+    public void setPrecompensation(int precompensation) {
+        this.precompensation = precompensation;
+    }
+
+    /**
+     * Gibt den Code für den Zylinder an, ab welchem mit reduziertem
+     * Schreibstrom gearbeitet wird
+     *
+     * @return Code für reduzierten Schreibstrom
+     */
+    public int getReduceCurrent() {
+        return reduceCurrent;
+    }
+
+    /**
+     * Setzt den Code für den Zylinder, ab welchem mit reduziertem Schreibstrom
+     * gearbeitet wird
+     *
+     * @param reduceCurrent Code für reduzierten Schreibstrom
+     */
+    public void setReduceCurrent(int reduceCurrent) {
+        this.reduceCurrent = reduceCurrent;
+    }
+
+    /**
+     * Gibt die Verzögerung für das Abschwenken der Köpfe zurück
+     *
+     * @return Verzögerung
+     */
+    public int getHeadSink() {
+        return headSink;
+    }
+
+    /**
+     * Setzt die Verzögerung für das Abschwenken der Köpfe
+     *
+     * @param headSink Verzögerung
+     */
+    public void setHeadSink(int headSink) {
+        this.headSink = headSink;
+    }
+
+    /**
+     * Gibt an ob das MFM Aufzeichnungsverfahren verwendet wird
+     *
+     * @return true - MFM Modus , false - FM Modus
+     */
+    public boolean isMfmMode() {
+        return mfmMode;
+    }
+
+    /**
+     * Legt fest, ob das MFM Verfahren verwendet wird
+     *
+     * @param mfmMode true - MFM Modus , false - FM Modus
+     */
+    public void setMfmMode(boolean mfmMode) {
+        this.mfmMode = mfmMode;
+    }
+
+    /**
+     * Gibt den Code für die Schrittrate des Laufwerks zurück
+     *
+     * @return Schrittrate
+     */
+    public int getStepTime() {
+        return stepTime;
+    }
+
+    /**
+     * Setzt den Code für die Schrittrate des Laufwerks
+     *
+     * @param stepTime Code für Schrittrate
+     */
+    public void setStepTime(int stepTime) {
+        this.stepTime = stepTime;
+    }
+
+    /**
+     * Gibt den Code für die Kopfladezeit zurück
+     *
+     * @return Kopfladezeit
+     */
+    public int getHeadTime() {
+        return headTime;
+    }
+
+    /**
+     * Setzt den Code für die Kopfladezeit
+     *
+     * @param headTime Code für Kopfladezeit
+     */
+    public void setHeadTime(int headTime) {
+        this.headTime = headTime;
     }
 
     /**
@@ -332,5 +464,16 @@ public class FloppyDrive {
             disk = new Disk();
             disk.loadState(dis);
         }
+    }
+
+    /**
+     * Prüft ob ein Bit des Operanden gesetzt ist
+     *
+     * @param op Operand
+     * @param i Nummer des Bits
+     * @return true - wenn das Bit gesetzt ist, false - sonst
+     */
+    private boolean getBit(int op, int i) {
+        return (((op >> i) & 0x1) == 0x1);
     }
 }

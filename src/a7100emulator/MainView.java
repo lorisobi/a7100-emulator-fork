@@ -6,6 +6,7 @@
  * 
  * Letzte Änderungen:
  *   05.04.2014 Kommentare vervollständigt
+ *   12.04.2014 Laden von verschiedenen Image-Typen implementiert
  *
  */
 package a7100emulator;
@@ -17,6 +18,7 @@ import a7100emulator.Debug.Decoder;
 import a7100emulator.Debug.MemoryAnalyzer;
 import a7100emulator.Debug.OpcodeStatistic;
 import a7100emulator.components.A7100;
+import a7100emulator.components.system.Disk;
 import a7100emulator.components.system.Keyboard;
 import a7100emulator.components.system.Screen;
 import a7100emulator.components.system.SystemMemory;
@@ -27,6 +29,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
 import java.io.IOException;
+import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.logging.Level;
@@ -204,6 +207,7 @@ public class MainView extends JFrame {
 
     /**
      * Erstellt eine neue Hauptansicht
+     *
      * @param a7100 Referenz auf A7100
      */
     public MainView(A7100 a7100) {
@@ -305,13 +309,14 @@ public class MainView extends JFrame {
 
     /**
      * Controller für Hauptansicht
-     * 
+     *
      * @author Dirk Bräuer
      */
     private class MainMenuController implements ActionListener {
 
         /**
          * Verarbeitet ein Action Event
+         *
          * @param e Event
          */
         @Override
@@ -359,11 +364,7 @@ public class MainView extends JFrame {
             } else if (e.getSource() == menuOpcodeStatistic) {
                 OpcodeStatistic.getInstance().dump();
             } else if (e.getSource() == menuDevicesDrive0Load) {
-                JFileChooser loadDialog = new JFileChooser("./disks/");
-                if (loadDialog.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
-                    File image = loadDialog.getSelectedFile();
-                    a7100.getKES().getAFS().getFloppy(0).loadDiskFromFile(image);
-                }
+                loadImageFile(0);
             } else if (e.getSource() == menuDevicesDrive0Save) {
                 JFileChooser saveDialog = new JFileChooser("./disks/");
                 if (saveDialog.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
@@ -377,11 +378,7 @@ public class MainView extends JFrame {
             } else if (e.getSource() == menuDevicesDrive0WriteProtect) {
                 a7100.getKES().getAFS().getFloppy(0).setWriteProtect(menuDevicesDrive0WriteProtect.isSelected());
             } else if (e.getSource() == menuDevicesDrive1Load) {
-                JFileChooser loadDialog = new JFileChooser("./disks/");
-                if (loadDialog.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
-                    File image = loadDialog.getSelectedFile();
-                    a7100.getKES().getAFS().getFloppy(1).loadDiskFromFile(image);
-                }
+                loadImageFile(1);
             } else if (e.getSource() == menuDevicesDrive1Save) {
                 JFileChooser saveDialog = new JFileChooser("./disks/");
                 if (saveDialog.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
@@ -469,6 +466,66 @@ public class MainView extends JFrame {
 
                 JOptionPane.showMessageDialog(MainView.this, pan_about, "Über", JOptionPane.PLAIN_MESSAGE);
             }
+        }
+
+        /**
+         * Öffnet ein Diskettenabbild von der Festplatte, bietet dem Benutzer
+         * ggf. zusätzliche Einstellungsmöglichkeiten zur Disketten-Geometrie
+         *
+         * @param drive Nummer des Laufwerks
+         */
+        private void loadImageFile(int drive) {
+            JFileChooser loadDialog = new JFileChooser("./disks/");
+            if (loadDialog.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
+                File image = loadDialog.getSelectedFile();
+                System.out.println(image.getName());
+                String extension = image.getName().substring(image.getName().length() - 4, image.getName().length() - 1).toLowerCase();
+                if (extension.equals("imd")) {
+                    a7100.getKES().getAFS().getFloppy(drive).loadDiskFromFile(image, Disk.ImageType.IMAGEDISK);
+                } else if (extension.equals("td0")) {
+                    a7100.getKES().getAFS().getFloppy(drive).loadDiskFromFile(image, Disk.ImageType.TELEDISK);
+                } else if (extension.equals("dmk")) {
+                    a7100.getKES().getAFS().getFloppy(drive).loadDiskFromFile(image, Disk.ImageType.DMK);
+                } else {
+                    // Binär
+                    JFormattedTextField editCylinder = new JFormattedTextField(NumberFormat.getIntegerInstance());
+                    JFormattedTextField editHeads = new JFormattedTextField(NumberFormat.getIntegerInstance());
+                    JFormattedTextField editSectorsPerTrack = new JFormattedTextField(NumberFormat.getIntegerInstance());
+                    JFormattedTextField editBytesPerSector = new JFormattedTextField(NumberFormat.getIntegerInstance());
+                    JFormattedTextField editSectorsInTrack0 = new JFormattedTextField(NumberFormat.getIntegerInstance());
+                    JFormattedTextField editBytesPerSectorTrack0 = new JFormattedTextField(NumberFormat.getIntegerInstance());
+                    editCylinder.setValue(80);
+                    editHeads.setValue(2);
+                    editSectorsPerTrack.setValue(16);
+                    editBytesPerSector.setValue(256);
+                    editSectorsInTrack0.setValue(16);
+                    editBytesPerSectorTrack0.setValue(128);
+                    JPanel panelEdit = new JPanel(new GridLayout(6, 2));
+                    panelEdit.add(new JLabel("Anzahl der Zylinder:"));
+                    panelEdit.add(editCylinder);
+                    panelEdit.add(new JLabel("Anzahl der Seiten:"));
+                    panelEdit.add(editHeads);
+                    panelEdit.add(new JLabel("Sektoren pro Spur:"));
+                    panelEdit.add(editSectorsPerTrack);
+                    panelEdit.add(new JLabel("Bytes pro Sektor:"));
+                    panelEdit.add(editBytesPerSector);
+                    panelEdit.add(new JLabel("Sektoren in Spur 0:"));
+                    panelEdit.add(editSectorsInTrack0);
+                    panelEdit.add(new JLabel("Bytes pro Sektor Spur 0:"));
+                    panelEdit.add(editBytesPerSectorTrack0);
+                    if (JOptionPane.showConfirmDialog(null, panelEdit, "Image laden", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE) == JOptionPane.OK_OPTION) {
+                        int cylinder = Integer.parseInt(editCylinder.getText());
+                        int heads = Integer.parseInt(editHeads.getText());
+                        int sectorsPerTrack = Integer.parseInt(editSectorsPerTrack.getText());
+                        int bytesPerSector = Integer.parseInt(editBytesPerSector.getText());
+                        int sectorsInTrack0 = Integer.parseInt(editSectorsInTrack0.getText());
+                        int bytesPerSectorTrack0 = Integer.parseInt(editBytesPerSectorTrack0.getText());
+                        a7100.getKES().getAFS().getFloppy(drive).loadDiskFromFile(image, cylinder, heads, sectorsPerTrack, bytesPerSector, sectorsInTrack0, bytesPerSectorTrack0);
+                    }
+
+                }
+            }
+
         }
     }
 }

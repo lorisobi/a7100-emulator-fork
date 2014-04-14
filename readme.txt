@@ -40,13 +40,13 @@ verbreitet werden, solange die folgenden Bedingungen erfüllt sind:
 
   v0.6.00 - 31.03.2014
   Neue Features:
-    - Erstes öffentliche Version
-    - Implementierung des SCP-Disk Tools
+    - Erste öffentliche Version
     - Screenshots über Menü möglich
   ----------------------------------------
-  v0.5.31 - 30.03.2014
+  v0.5.39 - 30.03.2014
   Änderungen/Bugfixes:
     - Segment Wraparound implementiert
+    - Implementierung des SCP-Disk Tools
   Softwarekompatibilität:
     - Läuft nur in Teilen -> Läuft: Tabcalc 3.0, Tabcalc 2.0, Basic 1700
   ----------------------------------------
