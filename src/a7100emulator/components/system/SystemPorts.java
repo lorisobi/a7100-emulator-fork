@@ -26,7 +26,7 @@ public class SystemPorts {
     /**
      * Liste der Module mit E/A Ressourcen
      */
-    private HashMap<Integer, PortModule> portModules = new HashMap<Integer, PortModule>();
+    private final HashMap<Integer, PortModule> portModules = new HashMap<Integer, PortModule>();
     
     /**
      * Gibt die Instanz der SystemPorts zurück
@@ -55,9 +55,10 @@ public class SystemPorts {
      */
     public void writeByte(int address, int value) {
         PortModule module = portModules.get(address);
+//        System.out.println("Schreibe Byte auf " + Integer.toHexString(address));
         if (module == null) {
             SystemClock.getInstance().updateClock(0xC000);
-            System.out.println("Kein Modul für Port " + Integer.toHexString(address));
+//            System.out.println("Kein Modul für Port " + Integer.toHexString(address));
         } else {
             module.writePort_Byte(address, 0xFF & value);
         }
@@ -70,8 +71,9 @@ public class SystemPorts {
      */
     public int readByte(int address) {
         PortModule module = portModules.get(address);
+//        System.out.println("Lese Byte von " + Integer.toHexString(address));
         if (module == null) {
-            System.out.println("Kein Modul für Port " + Integer.toHexString(address));
+//            System.out.println("Kein Modul für Port " + Integer.toHexString(address));
             SystemClock.getInstance().updateClock(0xC000);
             return 0x00;
         } else {
@@ -86,9 +88,10 @@ public class SystemPorts {
      */
     public void writeWord(int address, int value) {
         PortModule module = portModules.get(address);
+//        System.out.println("Schreibe Wort auf " + Integer.toHexString(address));
         if (module == null) {
             SystemClock.getInstance().updateClock(0xC000);
-            System.out.println("Kein Modul für Port " + Integer.toHexString(address));
+//            System.out.println("Kein Modul für Port " + Integer.toHexString(address));
         } else {
             module.writePort_Word(address, 0xFFFF & value);
         }
@@ -101,9 +104,10 @@ public class SystemPorts {
      */
     public int readWord(int address) {
         PortModule module = portModules.get(address);
+//        System.out.println("Lese Wort von " + Integer.toHexString(address));
         if (module == null) {
             SystemClock.getInstance().updateClock(0xC000);
-            System.out.println("Kein Modul für Port " + Integer.toHexString(address));
+//            System.out.println("Kein Modul für Port " + Integer.toHexString(address));
             return 0xFF;
         }
         return module.readPort_Word(address);

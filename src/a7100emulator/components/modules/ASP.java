@@ -65,11 +65,11 @@ public final class ASP implements PortModule {
     private final int asp_id;
 
     /**
-     *
+     * Erstellt eine neue Anschlußsteuerung seriell/parallel
      */
     public ASP() {
         asp_id = asp_count++;
-        registerPorts();
+        init();
     }
 
     /**
@@ -307,7 +307,7 @@ public final class ASP implements PortModule {
      */
     @Override
     public void init() {
-        throw new UnsupportedOperationException("Not supported yet.");
+        registerPorts();
     }
 
     /**

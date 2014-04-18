@@ -589,7 +589,11 @@ public class K1810WM86 implements Runnable {
      * Gibt an, ob die CPU angehalten ist
      */
     private boolean stopped = false;
-
+//    /**
+//     * Gibt an, ob nach dem nächsten Befehl das Interrupt-Flag gesetzt wird
+//     */
+//    private boolean stiWaiting = false;
+    
     /**
      * Erzeugt eine neue CPU
      */
@@ -610,6 +614,11 @@ public class K1810WM86 implements Runnable {
         }
 
         opCodeStatistic.addStatistic(opcode1);
+        
+//        if (stiWaiting) {
+//                            flags |= INTERRUPT_ENABLE_FLAG;
+//                            stiWaiting=false;
+//        }
 
         clock.updateClock(3);
 
@@ -3298,6 +3307,8 @@ public class K1810WM86 implements Runnable {
                 }
                 break;
             case STI:
+//                stiWaiting =true;
+//                System.out.println("STI");
                 flags |= INTERRUPT_ENABLE_FLAG;
                 clock.updateClock(2);
                 if (debug) {
@@ -3345,6 +3356,7 @@ public class K1810WM86 implements Runnable {
             break;
             case HLT: {
                 clock.updateClock(2);
+//                System.out.println("HLT");
                 if (debug) {
                     debugInfo.setCode("HLT");
                     debugInfo.setOperands(null);

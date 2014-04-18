@@ -155,7 +155,7 @@ public class K580WN59A {
         } else {
             // OCW1    
             imr = data;
-            //System.out.println("Setze OCW1 " + Integer.toBinaryString(imr));
+//            System.out.println("Setze OCW1 " + Integer.toBinaryString(imr));
         }
     }
 
@@ -165,6 +165,7 @@ public class K580WN59A {
      * @param id IRQ
      */
     public void requestInterrupt(int id) {
+//        System.out.println("Interrupt Anfrage "+id+" IMR:"+getBit(imr,id));
         if (id < 0 || id > 7) {
             return;
         }

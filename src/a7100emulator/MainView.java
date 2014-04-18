@@ -478,8 +478,7 @@ public class MainView extends JFrame {
             JFileChooser loadDialog = new JFileChooser("./disks/");
             if (loadDialog.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
                 File image = loadDialog.getSelectedFile();
-                System.out.println(image.getName());
-                String extension = image.getName().substring(image.getName().length() - 4, image.getName().length() - 1).toLowerCase();
+                String extension = image.getName().substring(image.getName().length() - 3, image.getName().length()).toLowerCase();
                 if (extension.equals("imd")) {
                     a7100.getKES().getAFS().getFloppy(drive).loadDiskFromFile(image, Disk.ImageType.IMAGEDISK);
                 } else if (extension.equals("td0")) {

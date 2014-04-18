@@ -26,7 +26,7 @@ public class SystemClock {
     /**
      * Liste der Module, welche auf Änderungen der Systemzeit reagieren
      */
-    private LinkedList<ClockModule> clockModules = new LinkedList<ClockModule>();
+    private final LinkedList<ClockModule> clockModules = new LinkedList<ClockModule>();
     /**
      * Taktzähler
      */
@@ -35,6 +35,14 @@ public class SystemClock {
      * Instanz
      */
     private static SystemClock instance;
+//    /**
+//     * Letzter Takt für Synchronisierung
+//     */
+//    private long lastSync = 0;
+//    /**
+//     * Letzte Zeit für Synchronisierung
+//     */
+//    private long timeSync = System.currentTimeMillis();
 
     /**
      * Erstellt einen neuen Taktgeber
@@ -62,6 +70,18 @@ public class SystemClock {
     public void updateClock(int amount) {
         updateModules(amount);
         clock += amount;
+//        if ((clock - lastSync) > 196600) {
+//            lastSync = clock;
+//            long time = System.currentTimeMillis();
+//            long diff = time - timeSync;
+//            timeSync = time;
+//            if (diff < 40) {
+//                try {
+//                    Thread.sleep(40 - diff);
+//                } catch (InterruptedException ex) {
+//                }
+//            }
+//        }
     }
 
     /**

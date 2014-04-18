@@ -126,30 +126,7 @@ public final class KES implements PortModule, ClockModule {
      */
     @Override
     public void writePort_Byte(int port, int data) {
-        switch (port) {
-            case PORT_KES_1_WAKEUP_1:
-                switch (data) {
-                    case 0x00:
-                        // RESET_OFF
-                        //System.out.println("RESET OFF");
-                        readWUB = true;
-                        break;
-                    case 0x01:
-                        // START_OPERATION
-                        //System.out.println("START OPERATION");
-                        startOperation();
-                        break;
-                    case 0x02:
-                        // RESET
-                        //System.out.println("RESET");
-                        break;
-                    default:
-                        throw new IllegalArgumentException("Illegal Command:" + Integer.toHexString(data));
-                }
-                break;
-            case PORT_KES_1_WAKEUP_2:
-                break;
-        }
+        writePort_Word(port,data);
     }
 
     /**
@@ -162,6 +139,24 @@ public final class KES implements PortModule, ClockModule {
     public void writePort_Word(int port, int data) {
         switch (port) {
             case PORT_KES_1_WAKEUP_1:
+                switch (data) {
+                    case 0x00:
+                        // RESET_OFF
+//                        System.out.println("RESET OFF");
+                        readWUB = true;
+                        break;
+                    case 0x01:
+                        // START_OPERATION
+//                        System.out.println("START OPERATION");
+                        startOperation();
+                        break;
+                    case 0x02:
+                        // RESET
+//                        System.out.println("RESET");
+                        break;
+                    default:
+                        throw new IllegalArgumentException("Illegal Command:" + Integer.toHexString(data));
+                }
                 break;
             case PORT_KES_1_WAKEUP_2:
                 break;
@@ -385,7 +380,7 @@ public final class KES implements PortModule, ClockModule {
                 int head = memory.readByte(ccbAddress + 0x30);
                 int byteCnt = memory.readWord(ccbAddress + 0x36);
                 int status = 0;
-                //System.out.println("Lese " + byteCnt + " Bytes von Laufwerk " + (driveNr & 0x03) + " C/H/S " + cylinder + "/" + head + "/" + sector + " nach " + String.format("%04X:%04X", memSeg, memOff));
+//                System.out.println("Lese " + byteCnt + " Bytes von Laufwerk " + (driveNr & 0x03) + " C/H/S " + cylinder + "/" + head + "/" + sector + " nach " + String.format("%04X:%04X", memSeg, memOff));
 
                 switch (deviceCode) {
                     case 0x00:
@@ -396,17 +391,17 @@ public final class KES implements PortModule, ClockModule {
                     case 0x03:
                         FloppyDrive drive = afs.getFloppy(driveNr & 0x03);
                         byte[] data = drive.readData(cylinder, sector, head, byteCnt);
-//                String ascii="";
+//                        String ascii = "";
                         for (int i = 0; i < data.length; i++) {
                             memory.writeByte(memAddr + i, data[i]);
-//                    System.out.print(String.format("%02X", data[i] & 0xFF) + " ");
-//                    ascii+=((data[i]<0x20)||(data[i]==127))?'.':(char)(data[i]&0xFF);
-//                    if ((i + 1) % 16 == 0) {
-//                        System.out.println(" "+ascii);
-//                        ascii="";
-//                    }
-                        }
-//                System.out.println();
+//                            System.out.print(String.format("%02X", data[i] & 0xFF) + " ");
+//                            ascii += ((data[i] < 0x20) || (data[i] == 127)) ? '.' : (char) (data[i] & 0xFF);
+//                            if ((i + 1) % 16 == 0) {
+//                                System.out.println(" " + ascii);
+//                                ascii = "";
+                            }
+//                        }
+//                        System.out.println();
                         status = 0x01;
                         break;
                 }
@@ -434,7 +429,6 @@ public final class KES implements PortModule, ClockModule {
                     data[i] = (byte) SystemMemory.getInstance().readByte(memAddr + i);
                 }
                 drive.writeData(cylinder, sector, head, data);
-                //System.out.println("Daten schreiben noch nicht implementiert");
                 memory.writeByte(ccbAddress + 0x13, 0xFF);
                 memory.writeByte(ccbAddress + 0x11, 0x01);
             }

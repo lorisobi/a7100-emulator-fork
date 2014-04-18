@@ -91,7 +91,7 @@ SCP         2.2    **     Tastatureingaben beim Start fehlerhaft / keine Ramdisk
 SCP         3.0    **     Tastatureingaben beim Start fehlerhaft
 SCP         3.1    ***
 SCP         3.2    ***
-MUTOS              ???    Diskettenformat nicht unterstützt
+MUTOS              !!     Hängt in HLT Befehl
 BOS                ???
 
 Grafikprogramme
