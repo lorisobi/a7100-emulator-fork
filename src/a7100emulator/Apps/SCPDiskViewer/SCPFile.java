@@ -66,7 +66,7 @@ public class SCPFile {
     }
 
     /**
-     * Gibt den Namen der DAtei zurück
+     * Gibt den Namen der Datei zurück
      *
      * @return Name
      */
@@ -77,14 +77,14 @@ public class SCPFile {
     /**
      * Setzt den Namen der DAtei
      *
-     * @param name Neuer DAteiname
+     * @param name Neuer Dateiname
      */
     void setName(String name) {
         this.name = name;
     }
 
     /**
-     * Gibt die Erweiterung der DAtei zurück
+     * Gibt die Erweiterung der Datei zurück
      *
      * @return Erweiterung
      */
@@ -102,7 +102,7 @@ public class SCPFile {
     }
 
     /**
-     * Gibt den NAmen+Erweiterung zurück
+     * Gibt den Namen+Erweiterung zurück
      *
      * @return Voller Dateiname
      */

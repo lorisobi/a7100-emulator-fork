@@ -1,5 +1,5 @@
 /*
- * Disk.java
+ * FloppyDisk.java
  * 
  * Diese Datei gehört zum Projekt A7100 Emulator 
  * (c) 2011-2014 Dirk Bräuer
@@ -7,7 +7,7 @@
  * Letzte Änderungen:
  *   02.04.2014 Kommentare vervollständigt
  *   12.04.2014 Funktionen zum Lesen von Images, Neue Datenstruktur
- *
+ *   25.05.2014 Klasse umbenannt in FloppyDisk
  */
 package a7100emulator.components.system;
 
@@ -21,7 +21,7 @@ import java.util.logging.Logger;
  *
  * @author Dirk Bräuer
  */
-public class Disk {
+public class FloppyDisk {
 
     /**
      * Enum mit unterstützten Images
@@ -59,7 +59,7 @@ public class Disk {
     /**
      * Erstellt eine leere Diskette
      */
-    public Disk() {
+    public FloppyDisk() {
     }
 
     /**
@@ -68,7 +68,7 @@ public class Disk {
      * @param file Datei zum Laden
      * @param imageType Imagetyp
      */
-    public Disk(File file, ImageType imageType) {
+    public FloppyDisk(File file, ImageType imageType) {
         InputStream in = null;
 
         try {
@@ -110,7 +110,7 @@ public class Disk {
      * @param sectorsInTrack0 Anzahl der Sektoren in Spur 0
      * @param bytesPerSectorTrack0 Anzahl der Bytes pro Sektor in Spur 0
      */
-    public Disk(File file, int cylinders, int heads, int sectorsPerTrack, int bytesPerSector, int sectorsInTrack0, int bytesPerSectorTrack0) {
+    public FloppyDisk(File file, int cylinders, int heads, int sectorsPerTrack, int bytesPerSector, int sectorsInTrack0, int bytesPerSectorTrack0) {
         InputStream in = null;
 
         try {

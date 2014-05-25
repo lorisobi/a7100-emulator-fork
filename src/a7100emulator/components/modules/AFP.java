@@ -13,7 +13,8 @@ package a7100emulator.components.modules;
 /**
  * Klasse zur Abbildung der AFP (Adapter für Festplatten)
  * <p>
- * TODO: Diese Klasse ist noch nicht vollständig implementiert
+ * TODO: Diese Klasse ist noch nicht vollständig implementiert und wird nur für
+ * die Emulation des A7150 benötigt
  *
  * @author Dirk Bräuer
  */

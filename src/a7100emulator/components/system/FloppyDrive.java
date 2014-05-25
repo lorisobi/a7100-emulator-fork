@@ -44,7 +44,7 @@ public class FloppyDrive {
     /**
      * Referenz auf eingelegte Diskette
      */
-    private Disk disk;
+    private FloppyDisk disk;
     /**
      * Laufwerkstyp
      */
@@ -146,7 +146,7 @@ public class FloppyDrive {
      * Erzeugt eine leere Diskette
      */
     public void newDisk() {
-        disk = new Disk();
+        disk = new FloppyDisk();
     }
 
     /**
@@ -182,8 +182,8 @@ public class FloppyDrive {
      * @param file Image
      * @param imageType Typ der Image-Datei
      */
-    public void loadDiskFromFile(File file, Disk.ImageType imageType) {
-        disk = new Disk(file, imageType);
+    public void loadDiskFromFile(File file, FloppyDisk.ImageType imageType) {
+        disk = new FloppyDisk(file, imageType);
     }
 
     /**
@@ -199,7 +199,7 @@ public class FloppyDrive {
      * @param bytesPerSectorTrack0 Anzahl der Bytes pro Sektor in Spur 0
      */
     public void loadDiskFromFile(File file, int cylinders, int heads, int sectorsPerTrack, int bytesPerSector, int sectorsInTrack0, int bytesPerSectorTrack0) {
-        disk = new Disk(file, cylinders, heads, sectorsPerTrack, bytesPerSector, sectorsInTrack0, bytesPerSectorTrack0);
+        disk = new FloppyDisk(file, cylinders, heads, sectorsPerTrack, bytesPerSector, sectorsInTrack0, bytesPerSectorTrack0);
     }
 
     /**
@@ -461,7 +461,7 @@ public class FloppyDrive {
         driveType = DriveType.valueOf(dis.readUTF());
         boolean diskInserted = dis.readBoolean();
         if (diskInserted) {
-            disk = new Disk();
+            disk = new FloppyDisk();
             disk.loadState(dis);
         }
     }

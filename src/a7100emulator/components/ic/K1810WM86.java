@@ -6,6 +6,7 @@
  * 
  * Letzte Änderungen:
  *   04.04.2014 Kommentare begonnen
+ *   26.04.2014 Prüfen des Carry Flags für Subtraktion zusammengefasst
  *
  */
 package a7100emulator.components.ic;
@@ -3646,7 +3647,7 @@ public class K1810WM86 implements Runnable {
                     case _81_CMP_IMM_REG_16_NOSIGN: {
                         int op2 = getImmediate16(opcode2 & TEST_MOD, opcode2 & TEST_RM);
                         int op1 = getMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM, true);
-                        int res = sub16(op1, op2, false);
+                        sub16(op1, op2, false);
                         ip = ip + 2;
                         clock.updateClock(((opcode2 & TEST_MOD) == MOD_REG) ? 4 : 10 + getOpcodeCyclesEA(opcode2 & TEST_MOD, opcode2 & TEST_RM));
                         if (debug) {
@@ -4968,7 +4969,7 @@ public class K1810WM86 implements Runnable {
             }
             break;
             default:
-                System.out.println("Nicht implementierter oder ungültiger OPCode " + Integer.toHexString(opcode1).toString() + " bei " + String.format("%04X:%04X", cs, (ip - 1)) + "!");
+                System.out.println("Nicht implementierter oder ungültiger OPCode " + Integer.toHexString(opcode1) + " bei " + String.format("%04X:%04X", cs, (ip - 1)) + "!");
                 memory.dump("./debug/dump_unknown_opcode.hex");
                 decoder.save();
                 System.exit(0);
@@ -5118,7 +5119,7 @@ public class K1810WM86 implements Runnable {
             op2++;
         }
         int res = op1 - op2;
-        checkCarryFlagSub8(res);
+        checkCarryFlagSub(res);
         checkZeroFlag8(res);
         checkSignFlag8((byte) res);
         checkOverflowFlagSub8(op1, op2, res);
@@ -5142,7 +5143,7 @@ public class K1810WM86 implements Runnable {
             op2++;
         }
         int res = op1 - op2;
-        checkCarryFlagSub16(res);
+        checkCarryFlagSub(res);
         checkZeroFlag16(res);
         checkSignFlag16((short) res);
         checkOverflowFlagSub16(op1, op2, res);
@@ -5924,7 +5925,6 @@ public class K1810WM86 implements Runnable {
         if (MOD == MOD_REG) {
             setReg8(RM << 3, value);
         } else {
-            //memory.writeByte(getAddressMODRM(MOD, RM, updateIP), value & 0xFF);
             memory.writeByte(getAddressMODRM(MOD, RM, updateIP), (byte) (value & 0xFF));
         }
     }
@@ -6123,27 +6123,12 @@ public class K1810WM86 implements Runnable {
     }
 
     /**
-     * Setzt das Carry Flag entsprechend einer ausgeführten Subtraktion von zwei
-     * Bytes
+     * Setzt das Carry Flag entsprechend einer ausgeführten Subtraktion
      *
      * @param res Ergebniss der Subtraktion
      */
-    private void checkCarryFlagSub8(int res) {
+    private void checkCarryFlagSub(int res) {
         if (res < 0x0) {
-            setFlag(CARRY_FLAG);
-        } else {
-            clearFlag(CARRY_FLAG);
-        }
-    }
-
-    /**
-     * Setzt das Carry Flag entsprechend einer ausgeführten Subtraktion von zwei
-     * Wörtern
-     *
-     * @param res Ergebniss der Subtraktion
-     */
-    private void checkCarryFlagSub16(int res) {
-        if (res < 0x00) {
             setFlag(CARRY_FLAG);
         } else {
             clearFlag(CARRY_FLAG);

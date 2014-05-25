@@ -18,7 +18,7 @@ import a7100emulator.Debug.Decoder;
 import a7100emulator.Debug.MemoryAnalyzer;
 import a7100emulator.Debug.OpcodeStatistic;
 import a7100emulator.components.A7100;
-import a7100emulator.components.system.Disk;
+import a7100emulator.components.system.FloppyDisk;
 import a7100emulator.components.system.Keyboard;
 import a7100emulator.components.system.Screen;
 import a7100emulator.components.system.SystemMemory;
@@ -480,11 +480,11 @@ public class MainView extends JFrame {
                 File image = loadDialog.getSelectedFile();
                 String extension = image.getName().substring(image.getName().length() - 3, image.getName().length()).toLowerCase();
                 if (extension.equals("imd")) {
-                    a7100.getKES().getAFS().getFloppy(drive).loadDiskFromFile(image, Disk.ImageType.IMAGEDISK);
+                    a7100.getKES().getAFS().getFloppy(drive).loadDiskFromFile(image, FloppyDisk.ImageType.IMAGEDISK);
                 } else if (extension.equals("td0")) {
-                    a7100.getKES().getAFS().getFloppy(drive).loadDiskFromFile(image, Disk.ImageType.TELEDISK);
+                    a7100.getKES().getAFS().getFloppy(drive).loadDiskFromFile(image, FloppyDisk.ImageType.TELEDISK);
                 } else if (extension.equals("dmk")) {
-                    a7100.getKES().getAFS().getFloppy(drive).loadDiskFromFile(image, Disk.ImageType.DMK);
+                    a7100.getKES().getAFS().getFloppy(drive).loadDiskFromFile(image, FloppyDisk.ImageType.DMK);
                 } else {
                     // Binär
                     JFormattedTextField editCylinder = new JFormattedTextField(NumberFormat.getIntegerInstance());

@@ -15,7 +15,8 @@ import a7100emulator.components.system.SystemPorts;
 /**
  * Klasse zur Realisierung des numerischen Coprozessors K1810WM87
  * <p>
- * TODO: Diese Klasse ist noch nicht vollständig implementiert
+ * TODO: Diese Klasse ist noch nicht vollständig implementiert und wird nur für
+ * die Emulation des A7150 benötigt
  *
  * @author Dirk Bräuer
  */
