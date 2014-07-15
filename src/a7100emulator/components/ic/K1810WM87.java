@@ -5,7 +5,7 @@
  * (c) 2011-2014 Dirk Bräuer
  * 
  * Letzte Änderungen:
- *
+ *   15.07.2014 Kommentare aktualisiert
  */
 package a7100emulator.components.ic;
 
@@ -22,10 +22,22 @@ import a7100emulator.components.system.SystemPorts;
  */
 public class K1810WM87 implements Runnable {
 
+    /**
+     * Klasse zur Abbildung eines Stack-Registers
+     */
     private class StackRegister {
 
+        /**
+         * Vorzeichen
+         */
         int sign;
+        /**
+         * Exponent
+         */
         int exponent;
+        /**
+         * Mantisse
+         */
         long mantissa;
     }
 
@@ -55,22 +67,35 @@ public class K1810WM87 implements Runnable {
     private int tagRegister;
 
     /**
-     *
+     * Erzeugt einen neuen Koprozessor
      */
     public K1810WM87() {
     }
 
+    /**
+     * Führt den nächsten Befehl aus
+     */
     private void executeNextInstruction() {
     }
 
-    private boolean getBit(int op1, int i) {
-        return (((op1 >> i) & 0x1) == 0x1);
-    }
-
+    /**
+     * Startet den CPU-Thread
+     */
     @Override
     public void run() {
         while (true) {
             executeNextInstruction();
         }
+    }
+
+    /**
+     * Prüft ob ein Bit des Operanden gesetzt ist
+     *
+     * @param op Operand
+     * @param i Nummer des Bits
+     * @return true - wenn das Bit gesetzt ist, false - sonst
+     */
+    private boolean getBit(int op, int i) {
+        return (((op >> i) & 0x1) == 0x1);
     }
 }

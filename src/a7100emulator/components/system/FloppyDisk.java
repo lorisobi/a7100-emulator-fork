@@ -11,6 +11,7 @@
  */
 package a7100emulator.components.system;
 
+import a7100emulator.Tools.FloppyImageType;
 import java.io.*;
 import java.util.Arrays;
 import java.util.logging.Level;
@@ -22,29 +23,6 @@ import java.util.logging.Logger;
  * @author Dirk Bräuer
  */
 public class FloppyDisk {
-
-    /**
-     * Enum mit unterstützten Images
-     */
-    public enum ImageType {
-
-        /**
-         * Binärdatei
-         */
-        BINARY,
-        /**
-         * Imagedisk Image
-         */
-        IMAGEDISK,
-        /**
-         * Teledisk Image
-         */
-        TELEDISK,
-        /**
-         * DMK Image
-         */
-        DMK
-    }
 
     /**
      * Daten der Diskette
@@ -68,7 +46,7 @@ public class FloppyDisk {
      * @param file Datei zum Laden
      * @param imageType Imagetyp
      */
-    public FloppyDisk(File file, ImageType imageType) {
+    public FloppyDisk(File file, FloppyImageType imageType) {
         InputStream in = null;
 
         try {
@@ -210,7 +188,7 @@ public class FloppyDisk {
         }
     }
 
-      /**
+    /**
      * Speichert die Diskette in eine Datei
      *
      * @param dos Stream zur Datei

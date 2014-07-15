@@ -1,4 +1,4 @@
-A7100 Emulator - Readme v0.6.00
+A7100 Emulator - Readme v0.6.20
 ===============================
 
 Inhaltsverzeichnis:
@@ -8,7 +8,8 @@ Inhaltsverzeichnis:
   3. Softwarekompatibilität
   4. Hinweise zur Bedienung
   5. Bekannte Fehler / Nicht unterstützte Funktionen
-  6. Kontakt
+  6. Unterstützung
+  7. Kontakt
 
 --------------------------------------------------------------------------------
 1. Lizenzinformationen:
@@ -38,6 +39,15 @@ verbreitet werden, solange die folgenden Bedingungen erfüllt sind:
 --------------------------------------------------------------------------------
 2. Letzte Änderungen
 
+  v0.6.20 - 15.07.2014
+  Neue Features:
+    - Lesen von Teledisk, Imagedisk und Catweasel-Images
+    - Beliebig formatierte RAW-Images
+  Änderungen/Bugfixes:
+    - Schreiben von Wörtern auf KES-Ports implementiert
+  Softwarekompatibilität:
+    - Nicht getestet -> Absturz nach Titel: MUTOS 1700
+  ----------------------------------------
   v0.6.00 - 31.03.2014
   Neue Features:
     - Erste öffentliche Version
@@ -155,20 +165,10 @@ den festen Zeichensatz enthalten.
 
 4.2 Arbeit mit Disketten
 4.2.1 Diskettenabbilder
-Als Disketten wird gegenwärtig nur ein SCP-Diskettenformat unterstützt:
-    - 80 Zylinder
-    - 2 Spuren je Zylinder
-    - 16 Sektoren pro Spur
-    - 256 Bytes pro Sektor
-    - Erster Zylinder mit Spur 0 enthält 128 Bytes pro Sektor
-
-Diese Disketten müssen zur Verwendung im Emulator als reine Binärdaten
-vorliegen. Das bedeutet, ein entsprechendes Image hat eine Größe von exakt   
-653.312 Bytes. TD0, DMK, IMD und andere Formate müssen vorher konvertiert
-werden. Am besten lässt sich dies über Imagedisk realisieren. Dort gibt es
-Konverter um TD0 und DMK in IMD zu wandeln. Mit dem IMDU lassen sich aus diesen
-schließlich BIN Dateien erzeugen. Spätere Versionen sollen auch andere
-Diskettenabbilder unterstützen.  
+Seit v0.6.20 werden beliebige RAW-Abbilder unterstützt. Dabei müssen durch den
+Benutzer beim Laden des Images die Formatparameter festgelegt werden. Als
+Standard ist hierbei das SCP-Format hinterlegt. Weiterhin wird das Lesen von 
+Teledisk- (TD0), Imagedisk- (IMD) und Catweasel- (DMK) Abbilder unterstützt.
                                                           
 4.2.2 Speichern auf Disketten
 Veränderte Disketten werden nicht automatisch in der Binärdatei geändert. Das
@@ -216,11 +216,28 @@ manche Programme (vor allem Spiele) zu schnell laufen. Auch führt dies zu
 unregelmäßigem Blinken des Cursors.
 
 Blinkender Text:
-Blinkender Text wird mommentan nicht unterstützt. Dieser Text wird im Emulator
+Blinkender Text wird momentan nicht unterstützt. Dieser Text wird im Emulator
 zur Unterscheidung rot dargestellt.
 
 --------------------------------------------------------------------------------
-6. Kontakt
+6. Unterstützung
+
+Die Entwicklung des Emulators ist entscheidend von der vorhandenen A7100
+Dokumentation und Software abhängig. Hier werden die fehlenden Unterlagen und
+Programme gelistet:
+Dringend:
+  - KES K 5170 Dokumentation (Rechner und Geräte Band 2)
+  - Dokumentation zur KGS-Firmware Version 6 (GRAF6.FRM)
+Wäre schön:
+  - ABG K 7072 Dokumentation (Rechner und Geräte Band 2)
+  - AFS K 5171.20 EPROMS
+  - A7150 Rechner und Geräte Band 2/3
+Nicht so wichtig:
+  - OPS K 3571 Dokumentation (Rechner und Geräte Band 2)
+  - ZPS K 2071 Dokumentation (Rechner und Geräte Band 2)
+
+--------------------------------------------------------------------------------
+7. Kontakt
 
 Jeder der Anmerkungen oder Verbesserungsvorschläge hat darf sich gerne bei mir
 melden. Ebenso wäre es sehr hilfreich, wenn weitere Programme auf ihre 

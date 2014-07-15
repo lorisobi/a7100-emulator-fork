@@ -6349,6 +6349,9 @@ public class K1810WM86 implements Runnable {
         isHalted = false;
     }
 
+    /**
+     * Startet den CPU-Thread
+     */
     @Override
     public void run() {
         while (!stopped) {

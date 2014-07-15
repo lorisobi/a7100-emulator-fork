@@ -11,6 +11,7 @@
  */
 package a7100emulator.components.system;
 
+import a7100emulator.Tools.FloppyImageType;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
@@ -182,7 +183,7 @@ public class FloppyDrive {
      * @param file Image
      * @param imageType Typ der Image-Datei
      */
-    public void loadDiskFromFile(File file, FloppyDisk.ImageType imageType) {
+    public void loadDiskFromFile(File file, FloppyImageType imageType) {
         disk = new FloppyDisk(file, imageType);
     }
 

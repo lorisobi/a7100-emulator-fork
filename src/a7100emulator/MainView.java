@@ -19,6 +19,7 @@ import a7100emulator.Debug.MemoryAnalyzer;
 import a7100emulator.Debug.OpcodeStatistic;
 import a7100emulator.components.A7100;
 import a7100emulator.components.system.FloppyDisk;
+import a7100emulator.Tools.FloppyImageType;
 import a7100emulator.components.system.Keyboard;
 import a7100emulator.components.system.Screen;
 import a7100emulator.components.system.SystemMemory;
@@ -417,7 +418,7 @@ public class MainView extends JFrame {
                 JPanel pan_desc = new JPanel();
                 pan_desc.setBorder(BorderFactory.createEmptyBorder(0, 50, 0, 10));
                 pan_desc.setLayout(new GridLayout(2, 1));
-                pan_desc.add(new JLabel("A7100 - Emulator v0.6.00"));
+                pan_desc.add(new JLabel("A7100 - Emulator v0.6.20"));
                 pan_desc.add(new JLabel("2011-2014 Dirk Bräuer"));
                 pan_about.add(pan_desc, BorderLayout.CENTER);
                 JTextArea licenseText = new JTextArea();
@@ -480,11 +481,11 @@ public class MainView extends JFrame {
                 File image = loadDialog.getSelectedFile();
                 String extension = image.getName().substring(image.getName().length() - 3, image.getName().length()).toLowerCase();
                 if (extension.equals("imd")) {
-                    a7100.getKES().getAFS().getFloppy(drive).loadDiskFromFile(image, FloppyDisk.ImageType.IMAGEDISK);
+                    a7100.getKES().getAFS().getFloppy(drive).loadDiskFromFile(image, FloppyImageType.IMAGEDISK);
                 } else if (extension.equals("td0")) {
-                    a7100.getKES().getAFS().getFloppy(drive).loadDiskFromFile(image, FloppyDisk.ImageType.TELEDISK);
+                    a7100.getKES().getAFS().getFloppy(drive).loadDiskFromFile(image, FloppyImageType.TELEDISK);
                 } else if (extension.equals("dmk")) {
-                    a7100.getKES().getAFS().getFloppy(drive).loadDiskFromFile(image, FloppyDisk.ImageType.DMK);
+                    a7100.getKES().getAFS().getFloppy(drive).loadDiskFromFile(image, FloppyImageType.DMK);
                 } else {
                     // Binär
                     JFormattedTextField editCylinder = new JFormattedTextField(NumberFormat.getIntegerInstance());
