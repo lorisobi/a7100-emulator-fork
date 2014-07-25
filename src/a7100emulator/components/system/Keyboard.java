@@ -6,6 +6,7 @@
  * 
  * Letzte Änderungen:
  *   05.04.2014 Kommentare vervollständigt
+ *   25.07.2014 Puffer aus USART in Keyboard ausgelagert, Speichern und Laden des Puffers, Systemzeit implementiert
  *
  */
 package a7100emulator.components.system;
@@ -16,6 +17,7 @@ import java.awt.event.KeyListener;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.LinkedList;
 
 /**
  * Klasse zur Realisierung der A7100 Tastaturen
@@ -99,6 +101,18 @@ public class Keyboard implements KeyListener {
      * Tastaturtyp
      */
     private KeyboardType kbdType = KeyboardType.K7637;
+    /**
+     * Sendepuffer
+     */
+    private final LinkedList<Byte> sendBuffer = new LinkedList();
+    /**
+     * Counter für Sendepuffer
+     */
+    private long keyboardClock = 0;
+    /**
+     * Gibt an ob ein Selbsttest durchgeführt wird (längere Wartezeit)
+     */
+    private boolean selfTest = false;
 
     /**
      * Erstellt eine neue Tastatur
@@ -125,9 +139,6 @@ public class Keyboard implements KeyListener {
      */
     public void registerController(KR580WM51A controller) {
         ifssController = controller;
-        if (kbdType.equals(KeyboardType.K7637)) {
-            sendBytes(new byte[]{(byte) 0xFF, 0x11});
-        }
     }
 
     /**
@@ -430,21 +441,47 @@ public class Keyboard implements KeyListener {
     }
 
     /**
-     * Sendet Daten von der Tastatur zum USART-Controller
+     * Fügt mehrere Bytes zum Sendepuffer hinzu
      *
      * @param bytes Daten
      */
     public void sendBytes(byte[] bytes) {
-        ifssController.writeDataToSystem(bytes);
+        for (byte b : bytes) {
+            sendBuffer.offer(b);
+        }
     }
 
     /**
-     * Sendet ein Byte von der Tastatur zum USART-Controller
+     * Fügt ein Byte zum Sendepuffer hinzu
      *
      * @param b Daten
      */
     private void sendByte(int b) {
-        ifssController.writeDataToSystem((byte) (b & 0xFF));
+        sendBuffer.offer((byte) (b & 0xFF));
+    }
+
+    /**
+     * Aktualisiert den Taktzähler und sendet ggf. Daten an USART
+     *
+     * @param amount Anzahl der Takte
+     */
+    public void updateClock(int amount) {
+        keyboardClock += amount;
+        if (selfTest && (sendBuffer.peek() == 0x11)) {
+            // Tastatur Selbsttest, nächstes Zeichen ist 0x11 -> Längere Verzögerung
+            if (keyboardClock >= 330000) {
+                ifssController.receiveData(sendBuffer.poll());
+                selfTest = false;
+                keyboardClock = 0;
+            }
+        } else {
+            if (keyboardClock >= 1000) {
+                if (!sendBuffer.isEmpty()) {
+                    ifssController.receiveData(sendBuffer.poll());
+                }
+                keyboardClock = 0;
+            }
+        }
     }
 
     /**
@@ -457,7 +494,9 @@ public class Keyboard implements KeyListener {
         if (kbdType.equals(KeyboardType.K7637)) {
             if (b == 0x00) {
                 byteCnt = 0;
-                sendBytes(new byte[]{0x00, (byte) 0xFF, 0x11});
+                sendBuffer.clear();
+                sendBytes(new byte[]{(byte) 0xFF, 0x11});
+                selfTest = true;
             } else {
                 sendByte(0xFF);
             }
@@ -469,8 +508,6 @@ public class Keyboard implements KeyListener {
      * Prüft die vom Controller empfangenen Zeichen und verarbeitet diese
      */
     public void checkCommands() {
-        //System.out.println("Cnt:" + byteCnt);
-
         switch (byteCnt) {
             case 1:
                 switch (commands[0]) {
@@ -484,7 +521,6 @@ public class Keyboard implements KeyListener {
                         break;
                     case 0x52:
                         //Status
-                        //System.out.println("Anfrage Status");
                         byteCnt = 0;
                         sendBytes(new byte[]{0x1B, 0x5B, 0x30, 0x6E});
                         break;
@@ -529,8 +565,8 @@ public class Keyboard implements KeyListener {
                         break;
                     case 0x55:
                         // RESET
-                        //System.out.println("Anfrage Reset");
                         byteCnt = 0;
+                        sendBuffer.clear();
                         sendByte(0x11);
                         break;
                 }
@@ -540,7 +576,6 @@ public class Keyboard implements KeyListener {
                     case 0x6E:
                         // Status
                         if (commands[0] == 0x1b) {
-                            //System.out.println("Anfrage Status");
                             byteCnt = 0;
                             sendBytes(new byte[]{0x5B, 0x30, 0x6E});
                         }
@@ -566,6 +601,10 @@ public class Keyboard implements KeyListener {
         for (int i = 0; i < 10; i++) {
             dos.writeByte(commands[i]);
         }
+        dos.writeInt(sendBuffer.size());
+        for (Byte b : sendBuffer) {
+            dos.writeByte(b);
+        }
         dos.writeUTF(kbdType.name());
     }
 
@@ -583,6 +622,11 @@ public class Keyboard implements KeyListener {
         for (int i = 0; i < 10; i++) {
             commands[i] = dis.readByte();
         }
+        int size = dis.readInt();
+        sendBuffer.clear();
+        for (int i = 0; i < size; i++) {
+            sendBuffer.add(dis.readByte());
+        }
         kbdType = KeyboardType.valueOf(dis.readUTF());
     }
 
@@ -596,5 +640,6 @@ public class Keyboard implements KeyListener {
         mode2 = false;
         byteCnt = 0;
         commands = new byte[10];
+        sendBuffer.clear();
     }
 }

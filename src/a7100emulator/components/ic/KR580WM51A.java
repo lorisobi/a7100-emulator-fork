@@ -6,6 +6,8 @@
  * 
  * Letzte Änderungen:
  *   03.04.2014 Kommentare vervollständigt
+ *   23.07.2014 Aktualisierung Systemzeit an Tastatur weiterreichen
+ *   24.07.2014 Methoden ausgelagert, Abfrage ob RTS gesetzt, Konstanten erstellt
  *
  */
 package a7100emulator.components.ic;
@@ -15,10 +17,11 @@ import a7100emulator.components.system.Keyboard;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.util.LinkedList;
 
 /**
  * Klasse zur Abbildung des USART-Schaltkreises
+ * <p>
+ * TODO: Overrun Error implementieren
  *
  * @author Dirk Bräuer
  */
@@ -40,6 +43,31 @@ public class KR580WM51A {
     private final int STATE_TXE = 0x04;
 
     /**
+     * Statusbit Parity Error
+     */
+    private final int STATE_PE = 0x08;
+
+    /**
+     * Statusbit Overrun Error
+     */
+    private final int STATE_OE = 0x10;
+
+    /**
+     * Statusbit Framing Error
+     */
+    private final int STATE_FE = 0x20;
+
+    /**
+     * Statusbit SYNC Detect / Break Detect
+     */
+    private final int STATE_SYNDET_BRKDET = 0x40;
+
+    /**
+     * Statusbit Data Set Ready
+     */
+    private final int STATE_DSR = 0x80;
+
+    /**
      * Kommando
      */
     private int command;
@@ -52,7 +80,7 @@ public class KR580WM51A {
     /**
      * Aktueller Status
      */
-    private int state = 0x05;
+    private int state = STATE_TXE | STATE_TXRDY;
 
     /**
      * Gibt an ob bereits ein Mode Word empfangen wurde
@@ -60,9 +88,9 @@ public class KR580WM51A {
     private boolean modeInstruction = false;
 
     /**
-     * Puffer mit empfangenen Zeichen
+     * Recieve Buffer
      */
-    private final LinkedList<Byte> deviceBuffer = new LinkedList<Byte>();
+    private int receiveBuffer;
 
     /**
      * Erstellt einen neuen USART Schaltkreis und registriert ihn bei der
@@ -76,11 +104,12 @@ public class KR580WM51A {
      * Verarbeitet ein ankommendes Kommandu und konfiguriert den USART
      * entsprechend
      *
-     * @param command Kommando
+     * @param newCommand Kommando
      */
-    public void writeCommand(int command) {
+    public void writeCommand(int newCommand) {
+//        System.out.println("Out Command " + Integer.toHexString(newCommand) + "/" + Integer.toBinaryString(newCommand));
         if (modeInstruction) {
-            this.mode = command;
+            mode = newCommand;
             modeInstruction = false;
 //            System.out.print("Setze Modus:");
 //            System.out.print(" Stop-Bits:" + (getBit(command, 7) ? (getBit(command, 6) ? 2 : 1.5) : (getBit(command, 6) ? 1 : -1)));
@@ -88,27 +117,42 @@ public class KR580WM51A {
 //            System.out.print(" Databits:" + (getBit(command, 3) ? (getBit(command, 2) ? 8 : 7) : (getBit(command, 2) ? 6 : 5)));
 //            System.out.println(" Baudrate:" + (getBit(command, 1) ? (getBit(command, 0) ? "64x" : "16x") : (getBit(command, 0) ? "1x" : "Synchron")));
         } else {
-            this.command = command;
 //            System.out.print("Kommando:");
-//            System.out.print(" Hunt-Mode:" + getBit(command, 7));
-//            System.out.print(" Reset:" + getBit(command, 6));
-//            System.out.print(" RTS:" + getBit(command, 5));
-//            System.out.print(" Error-Reset:" + getBit(command, 4));
-//            System.out.print(" Break:" + getBit(command, 3));
-//            System.out.print(" Receive-Enable:" + getBit(command, 2));
-//            System.out.print(" DTR:" + getBit(command, 1));
-//            System.out.println(" Transmit-Enable:" + getBit(command, 0));
-            if (getBit(command, 6)) { // Reset
-                modeInstruction = true;
-                deviceBuffer.clear();
-                //deviceBuffer.add((byte) 0);
-                //state |= STATE_RXRDY;
-                Keyboard.getInstance().receiveByte(0x00);
-                //writeDataToSystem(0);
-            } else {
+//            System.out.print(" Hunt-Mode:" + getBit(newCommand, 7));
+//            System.out.print(" Reset:" + getBit(newCommand, 6));
+//            System.out.print(" RTS:" + getBit(newCommand, 5));
+//            System.out.print(" Error-Reset:" + getBit(newCommand, 4));
+//            System.out.print(" Break:" + getBit(newCommand, 3));
+//            System.out.print(" Receive-Enable:" + getBit(newCommand, 2));
+//            System.out.print(" DTR:" + getBit(newCommand, 1));
+//            System.out.println(" Transmit-Enable:" + getBit(newCommand, 0));
+            if (getBit(newCommand, 6)) {
+                reset();
             }
+            if (getBit(newCommand, 4)) {
+                errorReset();
+            }
+            if (getBit(newCommand,0) && !getBit(newCommand,5)) {
+                writeDataToDevice(0x00);
+            }
+            command = newCommand;
         }
-//        System.out.println("Out Command " + Integer.toHexString(command) + "/" + Integer.toBinaryString(command));
+    }
+
+    /**
+     * Setzt den USART-Controller in den Initialzustand
+     */
+    private void reset() {
+        modeInstruction = true;
+        receiveBuffer = 0x00;
+        state = STATE_TXE | STATE_TXRDY;
+    }
+
+    /**
+     * Löscht die Fehlerbits im Statusbyte
+     */
+    private void errorReset() {
+        state &= ~(STATE_PE | STATE_OE | STATE_FE);
     }
 
     /**
@@ -117,9 +161,11 @@ public class KR580WM51A {
      * @param data Daten
      */
     public void writeDataToDevice(int data) {
-//        System.out.println("Sende an Tastatur:" + String.format("%02X", data));
-        Keyboard.getInstance().receiveByte(data);
-        //state = 7;
+        // Prüfe ob RTS nicht gesetzt
+        if (!getBit(command, 5)) {
+//            System.out.println("Sende an Tastatur:" + String.format("%02X", data));
+            Keyboard.getInstance().receiveByte(data);
+        }
     }
 
     /**
@@ -128,7 +174,7 @@ public class KR580WM51A {
      * @return Status-Byte
      */
     public int readStatus() {
-        // XX0001XX
+        // Status: DSR SYNDET_BRKDET FE OE PE TxEMPTY RxRDY TxRDY
         //System.out.println("Lese Status " + Integer.toHexString(state) + "/" + Integer.toBinaryString(state));
         return state;
     }
@@ -139,53 +185,42 @@ public class KR580WM51A {
      * @return gelesenes Byte
      */
     public int readFromDevice() {
-        int value = 0;
-        if (!deviceBuffer.isEmpty()) {
-            value = deviceBuffer.poll();
-            if (deviceBuffer.isEmpty()) {
-                state &= ~STATE_RXRDY;
-            } else {
-                InterruptSystem.getInstance().getPIC().requestInterrupt(6);
-            }
-        }
-//        System.out.println("Lese Daten von USART:" + String.format("%02X",value&0xFF));
-//        printBuffer();
-        return value;
-    }
+        int value = receiveBuffer;
+//        System.out.println("Lese Daten von USART:" + String.format("%02X", value & 0xFF));
+        // Leere Puffer
+        receiveBuffer = 0x00;
+        // Lösche RxRDY Status
+        state &= ~STATE_RXRDY;
 
-    /**
-     * Gibt den Puffer in der Konsole aus
-     */
-    private void printBuffer() {
-        System.out.print("Puffergröße: " + deviceBuffer.size() + "( ");
-        for (byte b : deviceBuffer) {
-            System.out.print(String.format("%02X ", b));
-        }
-        System.out.println(")");
+        return value;
     }
 
     /**
      * Schreibt ein Byte in den Puffer des USART
      *
-     * @param deviceData Zu speicherndes Byte
+     * @param data Zu speicherndes Byte
      */
-    public void writeDataToSystem(int deviceData) {
-        deviceBuffer.add((byte) (deviceData & 0xFF));
+    public void receiveData(int data) {
+//        System.out.println("Empfange von Tastatur:" + String.format("%02X", data & 0xFF));
+        // Prüfe, dass RTS nicht gesetzt
+//        if (!getBit(command, 5)) {
+        // Wenn Puffer noch nicht leer -> Overrun Fehler
+//            if (receiveBuffer != 0x00) {
+//                state |= STATE_OE;
+//            }
+        receiveBuffer = data;
         state |= STATE_RXRDY;
         InterruptSystem.getInstance().getPIC().requestInterrupt(6);
+//        }
     }
 
     /**
-     * Speichert die angegebenen Zeichen im Puffer des USART
+     * Leitet die geänderte Systemzeit an die Tastatur weiter
      *
-     * @param bytes Zu speichernde Bytes
+     * @param amount Anzahl der Ticks
      */
-    public void writeDataToSystem(byte[] bytes) {
-        for (int i = 0; i < bytes.length; i++) {
-            deviceBuffer.add(bytes[i]);
-        }
-        state |= STATE_RXRDY;
-        InterruptSystem.getInstance().getPIC().requestInterrupt(6);
+    public void updateClock(int amount) {
+        Keyboard.getInstance().updateClock(amount);
     }
 
     /**
@@ -210,10 +245,7 @@ public class KR580WM51A {
         dos.writeInt(mode);
         dos.writeInt(state);
         dos.writeBoolean(modeInstruction);
-        dos.writeInt(deviceBuffer.size());
-        for (int i = 0; i < deviceBuffer.size(); i++) {
-            dos.writeByte(deviceBuffer.get(i));
-        }
+        dos.writeInt(receiveBuffer);
     }
 
     /**
@@ -227,10 +259,6 @@ public class KR580WM51A {
         mode = dis.readInt();
         state = dis.readInt();
         modeInstruction = dis.readBoolean();
-        deviceBuffer.clear();
-        int size = dis.readInt();
-        for (int i = 0; i < size; i++) {
-            deviceBuffer.add(dis.readByte());
-        }
+        receiveBuffer = dis.readInt();
     }
 }

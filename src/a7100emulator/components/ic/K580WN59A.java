@@ -6,6 +6,7 @@
  * 
  * Letzte Änderungen:
  *   05.04.2014 Kommentare vervollständigt
+ *   25.07.2014 OCW1 und IMR zusammengefasst, IRR und OCW1 zurückgesetzt beim Empfang von ICW1
  *
  */
 package a7100emulator.components.ic;
@@ -35,10 +36,6 @@ public class K580WN59A {
      */
     private int isr = 0;
     /**
-     * Interrupt Mask Register
-     */
-    private int imr = 0;
-    /**
      * Initialization Command Word 1
      */
     private int icw1 = 0;
@@ -55,7 +52,7 @@ public class K580WN59A {
      */
     private int icw4 = 0;
     /**
-     * Maskenregister TODO: Zusammenfassen mit IMR
+     * Maskenregister
      */
     private int ocw1 = 0;
     /**
@@ -101,7 +98,8 @@ public class K580WN59A {
      * @return Maskenregister
      */
     public int readOCW() {
-        return imr;
+        //System.out.println("Lese OCW1/IMR " + Integer.toBinaryString(ocw1));
+        return ocw1;
     }
 
     /**
@@ -113,6 +111,8 @@ public class K580WN59A {
         if (getBit(data, 4)) {
             // ICW1
             icw1 = data;
+            ocw1 = 0x00;
+            irr=0;
             icw1Send = true;
             // System.out.println("Setze ICW1 " + Integer.toBinaryString(icw1));
         } else {
@@ -154,8 +154,8 @@ public class K580WN59A {
             //System.out.println("Setze ICW4 " + Integer.toBinaryString(icw4));
         } else {
             // OCW1    
-            imr = data;
-//            System.out.println("Setze OCW1 " + Integer.toBinaryString(imr));
+            ocw1 = data;
+            //System.out.println("Setze OCW1/IMR " + Integer.toBinaryString(ocw1));
         }
     }
 
@@ -165,11 +165,11 @@ public class K580WN59A {
      * @param id IRQ
      */
     public void requestInterrupt(int id) {
-//        System.out.println("Interrupt Anfrage "+id+" IMR:"+getBit(imr,id));
         if (id < 0 || id > 7) {
             return;
         }
-        if (!getBit(imr, id)) {
+        if (!getBit(ocw1, id)) {
+            //System.out.println("Interrupt Anfrage " + id + " akzeptiert:" + !getBit(ocw1, id));
             irr |= (1 << id);
         }
     }
@@ -210,7 +210,6 @@ public class K580WN59A {
         dos.writeInt(state);
         dos.writeInt(irr);
         dos.writeInt(isr);
-        dos.writeInt(imr);
         dos.writeInt(icw1);
         dos.writeInt(icw2);
         dos.writeInt(icw3);
@@ -233,7 +232,6 @@ public class K580WN59A {
         state = dis.readInt();
         irr = dis.readInt();
         isr = dis.readInt();
-        imr = dis.readInt();
         icw1 = dis.readInt();
         icw2 = dis.readInt();
         icw3 = dis.readInt();

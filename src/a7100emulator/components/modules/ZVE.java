@@ -6,6 +6,7 @@
  * 
  * Letzte Änderungen:
  *   02.04.2014 Kommentare vervollständigt
+ *   23.07.2014 Aktualisierung Systemzeit an USART weitergeleitet
  *
  */
 package a7100emulator.components.modules;
@@ -213,7 +214,7 @@ public final class ZVE implements PortModule, MemoryModule, ClockModule {
      */
     @Override
     public void writePort_Word(int port, int data) {
-//        System.out.println("OUT Word " + Integer.toHexString(data) + " to port " + Integer.toHexString(port));
+        System.out.println("OUT Word " + Integer.toHexString(data) + " to port " + Integer.toHexString(port));
         switch (port) {
             case PORT_ZVE_8259A_1:
                 break;
@@ -287,6 +288,7 @@ public final class ZVE implements PortModule, MemoryModule, ClockModule {
      */
     @Override
     public int readPort_Word(int port) {
+        System.out.println("IN Byte from port " + Integer.toHexString(port));
         switch (port) {
             case PORT_ZVE_8259A_1:
             case PORT_ZVE_8259A_2:
@@ -437,6 +439,7 @@ public final class ZVE implements PortModule, MemoryModule, ClockModule {
     @Override
     public void clockUpdate(int amount) {
         pti.updateClock(amount);
+        usart.updateClock(amount);
     }
 
     /**

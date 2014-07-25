@@ -31,7 +31,9 @@ import javax.swing.JOptionPane;
 
 /**
  * Klasse zur Abbildung der KGS (Kontroller für grafisches Subsytem)
- *
+ * <p>
+ * TODO: DeviceBuffer und DeviceBuffer2 zusammenführen
+ * 
  * @author Dirk Bräuer
  */
 public final class KGS implements PortModule, ClockModule {

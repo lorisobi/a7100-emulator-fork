@@ -7,6 +7,7 @@
  * Letzte Änderungen:
  *   04.04.2014 Kommentare begonnen
  *   26.04.2014 Prüfen des Carry Flags für Subtraktion zusammengefasst
+ *   25.07.2014 STI um einen Befehl verzögert aktivieren, stiWaiting speichern
  *
  */
 package a7100emulator.components.ic;
@@ -590,11 +591,11 @@ public class K1810WM86 implements Runnable {
      * Gibt an, ob die CPU angehalten ist
      */
     private boolean stopped = false;
-//    /**
-//     * Gibt an, ob nach dem nächsten Befehl das Interrupt-Flag gesetzt wird
-//     */
-//    private boolean stiWaiting = false;
-    
+    /**
+     * Gibt an, ob nach dem nächsten Befehl das Interrupt-Flag gesetzt wird
+     */
+    private boolean stiWaiting = false;
+
     /**
      * Erzeugt eine neue CPU
      */
@@ -615,11 +616,13 @@ public class K1810WM86 implements Runnable {
         }
 
         opCodeStatistic.addStatistic(opcode1);
-        
-//        if (stiWaiting) {
-//                            flags |= INTERRUPT_ENABLE_FLAG;
-//                            stiWaiting=false;
-//        }
+
+        // Aktiviere Interrupt Flag nach letztem STI
+        // Beim 8086 um einen Zyklus verzögert
+        if (stiWaiting) {
+            flags |= INTERRUPT_ENABLE_FLAG;
+            stiWaiting = false;
+        }
 
         clock.updateClock(3);
 
@@ -3308,9 +3311,9 @@ public class K1810WM86 implements Runnable {
                 }
                 break;
             case STI:
-//                stiWaiting =true;
+                stiWaiting = true;
 //                System.out.println("STI");
-                flags |= INTERRUPT_ENABLE_FLAG;
+//                flags |= INTERRUPT_ENABLE_FLAG;
                 clock.updateClock(2);
                 if (debug) {
                     debugInfo.setCode("STI");
@@ -6422,6 +6425,7 @@ public class K1810WM86 implements Runnable {
         dos.writeInt(prefix);
         dos.writeInt(string_prefix);
         dos.writeBoolean(isHalted);
+        dos.writeBoolean(stiWaiting);
     }
 
     /**
@@ -6448,5 +6452,6 @@ public class K1810WM86 implements Runnable {
         prefix = dis.readInt();
         string_prefix = dis.readInt();
         isHalted = dis.readBoolean();
+        stiWaiting = dis.readBoolean();
     }
 }
