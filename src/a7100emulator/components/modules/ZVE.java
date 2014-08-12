@@ -7,16 +7,19 @@
  * Letzte Änderungen:
  *   02.04.2014 Kommentare vervollständigt
  *   23.07.2014 Aktualisierung Systemzeit an USART weitergeleitet
+ *   09.08.2014 Zugriffe auf SystemMemory, SystemPorts und SystemClock durch MMS16Bus ersetzt
  *
  */
 package a7100emulator.components.modules;
 
 import a7100emulator.Tools.AddressSpace;
 import a7100emulator.Tools.Memory;
-import a7100emulator.components.ic.*;
-import a7100emulator.components.system.SystemClock;
-import a7100emulator.components.system.SystemMemory;
-import a7100emulator.components.system.SystemPorts;
+import a7100emulator.components.ic.K1810WM86;
+import a7100emulator.components.ic.K580WN59A;
+import a7100emulator.components.ic.KR580WI53;
+import a7100emulator.components.ic.KR580WM51A;
+import a7100emulator.components.ic.KR580WW55A;
+import a7100emulator.components.system.MMS16Bus;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
@@ -28,7 +31,7 @@ import javax.swing.JOptionPane;
  *
  * @author Dirk
  */
-public final class ZVE implements PortModule, MemoryModule, ClockModule {
+public final class ZVE implements IOModule, MemoryModule, ClockModule {
 
     /**
      * Port 1 des Interruptcontrollers
@@ -143,18 +146,18 @@ public final class ZVE implements PortModule, MemoryModule, ClockModule {
      */
     @Override
     public void registerPorts() {
-        SystemPorts.getInstance().registerPort(this, PORT_ZVE_8259A_1);
-        SystemPorts.getInstance().registerPort(this, PORT_ZVE_8259A_2);
-        SystemPorts.getInstance().registerPort(this, PORT_ZVE_8255A_PORT_A);
-        SystemPorts.getInstance().registerPort(this, PORT_ZVE_8255A_PORT_B);
-        SystemPorts.getInstance().registerPort(this, PORT_ZVE_8255A_PORT_C);
-        SystemPorts.getInstance().registerPort(this, PORT_ZVE_8255A_INIT);
-        SystemPorts.getInstance().registerPort(this, PORT_ZVE_8253_COUNTER0);
-        SystemPorts.getInstance().registerPort(this, PORT_ZVE_8253_COUNTER1);
-        SystemPorts.getInstance().registerPort(this, PORT_ZVE_8253_COUNTER2);
-        SystemPorts.getInstance().registerPort(this, PORT_ZVE_8253_INIT);
-        SystemPorts.getInstance().registerPort(this, PORT_ZVE_8251A_DATA);
-        SystemPorts.getInstance().registerPort(this, PORT_ZVE_8251A_COMMAND);
+        MMS16Bus.getInstance().registerIOPort(this, PORT_ZVE_8259A_1);
+        MMS16Bus.getInstance().registerIOPort(this, PORT_ZVE_8259A_2);
+        MMS16Bus.getInstance().registerIOPort(this, PORT_ZVE_8255A_PORT_A);
+        MMS16Bus.getInstance().registerIOPort(this, PORT_ZVE_8255A_PORT_B);
+        MMS16Bus.getInstance().registerIOPort(this, PORT_ZVE_8255A_PORT_C);
+        MMS16Bus.getInstance().registerIOPort(this, PORT_ZVE_8255A_INIT);
+        MMS16Bus.getInstance().registerIOPort(this, PORT_ZVE_8253_COUNTER0);
+        MMS16Bus.getInstance().registerIOPort(this, PORT_ZVE_8253_COUNTER1);
+        MMS16Bus.getInstance().registerIOPort(this, PORT_ZVE_8253_COUNTER2);
+        MMS16Bus.getInstance().registerIOPort(this, PORT_ZVE_8253_INIT);
+        MMS16Bus.getInstance().registerIOPort(this, PORT_ZVE_8251A_DATA);
+        MMS16Bus.getInstance().registerIOPort(this, PORT_ZVE_8251A_COMMAND);
     }
 
     /**
@@ -338,7 +341,7 @@ public final class ZVE implements PortModule, MemoryModule, ClockModule {
     @Override
     public void registerMemory() {
         AddressSpace addressSpace = new AddressSpace(0xF8000, 0xFFFFF);
-        SystemMemory.getInstance().registerMemorySpace(addressSpace, this);
+        MMS16Bus.getInstance().registerMemoryModule(addressSpace, this);
     }
 
     /**
@@ -428,7 +431,7 @@ public final class ZVE implements PortModule, MemoryModule, ClockModule {
      */
     @Override
     public void registerClocks() {
-        SystemClock.getInstance().registerClock(this);
+        MMS16Bus.getInstance().registerClockModule(this);
     }
 
     /**

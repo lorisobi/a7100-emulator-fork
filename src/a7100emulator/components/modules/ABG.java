@@ -6,13 +6,14 @@
  * 
  * Letzte Änderungen:
  *   01.04.2014 Kommentare vervollständigt
+ *   09.08.2014 Zugriffe auf SystemClock durch MMS16Bus ersetzt
  *
  */
 package a7100emulator.components.modules;
 
 import a7100emulator.Tools.BitmapGenerator;
+import a7100emulator.components.system.MMS16Bus;
 import a7100emulator.components.system.Screen;
-import a7100emulator.components.system.SystemClock;
 import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.image.BufferedImage;
@@ -236,7 +237,7 @@ public final class ABG implements Module, ClockModule {
      */
     @Override
     public void registerClocks() {
-        SystemClock.getInstance().registerClock(this);
+        MMS16Bus.getInstance().registerClockModule(this);
     }
 
     /**

@@ -6,13 +6,14 @@
  * 
  * Letzte Änderungen:
  *   02.04.2014 Kommentare vervollständigt
+ *   09.08.2014 Zugriff auf SystemMemory durch MMS16 Bus ersetzt
  *
  */
 package a7100emulator.components.modules;
 
 import a7100emulator.Tools.AddressSpace;
 import a7100emulator.Tools.Memory;
-import a7100emulator.components.system.SystemMemory;
+import a7100emulator.components.system.MMS16Bus;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -54,7 +55,7 @@ public final class ZPS implements MemoryModule {
      */
     @Override
     public void registerMemory() {
-        SystemMemory.getInstance().registerMemorySpace(new AddressSpace(0x00000, 0x1FFFF), this);
+        MMS16Bus.getInstance().registerMemoryModule(new AddressSpace(0x00000, 0x1FFFF), this);
     }
 
     /**

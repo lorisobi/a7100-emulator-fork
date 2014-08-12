@@ -12,8 +12,8 @@
  */
 package a7100emulator.components.ic;
 
-import a7100emulator.components.system.InterruptSystem;
 import a7100emulator.components.system.Keyboard;
+import a7100emulator.components.system.MMS16Bus;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -210,7 +210,7 @@ public class KR580WM51A {
 //            }
         receiveBuffer = data;
         state |= STATE_RXRDY;
-        InterruptSystem.getInstance().getPIC().requestInterrupt(6);
+        MMS16Bus.getInstance().requestInterrupt(6);
 //        }
     }
 

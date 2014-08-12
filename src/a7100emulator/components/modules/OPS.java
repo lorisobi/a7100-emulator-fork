@@ -6,6 +6,8 @@
  * 
  * Letzte Änderungen:
  *   01.04.2014 Kommentare vervollständigt
+ *   09.08.2014 Zugriffe auf SystemMemory, SystemPorts durch MMS16Bus ersetzt
+ *              Interrupts auf MMS16 umgeleitet
  *
  */
 package a7100emulator.components.modules;
@@ -13,17 +15,17 @@ package a7100emulator.components.modules;
 import a7100emulator.Tools.AddressSpace;
 import a7100emulator.Tools.Memory;
 import a7100emulator.components.system.InterruptSystem;
-import a7100emulator.components.system.SystemMemory;
-import a7100emulator.components.system.SystemPorts;
+import a7100emulator.components.system.MMS16Bus;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 
 /**
  * Klasse zur Abbildung der OPS (Operativspeicher)
+ *
  * @author Dirk Bräuer
  */
-public final class OPS implements PortModule, MemoryModule {
+public final class OPS implements IOModule, MemoryModule {
 
     /**
      * Enum für verwendete Paritäten
@@ -34,7 +36,6 @@ public final class OPS implements PortModule, MemoryModule {
          * Gerade Parität
          */
         EVEN,
-
         /**
          * Ungerade Parität
          */
@@ -110,22 +111,23 @@ public final class OPS implements PortModule, MemoryModule {
     public void registerPorts() {
         switch (ops_id) {
             case 0:
-                SystemPorts.getInstance().registerPort(this, PORT_OPS_1_PES);
+                MMS16Bus.getInstance().registerIOPort(this, PORT_OPS_1_PES);
                 break;
             case 1:
-                SystemPorts.getInstance().registerPort(this, PORT_OPS_2_PES);
+                MMS16Bus.getInstance().registerIOPort(this, PORT_OPS_2_PES);
                 break;
             case 2:
-                SystemPorts.getInstance().registerPort(this, PORT_OPS_3_PES);
+                MMS16Bus.getInstance().registerIOPort(this, PORT_OPS_3_PES);
                 break;
             case 3:
-                SystemPorts.getInstance().registerPort(this, PORT_OPS_4_PES);
+                MMS16Bus.getInstance().registerIOPort(this, PORT_OPS_4_PES);
                 break;
         }
     }
 
     /**
      * Gibt ein Byte auf einem Port aus
+     *
      * @param port Port
      * @param data Daten
      */
@@ -141,6 +143,7 @@ public final class OPS implements PortModule, MemoryModule {
 
     /**
      * Gibt ein Wort auf einem Port aus
+     *
      * @param port Port
      * @param data Daten
      */
@@ -151,6 +154,7 @@ public final class OPS implements PortModule, MemoryModule {
 
     /**
      * Liest ein Byte von einem Port
+     *
      * @param port Port
      * @return gelesenes Byte
      */
@@ -161,6 +165,7 @@ public final class OPS implements PortModule, MemoryModule {
 
     /**
      * Liest ein Wort von einem Port
+     *
      * @param port Port
      * @return gelesenes Wort
      */
@@ -200,11 +205,12 @@ public final class OPS implements PortModule, MemoryModule {
                 ops_offset += 0xC0000;
                 break;
         }
-        SystemMemory.getInstance().registerMemorySpace(new AddressSpace(ops_offset, ops_offset + 0x3FFFF), this);
+        MMS16Bus.getInstance().registerMemoryModule(new AddressSpace(ops_offset, ops_offset + 0x3FFFF), this);
     }
 
     /**
      * Liest ein Byte aus dem Speicher
+     *
      * @param address Adresse
      * @return gelesenes Byte
      */
@@ -215,7 +221,7 @@ public final class OPS implements PortModule, MemoryModule {
             int par = (byte) checkParity(address - ops_offset);
             if (par != parityBits[address - ops_offset]) {
                 state &= ~0x07;
-                InterruptSystem.getInstance().addParityNMI();
+                MMS16Bus.getInstance().requestInterrupt(0);
             }
         }
         return memory.readByte(address - ops_offset);
@@ -223,6 +229,7 @@ public final class OPS implements PortModule, MemoryModule {
 
     /**
      * Liest ein Wort aus dem Speicher
+     *
      * @param address Adresse
      * @return gelesenes Wort
      */
@@ -234,7 +241,7 @@ public final class OPS implements PortModule, MemoryModule {
             int par2 = (byte) checkParity(memory.readByte(address - ops_offset + 1));
             if (par1 != parityBits[address - ops_offset] || par2 != parityBits[address - ops_offset + 1]) {
                 state &= ~0x07;
-                InterruptSystem.getInstance().addParityNMI();
+                MMS16Bus.getInstance().requestInterrupt(0);
             }
         }
         return memory.readWord(address - ops_offset);
@@ -242,6 +249,7 @@ public final class OPS implements PortModule, MemoryModule {
 
     /**
      * Schreibt ein Byte in den Speicher
+     *
      * @param address Adresse
      * @param data Daten
      */
@@ -256,6 +264,7 @@ public final class OPS implements PortModule, MemoryModule {
 
     /**
      * Schreibt ein Wort in den Speicher
+     *
      * @param address Adresse
      * @param data Daten
      */
@@ -271,6 +280,7 @@ public final class OPS implements PortModule, MemoryModule {
 
     /**
      * Prüft die parität eines Bytes
+     *
      * @param data Daten
      * @return Parität (0-gerade / 1-ungerade)
      */
@@ -284,6 +294,7 @@ public final class OPS implements PortModule, MemoryModule {
 
     /**
      * Schreibt den Zustand der OPS in eine Datei
+     *
      * @param dos Stream der Datei
      * @throws IOException Wenn Schreiben nicht erfolgreich
      */
@@ -295,9 +306,10 @@ public final class OPS implements PortModule, MemoryModule {
         dos.writeUTF(parity.name());
         dos.writeInt(state);
     }
-    
+
     /**
      * Liest den Zustand der OPS aus einer Datei
+     *
      * @param dis Stream der Datei
      * @throws IOException Wenn Lesen nicht erfolreich war
      */
@@ -305,8 +317,8 @@ public final class OPS implements PortModule, MemoryModule {
     public void loadState(DataInputStream dis) throws IOException {
         memory.loadMemory(dis);
         dis.read(parityBits);
-        ops_offset=dis.readInt();
-        parity=Parity.valueOf(dis.readUTF());
-        state=dis.readInt();
+        ops_offset = dis.readInt();
+        parity = Parity.valueOf(dis.readUTF());
+        state = dis.readInt();
     }
 }

@@ -6,15 +6,14 @@
  * 
  * Letzte Änderungen:
  *   02.04.2014 Kommentare vervollständigt
+ *   09.08.2014 Zugriffe auf SystemMemory, SystemPorts und SystemClock durch MMS16Bus ersetzt
  *
  */
 package a7100emulator.components.modules;
 
 import a7100emulator.Tools.BitmapGenerator;
 import a7100emulator.Tools.Memory;
-import a7100emulator.components.system.InterruptSystem;
-import a7100emulator.components.system.SystemClock;
-import a7100emulator.components.system.SystemPorts;
+import a7100emulator.components.system.MMS16Bus;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.image.BufferedImage;
@@ -36,7 +35,7 @@ import javax.swing.JOptionPane;
  * 
  * @author Dirk Bräuer
  */
-public final class KGS implements PortModule, ClockModule {
+public final class KGS implements IOModule, ClockModule {
 
     /**
      * Arbeistspeicher der KGS
@@ -414,8 +413,8 @@ public final class KGS implements PortModule, ClockModule {
      */
     @Override
     public void registerPorts() {
-        SystemPorts.getInstance().registerPort(this, PORT_KGS_STATE);
-        SystemPorts.getInstance().registerPort(this, PORT_KGS_DATA);
+        MMS16Bus.getInstance().registerIOPort(this, PORT_KGS_STATE);
+        MMS16Bus.getInstance().registerIOPort(this, PORT_KGS_DATA);
     }
 
     /**
@@ -1282,7 +1281,7 @@ public final class KGS implements PortModule, ClockModule {
      */
     @Override
     public void registerClocks() {
-        SystemClock.getInstance().registerClock(this);
+        MMS16Bus.getInstance().registerClockModule(this);
     }
 
     /**
@@ -1296,7 +1295,7 @@ public final class KGS implements PortModule, ClockModule {
             interruptClock += amount;
             if (interruptClock > 20) {
                 interruptWaiting = false;
-                InterruptSystem.getInstance().getPIC().requestInterrupt(7);
+                MMS16Bus.getInstance().requestInterrupt(7);
             }
         }
     }

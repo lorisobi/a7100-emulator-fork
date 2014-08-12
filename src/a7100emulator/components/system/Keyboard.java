@@ -370,7 +370,7 @@ public class Keyboard implements KeyListener {
                 break;
             case KeyEvent.VK_PAUSE:
                 System.out.println("Break");
-                InterruptSystem.getInstance().getPIC().requestInterrupt(1);
+                MMS16Bus.getInstance().requestInterrupt(1);
                 break;
             // Sonderzeichen
             case KeyEvent.VK_SPACE:

@@ -6,11 +6,13 @@
  * 
  * Letzte Änderungen:
  *   03.04.2014 Kommentare vervollständigt
+ *   26.07.2014 Unterscheidung der Modi
+ *   27.07.2014 Puffer für kleine Aktualisierungszeiten hinzugefügt, Implementierung Mode 0, 2 und 3
  *
  */
 package a7100emulator.components.ic;
 
-import a7100emulator.components.system.InterruptSystem;
+import a7100emulator.components.system.MMS16Bus;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -42,6 +44,10 @@ public class KR580WI53 {
      * Array der drei implementierten Zähler
      */
     private final Counter[] counter = new Counter[3];
+    /**
+     * Puffer für Aktualisierung des Counters
+     */
+    private final int[] buffer = new int[3];
 
     /**
      * Erzeugt einen neuen PIT
@@ -100,9 +106,23 @@ public class KR580WI53 {
      * @param amount Anzahl der Ticks
      */
     public void updateClock(int amount) {
-        counter[0].update(amount >> 2);
-        counter[1].update(amount >> 5);
-        counter[2].update(amount >> 2);
+        buffer[0] += amount;
+        buffer[1] += amount;
+        buffer[2] += amount;
+
+        counter[0].update(buffer[0] >> 2);
+        counter[1].update(buffer[1] >> 5);
+        counter[2].update(buffer[2] >> 2);
+
+        buffer[0] -= (buffer[0] >> 2) << 2;
+        buffer[1] -= (buffer[1] >> 5) << 5;
+        buffer[2] -= (buffer[2] >> 2) << 2;
+
+        for (int i = 0; i < 3; i++) {
+            if (buffer[i] < 0) {
+                buffer[i] = 0;
+            }
+        }
     }
 
     /**
@@ -114,6 +134,7 @@ public class KR580WI53 {
     public void saveState(DataOutputStream dos) throws IOException {
         for (int i = 0; i < 3; i++) {
             counter[i].saveState(dos);
+            dos.writeInt(buffer[i]);
         }
     }
 
@@ -126,6 +147,7 @@ public class KR580WI53 {
     public void loadState(DataInputStream dis) throws IOException {
         for (int i = 0; i < 3; i++) {
             counter[i].loadState(dis);
+            buffer[i] = dis.readInt();
         }
     }
 
@@ -147,6 +169,10 @@ public class KR580WI53 {
          * Auslesen)
          */
         private boolean latched = false;
+        /**
+         * Startwert des Zählers
+         */
+        private int initialValue = 0;
         /**
          * Aktueller Wert des Counters
          */
@@ -172,6 +198,10 @@ public class KR580WI53 {
          * Zwischenspeicher nach Latch für späteres Auslesen
          */
         private int latch = 0;
+        /**
+         * Zustand des Ausgangspins;
+         */
+        private boolean outp = false;
 
         /**
          * Erstellt einen neuen Zähler
@@ -192,14 +222,39 @@ public class KR580WI53 {
                 if (!latched) {
                     latch = value;
                     latched = true;
-                    //        System.out.println("latched: " + latch);
+                    // System.out.println("latched: " + latch);
                 }
             } else {
                 mode = (TEST_MODE & control) >> 1;
                 rw = (TEST_RW & control) >> 4;
                 type = TEST_TYPE & control;
+                switch (mode) {
+                    case 0:
+                        // Mode 0
+                        outp = false;
+                        break;
+                    case 1:
+                        // Mode 1
+                        // TODO
+                        break;
+                    case 2:
+                    case 6:
+                    case 3:
+                    case 7:
+                        // Mode 2,3
+                        outp = true;
+                        break;
+                    case 4:
+                        // Mode 4
+                        // TODO
+                        break;
+                    case 5:
+                        // Mode 5
+                        // TODO
+                        break;
+                }
             }
-            //System.out.println("MODE:" + mode + " RW:" + rw + " Type:" + type);
+            //System.out.println("ID:" + id + " MODE:" + mode + " RW:" + rw + " Type:" + type);
         }
 
         /**
@@ -220,6 +275,7 @@ public class KR580WI53 {
                     running = true;
                     break;
                 case 3:
+              //      System.out.println("Counter " + id + " RW-State:" + readWriteState + " Wert:" + val);
                     if (readWriteState == 0) {
                         value = val & 0xFF;
                         readWriteState++;
@@ -234,7 +290,8 @@ public class KR580WI53 {
                     }
                     break;
             }
-            //  System.out.println("Counter "+id+" - Neuer Wert:" + value);
+            initialValue = value;
+            //System.out.println("Counter " + id + " - Neuer Wert:" + value);
         }
 
         /**
@@ -293,17 +350,52 @@ public class KR580WI53 {
          */
         private void update(long amount) {
             if (running) {
+                boolean old_outp = outp;
                 value -= amount;
-                if (value <= 0) {
-                    value = 0;
-                    if (value + amount > 0) {
-                        running = false;
-                        if (id == 0) {
-                            InterruptSystem.getInstance().getPIC().requestInterrupt(2);
+                switch (mode) {
+                    case 0:
+                        // Mode 0
+                        if (value <= 0) {
+                            value = 0;
+                            outp = true;
                         }
-                    }
+                        break;
+                    case 1:
+                        // Mode 1
+                        // TODO
+                        break;
+                    case 2:
+                    case 6:
+                        // Mode 2
+                        // TODO
+                        break;
+                    case 3:
+                    case 7:
+                        // Mode 3
+                        if (value <= (initialValue >> 2)) {
+                            outp = false;
+                        }
+                        if (value <= 0) {
+                            value += initialValue;
+                            outp=true;
+                            //running=false;
+                        }
+                        break;
+                    case 4:
+                        // Mode 4
+                        // TODO
+                        break;
+                    case 5:
+                        // Mode 5
+                        // TODO
+                        break;
                 }
-                //if (value>0) System.out.println("Neuer Wert:" + value);
+
+                // Level von LOW auf HIGH am Ausgang -> Bei Zähler 0 Interrupt
+                if (id == 0 && outp && !old_outp) {
+                    MMS16Bus.getInstance().requestInterrupt(2);
+                }
+
             }
         }
 
@@ -317,6 +409,7 @@ public class KR580WI53 {
             dos.writeBoolean(running);
             dos.writeBoolean(latched);
             dos.writeInt(value);
+            dos.writeInt(initialValue);
             dos.writeInt(mode);
             dos.writeInt(type);
             dos.writeInt(rw);
@@ -334,6 +427,7 @@ public class KR580WI53 {
             running = dis.readBoolean();
             latched = dis.readBoolean();
             value = dis.readInt();
+            initialValue = dis.readInt();
             mode = dis.readInt();
             type = dis.readInt();
             rw = dis.readInt();

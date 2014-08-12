@@ -112,7 +112,7 @@ public class K580WN59A {
             // ICW1
             icw1 = data;
             ocw1 = 0x00;
-            irr=0;
+            irr = 0;
             icw1Send = true;
             // System.out.println("Setze ICW1 " + Integer.toBinaryString(icw1));
         } else {
@@ -123,7 +123,7 @@ public class K580WN59A {
             } else {
                 // OCW2
                 ocw2 = data;
-                // System.out.println("Setze OCW2 " + Integer.toBinaryString(ocw2));
+                System.out.println("Setze OCW2 " + Integer.toBinaryString(ocw2));
             }
         }
     }
@@ -136,10 +136,10 @@ public class K580WN59A {
     public void writePort1(int data) {
         if (icw1Send) {
             //ICW2
-            icw2 = data;
+            icw2 = data & 0xFF;
             icw2Send = true;
             icw1Send = false;
-            //  System.out.println("Setze ICW2 " + Integer.toBinaryString(icw2));
+            // System.out.println("Setze ICW2 " + Integer.toBinaryString(icw2));
         } else if (icw2Send && !getBit(icw1, 1)) {
             // ICW3
             icw3 = data;
@@ -169,7 +169,7 @@ public class K580WN59A {
             return;
         }
         if (!getBit(ocw1, id)) {
-            //System.out.println("Interrupt Anfrage " + id + " akzeptiert:" + !getBit(ocw1, id));
+//            System.out.println("Interrupt Anfrage " + id + " akzeptiert!");
             irr |= (1 << id);
         }
     }
@@ -183,7 +183,7 @@ public class K580WN59A {
         for (int i = 0; i <= 7; i++) {
             if (getBit(irr, i)) {
                 irr &= ~(1 << i);
-                return i;
+                return i | (icw2 & 0xF8);
             }
         }
         return -1;

@@ -6,11 +6,12 @@
  * 
  * Letzte Änderungen:
  *   02.04.2014 Kommentare vervollständigt
+ *   09.08.2014 Zugriffe auf SystemPorts durch MMS16Bus ersetzt
  *
  */
 package a7100emulator.components.modules;
 
-import a7100emulator.components.system.SystemPorts;
+import a7100emulator.components.system.MMS16Bus;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -22,7 +23,7 @@ import java.io.IOException;
  *
  * @author Dirk Bräuer
  */
-public final class ASP implements PortModule {
+public final class ASP implements IOModule {
 
     /**
      *
@@ -73,49 +74,49 @@ public final class ASP implements PortModule {
     }
 
     /**
-     *
+     * Registriert die Ports am Systembus
      */
     @Override
     public void registerPorts() {
 
         switch (asp_id) {
             case 1:
-                SystemPorts.getInstance().registerPort(this, PORT_ASP_1_ENABLE_INTERRUPT);
-                SystemPorts.getInstance().registerPort(this, PORT_ASP_1_BOS1810);
-                SystemPorts.getInstance().registerPort(this, PORT_ASP_1_RETI);
-                SystemPorts.getInstance().registerPort(this, PORT_ASP_1_TEST);
-                SystemPorts.getInstance().registerPort(this, PORT_ASP_1_CONTROL);
-                SystemPorts.getInstance().registerPort(this, PORT_ASP_1_U855_PORT_A_DATA);
-                SystemPorts.getInstance().registerPort(this, PORT_ASP_1_U855_PORT_B_DATA);
-                SystemPorts.getInstance().registerPort(this, PORT_ASP_1_U855_PORT_A_INIT);
-                SystemPorts.getInstance().registerPort(this, PORT_ASP_1_U855_PORT_B_INIT);
-                SystemPorts.getInstance().registerPort(this, PORT_ASP_1_U857_TIMER_0);
-                SystemPorts.getInstance().registerPort(this, PORT_ASP_1_U857_TIMER_1);
-                SystemPorts.getInstance().registerPort(this, PORT_ASP_1_U857_TIMER_2);
-                SystemPorts.getInstance().registerPort(this, PORT_ASP_1_U857_TIMER_3);
-                SystemPorts.getInstance().registerPort(this, PORT_ASP_1_U856_DATA_V24);
-                SystemPorts.getInstance().registerPort(this, PORT_ASP_1_U856_DATA_IFSS);
-                SystemPorts.getInstance().registerPort(this, PORT_ASP_1_U856_CONTROL_V24);
-                SystemPorts.getInstance().registerPort(this, PORT_ASP_1_U856_CONTROL_IFSS_V24);
+                MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_1_ENABLE_INTERRUPT);
+                MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_1_BOS1810);
+                MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_1_RETI);
+                MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_1_TEST);
+                MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_1_CONTROL);
+                MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_1_U855_PORT_A_DATA);
+                MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_1_U855_PORT_B_DATA);
+                MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_1_U855_PORT_A_INIT);
+                MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_1_U855_PORT_B_INIT);
+                MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_1_U857_TIMER_0);
+                MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_1_U857_TIMER_1);
+                MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_1_U857_TIMER_2);
+                MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_1_U857_TIMER_3);
+                MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_1_U856_DATA_V24);
+                MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_1_U856_DATA_IFSS);
+                MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_1_U856_CONTROL_V24);
+                MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_1_U856_CONTROL_IFSS_V24);
                 break;
             case 2:
-                SystemPorts.getInstance().registerPort(this, PORT_ASP_2_ENABLE_INTERRUPT);
-                SystemPorts.getInstance().registerPort(this, PORT_ASP_2_BOS1810);
-                SystemPorts.getInstance().registerPort(this, PORT_ASP_2_RETI);
-                SystemPorts.getInstance().registerPort(this, PORT_ASP_2_TEST);
-                SystemPorts.getInstance().registerPort(this, PORT_ASP_2_CONTROL);
-                SystemPorts.getInstance().registerPort(this, PORT_ASP_2_U855_PORT_A_DATA);
-                SystemPorts.getInstance().registerPort(this, PORT_ASP_2_U855_PORT_B_DATA);
-                SystemPorts.getInstance().registerPort(this, PORT_ASP_2_U855_PORT_A_INIT);
-                SystemPorts.getInstance().registerPort(this, PORT_ASP_2_U855_PORT_B_INIT);
-                SystemPorts.getInstance().registerPort(this, PORT_ASP_2_U857_TIMER_0);
-                SystemPorts.getInstance().registerPort(this, PORT_ASP_2_U857_TIMER_1);
-                SystemPorts.getInstance().registerPort(this, PORT_ASP_2_U857_TIMER_2);
-                SystemPorts.getInstance().registerPort(this, PORT_ASP_2_U857_TIMER_3);
-                SystemPorts.getInstance().registerPort(this, PORT_ASP_2_U856_DATA_V24);
-                SystemPorts.getInstance().registerPort(this, PORT_ASP_2_U856_DATA_IFSS);
-                SystemPorts.getInstance().registerPort(this, PORT_ASP_2_U856_CONTROL_V24);
-                SystemPorts.getInstance().registerPort(this, PORT_ASP_2_U856_CONTROL_IFSS_V24);
+                MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_2_ENABLE_INTERRUPT);
+                MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_2_BOS1810);
+                MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_2_RETI);
+                MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_2_TEST);
+                MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_2_CONTROL);
+                MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_2_U855_PORT_A_DATA);
+                MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_2_U855_PORT_B_DATA);
+                MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_2_U855_PORT_A_INIT);
+                MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_2_U855_PORT_B_INIT);
+                MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_2_U857_TIMER_0);
+                MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_2_U857_TIMER_1);
+                MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_2_U857_TIMER_2);
+                MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_2_U857_TIMER_3);
+                MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_2_U856_DATA_V24);
+                MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_2_U856_DATA_IFSS);
+                MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_2_U856_CONTROL_V24);
+                MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_2_U856_CONTROL_IFSS_V24);
                 break;
         }
     }

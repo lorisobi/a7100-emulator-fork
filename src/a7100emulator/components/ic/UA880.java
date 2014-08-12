@@ -10,18 +10,24 @@
  *              - Konstanten und Funktionen für Register erstellt
  *   25.04.2014 - 1-Byte Opcodes fast vollständig implementiert
  *              - CB-Opcodes begonnen
- *   26.04.2014 - CB/DD/FD Opcodes Implementiert
+ *   26.04.2014 - CB/DD/FD Opcodes implementiert
  *              - ED Opcodes begonnen
  *   25.05.2014 - ED Opcodes fast vollständig
  *              - DD/FD CB Opcodes fertig
+ *   06.08.2014 - Debug-Ausgaben hinzugefügt
  *
  */
 package a7100emulator.components.ic;
 
+import a7100emulator.Debug.Debugger;
+import a7100emulator.Debug.DebuggerInfo;
 import a7100emulator.Tools.Memory;
+import java.io.File;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
- * Klasse zur Realisierung eines UA880 Prozessors für Subsysteme
+ * Klasse zur Realisierung eines UA880 Prozessors für A7100 Subsysteme
  * <p>
  * TODO: Diese Klasse ist noch nicht vollständig implementiert
  *
@@ -319,7 +325,7 @@ public class UA880 implements Runnable {
     private static final int JP_M_IMM = 0xFA;
     private static final int JR_IMM = 0x18;
     private static final int JR_NZ_IMM = 0x20;
-    private static final int JRZ_IMM = 0x28;
+    private static final int JR_Z_IMM = 0x28;
     private static final int JR_NC_IMM = 0x30;
     private static final int JR_C_IMM = 0x38;
     private static final int DJNZ_IMM = 0x10;
@@ -407,6 +413,7 @@ public class UA880 implements Runnable {
     private static final int _CB_SET5 = 0xE8;
     private static final int _CB_SET6 = 0xF0;
     private static final int _CB_SET7 = 0xF8;
+
     /**
      * Zweier DD/FD
      */
@@ -494,6 +501,7 @@ public class UA880 implements Runnable {
     private static final int _DD_FD_EX_SP_I = 0xE3;
     private static final int _DD_FD_PUSH_I = 0xE5;
     private static final int _DD_FD_JP_MEM_I = 0xE9;
+
     /**
      * Zweier ED
      */
@@ -594,8 +602,28 @@ public class UA880 implements Runnable {
     private static final int ZERO_FLAG = 0x40;
     private static final int SIGN_FLAG = 0x80;
 
+    /**
+     * Gibt an ob der Debug-Modus aktiv ist
+     */
+    private boolean debug = false;
+    /**
+     * Zeiger auf Debugger Instanz
+     */
+    private final Debugger debugger = Debugger.getInstance();
+    /**
+     * Zeiger auf Debugger Informationen
+     */
+    private final DebuggerInfo debugInfo = DebuggerInfo.getInstance();
+
     private void executeNextInstruction() {
         int opcode = memory.readByte(pc++);
+        if (debug) {
+            debugInfo.setCs(0);
+            debugInfo.setIp(pc);
+            debugInfo.setOpcode(opcode);
+        }
+
+        System.out.println(String.format("%02Xh", opcode));
 
         switch (opcode) {
             case LD_B_B:
@@ -606,6 +634,10 @@ public class UA880 implements Runnable {
             case LD_L_L:
             case LD_A_A: {
                 // NOP
+                if (debug) {
+                    debugInfo.setCode("LD " + getRegisterString((opcode >> 3) & 0x07) + "," + getRegisterString(opcode & 0x07));
+                    debugInfo.setOperands(String.format("%02Xh", getRegister(opcode & 0x07)));
+                }
             }
             break;
             case LD_C_B:
@@ -651,6 +683,10 @@ public class UA880 implements Runnable {
             case LD_H_A:
             case LD_L_A: {
                 setRegister((opcode >> 3) & 0x07, getRegister(opcode & 0x07));
+                if (debug) {
+                    debugInfo.setCode("LD " + getRegisterString((opcode >> 3) & 0x07) + "," + getRegisterString(opcode & 0x07));
+                    debugInfo.setOperands(String.format("%02Xh", getRegister(opcode & 0x07)));
+                }
             }
             break;
             case LD_IMM_B:
@@ -661,32 +697,61 @@ public class UA880 implements Runnable {
             case LD_IMM_A:
             case LD_IMM_H: {
                 setRegister((opcode >> 3) & 0x07, memory.readByte(pc++));
+                if (debug) {
+                    debugInfo.setCode("LD " + getRegisterString((opcode >> 3) & 0x07) + "," + String.format("%02Xh", memory.readByte(pc - 1)));
+                    debugInfo.setOperands(null);
+                }
             }
             break;
             case LD_A_MEM_BC: {
                 memory.writeByte(getRegPairHLSP(REGP_BC), getRegister(REG_A));
+                if (debug) {
+                    debugInfo.setCode("LD (BC),A");
+                    debugInfo.setOperands(String.format("%02Xh", getRegister(REG_A)));
+                }
             }
             break;
             case LD_A_MEM_DE: {
                 memory.writeByte(getRegPairHLSP(REGP_DE), getRegister(REG_A));
+                if (debug) {
+                    debugInfo.setCode("LD (DE),A");
+                    debugInfo.setOperands(String.format("%02Xh", getRegister(REG_A)));
+                }
             }
             break;
             case LD_A_MEM: {
-                setRegister(REG_A, memory.readWord(pc++));
-                pc++;
+                int address = (memory.readByte(pc++) << 8) + memory.readByte(pc++);
+                memory.writeByte(address, getRegister(REG_A));
+                if (debug) {
+                    debugInfo.setCode("LD " + String.format("%04Xh", address) + ",A");
+                    debugInfo.setOperands(String.format("%02Xh", getRegister(REG_A)));
+                }
             }
             break;
             case LD_MEM_BC_A: {
-                setRegister(REG_A, memory.readWord(getRegPairHLSP(REGP_BC)));
+                setRegister(REG_A, memory.readByte(getRegPairHLSP(REGP_BC)));
+                if (debug) {
+                    debugInfo.setCode("LD A,(BC)");
+                    debugInfo.setOperands(String.format("%02Xh", memory.readByte(getRegPairHLSP(REGP_BC))));
+                }
             }
             break;
             case LD_MEM_DE_A: {
-                setRegister(REG_A, memory.readWord(getRegPairHLSP(REGP_DE)));
+                setRegister(REG_A, memory.readByte(getRegPairHLSP(REGP_DE)));
+                setRegister(REG_A, memory.readByte(getRegPairHLSP(REGP_BC)));
+                if (debug) {
+                    debugInfo.setCode("LD A,(DE)");
+                    debugInfo.setOperands(String.format("%02Xh", memory.readByte(getRegPairHLSP(REGP_DE))));
+                }
             }
             break;
             case LD_MEM_A: {
-                setRegister(REG_A, memory.readWord(pc++));
-                pc++;
+                int address = (memory.readByte(pc++) << 8) + memory.readByte(pc++);
+                setRegister(REG_A, memory.readByte(address));
+                if (debug) {
+                    debugInfo.setCode("LD A,(" + String.format("%04Xh", address) + ")");
+                    debugInfo.setOperands(String.format("%02Xh", memory.readByte(address)));
+                }
             }
             break;
             case LD_MEM_HL_B:
@@ -696,7 +761,11 @@ public class UA880 implements Runnable {
             case LD_MEM_HL_H:
             case LD_MEM_HL_L:
             case LD_MEM_HL_A: {
-                setRegister((opcode >> 3) & 0x07, memory.readWord(getRegPairHLSP(REGP_HL)));
+                setRegister((opcode >> 3) & 0x07, memory.readByte(getRegPairHLSP(REGP_HL)));
+                if (debug) {
+                    debugInfo.setCode("LD " + getRegisterString((opcode >> 3) & 0x07) + ",(HL)");
+                    debugInfo.setOperands(String.format("%02Xh", memory.readByte(getRegPairHLSP(REGP_HL))));
+                }
             }
             break;
             case LD_B_MEM_HL:
@@ -707,6 +776,10 @@ public class UA880 implements Runnable {
             case LD_L_MEM_HL:
             case LD_A_MEM_HL: {
                 memory.writeByte(getRegPairHLSP(REGP_HL), getRegister(opcode & 0x07));
+                if (debug) {
+                    debugInfo.setCode("LD (HL)," + getRegisterString(opcode & 0x07));
+                    debugInfo.setOperands(String.format("%02Xh", getRegister(opcode & 0x07)));
+                }
             }
             break;
 
@@ -717,40 +790,75 @@ public class UA880 implements Runnable {
             case LD_IMM_DE:
             case LD_IMM_HL:
             case LD_IMM_SP: {
-                setRegPairHLSP((opcode >> 4) & 0x03, memory.readWord(pc++));
+                int op1 = memory.readWord(pc++);
                 pc++;
+                setRegPairHLSP((opcode >> 4) & 0x03, op1);
+                if (debug) {
+                    debugInfo.setCode("LD " + getRegPairHLSPString((opcode >> 4) & 0x03) + "," + String.format("%04Xh", op1));
+                    debugInfo.setOperands(null);
+                }
             }
             break;
             case LD_HL_MEM: {
-                memory.writeWord(memory.readWord(pc++), getRegPairHLSP(REGP_HL));
+                int op1 = getRegPairHLSP(REGP_HL);
+                int address = memory.readWord(pc++);
                 pc++;
+                memory.writeWord(address, op1);
+                if (debug) {
+                    debugInfo.setCode("LD (" + String.format("%04Xh", address) + "),HL");
+                    debugInfo.setOperands(String.format("%04Xh", op1));
+                }
             }
             break;
             case LD_MEM_HL: {
-                setRegPairHLSP(REGP_HL, memory.readWord(memory.readWord(pc++)));
+                int address = memory.readWord(pc++);
                 pc++;
+                int op1 = memory.readWord(address);
+                setRegPairHLSP(REGP_HL, op1);
+                if (debug) {
+                    debugInfo.setCode("LD HL,(" + String.format("%04Xh", address) + ")");
+                    debugInfo.setOperands(String.format("%04Xh", op1));
+                }
             }
             break;
             case LD_IMM_MEM_HL: {
-                memory.writeByte(getRegPairHLSP(REGP_HL), memory.readByte(pc++));
+                int op1 = memory.readByte(pc++);
+                memory.writeByte(getRegPairHLSP(REGP_HL), op1);
+                if (debug) {
+                    debugInfo.setCode("LD (HL)," + String.format("%04Xh", op1) + ")");
+                    debugInfo.setOperands(null);
+                }
             }
             break;
             case LD_HL_SP: {
                 setRegPairHLSP(REGP_SP, getRegPairHLSP(REGP_HL));
+                if (debug) {
+                    debugInfo.setCode("LD SP,HL");
+                    debugInfo.setOperands(null);
+                }
             }
             break;
             case POP_BC:
             case POP_DE:
             case POP_HL:
             case POP_AF: {
-                setRegPairAF((opcode >> 4) & 0x03, pop());
+                int op1 = pop();
+                setRegPairAF((opcode >> 4) & 0x03, op1);
+                if (debug) {
+                    debugInfo.setCode("POP " + getRegPairAFString((opcode >> 4) & 0x03));
+                    debugInfo.setOperands(String.format("%04Xh", op1));
+                }
             }
             break;
             case PUSH_BC:
             case PUSH_DE:
             case PUSH_HL:
             case PUSH_AF: {
-                push(getRegPairAF(opcode >> 4) & 0x03);
+                push(getRegPairAF((opcode >> 4) & 0x03));
+                if (debug) {
+                    debugInfo.setCode("PUSH " + getRegPairAFString((opcode >> 4) & 0x03));
+                    debugInfo.setOperands(String.format("%04Xh", getRegPairAF((opcode >> 4) & 0x03)));
+                }
             }
             break;
 
@@ -759,10 +867,20 @@ public class UA880 implements Runnable {
              */
             case OUT_A_IMM: {
                 // TODO
+                int port = memory.readByte(pc++);
+                if (debug) {
+                    debugInfo.setCode("OUT (" + String.format("%02Xh", port) + "),A");
+                    debugInfo.setOperands(String.format("%02Xh", getRegister(REG_A)));
+                }
             }
             break;
             case IN_IMM_A: {
                 // TODO
+                int port = memory.readByte(pc++);
+                if (debug) {
+                    debugInfo.setCode("IN A,(" + String.format("%02Xh", port) + ")");
+                    debugInfo.setOperands(String.format("%02Xh", getRegister(REG_A)));
+                }
             }
             break;
 
@@ -776,6 +894,10 @@ public class UA880 implements Runnable {
                 exOp = f;
                 f = f_;
                 f_ = exOp;
+                if (debug) {
+                    debugInfo.setCode("EX AF,AF'");
+                    debugInfo.setOperands(String.format("%02Xh%02Xh,%02Xh%02Xh", a_, f_, a, f));
+                }
             }
             break;
             case EXX: {
@@ -797,18 +919,30 @@ public class UA880 implements Runnable {
                 exOp = e;
                 e = e_;
                 e_ = exOp;
+                if (debug) {
+                    debugInfo.setCode("EXX");
+                    debugInfo.setOperands(null);
+                }
             }
             break;
             case EX_HL_MEM_SP: {
                 int exOp = getRegPairHLSP(REGP_HL);
                 setRegPairHLSP(REGP_HL, memory.readWord(sp));
                 memory.writeWord(sp, exOp);
+                if (debug) {
+                    debugInfo.setCode("EX (SP),HL");
+                    debugInfo.setOperands(String.format("%04Xh,%04Xh", getRegPairHLSP(REGP_HL), memory.readWord(sp)));
+                }
             }
             break;
             case EX_HL_DE: {
                 int exOp = getRegPairHLSP(REGP_HL);
                 setRegPairHLSP(REGP_HL, getRegPairHLSP(REGP_DE));
                 setRegPairHLSP(REGP_DE, exOp);
+                if (debug) {
+                    debugInfo.setCode("EX DE,HL");
+                    debugInfo.setOperands(String.format("%04Xh,%04Xh", getRegPairHLSP(REGP_HL), getRegPairHLSP(REGP_DE)));
+                }
             }
             break;
 
@@ -826,6 +960,10 @@ public class UA880 implements Runnable {
                 int op2 = getRegister(opcode & 0x07);
                 int res = add8(op1, op2, false);
                 setRegister(REG_A, res);
+                if (debug) {
+                    debugInfo.setCode("ADD A," + getRegisterString(opcode & 0x07));
+                    debugInfo.setOperands(String.format("%02Xh+%02Xh->%02Xh", op1, op2, res));
+                }
             }
             break;
             case ADD_MEM_HL_A: {
@@ -833,6 +971,10 @@ public class UA880 implements Runnable {
                 int op2 = memory.readByte(getRegPairHLSP(REGP_HL));
                 int res = add8(op1, op2, false);
                 setRegister(REG_A, res);
+                if (debug) {
+                    debugInfo.setCode("ADD A,(HL)");
+                    debugInfo.setOperands(String.format("%02Xh+%02Xh->%02Xh", op1, op2, res));
+                }
             }
             break;
             case ADD_IMM_A: {
@@ -840,6 +982,10 @@ public class UA880 implements Runnable {
                 int op2 = memory.readByte(pc++);
                 int res = add8(op1, op2, false);
                 setRegister(REG_A, res);
+                if (debug) {
+                    debugInfo.setCode("ADD A," + String.format("%02Xh", op2));
+                    debugInfo.setOperands(String.format("%02Xh+%02Xh->%02Xh", op1, op2, res));
+                }
             }
             break;
             case ADC_B_A:
@@ -853,6 +999,10 @@ public class UA880 implements Runnable {
                 int op2 = getRegister(opcode & 0x07);
                 int res = add8(op1, op2, true);
                 setRegister(REG_A, res);
+                if (debug) {
+                    debugInfo.setCode("ADC A," + getRegisterString(opcode & 0x07));
+                    debugInfo.setOperands(String.format("%02Xh+%02Xh->%02Xh", op1, op2, res));
+                }
             }
             break;
             case ADC_MEM_HL_A: {
@@ -860,6 +1010,10 @@ public class UA880 implements Runnable {
                 int op2 = memory.readByte(getRegPairHLSP(REGP_HL));
                 int res = add8(op1, op2, true);
                 setRegister(REG_A, res);
+                if (debug) {
+                    debugInfo.setCode("ADC A,(HL)");
+                    debugInfo.setOperands(String.format("%02Xh+%02Xh->%02Xh", op1, op2, res));
+                }
             }
             break;
             case ADC_IMM_A: {
@@ -867,6 +1021,10 @@ public class UA880 implements Runnable {
                 int op2 = memory.readByte(pc++);
                 int res = add8(op1, op2, true);
                 setRegister(REG_A, res);
+                if (debug) {
+                    debugInfo.setCode("ADC A," + String.format("%02Xh", op2));
+                    debugInfo.setOperands(String.format("%02Xh+%02Xh->%02Xh", op1, op2, res));
+                }
             }
             break;
             case SUB_B_A:
@@ -880,6 +1038,10 @@ public class UA880 implements Runnable {
                 int op2 = getRegister(opcode & 0x07);
                 int res = sub8(op1, op2, false);
                 setRegister(REG_A, res);
+                if (debug) {
+                    debugInfo.setCode("SUB A," + getRegisterString(opcode & 0x07));
+                    debugInfo.setOperands(String.format("%02Xh-%02Xh->%02Xh", op1, op2, res));
+                }
             }
             break;
             case SUB_MEM_HL_A: {
@@ -887,6 +1049,10 @@ public class UA880 implements Runnable {
                 int op2 = memory.readByte(getRegPairHLSP(REGP_HL));
                 int res = sub8(op1, op2, false);
                 setRegister(REG_A, res);
+                if (debug) {
+                    debugInfo.setCode("SUB A,(HL)");
+                    debugInfo.setOperands(String.format("%02Xh-%02Xh->%02Xh", op1, op2, res));
+                }
             }
             break;
             case SUB_IMM_A: {
@@ -894,6 +1060,10 @@ public class UA880 implements Runnable {
                 int op2 = memory.readByte(pc++);
                 int res = sub8(op1, op2, false);
                 setRegister(REG_A, res);
+                if (debug) {
+                    debugInfo.setCode("SUB A," + String.format("%02Xh", op2));
+                    debugInfo.setOperands(String.format("%02Xh-%02Xh->%02Xh", op1, op2, res));
+                }
             }
             break;
             case SBC_B_A:
@@ -907,6 +1077,10 @@ public class UA880 implements Runnable {
                 int op2 = getRegister(opcode & 0x07);
                 int res = sub8(op1, op2, true);
                 setRegister(REG_A, res);
+                if (debug) {
+                    debugInfo.setCode("SBC A," + getRegisterString(opcode & 0x07));
+                    debugInfo.setOperands(String.format("%02Xh-%02Xh->%02Xh", op1, op2, res));
+                }
             }
             break;
             case SBC_MEM_HL_A: {
@@ -914,6 +1088,10 @@ public class UA880 implements Runnable {
                 int op2 = memory.readByte(getRegPairHLSP(REGP_HL));
                 int res = sub8(op1, op2, true);
                 setRegister(REG_A, res);
+                if (debug) {
+                    debugInfo.setCode("SBC A,(HL)");
+                    debugInfo.setOperands(String.format("%02Xh-%02Xh->%02Xh", op1, op2, res));
+                }
             }
             break;
             case SBC_IMM_A: {
@@ -921,6 +1099,10 @@ public class UA880 implements Runnable {
                 int op2 = memory.readByte(pc++);
                 int res = sub8(op1, op2, true);
                 setRegister(REG_A, res);
+                if (debug) {
+                    debugInfo.setCode("SBC A," + String.format("%02Xh", op2));
+                    debugInfo.setOperands(String.format("%02Xh-%02Xh->%02Xh", op1, op2, res));
+                }
             }
             break;
             case INC_B:
@@ -933,12 +1115,20 @@ public class UA880 implements Runnable {
                 int op = getRegister((opcode >> 3) & 0x07);
                 int res = inc(op);
                 setRegister((opcode >> 3) & 0x07, res);
+                if (debug) {
+                    debugInfo.setCode("INC " + getRegisterString(opcode & 0x07));
+                    debugInfo.setOperands(String.format("->%02Xh", res));
+                }
             }
             break;
             case INC_MEM_HL: {
                 int op = memory.readByte(getRegPairHLSP(REGP_HL));
                 int res = inc(op);
                 memory.writeByte(getRegPairHLSP(REGP_HL), res);
+                if (debug) {
+                    debugInfo.setCode("INC (HL)");
+                    debugInfo.setOperands(String.format("->%02Xh", res));
+                }
             }
             break;
             case DEC_B:
@@ -951,12 +1141,20 @@ public class UA880 implements Runnable {
                 int op = getRegister((opcode >> 3) & 0x07);
                 int res = dec(op);
                 setRegister((opcode >> 3) & 0x07, res);
+                if (debug) {
+                    debugInfo.setCode("DEC " + getRegisterString(opcode & 0x07));
+                    debugInfo.setOperands(String.format("->%02Xh", res));
+                }
             }
             break;
             case DEC_MEM_HL: {
                 int op = memory.readByte(getRegPairHLSP(REGP_HL));
                 int res = dec(op);
                 memory.writeByte(getRegPairHLSP(REGP_HL), res);
+                if (debug) {
+                    debugInfo.setCode("DEC (HL)");
+                    debugInfo.setOperands(String.format("->%02Xh", res));
+                }
             }
             break;
             case DAA: {
@@ -986,6 +1184,10 @@ public class UA880 implements Runnable {
                     clearFlag(HALF_CARRY_FLAG);
                 }
                 setRegister(REG_A, res);
+                if (debug) {
+                    debugInfo.setCode("DAA");
+                    debugInfo.setOperands(null);
+                }
             }
             break;
             case CPL: {
@@ -993,6 +1195,10 @@ public class UA880 implements Runnable {
                 setRegister(REG_A, ~op);
                 setFlag(HALF_CARRY_FLAG);
                 setFlag(SUBTRACT_FLAG);
+                if (debug) {
+                    debugInfo.setCode("CPL");
+                    debugInfo.setOperands(null);
+                }
             }
             break;
 
@@ -1007,6 +1213,10 @@ public class UA880 implements Runnable {
                 int op2 = getRegPairHLSP((opcode >> 4) & 0x03);
                 int res = add16(op1, op2, false);
                 setRegPairHLSP(REGP_HL, res);
+                if (debug) {
+                    debugInfo.setCode("ADD HL," + getRegPairHLSPString((opcode >> 4) & 0x03));
+                    debugInfo.setOperands(String.format("%04Xh-%04Xh->%04Xh", op1, op2, res));
+                }
             }
             break;
             case INC_BC:
@@ -1015,6 +1225,10 @@ public class UA880 implements Runnable {
             case INC_SP: {
                 int op = getRegPairHLSP((opcode >> 4) & 0x03);
                 setRegPairHLSP((opcode >> 4) & 0x03, op + 1);
+                if (debug) {
+                    debugInfo.setCode("INC " + getRegPairHLSPString((opcode >> 4) & 0x03));
+                    debugInfo.setOperands(String.format("->%04Xh", op + 1));
+                }
             }
             break;
             case DEC_BC:
@@ -1023,6 +1237,10 @@ public class UA880 implements Runnable {
             case DEC_SP: {
                 int op = getRegPairHLSP((opcode >> 4) & 0x03);
                 setRegPairHLSP((opcode >> 4) & 0x03, op - 1);
+                if (debug) {
+                    debugInfo.setCode("DEC " + getRegPairHLSPString((opcode >> 4) & 0x03));
+                    debugInfo.setOperands(String.format("->%04Xh", op - 1));
+                }
             }
             break;
 
@@ -1040,20 +1258,32 @@ public class UA880 implements Runnable {
                 int op2 = getRegister(opcode & 0x07);
                 int res = and(op1, op2);
                 setRegister(REG_A, res);
+                if (debug) {
+                    debugInfo.setCode("AND " + getRegisterString(opcode & 0x07));
+                    debugInfo.setOperands(String.format("%02Xh&%02Xh->%02Xh", op1, op2, res));
+                }
             }
             break;
             case AND_MEM_HL: {
                 int op1 = getRegister(REG_A);
-                int op2 = getRegister(memory.readByte(getRegPairHLSP(REGP_HL)));
+                int op2 = memory.readByte(getRegPairHLSP(REGP_HL));
                 int res = and(op1, op2);
                 setRegister(REG_A, res);
+                if (debug) {
+                    debugInfo.setCode("AND (HL)");
+                    debugInfo.setOperands(String.format("%02Xh&%02Xh->%02Xh", op1, op2, res));
+                }
             }
             break;
             case AND_IMM: {
                 int op1 = getRegister(REG_A);
-                int op2 = getRegister(memory.readByte(pc++));
+                int op2 = memory.readByte(pc++);
                 int res = and(op1, op2);
                 setRegister(REG_A, res);
+                if (debug) {
+                    debugInfo.setCode("AND " + String.format("%02Xh", op2));
+                    debugInfo.setOperands(String.format("%02Xh&%02Xh->%02Xh", op1, op2, res));
+                }
             }
             break;
             case XOR_B:
@@ -1067,20 +1297,33 @@ public class UA880 implements Runnable {
                 int op2 = getRegister(opcode & 0x07);
                 int res = xor(op1, op2);
                 setRegister(REG_A, res);
+                if (debug) {
+                    debugInfo.setCode("XOR " + getRegisterString(opcode & 0x07));
+                    debugInfo.setOperands(String.format("%02Xh^%02Xh->%02Xh", op1, op2, res));
+                }
             }
             break;
             case XOR_MEM_HL: {
                 int op1 = getRegister(REG_A);
-                int op2 = getRegister(memory.readByte(getRegPairHLSP(REGP_HL)));
+                int op2 = memory.readByte(getRegPairHLSP(REGP_HL));
                 int res = xor(op1, op2);
                 setRegister(REG_A, res);
+                if (debug) {
+                    debugInfo.setCode("XOR (HL)");
+                    debugInfo.setOperands(String.format("%02Xh^%02Xh->%02Xh", op1, op2, res));
+                }
             }
             break;
             case XOR_IMM: {
                 int op1 = getRegister(REG_A);
-                int op2 = getRegister(memory.readByte(pc++));
+                int op2 = memory.readByte(pc++);
                 int res = xor(op1, op2);
                 setRegister(REG_A, res);
+                if (debug) {
+                    debugInfo.setCode("XOR " + String.format("%02Xh", op2));
+                    debugInfo.setOperands(String.format("%02Xh^%02Xh->%02Xh", op1, op2, res));
+                }
+
             }
             break;
             case OR_B:
@@ -1094,20 +1337,32 @@ public class UA880 implements Runnable {
                 int op2 = getRegister(opcode & 0x07);
                 int res = or(op1, op2);
                 setRegister(REG_A, res);
+                if (debug) {
+                    debugInfo.setCode("OR " + getRegisterString(opcode & 0x07));
+                    debugInfo.setOperands(String.format("%02Xh|%02Xh->%02Xh", op1, op2, res));
+                }
             }
             break;
             case OR_MEM_HL: {
                 int op1 = getRegister(REG_A);
-                int op2 = getRegister(memory.readByte(getRegPairHLSP(REGP_HL)));
+                int op2 = memory.readByte(getRegPairHLSP(REGP_HL));
                 int res = or(op1, op2);
                 setRegister(REG_A, res);
+                if (debug) {
+                    debugInfo.setCode("OR (HL)");
+                    debugInfo.setOperands(String.format("%02Xh|%02Xh->%02Xh", op1, op2, res));
+                }
             }
             break;
             case OR_IMM: {
                 int op1 = getRegister(REG_A);
-                int op2 = getRegister(memory.readByte(pc++));
+                int op2 = memory.readByte(pc++);
                 int res = or(op1, op2);
                 setRegister(REG_A, res);
+                if (debug) {
+                    debugInfo.setCode("OR " + String.format("%02Xh", op2));
+                    debugInfo.setOperands(String.format("%02Xh|%02Xh->%02Xh", op1, op2, res));
+                }
             }
             break;
             case CP_B:
@@ -1120,18 +1375,30 @@ public class UA880 implements Runnable {
                 int op1 = getRegister(REG_A);
                 int op2 = getRegister(opcode & 0x07);
                 sub8(op1, op2, false);
+                if (debug) {
+                    debugInfo.setCode("CP " + getRegisterString(opcode & 0x07));
+                    debugInfo.setOperands(String.format("%02Xh,%02Xh", op1, op2));
+                }
             }
             break;
             case CP_MEM_HL: {
                 int op1 = getRegister(REG_A);
-                int op2 = getRegister(memory.readByte(getRegPairHLSP(REGP_HL)));
+                int op2 = memory.readByte(getRegPairHLSP(REGP_HL));
                 sub8(op1, op2, false);
+                if (debug) {
+                    debugInfo.setCode("CP (HL)");
+                    debugInfo.setOperands(String.format("%02Xh,%02Xh", op1, op2));
+                }
             }
             break;
             case CP_IMM: {
                 int op1 = getRegister(REG_A);
-                int op2 = getRegister(memory.readByte(pc++));
+                int op2 = memory.readByte(pc++);
                 sub8(op1, op2, false);
+                if (debug) {
+                    debugInfo.setCode("CP " + String.format("%02Xh", op2));
+                    debugInfo.setOperands(String.format("%02Xh,%02Xh", op1, op2));
+                }
             }
             break;
 
@@ -1140,63 +1407,123 @@ public class UA880 implements Runnable {
              */
             case JP_IMM: {
                 pc = memory.readWord(pc);
+                if (debug) {
+                    debugInfo.setCode("JP " + String.format("%04Xh", pc));
+                    debugInfo.setOperands(null);
+                }
             }
             break;
             case JP_MEM_HL: {
                 pc = memory.readWord(getRegPairHLSP(REGP_HL));
+                if (debug) {
+                    debugInfo.setCode("JP (HL)");
+                    debugInfo.setOperands(String.format("%04Xh", pc));
+                }
             }
             break;
             case JP_NZ_IMM: {
+                int address = memory.readWord(pc++);
+                pc++;
                 if (!getFlag(ZERO_FLAG)) {
-                    pc = memory.readWord(pc);
+                    pc = address;
+                }
+                if (debug) {
+                    debugInfo.setCode("JP NZ," + String.format("%04Xh", address));
+                    debugInfo.setOperands(null);
                 }
             }
             break;
             case JP_Z_IMM: {
+                int address = memory.readWord(pc++);
+                pc++;
                 if (getFlag(ZERO_FLAG)) {
-                    pc = memory.readWord(pc);
+                    pc = address;
+                }
+                if (debug) {
+                    debugInfo.setCode("JP Z," + String.format("%04Xh", address));
+                    debugInfo.setOperands(null);
                 }
             }
             break;
             case JP_NC_IMM: {
+                int address = memory.readWord(pc++);
+                pc++;
                 if (!getFlag(CARRY_FLAG)) {
-                    pc = memory.readWord(pc);
+                    pc = address;
+                }
+                if (debug) {
+                    debugInfo.setCode("JP NC," + String.format("%04Xh", address));
+                    debugInfo.setOperands(null);
                 }
             }
             break;
             case JP_C_IMM: {
+                int address = memory.readWord(pc++);
+                pc++;
                 if (getFlag(CARRY_FLAG)) {
-                    pc = memory.readWord(pc);
+                    pc = address;
+                }
+                if (debug) {
+                    debugInfo.setCode("JP C," + String.format("%04Xh", address));
+                    debugInfo.setOperands(null);
                 }
             }
             break;
             case JP_PO_IMM: {
+                int address = memory.readWord(pc++);
+                pc++;
                 if (!getFlag(PARITY_OVERFLOW_FLAG)) {
-                    pc = memory.readWord(pc);
+                    pc = address;
+                }
+                if (debug) {
+                    debugInfo.setCode("JP PO," + String.format("%04Xh", address));
+                    debugInfo.setOperands(null);
                 }
             }
             break;
             case JP_PE_IMM: {
+                int address = memory.readWord(pc++);
+                pc++;
                 if (getFlag(PARITY_OVERFLOW_FLAG)) {
-                    pc = memory.readWord(pc);
+                    pc = address;
+                }
+                if (debug) {
+                    debugInfo.setCode("JP PE," + String.format("%04Xh", address));
+                    debugInfo.setOperands(null);
                 }
             }
             break;
             case JP_P_IMM: {
+                int address = memory.readWord(pc++);
+                pc++;
                 if (!getFlag(SIGN_FLAG)) {
-                    pc = memory.readWord(pc);
+                    pc = address;
+                }
+                if (debug) {
+                    debugInfo.setCode("JP P," + String.format("%04Xh", address));
+                    debugInfo.setOperands(null);
                 }
             }
             break;
             case JP_M_IMM: {
+                int address = memory.readWord(pc++);
+                pc++;
                 if (getFlag(SIGN_FLAG)) {
-                    pc = memory.readWord(pc);
+                    pc = address;
+                }
+                if (debug) {
+                    debugInfo.setCode("JP M," + String.format("%04Xh", address));
+                    debugInfo.setOperands(null);
                 }
             }
             break;
             case JR_IMM: {
                 int offset = (byte) memory.readByte(pc++);
                 pc += offset;
+                if (debug) {
+                    debugInfo.setCode("JR " + String.format("%02Xh", offset));
+                    debugInfo.setOperands(String.format("%04Xh", pc));
+                }
             }
             break;
             case JR_NZ_IMM: {
@@ -1204,12 +1531,20 @@ public class UA880 implements Runnable {
                 if (!getFlag(ZERO_FLAG)) {
                     pc += offset;
                 }
+                if (debug) {
+                    debugInfo.setCode("JR NZ," + String.format("%02Xh", offset));
+                    debugInfo.setOperands(String.format("%04Xh", pc + offset));
+                }
             }
             break;
-            case JRZ_IMM: {
+            case JR_Z_IMM: {
                 int offset = (byte) memory.readByte(pc++);
                 if (getFlag(ZERO_FLAG)) {
                     pc += offset;
+                }
+                if (debug) {
+                    debugInfo.setCode("JR Z," + String.format("%02Xh", offset));
+                    debugInfo.setOperands(String.format("%04Xh", pc + offset));
                 }
             }
             break;
@@ -1218,12 +1553,20 @@ public class UA880 implements Runnable {
                 if (!getFlag(CARRY_FLAG)) {
                     pc += offset;
                 }
+                if (debug) {
+                    debugInfo.setCode("JR NC," + String.format("%02Xh", offset));
+                    debugInfo.setOperands(String.format("%04Xh", pc + offset));
+                }
             }
             break;
             case JR_C_IMM: {
                 int offset = (byte) memory.readByte(pc++);
                 if (getFlag(CARRY_FLAG)) {
                     pc += offset;
+                }
+                if (debug) {
+                    debugInfo.setCode("JR C," + String.format("%02Xh", offset));
+                    debugInfo.setOperands(String.format("%04Xh", pc + offset));
                 }
             }
             break;
@@ -1233,6 +1576,10 @@ public class UA880 implements Runnable {
                 setRegister(REG_B, op--);
                 if (op != 0) {
                     pc += offset;
+                }
+                if (debug) {
+                    debugInfo.setCode("DJNZ " + String.format("%02Xh", offset));
+                    debugInfo.setOperands(String.format("%04Xh", pc + offset));
                 }
             }
             break;
@@ -1245,6 +1592,10 @@ public class UA880 implements Runnable {
                 pc++;
                 push(pc);
                 pc = address;
+                if (debug) {
+                    debugInfo.setCode("CALL " + String.format("%04Xh", address));
+                    debugInfo.setOperands(null);
+                }
             }
             break;
             case CALL_NZ_IMM: {
@@ -1253,6 +1604,10 @@ public class UA880 implements Runnable {
                 if (!getFlag(ZERO_FLAG)) {
                     push(pc);
                     pc = address;
+                }
+                if (debug) {
+                    debugInfo.setCode("CALL NZ," + String.format("%04Xh", address));
+                    debugInfo.setOperands(null);
                 }
             }
             break;
@@ -1263,6 +1618,10 @@ public class UA880 implements Runnable {
                     push(pc);
                     pc = address;
                 }
+                if (debug) {
+                    debugInfo.setCode("CALL Z," + String.format("%04Xh", address));
+                    debugInfo.setOperands(null);
+                }
             }
             break;
             case CALL_NC_IMM: {
@@ -1271,6 +1630,10 @@ public class UA880 implements Runnable {
                 if (!getFlag(CARRY_FLAG)) {
                     push(pc);
                     pc = address;
+                }
+                if (debug) {
+                    debugInfo.setCode("CALL NC," + String.format("%04Xh", address));
+                    debugInfo.setOperands(null);
                 }
             }
             break;
@@ -1281,6 +1644,10 @@ public class UA880 implements Runnable {
                     push(pc);
                     pc = address;
                 }
+                if (debug) {
+                    debugInfo.setCode("CALL C," + String.format("%04Xh", address));
+                    debugInfo.setOperands(null);
+                }
             }
             break;
             case CALL_PO_IMM: {
@@ -1289,6 +1656,10 @@ public class UA880 implements Runnable {
                 if (!getFlag(PARITY_OVERFLOW_FLAG)) {
                     push(pc);
                     pc = address;
+                }
+                if (debug) {
+                    debugInfo.setCode("CALL PO," + String.format("%04Xh", address));
+                    debugInfo.setOperands(null);
                 }
             }
             break;
@@ -1299,6 +1670,10 @@ public class UA880 implements Runnable {
                     push(pc);
                     pc = address;
                 }
+                if (debug) {
+                    debugInfo.setCode("CALL PE," + String.format("%04Xh", address));
+                    debugInfo.setOperands(null);
+                }
             }
             break;
             case CALL_P_IMM: {
@@ -1307,6 +1682,10 @@ public class UA880 implements Runnable {
                 if (!getFlag(SIGN_FLAG)) {
                     push(pc);
                     pc = address;
+                }
+                if (debug) {
+                    debugInfo.setCode("CALL P," + String.format("%04Xh", address));
+                    debugInfo.setOperands(null);
                 }
             }
             break;
@@ -1317,17 +1696,29 @@ public class UA880 implements Runnable {
                     push(pc);
                     pc = address;
                 }
+                if (debug) {
+                    debugInfo.setCode("CALL M," + String.format("%04Xh", address));
+                    debugInfo.setOperands(null);
+                }
             }
             break;
             case RET: {
                 int address = pop();
                 pc = address;
+                if (debug) {
+                    debugInfo.setCode("RET");
+                    debugInfo.setOperands(String.format("%04Xh", address));
+                }
             }
             break;
             case RET_NZ: {
                 if (!getFlag(ZERO_FLAG)) {
                     int address = pop();
                     pc = address;
+                }
+                if (debug) {
+                    debugInfo.setCode("RET NZ");
+                    debugInfo.setOperands(null);
                 }
             }
             break;
@@ -1336,12 +1727,20 @@ public class UA880 implements Runnable {
                     int address = pop();
                     pc = address;
                 }
+                if (debug) {
+                    debugInfo.setCode("RET Z");
+                    debugInfo.setOperands(null);
+                }
             }
             break;
             case RET_NC: {
                 if (!getFlag(CARRY_FLAG)) {
                     int address = pop();
                     pc = address;
+                }
+                if (debug) {
+                    debugInfo.setCode("RET NC");
+                    debugInfo.setOperands(null);
                 }
             }
             break;
@@ -1350,12 +1749,20 @@ public class UA880 implements Runnable {
                     int address = pop();
                     pc = address;
                 }
+                if (debug) {
+                    debugInfo.setCode("RET C");
+                    debugInfo.setOperands(null);
+                }
             }
             break;
             case RET_PO: {
                 if (!getFlag(PARITY_OVERFLOW_FLAG)) {
                     int address = pop();
                     pc = address;
+                }
+                if (debug) {
+                    debugInfo.setCode("RET PO");
+                    debugInfo.setOperands(null);
                 }
             }
             break;
@@ -1364,7 +1771,10 @@ public class UA880 implements Runnable {
                     int address = pop();
                     pc = address;
                 }
-
+                if (debug) {
+                    debugInfo.setCode("RET PE");
+                    debugInfo.setOperands(null);
+                }
             }
             break;
             case RET_P: {
@@ -1372,12 +1782,20 @@ public class UA880 implements Runnable {
                     int address = pop();
                     pc = address;
                 }
+                if (debug) {
+                    debugInfo.setCode("RET P");
+                    debugInfo.setOperands(null);
+                }
             }
             break;
             case RET_M: {
                 if (getFlag(SIGN_FLAG)) {
                     int address = pop();
                     pc = address;
+                }
+                if (debug) {
+                    debugInfo.setCode("RET M");
+                    debugInfo.setOperands(null);
                 }
             }
             break;
@@ -1391,6 +1809,11 @@ public class UA880 implements Runnable {
             case RST_38: {
                 push(pc);
                 pc = opcode & 0x38;
+                if (debug) {
+                    debugInfo.setCode("RST " + String.format("%02Xh", opcode & 0x38));
+                    debugInfo.setOperands(null);
+                }
+
             }
             break;
 
@@ -1399,10 +1822,18 @@ public class UA880 implements Runnable {
              */
             case NOP: {
                 // NOP
+                if (debug) {
+                    debugInfo.setCode("NOP");
+                    debugInfo.setOperands(null);
+                }
             }
             break;
             case SCF: {
                 setFlag(CARRY_FLAG);
+                if (debug) {
+                    debugInfo.setCode("SCF");
+                    debugInfo.setOperands(null);
+                }
             }
             break;
             case CCF: {
@@ -1411,18 +1842,34 @@ public class UA880 implements Runnable {
                 } else {
                     setFlag(CARRY_FLAG);
                 }
+                if (debug) {
+                    debugInfo.setCode("CCF");
+                    debugInfo.setOperands(null);
+                }
             }
             break;
             case HALT: {
                 // HALT
+                if (debug) {
+                    debugInfo.setCode("HALT");
+                    debugInfo.setOperands(null);
+                }
             }
             break;
             case DI: {
                 // Sperre maskierbare Interrupts
+                if (debug) {
+                    debugInfo.setCode("DI");
+                    debugInfo.setOperands(null);
+                }
             }
             break;
             case EI: {
                 // Gebe maskierbare Interrupts frei
+                if (debug) {
+                    debugInfo.setCode("EI");
+                    debugInfo.setOperands(null);
+                }
             }
             break;
 
@@ -1441,6 +1888,10 @@ public class UA880 implements Runnable {
                 setRegister(REG_A, res);
                 clearFlag(HALF_CARRY_FLAG);
                 clearFlag(SUBTRACT_FLAG);
+                if (debug) {
+                    debugInfo.setCode("RLCA");
+                    debugInfo.setOperands(Integer.toBinaryString(op) + "b->" + Integer.toBinaryString(res) + "b");
+                }
             }
             break;
             case RRCA: {
@@ -1455,6 +1906,11 @@ public class UA880 implements Runnable {
                 setRegister(REG_A, res);
                 clearFlag(HALF_CARRY_FLAG);
                 clearFlag(SUBTRACT_FLAG);
+                if (debug) {
+                    debugInfo.setCode("RRCA");
+                    debugInfo.setOperands(Integer.toBinaryString(op) + "b->" + Integer.toBinaryString(res) + "b");
+                }
+
             }
             break;
             case RLA: {
@@ -1471,6 +1927,11 @@ public class UA880 implements Runnable {
                 setRegister(REG_A, res);
                 clearFlag(HALF_CARRY_FLAG);
                 clearFlag(SUBTRACT_FLAG);
+                if (debug) {
+                    debugInfo.setCode("RLA");
+                    debugInfo.setOperands(Integer.toBinaryString(op) + "b->" + Integer.toBinaryString(res) + "b");
+                }
+
             }
             break;
             case RRA: {
@@ -1487,6 +1948,11 @@ public class UA880 implements Runnable {
                 setRegister(REG_A, res);
                 clearFlag(HALF_CARRY_FLAG);
                 clearFlag(SUBTRACT_FLAG);
+                if (debug) {
+                    debugInfo.setCode("RRA");
+                    debugInfo.setOperands(Integer.toBinaryString(op) + "b->" + Integer.toBinaryString(res) + "b");
+                }
+
             }
             break;
 
@@ -1509,6 +1975,10 @@ public class UA880 implements Runnable {
                         checkSignFlag(res);
                         checkZeroFlag(res);
                         checkParityFlag(res);
+                        if (debug) {
+                            debugInfo.setCode("RLC " + getRegisterString(opcode2 & 0x07));
+                            debugInfo.setOperands(Integer.toBinaryString(op) + "b->" + Integer.toBinaryString(res) + "b");
+                        }
                     }
                     break;
                     case _CB_RRC: {
@@ -1526,6 +1996,10 @@ public class UA880 implements Runnable {
                         checkSignFlag(res);
                         checkZeroFlag(res);
                         checkParityFlag(res);
+                        if (debug) {
+                            debugInfo.setCode("RRC " + getRegisterString(opcode2 & 0x07));
+                            debugInfo.setOperands(Integer.toBinaryString(op) + "b->" + Integer.toBinaryString(res) + "b");
+                        }
                     }
                     break;
                     case _CB_RL: {
@@ -1545,6 +2019,10 @@ public class UA880 implements Runnable {
                         checkSignFlag(res);
                         checkZeroFlag(res);
                         checkParityFlag(res);
+                        if (debug) {
+                            debugInfo.setCode("RL " + getRegisterString(opcode2 & 0x07));
+                            debugInfo.setOperands(Integer.toBinaryString(op) + "b->" + Integer.toBinaryString(res) + "b");
+                        }
                     }
                     break;
                     case _CB_RR: {
@@ -1564,6 +2042,10 @@ public class UA880 implements Runnable {
                         checkSignFlag(res);
                         checkZeroFlag(res);
                         checkParityFlag(res);
+                        if (debug) {
+                            debugInfo.setCode("RR " + getRegisterString(opcode2 & 0x07));
+                            debugInfo.setOperands(Integer.toBinaryString(op) + "b->" + Integer.toBinaryString(res) + "b");
+                        }
                     }
                     break;
                     case _CB_SLA: {
@@ -1580,6 +2062,10 @@ public class UA880 implements Runnable {
                         checkSignFlag(res);
                         checkZeroFlag(res);
                         checkParityFlag(res);
+                        if (debug) {
+                            debugInfo.setCode("SLA " + getRegisterString(opcode2 & 0x07));
+                            debugInfo.setOperands(Integer.toBinaryString(op) + "b->" + Integer.toBinaryString(res) + "b");
+                        }
                     }
                     break;
                     case _CB_SRA: {
@@ -1599,6 +2085,10 @@ public class UA880 implements Runnable {
                         checkSignFlag(res);
                         checkZeroFlag(res);
                         checkParityFlag(res);
+                        if (debug) {
+                            debugInfo.setCode("SRA " + getRegisterString(opcode2 & 0x07));
+                            debugInfo.setOperands(Integer.toBinaryString(op) + "b->" + Integer.toBinaryString(res) + "b");
+                        }
                     }
                     break;
                     case _CB_SLS: {
@@ -1619,6 +2109,10 @@ public class UA880 implements Runnable {
                         checkSignFlag(res);
                         checkZeroFlag(res);
                         checkParityFlag(res);
+                        if (debug) {
+                            debugInfo.setCode("SRL " + getRegisterString(opcode2 & 0x07));
+                            debugInfo.setOperands(Integer.toBinaryString(op) + "b->" + Integer.toBinaryString(res) + "b");
+                        }
                     }
                     break;
                     case _CB_BIT0:
@@ -1638,6 +2132,10 @@ public class UA880 implements Runnable {
                         }
                         setFlag(HALF_CARRY_FLAG);
                         clearFlag(SUBTRACT_FLAG);
+                        if (debug) {
+                            debugInfo.setCode("BIT " + bit + "," + getRegisterString(opcode2 & 0x07));
+                            debugInfo.setOperands(getBit(op, bit) ? "1" : "0");
+                        }
                     }
                     break;
                     case _CB_RES0:
@@ -1651,6 +2149,10 @@ public class UA880 implements Runnable {
                         int bit = (opcode2 >> 3) & 0x07;
                         int op = getRegister(opcode2 & 0x07);
                         setRegister(opcode2 & 0x07, op & (~(0x01 << bit)));
+                        if (debug) {
+                            debugInfo.setCode("RES " + bit + "," + getRegisterString(opcode2 & 0x07));
+                            debugInfo.setOperands(null);
+                        }
                     }
                     break;
                     case _CB_SET0:
@@ -1664,6 +2166,10 @@ public class UA880 implements Runnable {
                         int bit = (opcode2 >> 3) & 0x07;
                         int op = getRegister(opcode2 & 0x07);
                         setRegister(opcode2 & 0x07, op | (0x01 << bit));
+                        if (debug) {
+                            debugInfo.setCode("SET " + bit + "," + getRegisterString(opcode2 & 0x07));
+                            debugInfo.setOperands(null);
+                        }
                     }
                     break;
                 }
@@ -1682,21 +2188,37 @@ public class UA880 implements Runnable {
                         int op2 = getRegPairISP(REGP_IX_IY, useIY);
                         int res = add16(op1, op2, false);
                         setRegPairISP(REGP_IX_IY, res, useIY);
+                        if (debug) {
+                            debugInfo.setCode("ADD " + ((useIY) ? "IY" : "IX") + "," + getRegPairISPString((opcode2 >> 4) & 0x03, useIY));
+                            debugInfo.setOperands(String.format("%04Xh+%04Xh->%04Xh", op1, op2, res));
+                        }
                     }
                     break;
                     case _DD_FD_LD_IMM_I: {
                         setRegPairISP(REGP_IX_IY, memory.readWord(pc++), useIY);
                         pc++;
+                        if (debug) {
+                            debugInfo.setCode("LD " + ((useIY) ? "IY" : "IX") + "," + String.format("%04Xh", memory.readWord(pc - 2)));
+                            debugInfo.setOperands(null);
+                        }
                     }
                     break;
                     case _DD_FD_LD_I_MEM: {
                         memory.writeWord(memory.readWord(pc++), getRegPairISP(REGP_IX_IY, useIY));
                         pc++;
+                        if (debug) {
+                            debugInfo.setCode("LD " + String.format("%04Xh", memory.readWord(pc - 2)) + "," + ((useIY) ? "IY" : "IX"));
+                            debugInfo.setOperands(String.format("%04Xh", getRegPairISP(REGP_IX_IY, useIY)));
+                        }
                     }
                     break;
                     case _DD_FD_INC_I: {
                         int op = getRegPairISP(REGP_IX_IY, useIY);
                         setRegPairISP(REGP_IX_IY, op + 1, useIY);
+                        if (debug) {
+                            debugInfo.setCode("INC (" + ((useIY) ? "IY" : "IX") + ")");
+                            debugInfo.setOperands(String.format("%04Xh", op + 1));
+                        }
                     }
                     break;
                     case _DD_FD_INC_IH: {
@@ -1714,11 +2236,19 @@ public class UA880 implements Runnable {
                     case _DD_FD_LD_MEM_I: {
                         setRegPairISP(REGP_IX_IY, memory.readWord(memory.readWord(pc++)), useIY);
                         pc++;
+                        if (debug) {
+                            debugInfo.setCode("LD " + ((useIY) ? "IY" : "IX") + ",(" + String.format("%04Xh", memory.readWord(pc - 2)) + ")");
+                            debugInfo.setOperands(String.format("%04Xh", memory.readWord(memory.readWord(pc - 2))));
+                        }
                     }
                     break;
                     case _DD_FD_DEC_I: {
                         int op = getRegPairISP(REGP_IX_IY, useIY);
                         setRegPairISP(REGP_IX_IY, op - 1, useIY);
+                        if (debug) {
+                            debugInfo.setCode("DEC (" + ((useIY) ? "IY" : "IX") + ")");
+                            debugInfo.setOperands(String.format("%04Xh", op - 1));
+                        }
                     }
                     break;
                     case _DD_FD_INC_IL: {
@@ -1738,6 +2268,10 @@ public class UA880 implements Runnable {
                         int op = memory.readByte(getRegPairISP(REGP_IX_IY, useIY) + offset);
                         int res = inc(op);
                         memory.writeByte(getRegPairISP(REGP_IX_IY, useIY) + offset, res);
+                        if (debug) {
+                            debugInfo.setCode("INC (" + ((useIY) ? "IY" : "IX") + "+" + String.format("%02Xh", offset));
+                            debugInfo.setOperands(String.format("%02Xh", res));
+                        }
                     }
                     break;
                     case _DD_FD_DEC_I_0: {
@@ -1745,11 +2279,19 @@ public class UA880 implements Runnable {
                         int op = memory.readByte(getRegPairISP(REGP_IX_IY, useIY) + offset);
                         int res = dec(op);
                         memory.writeByte(getRegPairISP(REGP_IX_IY, useIY) + offset, res);
+                        if (debug) {
+                            debugInfo.setCode("DEC (" + ((useIY) ? "IY" : "IX") + "+" + String.format("%02Xh", offset));
+                            debugInfo.setOperands(String.format("%02Xh", res));
+                        }
                     }
                     break;
                     case _DD_FD_LD_IMM_I_0: {
                         int offset = (byte) memory.readByte(pc++);
                         memory.writeByte(getRegPairISP(REGP_IX_IY, useIY) + offset, memory.readByte(pc++));
+                        if (debug) {
+                            debugInfo.setCode("LD (" + ((useIY) ? "IY" : "IX") + "+" + String.format("%02Xh", offset) + "," + String.format("%04Xh", memory.readByte(pc - 1)));
+                            debugInfo.setOperands(null);
+                        }
                     }
                     break;
                     case _DD_FD_LD_IH_B:
@@ -1777,6 +2319,10 @@ public class UA880 implements Runnable {
                     case _DD_FD_LD_I_0_A: {
                         int offset = (byte) memory.readByte(pc++);
                         setRegister((opcode2 >> 3) & 0x07, memory.readByte(getRegPairISP(REGP_IX_IY, useIY) + offset));
+                        if (debug) {
+                            debugInfo.setCode("LD " + getRegisterString((opcode2 >> 3) & 0x07) + ",(" + ((useIY) ? "IY" : "IX") + "+" + String.format("%02Xh", offset) + ")");
+                            debugInfo.setOperands(String.format("%02Xh", memory.readByte(getRegPairISP(REGP_IX_IY, useIY) + offset)));
+                        }
                     }
                     break;
                     case _DD_FD_LD_B_IH:
@@ -1820,6 +2366,10 @@ public class UA880 implements Runnable {
                     case _DD_FD_LD_A_I_0: {
                         int offset = (byte) memory.readByte(pc++);
                         memory.writeByte(getRegPairISP(REGP_IX_IY, useIY) + offset, getRegister(opcode2 & 0x07));
+                        if (debug) {
+                            debugInfo.setCode("LD " + ",(" + ((useIY) ? "IY" : "IX") + "+" + String.format("%02Xh", offset) + ")," + getRegisterString(opcode2 & 0x07));
+                            debugInfo.setOperands(String.format("%02Xh", getRegister(opcode2 & 0x07)));
+                        }
                     }
                     break;
                     case _DD_FD_ADD_IH_A: {
@@ -1836,6 +2386,10 @@ public class UA880 implements Runnable {
                         int op2 = memory.readByte(getRegPairISP(REGP_IX_IY, useIY) + offset);
                         int res = add8(op1, op2, false);
                         setRegister(REG_A, res);
+                        if (debug) {
+                            debugInfo.setCode("ADD A,(" + ((useIY) ? "IY" : "IX") + "+" + String.format("%02Xh", offset) + ")");
+                            debugInfo.setOperands(String.format("%02Xh+%02Xh->%02Xh", op1, op2, res));
+                        }
                     }
                     break;
                     case _DD_FD_ADC_IH_A: {
@@ -1852,6 +2406,10 @@ public class UA880 implements Runnable {
                         int op2 = memory.readByte(getRegPairISP(REGP_IX_IY, useIY) + offset);
                         int res = add8(op1, op2, true);
                         setRegister(REG_A, res);
+                        if (debug) {
+                            debugInfo.setCode("ADC A,(" + ((useIY) ? "IY" : "IX") + "+" + String.format("%02Xh", offset) + ")");
+                            debugInfo.setOperands(String.format("%02Xh+%02Xh->%02Xh", op1, op2, res));
+                        }
                     }
                     break;
                     case _DD_FD_SUB_IH_A: {
@@ -1868,6 +2426,10 @@ public class UA880 implements Runnable {
                         int op2 = memory.readByte(getRegPairISP(REGP_IX_IY, useIY) + offset);
                         int res = sub8(op1, op2, false);
                         setRegister(REG_A, res);
+                        if (debug) {
+                            debugInfo.setCode("SUB A,(" + ((useIY) ? "IY" : "IX") + "+" + String.format("%02Xh", offset) + ")");
+                            debugInfo.setOperands(String.format("%02Xh-%02Xh->%02Xh", op1, op2, res));
+                        }
                     }
                     break;
                     case _DD_FD_SBC_IH_A: {
@@ -1884,6 +2446,10 @@ public class UA880 implements Runnable {
                         int op2 = memory.readByte(getRegPairISP(REGP_IX_IY, useIY) + offset);
                         int res = sub8(op1, op2, true);
                         setRegister(REG_A, res);
+                        if (debug) {
+                            debugInfo.setCode("SBC A,(" + ((useIY) ? "IY" : "IX") + "+" + String.format("%02Xh", offset) + ")");
+                            debugInfo.setOperands(String.format("%02Xh-%02Xh->%02Xh", op1, op2, res));
+                        }
                     }
                     break;
                     case _DD_FD_AND_IH: {
@@ -1900,6 +2466,10 @@ public class UA880 implements Runnable {
                         int op2 = memory.readByte(getRegPairISP(REGP_IX_IY, useIY) + offset);
                         int res = and(op1, op2);
                         setRegister(REG_A, res);
+                        if (debug) {
+                            debugInfo.setCode("AND A,(" + ((useIY) ? "IY" : "IX") + "+" + String.format("%02Xh", offset) + ")");
+                            debugInfo.setOperands(String.format("%02Xh&%02Xh->%02Xh", op1, op2, res));
+                        }
                     }
                     break;
                     case _DD_FD_XOR_IH: {
@@ -1916,6 +2486,10 @@ public class UA880 implements Runnable {
                         int op2 = memory.readByte(getRegPairISP(REGP_IX_IY, useIY) + offset);
                         int res = xor(op1, op2);
                         setRegister(REG_A, res);
+                        if (debug) {
+                            debugInfo.setCode("XOR A,(" + ((useIY) ? "IY" : "IX") + "+" + String.format("%02Xh", offset) + ")");
+                            debugInfo.setOperands(String.format("%02Xh^%02Xh->%02Xh", op1, op2, res));
+                        }
                     }
                     break;
                     case _DD_FD_OR_IH: {
@@ -1932,6 +2506,10 @@ public class UA880 implements Runnable {
                         int op2 = memory.readByte(getRegPairISP(REGP_IX_IY, useIY) + offset);
                         int res = or(op1, op2);
                         setRegister(REG_A, res);
+                        if (debug) {
+                            debugInfo.setCode("ADD A,(" + ((useIY) ? "IY" : "IX") + "+" + String.format("%02Xh", offset) + ")");
+                            debugInfo.setOperands(String.format("%02Xh|%02Xh->%02Xh", op1, op2, res));
+                        }
                     }
                     break;
                     case _DD_FD_CP_IH: {
@@ -1947,6 +2525,10 @@ public class UA880 implements Runnable {
                         int op1 = getRegister(REG_A);
                         int op2 = memory.readByte(getRegPairISP(REGP_IX_IY, useIY) + offset);
                         sub8(op1, op2, false);
+                        if (debug) {
+                            debugInfo.setCode("ADD A,(" + ((useIY) ? "IY" : "IX") + "+" + String.format("%02Xh", offset) + ")");
+                            debugInfo.setOperands(String.format("%02Xh,%02Xh", op1, op2));
+                        }
                     }
                     break;
                     case _DD_FD_POP_I: {
@@ -1957,14 +2539,26 @@ public class UA880 implements Runnable {
                         int exop = memory.readWord(getRegPairISP(REGP_SP, useIY));
                         memory.writeWord(getRegPairISP(REGP_SP, useIY), getRegPairISP(REGP_IX_IY, useIY));
                         setRegPairISP(REGP_IX_IY, exop, useIY);
+                        if (debug) {
+                            debugInfo.setCode("EX " + ((useIY) ? "IY" : "IX") + "+(SP)");
+                            debugInfo.setOperands(String.format("%04Xh,%04Xh", memory.readWord(getRegPairISP(REGP_SP, useIY)), exop));
+                        }
                     }
                     break;
                     case _DD_FD_PUSH_I: {
                         push(getRegPairISP(REGP_IX_IY, useIY));
+                        if (debug) {
+                            debugInfo.setCode("PUSH " + ((useIY) ? "IY" : "IX"));
+                            debugInfo.setOperands(String.format("%04Xh", getRegPairISP(REGP_IX_IY, useIY)));
+                        }
                     }
                     break;
                     case _DD_FD_JP_MEM_I: {
                         pc = getRegPairISP(REGP_IX_IY, useIY);
+                        if (debug) {
+                            debugInfo.setCode("JP (" + ((useIY) ? "IY" : "IX") + ")");
+                            debugInfo.setOperands(String.format("%04Xh", pc));
+                        }
                     }
                     break;
                     case 0xCB: {
@@ -2200,9 +2794,13 @@ public class UA880 implements Runnable {
                     case _ED_IN_C_L:
                     case _ED_IN_C_A: {
                         // TODO
+                        int port = getRegister(REG_C);
+                        if (debug) {
+                            debugInfo.setCode("IN " + getRegisterString((opcode2 >> 3) & 0x07) + ",(C)");
+                            debugInfo.setOperands(String.format("%02Xh", port));
+                        }
                     }
                     break;
-
                     case _ED_OUT_B_C:
                     case _ED_OUT_C_C:
                     case _ED_OUT_D_C:
@@ -2211,9 +2809,13 @@ public class UA880 implements Runnable {
                     case _ED_OUT_L_C:
                     case _ED_OUT_A_C: {
                         // TODO
+                        int port = getRegister(REG_C);
+                        if (debug) {
+                            debugInfo.setCode("OUT (C)," + getRegisterString((opcode2 >> 3) & 0x07));
+                            debugInfo.setOperands(String.format("%02Xh", port));
+                        }
                     }
                     break;
-
                     case _ED_SBC_BC_HL:
                     case _ED_SBC_DE_HL:
                     case _ED_SBC_HL_HL:
@@ -2222,6 +2824,10 @@ public class UA880 implements Runnable {
                         int op2 = getRegPairHLSP((opcode2 >> 4) & 0x03);
                         int res = sub16(op1, op2, true);
                         setRegPairHLSP(REGP_HL, res);
+                        if (debug) {
+                            debugInfo.setCode("SBC (HL)," + getRegPairHLSPString((opcode2 >> 4) & 0x03));
+                            debugInfo.setOperands(String.format("%04Xh-%04Xh->%04Xh", op1, op2, res));
+                        }
                     }
                     break;
                     case _ED_LD_BC_MEM:
@@ -2230,7 +2836,11 @@ public class UA880 implements Runnable {
                     case _ED_LD_SP_MEM: {
                         int address = memory.readWord(pc++);
                         pc++;
-                        setRegPairHLSP((opcode2 >> 4) & 0x03, memory.readWord(address));
+                        memory.writeWord(address, getRegPairHLSP((opcode2 >> 4) & 0x03));
+                        if (debug) {
+                            debugInfo.setCode("LD (" + String.format("%04Xh", address) + ")," + getRegPairHLSPString((opcode2 >> 4) & 0x03));
+                            debugInfo.setOperands(String.format("%04Xh", getRegPairHLSP((opcode2 >> 4) & 0x03)));
+                        }
                     }
                     break;
                     case _ED_NEG: {
@@ -2250,18 +2860,35 @@ public class UA880 implements Runnable {
                             clearFlag(PARITY_OVERFLOW_FLAG);
                         }
                         checkHalfCarryFlagSub(0, op);
+                        if (debug) {
+                            debugInfo.setCode("NEG");
+                            debugInfo.setOperands(String.format("%02Xh->%02Xh", op, res));
+                        }
                     }
                     break;
                     case _ED_RETN: {
-                        // TODO                        
+                        pc = pop();
+                        // TODO: IFF2 nach IFF1 kopieren
+                        if (debug) {
+                            debugInfo.setCode("RETN");
+                            debugInfo.setOperands(null);
+                        }
                     }
                     break;
                     case _ED_IM0: {
                         // TODO
+                        if (debug) {
+                            debugInfo.setCode("IM 0");
+                            debugInfo.setOperands(null);
+                        }
                     }
                     break;
                     case _ED_LD_A_INT: {
                         i = getRegister(REG_A);
+                        if (debug) {
+                            debugInfo.setCode("LD I,A");
+                            debugInfo.setOperands(String.format("%02X", getRegister(REG_A)));
+                        }
                     }
                     break;
                     case _ED_ADC_BC_HL:
@@ -2272,6 +2899,10 @@ public class UA880 implements Runnable {
                         int op2 = getRegPairHLSP((opcode2 >> 4) & 0x03);
                         int res = add16(op1, op2, true);
                         setRegPairHLSP(REGP_HL, res);
+                        if (debug) {
+                            debugInfo.setCode("ADC (HL)," + getRegPairHLSPString((opcode2 >> 4) & 0x03));
+                            debugInfo.setOperands(String.format("%04Xh+%04Xh->%04Xh", op1, op2, res));
+                        }
                     }
                     break;
                     case _ED_LD_MEM_BC:
@@ -2281,34 +2912,60 @@ public class UA880 implements Runnable {
                         int address = memory.readWord(pc++);
                         pc++;
                         setRegPairHLSP((opcode2 >> 4) & 0x03, memory.readWord(address));
+                        if (debug) {
+                            debugInfo.setCode("LD (" + String.format("%04Xh", address) + "," + getRegPairHLSPString((opcode2 >> 4) & 0x03));
+                            debugInfo.setOperands(String.format("%04Xh", memory.readWord(address)));
+                        }
                     }
                     break;
                     case _ED_RETI: {
-                        // TODO
+                        pc = pop();
+                        if (debug) {
+                            debugInfo.setCode("RETI");
+                            debugInfo.setOperands(null);
+                        }
                     }
                     break;
                     case _ED_LD_A_R: {
                         r = getRegister(REG_A);
+                        if (debug) {
+                            debugInfo.setCode("LD R,A");
+                            debugInfo.setOperands(String.format("%02X", getRegister(REG_A)));
+                        }
                     }
                     break;
                     case _ED_IM1: {
                         // TODO
+                        if (debug) {
+                            debugInfo.setCode("IM 1");
+                            debugInfo.setOperands(null);
+                        }
                     }
                     break;
                     case _ED_LD_INT_A: {
                         setRegister(REG_A, i);
+                        if (debug) {
+                            debugInfo.setCode("LD A,I");
+                            debugInfo.setOperands(String.format("%02X", i));
+                        }
                     }
                     break;
-
                     case _ED_IM2: {
                         // TODO
+                        if (debug) {
+                            debugInfo.setCode("IM 2");
+                            debugInfo.setOperands(null);
+                        }
                     }
                     break;
                     case _ED_LD_R_A: {
                         setRegister(REG_A, r);
+                        if (debug) {
+                            debugInfo.setCode("LD A,R");
+                            debugInfo.setOperands(String.format("%02X", r));
+                        }
                     }
                     break;
-
                     case _ED_RRD: {
                         int op1 = memory.readByte(getRegPairHLSP(REGP_HL));
                         int op2 = getRegister(REG_A);
@@ -2320,9 +2977,12 @@ public class UA880 implements Runnable {
                         clearFlag(HALF_CARRY_FLAG);
                         checkParityFlag(res1);
                         clearFlag(SUBTRACT_FLAG);
+                        if (debug) {
+                            debugInfo.setCode("RRD");
+                            debugInfo.setOperands(null);
+                        }
                     }
                     break;
-
                     case _ED_RLD: {
                         int op1 = memory.readByte(getRegPairHLSP(REGP_HL));
                         int op2 = getRegister(REG_A);
@@ -2334,6 +2994,10 @@ public class UA880 implements Runnable {
                         clearFlag(HALF_CARRY_FLAG);
                         checkParityFlag(res1);
                         clearFlag(SUBTRACT_FLAG);
+                        if (debug) {
+                            debugInfo.setCode("RLD");
+                            debugInfo.setOperands(null);
+                        }
                     }
                     break;
                     case _ED_IN_C_F: {
@@ -2369,14 +3033,44 @@ public class UA880 implements Runnable {
                         } else {
                             setFlag(PARITY_OVERFLOW_FLAG);
                         }
+                        if (debug) {
+                            debugInfo.setCode("CPI");
+                            debugInfo.setOperands(null);
+                        }
                     }
                     break;
                     case _ED_INI: {
-                        // TODO
+                        int port = getRegister(REG_C);
+                        // TODO: Lesen von Port
+                        setRegPairHLSP(REGP_HL, getRegPairHLSP(REGP_HL) + 1);
+                        setRegister(REG_B, getRegister(REG_B) - 1);
+                        setFlag(SUBTRACT_FLAG);
+                        if (getRegister(REG_B) == 0) {
+                            setFlag(ZERO_FLAG);
+                        } else {
+                            clearFlag(ZERO_FLAG);
+                        }
+                        if (debug) {
+                            debugInfo.setCode("INI");
+                            debugInfo.setOperands(null);
+                        }
                     }
                     break;
                     case _ED_OTI: {
-                        // TODO
+                        int port = getRegister(REG_C);
+                        // TODO: Schreiben auf Port
+                        setRegPairHLSP(REGP_HL, getRegPairHLSP(REGP_HL) + 1);
+                        setRegister(REG_B, getRegister(REG_B) - 1);
+                        setFlag(SUBTRACT_FLAG);
+                        if (getRegister(REG_B) == 0) {
+                            setFlag(ZERO_FLAG);
+                        } else {
+                            clearFlag(ZERO_FLAG);
+                        }
+                        if (debug) {
+                            debugInfo.setCode("OTI");
+                            debugInfo.setOperands(null);
+                        }
                     }
                     break;
                     case _ED_LDD: {
@@ -2391,6 +3085,10 @@ public class UA880 implements Runnable {
                         } else {
                             setFlag(PARITY_OVERFLOW_FLAG);
                         }
+                        if (debug) {
+                            debugInfo.setCode("LDD");
+                            debugInfo.setOperands(null);
+                        }
                     }
                     break;
                     case _ED_CPD: {
@@ -2404,14 +3102,44 @@ public class UA880 implements Runnable {
                         } else {
                             setFlag(PARITY_OVERFLOW_FLAG);
                         }
+                        if (debug) {
+                            debugInfo.setCode("CPD");
+                            debugInfo.setOperands(null);
+                        }
                     }
                     break;
                     case _ED_IND: {
-                        // TODO
+                        int port = getRegister(REG_C);
+                        // TODO: Lesen von Port
+                        setRegPairHLSP(REGP_HL, getRegPairHLSP(REGP_HL) - 1);
+                        setRegister(REG_B, getRegister(REG_B) - 1);
+                        setFlag(SUBTRACT_FLAG);
+                        if (getRegister(REG_B) == 0) {
+                            setFlag(ZERO_FLAG);
+                        } else {
+                            clearFlag(ZERO_FLAG);
+                        }
+                        if (debug) {
+                            debugInfo.setCode("IND");
+                            debugInfo.setOperands(null);
+                        }
                     }
                     break;
                     case _ED_OTD: {
-                        // TODO
+                        int port = getRegister(REG_C);
+                        // TODO: Schreiben auf Port
+                        setRegPairHLSP(REGP_HL, getRegPairHLSP(REGP_HL) - 1);
+                        setRegister(REG_B, getRegister(REG_B) - 1);
+                        setFlag(SUBTRACT_FLAG);
+                        if (getRegister(REG_B) == 0) {
+                            setFlag(ZERO_FLAG);
+                        } else {
+                            clearFlag(ZERO_FLAG);
+                        }
+                        if (debug) {
+                            debugInfo.setCode("OTD");
+                            debugInfo.setOperands(null);
+                        }
                     }
                     break;
                     case _ED_LDIR: {
@@ -2424,6 +3152,10 @@ public class UA880 implements Runnable {
                         clearFlag(HALF_CARRY_FLAG);
                         clearFlag(PARITY_OVERFLOW_FLAG);
                         clearFlag(SUBTRACT_FLAG);
+                        if (debug) {
+                            debugInfo.setCode("LDIR");
+                            debugInfo.setOperands(null);
+                        }
                     }
                     break;
                     case _ED_CPIR: {
@@ -2439,14 +3171,44 @@ public class UA880 implements Runnable {
                         } else {
                             setFlag(PARITY_OVERFLOW_FLAG);
                         }
+                        if (debug) {
+                            debugInfo.setCode("CPIR");
+                            debugInfo.setOperands(null);
+                        }
                     }
                     break;
                     case _ED_INIR: {
-                        // TODO
+                        int port = getRegister(REG_C);
+                        // TODO: Lesen von Port
+                        setRegPairHLSP(REGP_HL, getRegPairHLSP(REGP_HL) + 1);
+                        setRegister(REG_B, getRegister(REG_B) - 1);
+                        setFlag(SUBTRACT_FLAG);
+                        if (getRegister(REG_B) != 0) {
+                            pc = pc - 2;
+                        } else {
+                            setFlag(ZERO_FLAG);
+                        }
+                        if (debug) {
+                            debugInfo.setCode("INIR");
+                            debugInfo.setOperands(null);
+                        }
                     }
                     break;
                     case _ED_OTIR: {
-                        // TODO
+                        int port = getRegister(REG_C);
+                        // TODO: Schreiben auf Port
+                        setRegPairHLSP(REGP_HL, getRegPairHLSP(REGP_HL) + 1);
+                        setRegister(REG_B, getRegister(REG_B) - 1);
+                        setFlag(SUBTRACT_FLAG);
+                        if (getRegister(REG_B) != 0) {
+                            pc = pc - 2;
+                        } else {
+                            setFlag(ZERO_FLAG);
+                        }
+                        if (debug) {
+                            debugInfo.setCode("OTIR");
+                            debugInfo.setOperands(null);
+                        }
                     }
                     break;
                     case _ED_LDDR: {
@@ -2459,6 +3221,10 @@ public class UA880 implements Runnable {
                         clearFlag(HALF_CARRY_FLAG);
                         clearFlag(SUBTRACT_FLAG);
                         clearFlag(PARITY_OVERFLOW_FLAG);
+                        if (debug) {
+                            debugInfo.setCode("LDDR");
+                            debugInfo.setOperands(null);
+                        }
                     }
                     break;
                     case _ED_CPDR: {
@@ -2474,20 +3240,59 @@ public class UA880 implements Runnable {
                         } else {
                             setFlag(PARITY_OVERFLOW_FLAG);
                         }
+                        if (debug) {
+                            debugInfo.setCode("CPDR");
+                            debugInfo.setOperands(null);
+                        }
                     }
                     break;
                     case _ED_INDR: {
-                        // TODO
+                        int port = getRegister(REG_C);
+                        // TODO: Lesen von Port
+                        setRegPairHLSP(REGP_HL, getRegPairHLSP(REGP_HL) - 1);
+                        setRegister(REG_B, getRegister(REG_B) - 1);
+                        setFlag(SUBTRACT_FLAG);
+                        if (getRegister(REG_B) != 0) {
+                            pc = pc - 2;
+                        } else {
+                            setFlag(ZERO_FLAG);
+                        }
+                        if (debug) {
+                            debugInfo.setCode("INDR");
+                            debugInfo.setOperands(null);
+                        }
                     }
                     break;
                     case _ED_OTDR: {
-                        // TODO
+                        int port = getRegister(REG_C);
+                        // TODO: Schreiben auf Port
+                        setRegPairHLSP(REGP_HL, getRegPairHLSP(REGP_HL) - 1);
+                        setRegister(REG_B, getRegister(REG_B) - 1);
+                        setFlag(SUBTRACT_FLAG);
+                        if (getRegister(REG_B) != 0) {
+                            pc = pc - 2;
+                        } else {
+                            setFlag(ZERO_FLAG);
+                        }
+                        if (debug) {
+                            debugInfo.setCode("OTDR");
+                            debugInfo.setOperands(null);
+                        }
                     }
                     break;
                 }
             }
             break;
         }
+        if (debugInfo.getCode() != null) {
+            debugger.addLine();
+            try {
+                Thread.sleep(debugger.getSlowdown());
+            } catch (InterruptedException ex) {
+                Logger.getLogger(K1810WM86.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+
     }
 
     private void setRegister(int reg, int value) {
@@ -2544,6 +3349,29 @@ public class UA880 implements Runnable {
         }
     }
 
+    private String getRegisterString(int reg) {
+        switch (reg) {
+            case REG_B:
+                return "B";
+            case REG_C:
+                return "C";
+            case REG_D:
+                return "D";
+            case REG_E:
+                return "E";
+            case REG_H:
+                return "H";
+            case REG_L:
+                return "L";
+            case MEM_HL:
+                return "(HL)";
+            case REG_A:
+                return "A";
+            default:
+                throw new IllegalStateException("Register not detected");
+        }
+    }
+
     private int getRegPairHLSP(int regp) {
         switch (regp) {
             case REGP_BC:
@@ -2554,6 +3382,21 @@ public class UA880 implements Runnable {
                 return ((h & 0xFF) << 8) | (l & 0xFF);
             case REGP_SP:
                 return sp;
+            default:
+                throw new IllegalStateException("Register not detected");
+        }
+    }
+
+    private String getRegPairHLSPString(int regp) {
+        switch (regp) {
+            case REGP_BC:
+                return "BC";
+            case REGP_DE:
+                return "DE";
+            case REGP_HL:
+                return "HL";
+            case REGP_SP:
+                return "SP";
             default:
                 throw new IllegalStateException("Register not detected");
         }
@@ -2594,6 +3437,19 @@ public class UA880 implements Runnable {
         }
     }
 
+    private String getRegPairISPString(int regp, boolean useIY) {
+        switch (regp) {
+            case REGP_BC:
+            case REGP_DE:
+            case REGP_SP:
+                return getRegPairHLSPString(regp);
+            case REGP_IX_IY:
+                return (useIY ? "IY" : "IX");
+            default:
+                throw new IllegalStateException("Register not detected");
+        }
+    }
+
     private void setRegPairISP(int regp, int value, boolean useIY) {
         switch (regp) {
             case REGP_BC:
@@ -2619,6 +3475,17 @@ public class UA880 implements Runnable {
                 return getRegPairHLSP(regp);
             case REGP_AF:
                 return ((a & 0xFF) << 8) | (f & 0xFF);
+            default:
+                throw new IllegalStateException("Register not detected");
+        }
+    }
+
+    private String getRegPairAFString(int regp) {
+        switch (regp) {
+            case REGP_BC:
+                return getRegPairHLSPString(regp);
+            case REGP_AF:
+                return "AF";
             default:
                 throw new IllegalStateException("Register not detected");
         }
@@ -2923,7 +3790,21 @@ public class UA880 implements Runnable {
      */
     @Override
     public void run() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        for (int i = 0; i < 100; i++) {
+            executeNextInstruction();
+        }
+    }
+
+    public static void main(String[] args) {
+        UA880 cpu = new UA880();
+        cpu.debug = true;
+        cpu.pc = 0x0000;
+        cpu.debugger.setDebug(true);
+        cpu.memory = new Memory(0xFFFF);
+        cpu.memory.loadFile(0x0000, new File("./eproms/KGS-K7070-152.rom"), Memory.FileLoadMode.LOW_AND_HIGH_BYTE);
+        Thread cpuThread = new Thread(cpu);
+        cpuThread.start();
+
     }
 
 }

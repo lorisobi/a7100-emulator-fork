@@ -7,6 +7,7 @@
  * Letzte Änderungen:
  *   02.04.2014 Kommentare vervollständigt
  *   12.04.2014 Verarbeitung der Init Parameter
+ *   09.08.2014 Zugriffe auf SystemMemory, SystemPorts und SystemClock durch MMS16Bus ersetzt
  *
  */
 package a7100emulator.components.modules;
@@ -22,7 +23,7 @@ import java.io.IOException;
  *
  * @author Dirk Bräuer
  */
-public final class KES implements PortModule, ClockModule {
+public final class KES implements IOModule, ClockModule {
 
     /**
      * Anzahl der im System vorhandenen KES-Module
@@ -57,9 +58,9 @@ public final class KES implements PortModule, ClockModule {
      */
     private final int kes_id;
     /**
-     * Referenz auf den Systemspeicher
+     * Verbindung zum MMS16 Systembus
      */
-    private final SystemMemory memory = SystemMemory.getInstance();
+    private final MMS16Bus mms16 = MMS16Bus.getInstance();
     /**
      * Adresse des Channel-Control-Blocks
      */
@@ -108,12 +109,12 @@ public final class KES implements PortModule, ClockModule {
     public void registerPorts() {
         switch (kes_id) {
             case 0:
-                SystemPorts.getInstance().registerPort(this, PORT_KES_1_WAKEUP_1);
-                SystemPorts.getInstance().registerPort(this, PORT_KES_1_WAKEUP_2);
+                MMS16Bus.getInstance().registerIOPort(this, PORT_KES_1_WAKEUP_1);
+                MMS16Bus.getInstance().registerIOPort(this, PORT_KES_1_WAKEUP_2);
                 break;
             case 1:
-                SystemPorts.getInstance().registerPort(this, PORT_KES_2_WAKEUP_1);
-                SystemPorts.getInstance().registerPort(this, PORT_KES_2_WAKEUP_2);
+                MMS16Bus.getInstance().registerIOPort(this, PORT_KES_2_WAKEUP_1);
+                MMS16Bus.getInstance().registerIOPort(this, PORT_KES_2_WAKEUP_2);
                 break;
         }
     }
@@ -126,7 +127,7 @@ public final class KES implements PortModule, ClockModule {
      */
     @Override
     public void writePort_Byte(int port, int data) {
-        writePort_Word(port,data);
+        writePort_Word(port, data);
     }
 
     /**
@@ -144,6 +145,7 @@ public final class KES implements PortModule, ClockModule {
                         // RESET_OFF
 //                        System.out.println("RESET OFF");
                         readWUB = true;
+                        interruptWaiting = false;
                         break;
                     case 0x01:
                         // START_OPERATION
@@ -209,20 +211,20 @@ public final class KES implements PortModule, ClockModule {
      */
     private void startOperation() {
         if (readWUB) {
-            int seg = memory.readWord(INIT_WUB_ADDRESS + 4);
-            int off = memory.readWord(INIT_WUB_ADDRESS + 2);
+            int seg = mms16.readMemoryWord(INIT_WUB_ADDRESS + 4);
+            int off = mms16.readMemoryWord(INIT_WUB_ADDRESS + 2);
             ccbAddress = (seg << 4) + off;
             readWUB = false;
         }
         for (int i = 0; i < 30; i++) {
             if (i < 16) {
-                ccb[i] = (byte) memory.readByte(ccbAddress + i);
-                cib[i] = (byte) memory.readByte(ccbAddress + i + 0x10);
+                ccb[i] = (byte) mms16.readMemoryByte(ccbAddress + i);
+                cib[i] = (byte) mms16.readMemoryByte(ccbAddress + i + 0x10);
             }
-            iopb[i] = (byte) memory.readByte(ccbAddress + i + 0x20);
+            iopb[i] = (byte) mms16.readMemoryByte(ccbAddress + i + 0x20);
         }
         checkIOPB();
-        memory.writeByte(ccbAddress + 0x01, 0x00);
+        mms16.writeMemoryByte(ccbAddress + 0x01, 0x00);
 
         interruptWaiting = true;
         interruptClock = 0;
@@ -251,16 +253,16 @@ public final class KES implements PortModule, ClockModule {
         switch (iopb[0x0B]) {
             case 0x00: {
                 // Intialisierung
-                int driveNr = memory.readByte(ccbAddress + 0x2A);
-                int deviceCode = memory.readByte(ccbAddress + 0x28);
+                int driveNr = mms16.readMemoryByte(ccbAddress + 0x2A);
+                int deviceCode = mms16.readMemoryByte(ccbAddress + 0x28);
                 int status = 0;
-                int memAddr = (memory.readWord(ccbAddress + 0x34) << 4) + memory.readWord(ccbAddress + 0x32);
-                int cylinder = memory.readWord(memAddr);
-                int fixedHeads = memory.readByte(memAddr + 2);
-                int moveHeads = memory.readByte(memAddr + 3);
-                int sectorsPerTrack = memory.readByte(memAddr + 4);
-                int bytesPerSector = memory.readWord(memAddr + 5);
-                int replaceCylinders = memory.readByte(memAddr + 7);
+                int memAddr = (mms16.readMemoryWord(ccbAddress + 0x34) << 4) + mms16.readMemoryWord(ccbAddress + 0x32);
+                int cylinder = mms16.readMemoryWord(memAddr);
+                int fixedHeads = mms16.readMemoryByte(memAddr + 2);
+                int moveHeads = mms16.readMemoryByte(memAddr + 3);
+                int sectorsPerTrack = mms16.readMemoryByte(memAddr + 4);
+                int bytesPerSector = mms16.readMemoryWord(memAddr + 5);
+                int replaceCylinders = mms16.readMemoryByte(memAddr + 7);
 
 //                System.out.println("cyl:" + cylinder);
 //                System.out.println("fixedHead:" + fixedHeads);
@@ -268,6 +270,7 @@ public final class KES implements PortModule, ClockModule {
 //                System.out.println("sectorsPerTrack:" + sectorsPerTrack);
 //                System.out.println("bytesPerSector:" + bytesPerSector);
 //                System.out.println("replaceCylinders:"+replaceCylinders);
+                System.out.println("Initialisiere Laufwerk " + deviceCode);
                 switch (deviceCode) {
                     case 0x00:
                     case 0x02:
@@ -298,14 +301,14 @@ public final class KES implements PortModule, ClockModule {
                         drive.setHeadTime((replaceCylinders >> 4) & 0x15);
                         break;
                 }
-                memory.writeByte(ccbAddress + 0x13, 0xFF);
-                memory.writeByte(ccbAddress + 0x11, status);
+                mms16.writeMemoryByte(ccbAddress + 0x13, 0xFF);
+                mms16.writeMemoryByte(ccbAddress + 0x11, status);
             }
             break;
             case 0x01: {
                 // Statusabfrage
-                int driveNr = memory.readByte(ccbAddress + 0x2A);
-                int memAddr = (memory.readWord(ccbAddress + 0x34) << 4) + memory.readWord(ccbAddress + 0x32);
+                int driveNr = mms16.readMemoryByte(ccbAddress + 0x2A);
+                int memAddr = (mms16.readMemoryWord(ccbAddress + 0x34) << 4) + mms16.readMemoryWord(ccbAddress + 0x32);
                 int status = 0x01;
                 if (getBit(driveNr, 4)) {
                     FloppyDrive drive = afs.getFloppy(driveNr & 0x03);
@@ -314,54 +317,54 @@ public final class KES implements PortModule, ClockModule {
                     // Laufwerksnummer
                     status |= (driveNr & 0x03) << 4;
                     // Hard Error
-                    memory.writeByte(memAddr + 0x0, 0);
-                    memory.writeByte(memAddr + 0x1, (drive.getDiskInsert()) ? 0x00 : 0x40);
+                    mms16.writeMemoryByte(memAddr + 0x0, 0);
+                    mms16.writeMemoryByte(memAddr + 0x1, (drive.getDiskInsert()) ? 0x00 : 0x40);
                     status |= (drive.getDiskInsert()) ? 0x00 : 0xC0;
                     // Soft Error
-                    memory.writeByte(memAddr + 0x2, 0);
+                    mms16.writeMemoryByte(memAddr + 0x2, 0);
                     // Verlangter Zylinder
-                    memory.writeByte(memAddr + 0x3, 0);
-                    memory.writeByte(memAddr + 0x4, 0);
+                    mms16.writeMemoryByte(memAddr + 0x3, 0);
+                    mms16.writeMemoryByte(memAddr + 0x4, 0);
                     // Verlangter Kopf
-                    memory.writeByte(memAddr + 0x5, 0);
+                    mms16.writeMemoryByte(memAddr + 0x5, 0);
                     // Verlangter Sektor
-                    memory.writeByte(memAddr + 0x6, 0);
+                    mms16.writeMemoryByte(memAddr + 0x6, 0);
                     // Aktueller Zylinder
-                    memory.writeByte(memAddr + 0x7, 0);
-                    memory.writeByte(memAddr + 0x8, 0);
+                    mms16.writeMemoryByte(memAddr + 0x7, 0);
+                    mms16.writeMemoryByte(memAddr + 0x8, 0);
                     // Aktueller Kopf
-                    memory.writeByte(memAddr + 0x9, 0);
+                    mms16.writeMemoryByte(memAddr + 0x9, 0);
                     // Aktueller Sektor
-                    memory.writeByte(memAddr + 0xA, 0);
+                    mms16.writeMemoryByte(memAddr + 0xA, 0);
                     // Anzahl der durchgeführten Wiederholungen
-                    memory.writeByte(memAddr + 0xB, 0);
+                    mms16.writeMemoryByte(memAddr + 0xB, 0);
 
                     // Anzahl der Bytes
-                    memory.writeByte(ccbAddress + 0x36, 0xB);
+                    mms16.writeMemoryByte(ccbAddress + 0x36, 0xB);
                 }
-                memory.writeByte(ccbAddress + 0x13, 0xFF);
-                memory.writeByte(ccbAddress + 0x11, status);
+                mms16.writeMemoryByte(ccbAddress + 0x13, 0xFF);
+                mms16.writeMemoryByte(ccbAddress + 0x11, status);
             }
             break;
             case 0x02: {
                 // Formatieren
-                int driveNr = memory.readByte(ccbAddress + 0x2A);
-                int memSeg = memory.readWord(ccbAddress + 0x34);
-                int memOff = memory.readWord(ccbAddress + 0x32);
+                int driveNr = mms16.readMemoryByte(ccbAddress + 0x2A);
+                int memSeg = mms16.readMemoryWord(ccbAddress + 0x34);
+                int memOff = mms16.readMemoryWord(ccbAddress + 0x32);
                 int memAddr = (memSeg << 4) + memOff;
-                int cylinder = memory.readWord(ccbAddress + 0x2E);
-                int head = memory.readByte(ccbAddress + 0x30);
-                int mod = memory.readByte(ccbAddress + 0x2C);
-                int[] data = new int[]{memory.readByte(memAddr + 1), memory.readByte(memAddr + 2), memory.readByte(memAddr + 3), memory.readByte(memAddr + 4)};
-                int interleave = memory.readByte(memAddr + 5);
+                int cylinder = mms16.readMemoryWord(ccbAddress + 0x2E);
+                int head = mms16.readMemoryByte(ccbAddress + 0x30);
+                int mod = mms16.readMemoryByte(ccbAddress + 0x2C);
+                int[] data = new int[]{mms16.readMemoryByte(memAddr + 1), mms16.readMemoryByte(memAddr + 2), mms16.readMemoryByte(memAddr + 3), mms16.readMemoryByte(memAddr + 4)};
+                int interleave = mms16.readMemoryByte(memAddr + 5);
 
                 FloppyDrive drive = afs.getFloppy(driveNr & 0x03);
 //                System.out.println("Formatiere Laufwerk " + (driveNr & 0x03) + " C/H " + cylinder + "/" + head);
-//                System.out.println("Datenbytes: " + String.format("%02X %02X %02X %02X", memory.readByte(memAddr + 1), memory.readByte(memAddr + 2), memory.readByte(memAddr + 3), memory.readByte(memAddr + 4)) + " Interleave: " + String.format("%02X", memory.readByte(memAddr + 5)));
+//                System.out.println("Datenbytes: " + String.format("%02X %02X %02X %02X", mms16.readMemoryByte(memAddr + 1), mms16.readMemoryByte(memAddr + 2), mms16.readMemoryByte(memAddr + 3), mms16.readMemoryByte(memAddr + 4)) + " Interleave: " + String.format("%02X", mms16.readMemoryByte(memAddr + 5)));
 //                System.out.println("Modifizierung: " + Integer.toBinaryString(mod));
                 drive.format(cylinder, head, mod, data, interleave);
-                memory.writeByte(ccbAddress + 0x13, 0xFF);
-                memory.writeByte(ccbAddress + 0x11, 0x01);
+                mms16.writeMemoryByte(ccbAddress + 0x13, 0xFF);
+                mms16.writeMemoryByte(ccbAddress + 0x11, 0x01);
             }
             break;
             case 0x03:
@@ -370,15 +373,15 @@ public final class KES implements PortModule, ClockModule {
                 break;
             case 0x04: {
                 // Daten lesen
-                int deviceCode = memory.readByte(ccbAddress + 0x28);
-                int driveNr = memory.readByte(ccbAddress + 0x2A);
-                int memSeg = memory.readWord(ccbAddress + 0x34);
-                int memOff = memory.readWord(ccbAddress + 0x32);
+                int deviceCode = mms16.readMemoryByte(ccbAddress + 0x28);
+                int driveNr = mms16.readMemoryByte(ccbAddress + 0x2A);
+                int memSeg = mms16.readMemoryWord(ccbAddress + 0x34);
+                int memOff = mms16.readMemoryWord(ccbAddress + 0x32);
                 int memAddr = (memSeg << 4) + memOff;
-                int cylinder = memory.readWord(ccbAddress + 0x2E);
-                int sector = memory.readByte(ccbAddress + 0x31);
-                int head = memory.readByte(ccbAddress + 0x30);
-                int byteCnt = memory.readWord(ccbAddress + 0x36);
+                int cylinder = mms16.readMemoryWord(ccbAddress + 0x2E);
+                int sector = mms16.readMemoryByte(ccbAddress + 0x31);
+                int head = mms16.readMemoryByte(ccbAddress + 0x30);
+                int byteCnt = mms16.readMemoryWord(ccbAddress + 0x36);
                 int status = 0;
 //                System.out.println("Lese " + byteCnt + " Bytes von Laufwerk " + (driveNr & 0x03) + " C/H/S " + cylinder + "/" + head + "/" + sector + " nach " + String.format("%04X:%04X", memSeg, memOff));
 
@@ -393,20 +396,20 @@ public final class KES implements PortModule, ClockModule {
                         byte[] data = drive.readData(cylinder, sector, head, byteCnt);
 //                        String ascii = "";
                         for (int i = 0; i < data.length; i++) {
-                            memory.writeByte(memAddr + i, data[i]);
+                            mms16.writeMemoryByte(memAddr + i, data[i]);
 //                            System.out.print(String.format("%02X", data[i] & 0xFF) + " ");
 //                            ascii += ((data[i] < 0x20) || (data[i] == 127)) ? '.' : (char) (data[i] & 0xFF);
 //                            if ((i + 1) % 16 == 0) {
 //                                System.out.println(" " + ascii);
 //                                ascii = "";
-                            }
+                        }
 //                        }
 //                        System.out.println();
                         status = 0x01;
                         break;
                 }
-                memory.writeByte(ccbAddress + 0x13, 0xFF);
-                memory.writeByte(ccbAddress + 0x11, status);
+                mms16.writeMemoryByte(ccbAddress + 0x13, 0xFF);
+                mms16.writeMemoryByte(ccbAddress + 0x11, status);
             }
             break;
             case 0x05:
@@ -415,22 +418,22 @@ public final class KES implements PortModule, ClockModule {
                 break;
             case 0x06: {
                 // Daten schreiben
-                int driveNr = memory.readByte(ccbAddress + 0x2A);
-                int memSeg = memory.readWord(ccbAddress + 0x34);
-                int memOff = memory.readWord(ccbAddress + 0x32);
+                int driveNr = mms16.readMemoryByte(ccbAddress + 0x2A);
+                int memSeg = mms16.readMemoryWord(ccbAddress + 0x34);
+                int memOff = mms16.readMemoryWord(ccbAddress + 0x32);
                 int memAddr = (memSeg << 4) + memOff;
-                int cylinder = memory.readWord(ccbAddress + 0x2E);
-                int sector = memory.readByte(ccbAddress + 0x31);
-                int head = memory.readByte(ccbAddress + 0x30);
-                int byteCnt = memory.readWord(ccbAddress + 0x36);
+                int cylinder = mms16.readMemoryWord(ccbAddress + 0x2E);
+                int sector = mms16.readMemoryByte(ccbAddress + 0x31);
+                int head = mms16.readMemoryByte(ccbAddress + 0x30);
+                int byteCnt = mms16.readMemoryWord(ccbAddress + 0x36);
                 FloppyDrive drive = afs.getFloppy(driveNr & 0x03);
                 byte[] data = new byte[byteCnt];
                 for (int i = 0; i < data.length; i++) {
-                    data[i] = (byte) SystemMemory.getInstance().readByte(memAddr + i);
+                    data[i] = (byte) mms16.readMemoryByte(memAddr + i);
                 }
                 drive.writeData(cylinder, sector, head, data);
-                memory.writeByte(ccbAddress + 0x13, 0xFF);
-                memory.writeByte(ccbAddress + 0x11, 0x01);
+                mms16.writeMemoryByte(ccbAddress + 0x13, 0xFF);
+                mms16.writeMemoryByte(ccbAddress + 0x11, 0x01);
             }
             break;
             case 0x07:
@@ -451,25 +454,25 @@ public final class KES implements PortModule, ClockModule {
                 break;
             case 0x0E: {
                 // KES-Puffer Ein-/Ausgabe
-                int kesAddr = memory.readWord(ccbAddress + 0x2E);
-                int memAddr = (memory.readWord(ccbAddress + 0x34) << 4) + memory.readWord(ccbAddress + 0x32);
-                int cnt = memory.readWord(ccbAddress + 0x36);
-                boolean toKES = memory.readByte(ccbAddress + 0x30) == 0xFF;
+                int kesAddr = mms16.readMemoryWord(ccbAddress + 0x2E);
+                int memAddr = (mms16.readMemoryWord(ccbAddress + 0x34) << 4) + mms16.readMemoryWord(ccbAddress + 0x32);
+                int cnt = mms16.readMemoryWord(ccbAddress + 0x36);
+                boolean toKES = mms16.readMemoryByte(ccbAddress + 0x30) == 0xFF;
                 for (int i = 0; i < cnt; i++) {
                     if (toKES) {
-                        sram.writeByte(kesAddr + i, memory.readByte(memAddr + i));
+                        sram.writeByte(kesAddr + i, mms16.readMemoryByte(memAddr + i));
                     } else {
-                        memory.writeByte(memAddr + i, sram.readByte(kesAddr + i));
+                        mms16.writeMemoryByte(memAddr + i, sram.readByte(kesAddr + i));
                     }
                 }
-                memory.writeByte(ccbAddress + 0x13, 0xFF);
-                memory.writeByte(ccbAddress + 0x11, 0x01);
+                mms16.writeMemoryByte(ccbAddress + 0x13, 0xFF);
+                mms16.writeMemoryByte(ccbAddress + 0x11, 0x01);
             }
             break;
             case 0x0F:
                 // Diagnose
-                memory.writeByte(ccbAddress + 0x13, 0xFF);
-                memory.writeByte(ccbAddress + 0x11, 0x01);
+                mms16.writeMemoryByte(ccbAddress + 0x13, 0xFF);
+                mms16.writeMemoryByte(ccbAddress + 0x11, 0x01);
                 break;
         }
     }
@@ -490,7 +493,7 @@ public final class KES implements PortModule, ClockModule {
      */
     @Override
     public void registerClocks() {
-        SystemClock.getInstance().registerClock(this);
+        MMS16Bus.getInstance().registerClockModule(this);
     }
 
     /**
@@ -502,10 +505,10 @@ public final class KES implements PortModule, ClockModule {
     public void clockUpdate(int amount) {
         if (interruptWaiting) {
             interruptClock += amount;
-            // Zeit für Operation auf 200 Zyklen gesetzt
-            if (interruptClock > 200) {
+            // Zeit für Operation auf 2000 Zyklen gesetzt
+            if (interruptClock > 2000) {
                 interruptWaiting = false;
-                InterruptSystem.getInstance().getPIC().requestInterrupt(5);
+                MMS16Bus.getInstance().requestInterrupt(5);
             }
         }
     }

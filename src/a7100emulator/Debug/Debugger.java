@@ -46,7 +46,7 @@ public class Debugger {
     /**
      * Adresse für automatischen Start des Debuggers
      */
-    private final int debugStart = 0;
+    private final int debugStart = 0;//(0x1000<<4)+0x4E0F;
 
     /**
      * Erstellt einen neuen Debugger
@@ -106,6 +106,16 @@ public class Debugger {
             debugString += " (" + debugInfo.getOperands() + ")";
         }
         debugFile.println(debugString);
+        debugFile.flush();
+    }
+    
+        /**
+     * Fügt einen Kommentar zur Debug-Ausgabe hinzu
+     * 
+     * @param comment
+     */
+    public void addComment(String comment) {
+        debugFile.println(comment);
         debugFile.flush();
     }
 

@@ -6,11 +6,11 @@
  * 
  * Letzte Änderungen:
  *   15.07.2014 Kommentare aktualisiert
+ *   09.08.2014 Zugriffe auf SystemMemory und SystemPorts durch MMS16Bus ersetzt
  */
 package a7100emulator.components.ic;
 
-import a7100emulator.components.system.SystemMemory;
-import a7100emulator.components.system.SystemPorts;
+import a7100emulator.components.system.MMS16Bus;
 
 /**
  * Klasse zur Realisierung des numerischen Coprozessors K1810WM87
@@ -42,13 +42,9 @@ public class K1810WM87 implements Runnable {
     }
 
     /**
-     * Speicher
+     * MMS16 Systembus
      */
-    private final SystemMemory memory = SystemMemory.getInstance();
-    /**
-     * E/A Ports
-     */
-    private final SystemPorts ports = SystemPorts.getInstance();
+    private final MMS16Bus mms16 = MMS16Bus.getInstance();
     /**
      * Stack-Register
      */

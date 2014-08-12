@@ -18,11 +18,10 @@ import a7100emulator.Debug.Decoder;
 import a7100emulator.Debug.MemoryAnalyzer;
 import a7100emulator.Debug.OpcodeStatistic;
 import a7100emulator.components.A7100;
-import a7100emulator.components.system.FloppyDisk;
 import a7100emulator.Tools.FloppyImageType;
 import a7100emulator.components.system.Keyboard;
+import a7100emulator.components.system.MMS16Bus;
 import a7100emulator.components.system.Screen;
-import a7100emulator.components.system.SystemMemory;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.GridLayout;
@@ -344,7 +343,7 @@ public class MainView extends JFrame {
             } else if (e.getSource() == menuDebugDecoderShow) {
                 Decoder.getInstance().show();
             } else if (e.getSource() == menuDebugMemoryDump) {
-                SystemMemory.getInstance().dump("./debug/user_dump.hex");
+                MMS16Bus.getInstance().dumpSystemMemory("./debug/user_dump.hex");
             } else if (e.getSource() == menuDebugDecoderDump) {
                 Decoder.getInstance().save();
             } else if (e.getSource() == menuDebugDebuggerSwitch) {
@@ -358,7 +357,6 @@ public class MainView extends JFrame {
                     int slowdown = Integer.parseInt(JOptionPane.showInputDialog(null, "Verzögerung in ms:", Debugger.getInstance().getSlowdown()));
                     Debugger.getInstance().setSlowdown(slowdown);
                 } catch (NumberFormatException ex) {
-
                 }
             } else if (e.getSource() == menuDebugCharacters) {
                 a7100.getKGS().showCharacters();
@@ -450,7 +448,7 @@ public class MainView extends JFrame {
                         + "     arbeitet oder den jeweils gestellten Anforderungen\n"
                         + "     entspricht. Für Sachschäden oder finanzielle\n"
                         + "     Schäden, welche aus der Verwendung des Programms\n"
-                        + "     resultieren,bspw. Verlust von Daten, Verlust von\n"
+                        + "     resultieren, bspw. Verlust von Daten, Verlust von\n"
                         + "     Gewinn, Betriebsunterbrechung, übernimmt der Autor\n"
                         + "     keinerlei Haftung."
                 );

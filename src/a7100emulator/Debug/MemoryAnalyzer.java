@@ -11,7 +11,7 @@
 package a7100emulator.Debug;
 
 import GUITools.RowHeadRenderer;
-import a7100emulator.components.system.SystemMemory;
+import a7100emulator.components.system.MMS16Bus;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.Font;
@@ -132,7 +132,7 @@ public class MemoryAnalyzer {
             } else if (column == 17) {
                 String ascii = "";
                 for (int i = 0; i < 16; i++) {
-                    Integer val = SystemMemory.getInstance().readByte(row * 16 + i);
+                    Integer val = MMS16Bus.getInstance().readMemoryByte(row * 16 + i);
                     if (val < 0x20 || val == 127) {
                         ascii += '.';
                     } else {
@@ -141,7 +141,7 @@ public class MemoryAnalyzer {
                 }
                 return ascii;
             } else {
-                return String.format("%02X", SystemMemory.getInstance().readByte(row * 16 + column - 1));
+                return String.format("%02X", MMS16Bus.getInstance().readMemoryByte(row * 16 + column - 1));
             }
         }
 

@@ -6,11 +6,11 @@
  * 
  * Letzte Änderungen:
  *   02.04.2014 Kommentare vervollständigt
- *
+ *   09.08.2014 Zugriffe auf SystemPorts durch MMS16Bus ersetzt
  */
 package a7100emulator.components.modules;
 
-import a7100emulator.components.system.SystemPorts;
+import a7100emulator.components.system.MMS16Bus;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -22,7 +22,7 @@ import java.io.IOException;
  *
  * @author Dirk Bräuer
  */
-public class ABS implements PortModule {
+public class ABS implements IOModule {
 
     private final static int PORT_ABS_STATE = 0x200;
     private final static int PORT_ABS_DATA = 0x202;
@@ -32,8 +32,8 @@ public class ABS implements PortModule {
      */
     @Override
     public void registerPorts() {
-        SystemPorts.getInstance().registerPort(this, PORT_ABS_STATE);
-        SystemPorts.getInstance().registerPort(this, PORT_ABS_DATA);
+        MMS16Bus.getInstance().registerIOPort(this, PORT_ABS_STATE);
+        MMS16Bus.getInstance().registerIOPort(this, PORT_ABS_DATA);
     }
 
     /**

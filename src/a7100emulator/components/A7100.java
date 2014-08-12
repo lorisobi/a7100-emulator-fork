@@ -117,7 +117,7 @@ public class A7100 {
 
             InterruptSystem.getInstance().saveState(dos);
             Keyboard.getInstance().saveState(dos);
-            SystemClock.getInstance().saveState(dos);
+            MMS16Bus.getInstance().saveState(dos);
 
             dos.flush();
             dos.close();
@@ -151,7 +151,7 @@ public class A7100 {
 
             InterruptSystem.getInstance().loadState(dis);
             Keyboard.getInstance().loadState(dis);
-            SystemClock.getInstance().loadState(dis);
+            MMS16Bus.getInstance().loadState(dis);
 
             dis.close();
         } catch (IOException ex) {
@@ -167,9 +167,7 @@ public class A7100 {
     public void reset() {
         zve.stopCPU();
 
-        SystemMemory.getInstance().reset();
-        SystemClock.getInstance().reset();
-        SystemPorts.getInstance().reset();
+        MMS16Bus.getInstance().reset();;
         InterruptSystem.getInstance().reset();
         Keyboard.getInstance().reset();
 
