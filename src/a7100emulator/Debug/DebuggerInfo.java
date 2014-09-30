@@ -6,6 +6,7 @@
  * 
  * Letzte Änderungen:
  *   05.04.2014 Kommentare vervollständigt
+ *   31.08.2014 Singleton entfernt
  *
  */
 package a7100emulator.Debug;
@@ -44,25 +45,25 @@ public class DebuggerInfo {
     /**
      * Singleton Instanz
      */
-    private static DebuggerInfo instance;
+    //private static DebuggerInfo instance;
 
     /**
      * Erstellt eine neue DebuggerInfo
      */
-    private DebuggerInfo() {
+    public DebuggerInfo() {
     }
 
-    /**
-     * Gibt die Singleton Instanz zurück
-     *
-     * @return Instanz
-     */
-    public static DebuggerInfo getInstance() {
-        if (instance == null) {
-            instance = new DebuggerInfo();
-        }
-        return instance;
-    }
+//    /**
+//     * Gibt die Singleton Instanz zurück
+//     *
+//     * @return Instanz
+//     */
+//    public static DebuggerInfo getInstance() {
+//        if (instance == null) {
+//            instance = new DebuggerInfo();
+//        }
+//        return instance;
+//    }
 
     /**
      * Liefert die Systemzeit zurück

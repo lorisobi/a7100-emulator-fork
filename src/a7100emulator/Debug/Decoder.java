@@ -42,7 +42,7 @@ public class Decoder {
     /**
      * Referenz auf Debugger Informationen
      */
-    private final DebuggerInfo debugInfo = DebuggerInfo.getInstance();
+//    private final DebuggerInfo debugInfo = DebuggerInfo.getInstance();
     /**
      * Zuletzt hinzugefügte Adresse
      */
@@ -107,7 +107,7 @@ public class Decoder {
     /**
      * Fügt die aktuellen Debug-Informationen dem Decoder hinzu
      */
-    public void addItem() {
+    public void addItem(DebuggerInfo debugInfo) {
 //        String debugString = String.format("%04X:%04X ", debugInfo.getCs(), debugInfo.getIp()) + debugInfo.getCode();
         lastAddress = debugInfo.getCs() * 16 + debugInfo.getIp();
         synchronized (decoder) {

@@ -6,6 +6,7 @@
  * 
  * Letzte Änderungen:
  *   05.04.2014 Kommentare vervollständigt
+ *   31.08.2014 Singleton entfernt
  *
  */
 package a7100emulator.Debug;
@@ -32,14 +33,6 @@ public class Debugger {
      */
     private boolean debug = false;
     /**
-     * Instanz des Debuggers
-     */
-    private static Debugger instance;
-    /**
-     * Referenz auf Debugger Informationen
-     */
-    private final DebuggerInfo debugInfo = DebuggerInfo.getInstance();
-    /**
      * Verzögerung im Debug-Modus in ms
      */
     private int slowdown = 0;
@@ -47,23 +40,21 @@ public class Debugger {
      * Adresse für automatischen Start des Debuggers
      */
     private final int debugStart = 0;//(0x1000<<4)+0x4E0F;
+    /**
+     * Dateiname für Debug-Ausgaben
+     */
+    private final String filename;
+    /**
+     * Gibt an ob Code-Segmente verwendet werden
+     */
+    private final boolean useCS;
 
     /**
      * Erstellt einen neuen Debugger
      */
-    private Debugger() {
-    }
-
-    /**
-     * Gibt die Singleton-Instanz des Debuggers zurück
-     *
-     * @return Instanz
-     */
-    public static Debugger getInstance() {
-        if (instance == null) {
-            instance = new Debugger();
-        }
-        return instance;
+    public Debugger(String filename, boolean useCS) {
+        this.filename = filename;
+        this.useCS = useCS;
     }
 
     /**
@@ -83,7 +74,7 @@ public class Debugger {
     public void setDebug(boolean debug) {
         if (debug) {
             try {
-                debugFile = new PrintStream(new FileOutputStream("./debug/K1810WM86.log"));
+                debugFile = new PrintStream(new FileOutputStream("./debug/" + filename + ".log"));
             } catch (FileNotFoundException ex) {
                 Logger.getLogger(Debugger.class.getName()).log(Level.SEVERE, null, ex);
             }
@@ -95,23 +86,27 @@ public class Debugger {
      * Fügt einen Zeile zur Debug-Ausgabe hinzu basierend auf den aktuellen
      * Debugger Informationen
      */
-    public void addLine() {
+    public void addLine(DebuggerInfo debugInfo) {
         // Ignoriere Interrupts
 //        if (debugInfo.getCs() == 0x0104) {
 //            return;
 //        }
-
-        String debugString = String.format("%04X:%04X [%02X] ", debugInfo.getCs(), debugInfo.getIp(), debugInfo.getOpcode()) + debugInfo.getCode();
+        String debugString;
+        if (useCS) {
+            debugString = String.format("%04X:%04X [%02X] ", debugInfo.getCs(), debugInfo.getIp(), debugInfo.getOpcode()) + debugInfo.getCode();
+        } else {
+            debugString = String.format("%04X [%02X] ", debugInfo.getIp(), debugInfo.getOpcode()) + debugInfo.getCode();
+        }
         if (debugInfo.getOperands() != null) {
             debugString += " (" + debugInfo.getOperands() + ")";
         }
         debugFile.println(debugString);
         debugFile.flush();
     }
-    
-        /**
+
+    /**
      * Fügt einen Kommentar zur Debug-Ausgabe hinzu
-     * 
+     *
      * @param comment
      */
     public void addComment(String comment) {

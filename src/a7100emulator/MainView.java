@@ -7,6 +7,7 @@
  * Letzte Änderungen:
  *   05.04.2014 Kommentare vervollständigt
  *   12.04.2014 Laden von verschiedenen Image-Typen implementiert
+ *   31.08.2014 Debugger deaktiviert, da Singleton Instranz entfernt
  *
  */
 package a7100emulator;
@@ -348,14 +349,14 @@ public class MainView extends JFrame {
                 Decoder.getInstance().save();
             } else if (e.getSource() == menuDebugDebuggerSwitch) {
                 boolean debug = menuDebugDebuggerSwitch.isSelected();
-                Debugger.getInstance().setDebug(debug);
+//                Debugger.getInstance().setDebug(debug);
                 if (debug) {
                     Decoder.getInstance().clear();
                 }
             } else if (e.getSource() == menuDebugDebuggerSlowdown) {
                 try {
-                    int slowdown = Integer.parseInt(JOptionPane.showInputDialog(null, "Verzögerung in ms:", Debugger.getInstance().getSlowdown()));
-                    Debugger.getInstance().setSlowdown(slowdown);
+//                    int slowdown = Integer.parseInt(JOptionPane.showInputDialog(null, "Verzögerung in ms:", Debugger.getInstance().getSlowdown()));
+//                    Debugger.getInstance().setSlowdown(slowdown);
                 } catch (NumberFormatException ex) {
                 }
             } else if (e.getSource() == menuDebugCharacters) {

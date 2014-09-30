@@ -1,17 +1,16 @@
 /*
- * ABG.java
+ * ABG_new.java
  * 
  * Diese Datei gehört zum Projekt A7100 Emulator 
  * (c) 2011-2014 Dirk Bräuer
  * 
  * Letzte Änderungen:
- *   01.04.2014 Kommentare vervollständigt
- *   09.08.2014 Zugriffe auf SystemClock durch MMS16Bus ersetzt
+ *   09.08.2014 Erstellt aus ABG.java
  *
  */
 package a7100emulator.components.modules;
 
-import a7100emulator.Tools.BitmapGenerator;
+import a7100emulator.Tools.Memory;
 import a7100emulator.components.system.MMS16Bus;
 import a7100emulator.components.system.Screen;
 import java.awt.Color;
@@ -23,11 +22,13 @@ import java.io.IOException;
 
 /**
  * Klasse zur Abbildung der ABG (Anschlußsteuerung für grafischen Bildschirm)
+ * <p>
+ * TODO: Diese Klasse ist die Neuimplementierung von ABG.java und soll diese
+ * vollständig ersetzen
  *
  * @author Dirk Bräuer
  */
 public final class ABG implements Module, ClockModule {
-
     /**
      * Enum zur Abbildung der möglichen Cursordarstellungen
      */
@@ -52,25 +53,113 @@ public final class ABG implements Module, ClockModule {
     }
 
     /**
-     * Attribut intensive Darstellung
+     * Port Funktionsregister
      */
-    private static final int ATTRIBUTE_INTENSE = 0x01;
+    private static final int LOCAL_PORT_FUNCTION_REGISTER = 0x22;
+    /**
+     * Port Splitregister
+     */
+    private static final int LOCAL_PORT_SPLIT_REGISTER = 0x23;
+    /**
+     * Port Adresszähler Low Byte
+     */
+    private static final int LOCAL_PORT_ADDRESS_COUNTER_LOW = 0x20;
+    /**
+     * Port Adresszähler High Byte
+     */
+    private static final int LOCAL_PORT_ADDRESS_COUNTER_HIGH = 0x21;
+    /**
+     * Port Palettenregister 0
+     */
+    private static final int LOCAL_PORT_PALETTE_0 = 0x30;
+    /**
+     * Port Palettenregister 1
+     */
+    private static final int LOCAL_PORT_PALETTE_1 = 0x31;
+    /**
+     * Port Palettenregister 2
+     */
+    private static final int LOCAL_PORT_PALETTE_2 = 0x32;
+    /**
+     * Port Palettenregister 3
+     */
+    private static final int LOCAL_PORT_PALETTE_3 = 0x33;
+    /**
+     * Port Palettenregister 4
+     */
+    private static final int LOCAL_PORT_PALETTE_4 = 0x34;
+    /**
+     * Port Palettenregister 5
+     */
+    private static final int LOCAL_PORT_PALETTE_5 = 0x35;
+    /**
+     * Port Palettenregister 6
+     */
+    private static final int LOCAL_PORT_PALETTE_6 = 0x36;
+    /**
+     * Port Palettenregister 7
+     */
+    private static final int LOCAL_PORT_PALETTE_7 = 0x37;
+    /**
+     * Port Palettenregister 8
+     */
+    private static final int LOCAL_PORT_PALETTE_8 = 0x38;
+    /**
+     * Port Palettenregister 9
+     */
+    private static final int LOCAL_PORT_PALETTE_9 = 0x39;
+    /**
+     * Port Palettenregister A
+     */
+    private static final int LOCAL_PORT_PALETTE_A = 0x3A;
+    /**
+     * Port Palettenregister B
+     */
+    private static final int LOCAL_PORT_PALETTE_B = 0x3B;
+    /**
+     * Port Palettenregister C
+     */
+    private static final int LOCAL_PORT_PALETTE_C = 0x3C;
+    /**
+     * Port Palettenregister D
+     */
+    private static final int LOCAL_PORT_PALETTE_D = 0x3D;
+    /**
+     * Port Palettenregister E
+     */
+    private static final int LOCAL_PORT_PALETTE_E = 0x3E;
+    /**
+     * Port Palettenregister F
+     */
+    private static final int LOCAL_PORT_PALETTE_F = 0x3F;
     /**
      * Attribut Blinkende Darstellung
      */
-    private static final int ATTRIBUTE_FLASH = 0x02;
-    /**
-     * Attribute Cursor
-     */
-    private static final int ATTRIBUTE_CURSOR = 0x04;
-    /**
-     * Attribut unterstrichene Darstellung
-     */
-    private static final int ATTRIBUTE_UNDERLINE = 0x08;
+    private static final int ATTRIBUTE_BLINK = 0x02;
     /**
      * Attribut inverse Darstellung
      */
-    private static final int ATTRIBUTE_INVERSE = 0x10;
+    private static final int ATTRIBUTE_INVERSE = 0x04;
+    /**
+     * Attribut intensive Darstellung
+     */
+    private static final int ATTRIBUTE_INTENSE = 0x08;
+    /**
+     * Attribute Cursor
+     */
+    private static final int ATTRIBUTE_CURSOR = 0x10;
+    /**
+     * Farbe dunkles Grün
+     */
+    private static final int DARK_GREEN = new Color(0, 100, 0).getRGB();
+    /**
+     * Farbe normales Grün
+     */
+    private static final int GREEN = new Color(0, 150, 0).getRGB();
+    /**
+     * Farbe intensives Grün
+     */
+    private static final int INTENSE_GREEN = new Color(0, 255, 0).getRGB();
     /**
      * Farbe Schwarz
      */
@@ -92,18 +181,6 @@ public final class ABG implements Module, ClockModule {
      */
     private BufferedImage screenImage = new BufferedImage(640, 400, BufferedImage.TYPE_INT_RGB);
     /**
-     * Puffer für darstellbare Zeichen
-     */
-    private final byte[][][] alphanumericBuffer = new byte[80][25][16];
-    /**
-     * Puffer für Attribute
-     */
-    private final byte[][] attributeBuffer = new byte[80][25];
-    /**
-     * Puffer für grafischen Bildschirm
-     */
-    private final byte[][] graphicsBuffer = new byte[640][400];
-    /**
      * Aktueller Zustand für blinkenden Text / Cursor 0 - Nicht dargestellt / 1
      * - dargestellt
      */
@@ -112,6 +189,10 @@ public final class ABG implements Module, ClockModule {
      * Zähler für Wechsel des Zustands blinken
      */
     private int blinkClock = 0;
+    /**
+     * Zähler für Bildschirmupdates
+     */
+    private int localClock = 0;
     /**
      * Aktueller Cursor
      */
@@ -124,11 +205,40 @@ public final class ABG implements Module, ClockModule {
      * Aktuelle Spalte des Cursors
      */
     private int cursorColumn = 1;
+    /**
+     * Grafischer Bildwiederholspeicher
+     */
+    private Memory[] graphicMemory = new Memory[2];
+    /**
+     * Alphanumerischer Bildiwederholspeicher
+     */
+    private Memory[] alphanumericMemory = new Memory[2];
+    /**
+     * Palettenregister
+     */
+    private int[] palette_register = new int[16];
+    /**
+     * Adresszähler
+     */
+    private int address_counter = 0;
+    /**
+     * Funktionsregister
+     */
+    private int function_register;
+    /**
+     * Splitregister
+     */
+    private int split_register;
+    /**
+     * Verweis auf KGS
+     */
+    private KGS kgs;
 
     /**
      * Erstellt eine neue ABG und initialisiert diese
      */
-    public ABG() {
+    public ABG(KGS kgs) {
+        this.kgs = kgs;
         init();
     }
 
@@ -137,6 +247,11 @@ public final class ABG implements Module, ClockModule {
      */
     @Override
     public void init() {
+        for (int i = 0; i < 2; i++) {
+            graphicMemory[i] = new Memory(0x8000);
+            alphanumericMemory[i] = new Memory(0x8000);
+        }
+
         Graphics g = alphanumericScreen.getGraphics();
         g.setColor(new Color(BLACK));
         g.fillRect(0, 0, 640, 400);
@@ -170,66 +285,10 @@ public final class ABG implements Module, ClockModule {
     }
 
     /**
-     * Setzt den Liniencode sowie die Attribute für ein Zeichen des
-     * Alphanumerik-Bildschirms
-     *
-     * @param row Zeilennummer
-     * @param column Spaltennummer
-     * @param linecodes Liniencode des Zeichens
-     * @param intense Intensive Darstellung
-     * @param flash Blinkende Darstellung
-     * @param cursor Darstellung des Cursors
-     * @param underline Unterstrichene Darstellung
-     * @param inverse Inverse Darstellung
-     */
-    void setLineCodes(int row, int column, byte[] linecodes, boolean intense, boolean flash, boolean cursor, boolean underline, boolean inverse) {
-        if (column > 79) {
-            column = 79;
-        }
-
-        alphanumericBuffer[column][row] = linecodes;
-        byte attribute = 0;
-        if (intense) {
-            attribute |= ATTRIBUTE_INTENSE;
-        }
-        if (flash) {
-            attribute |= ATTRIBUTE_FLASH;
-        }
-        if (cursor) {
-            attribute |= ATTRIBUTE_CURSOR;
-        }
-        if (underline) {
-            attribute |= ATTRIBUTE_UNDERLINE;
-        }
-        if (inverse) {
-            attribute |= ATTRIBUTE_INVERSE;
-        }
-        attributeBuffer[column][row] = attribute;
-        updateAlphanumericScreen(row, column);
-    }
-
-    /**
      * Zeichnet die Komponente neu und aktualisiert damit die Ansicht
      */
-    private void updateScreen() {
+    private void repaintScreen() {
         Screen.getInstance().repaint();
-    }
-
-    /**
-     * Schiebt den Alphanumerik-Bildschirm eine Zeile nach oben
-     */
-    void rollAlphanumericScreen() {
-        for (int column = 0; column < 80; column++) {
-            System.arraycopy(alphanumericBuffer[column], 1, alphanumericBuffer[column], 0, 24);
-            System.arraycopy(attributeBuffer[column], 1, attributeBuffer[column], 0, 24);
-            alphanumericBuffer[column][24] = new byte[16];
-        }
-
-        BufferedImage newScreen = new BufferedImage(640, 400, BufferedImage.TYPE_INT_RGB);
-        newScreen.getGraphics().drawImage(alphanumericScreen.getSubimage(0, 16, 640, 384), 0, 0, null);
-        alphanumericScreen = newScreen;
-        screenImage = alphanumericScreen;
-        Screen.getInstance().setImage(screenImage);
     }
 
     /**
@@ -247,41 +306,12 @@ public final class ABG implements Module, ClockModule {
      */
     @Override
     public void clockUpdate(int amount) {
-        blinkClock += amount;
-        if (blinkClock > 2457500) {
-            blinkClock = 0;
-            if (blinkState == 0) {
-                blinkState = 1;
-
-            } else {
-                blinkState = 0;
-            }
-            updateAlphanumericScreen(cursorRow, cursorColumn);
+        localClock += amount;
+        if (localClock > 98300) {
+            localClock = 0;
+            updateScreen();
+            kgs.requestNMI();
         }
-    }
-
-    /**
-     * Entfernt den Cursor von der angegebenen Position
-     *
-     * @param cursorRow Zeile
-     * @param cursorColumn Spalte
-     */
-    void removeCursor(int cursorRow, int cursorColumn) {
-        attributeBuffer[(cursorColumn >= 80) ? 79 : cursorColumn][cursorRow] &= ~ATTRIBUTE_CURSOR;
-        updateAlphanumericScreen(cursorRow, (cursorColumn >= 80) ? 79 : cursorColumn);
-    }
-
-    /**
-     * Setzt den Cursor auf die angegebene Position
-     *
-     * @param newCursorRow Zeile
-     * @param newCursorColumn Spalte
-     */
-    void setCursor(int newCursorRow, int newCursorColumn) {
-        cursorColumn = (newCursorColumn >= 80) ? 79 : newCursorColumn;
-        cursorRow = newCursorRow;
-        attributeBuffer[cursorColumn][cursorRow] |= ATTRIBUTE_CURSOR;
-        updateAlphanumericScreen(cursorRow, cursorColumn);
     }
 
     /**
@@ -293,55 +323,210 @@ public final class ABG implements Module, ClockModule {
         this.cursorMode = cursorMode;
     }
 
-    /**
-     * Aktualisiert ein Zeichen des Alphanumerik-Bildschirms
-     *
-     * @param row Zeile
-     * @param column Spalte
-     */
-    private void updateAlphanumericScreen(int row, int column) {
-        Graphics g = alphanumericScreen.getGraphics();
+    void writeWord(int msel, int address, int data) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
 
-        boolean flash = (attributeBuffer[column][row] & ATTRIBUTE_FLASH) == ATTRIBUTE_FLASH;
-        boolean cursor = (attributeBuffer[column][row] & ATTRIBUTE_CURSOR) == ATTRIBUTE_CURSOR;
-        boolean intense = (attributeBuffer[column][row] & ATTRIBUTE_INTENSE) == ATTRIBUTE_INTENSE;
-        boolean inverse = (attributeBuffer[column][row] & ATTRIBUTE_INVERSE) == ATTRIBUTE_INVERSE;
-        boolean underline = (attributeBuffer[column][row] & ATTRIBUTE_UNDERLINE) == ATTRIBUTE_UNDERLINE;
-        byte[] linecode = new byte[16];
-        System.arraycopy(alphanumericBuffer[column][row], 0, linecode, 0, 16);
-
-        if (flash && blinkState == 0) {
-            linecode = new byte[16];
+    void writeByte(int msel, int address, int data) {
+        switch (msel) {
+            case 0x01:
+                // Grafik 1
+                graphicMemory[0].writeByte(address, data);
+                break;
+            case 0x03:
+                // Alphanumerik 1
+                alphanumericMemory[0].writeByte(address, data);
+                break;
+            case 0x04:
+                // Grafik 2
+                graphicMemory[1].writeByte(address, data);
+                break;
+            case 0x05:
+                // Grafik 1 + 2
+                graphicMemory[0].writeByte(address, data);
+                graphicMemory[1].writeByte(address, data);
+                break;
+            case 0x0C:
+                // Alphanumerik 2
+                alphanumericMemory[1].writeByte(address, data);
+                break;
+            case 0x0F:
+                // Alphanumerik 1+2
+                alphanumericMemory[0].writeByte(address, data);
+                alphanumericMemory[1].writeByte(address, data);
+                break;
+            default:
+                System.out.println("Nicht definiertes MSEL Register Schreiben " + Integer.toBinaryString(msel) + " für ABG");
+                break;
         }
+    }
 
-        if (cursor && !cursorMode.equals(CursorMode.CURSOR_INVISIBLE)) {
-            switch (cursorMode) {
-                case CURSOR_BLINK_LINE:
-                    if (blinkState == 1) {
-                        linecode[14] = (byte) ~linecode[14];
-                        linecode[15] = (byte) ~linecode[15];
-                    }
-                    break;
-                case CURSOR_BLINK_BLOCK: {
-                    if (blinkState == 1) {
-                        for (int i = 0; i < 16; i++) {
-                            linecode[i] = (byte) ~linecode[i];
-                        }
-                    }
+    int readWord(int msel, int address) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    int readByte(int msel, int address) {
+        switch (msel) {
+            case 0x01:
+                // Grafik 1
+                return graphicMemory[0].readByte(address);
+            case 0x03:
+                // Alphanumerik 1
+                return alphanumericMemory[0].readByte(address);
+            case 0x04:
+                // Grafik 2
+                return graphicMemory[1].readByte(address);
+            case 0x0C:
+                // Alphanumerik 2
+                return alphanumericMemory[1].readByte(address);
+            default:
+                System.out.println("Nicht definiertes MSEL Register Lesen " + Integer.toBinaryString(msel) + " für ABG");
+                break;
+        }
+        return 0;
+    }
+
+    public int readLocalPort(int port) {
+        switch (port) {
+            case LOCAL_PORT_FUNCTION_REGISTER:
+                throw new IllegalArgumentException("Lesen Funktionsregister nicht erlaubt!");
+            case LOCAL_PORT_SPLIT_REGISTER:
+                throw new IllegalArgumentException("Lesen Splitregister nicht erlaubt!");
+            case LOCAL_PORT_ADDRESS_COUNTER_LOW:
+            case LOCAL_PORT_ADDRESS_COUNTER_HIGH:
+                throw new IllegalArgumentException("Lesen Adresszähler nicht erlaubt!");
+            case LOCAL_PORT_PALETTE_0:
+            case LOCAL_PORT_PALETTE_1:
+            case LOCAL_PORT_PALETTE_2:
+            case LOCAL_PORT_PALETTE_3:
+            case LOCAL_PORT_PALETTE_4:
+            case LOCAL_PORT_PALETTE_5:
+            case LOCAL_PORT_PALETTE_6:
+            case LOCAL_PORT_PALETTE_7:
+            case LOCAL_PORT_PALETTE_8:
+            case LOCAL_PORT_PALETTE_9:
+            case LOCAL_PORT_PALETTE_A:
+            case LOCAL_PORT_PALETTE_B:
+            case LOCAL_PORT_PALETTE_C:
+            case LOCAL_PORT_PALETTE_D:
+            case LOCAL_PORT_PALETTE_E:
+            case LOCAL_PORT_PALETTE_F:
+                throw new IllegalArgumentException("Lesen Palettenregister nicht erlaubt!");
+        }
+        return 0;
+    }
+
+    public void writeLocalPort(int port, int data) {
+        switch (port) {
+            case LOCAL_PORT_FUNCTION_REGISTER:
+                function_register = data & 0xFF;
+                //System.out.println("Function Register:" + String.format("%02X", function_register) + " " + Integer.toBinaryString(data));
+                break;
+            case LOCAL_PORT_SPLIT_REGISTER:
+                split_register = data & 0xFF;
+                if (split_register != 0xFF) {
+                    System.out.println("Split Register:" + String.format("%02X", split_register));
                 }
                 break;
-                case CURSOR_STATIC_BLOCK: {
-                    for (int i = 0; i < 16; i++) {
-                        linecode[i] = (byte) ~linecode[i];
-                    }
-                }
+            case LOCAL_PORT_ADDRESS_COUNTER_LOW:
+                address_counter = (address_counter & 0x00FF) | ((data & 0xFF) << 8);
                 break;
+            case LOCAL_PORT_ADDRESS_COUNTER_HIGH:
+                address_counter = (address_counter & 0xFF00) | (data & 0xFF);
+                break;
+            case LOCAL_PORT_PALETTE_0:
+            case LOCAL_PORT_PALETTE_1:
+            case LOCAL_PORT_PALETTE_2:
+            case LOCAL_PORT_PALETTE_3:
+            case LOCAL_PORT_PALETTE_4:
+            case LOCAL_PORT_PALETTE_5:
+            case LOCAL_PORT_PALETTE_6:
+            case LOCAL_PORT_PALETTE_7:
+            case LOCAL_PORT_PALETTE_8:
+            case LOCAL_PORT_PALETTE_9:
+            case LOCAL_PORT_PALETTE_A:
+            case LOCAL_PORT_PALETTE_B:
+            case LOCAL_PORT_PALETTE_C:
+            case LOCAL_PORT_PALETTE_D:
+            case LOCAL_PORT_PALETTE_E:
+            case LOCAL_PORT_PALETTE_F:
+                palette_register[port - 0x30] = data & 0xFF;
+                break;
+        }
+    }
+
+    private void updateScreen() {
+        int address = ~address_counter & 0x7FFF;
+
+        int splitline = (split_register == 0xFF) ? 0 : ((split_register == 0xFE) ? 400 : (split_register * 2 - 1));
+        for (int line = 0; line < 400; line++) {
+            for (int column = 0; column < 640; column += 8) {
+                if (line < splitline) {
+                    updateGraphicsScreen(address, column, line);
+                } else {
+                    updateAlphanumericScreen(address, column, line);
+                }
+                address = (address - 1) & 0x7FFF;
             }
         }
+        Screen.getInstance().repaint();
+    }
 
-        BufferedImage character = BitmapGenerator.generateBitmapFromLineCode(linecode, intense, inverse, underline, flash);
-        g.drawImage(character, column * 8, row * 16, null);
-        updateScreen();
+    private void updateAlphanumericScreen(int address, int column, int line) {
+        int data = alphanumericMemory[0].readByte(address);
+        int attribute = alphanumericMemory[1].readByte(address);
+        boolean intense = (attribute & ATTRIBUTE_INTENSE) != 0;
+        boolean inverse = (attribute & ATTRIBUTE_INVERSE) != 0;
+        boolean blink = ((attribute & ATTRIBUTE_BLINK) != 0);
+        boolean blink_fnct = getBit(function_register, 3);
+
+        boolean cursor = (attribute & ATTRIBUTE_CURSOR) != 0;
+        for (int pixel = 0; pixel < 8; pixel++) {
+            boolean b1 = getBit(data, pixel);
+            if (cursor) {
+                // TODO
+                if (blink_fnct) {
+                    screenImage.setRGB(column + 7 - pixel, line, intense ? INTENSE_GREEN : GREEN);
+                } else {
+                    screenImage.setRGB(column + 7 - pixel, line, BLACK);
+                }
+            } else {
+                if (b1 ^ inverse) {
+                    screenImage.setRGB(column + 7 - pixel, line, intense ? INTENSE_GREEN : GREEN);
+                } else {
+                    screenImage.setRGB(column + 7 - pixel, line, BLACK);
+                }
+            }
+        }
+    }
+
+    private void updateGraphicsScreen(int address, int column, int line) {
+        int data1 = graphicMemory[0].readByte(address);
+        int data2 = graphicMemory[1].readByte(address);
+        for (int pixel = 0; pixel < 8; pixel++) {
+            boolean b1 = getBit(data1, pixel);
+            boolean b2 = getBit(data2, pixel);
+            if (b1 && !b2) {
+                screenImage.setRGB(column + 7 - pixel, line, DARK_GREEN);
+            } else if (!b1 && b2) {
+                screenImage.setRGB(column + 7 - pixel, line, GREEN);
+            } else if (b1 && b2) {
+                screenImage.setRGB(column + 7 - pixel, line, INTENSE_GREEN);
+            } else {
+                screenImage.setRGB(column + 7 - pixel, line, BLACK);
+            }
+        }
+    }
+
+    /**
+     * Prüft ob ein Bit des Operanden gesetzt ist
+     *
+     * @param op Operand
+     * @param i Nummer des Bits
+     * @return true - wenn das Bit gesetzt ist, false - sonst
+     */
+    private boolean getBit(int op, int i) {
+        return (((op >> i) & 0x1) == 0x1);
     }
 
     /**
@@ -352,23 +537,6 @@ public final class ABG implements Module, ClockModule {
      */
     @Override
     public void saveState(DataOutputStream dos) throws IOException {
-        for (int i = 0; i < 80; i++) {
-            for (int j = 0; j < 25; j++) {
-                for (int k = 0; k < 16; k++) {
-                    dos.writeByte(alphanumericBuffer[i][j][k]);
-                }
-            }
-        }
-        for (int i = 0; i < 80; i++) {
-            for (int j = 0; j < 25; j++) {
-                dos.writeByte(attributeBuffer[i][j]);
-            }
-        }
-        for (int i = 0; i < 640; i++) {
-            for (int j = 0; j < 400; j++) {
-                dos.writeByte(graphicsBuffer[i][j]);
-            }
-        }
         dos.writeInt(blinkState);
         dos.writeInt(blinkClock);
         dos.writeUTF(cursorMode.name());
@@ -377,46 +545,18 @@ public final class ABG implements Module, ClockModule {
     }
 
     /**
-     * Lädt den Zustand der ABG aus einer datei
+     * Lädt den Zustand der ABG aus einer Datei
      *
      * @param dis Stream der Datei
      * @throws IOException Wenn das Lesen nicht erfolgreich war
      */
     @Override
     public void loadState(DataInputStream dis) throws IOException {
-        for (int i = 0; i < 80; i++) {
-            for (int j = 0; j < 25; j++) {
-                for (int k = 0; k < 16; k++) {
-                    alphanumericBuffer[i][j][k] = dis.readByte();
-                }
-            }
-        }
-        for (int i = 0; i < 80; i++) {
-            for (int j = 0; j < 25; j++) {
-                attributeBuffer[i][j] = dis.readByte();
-            }
-        }
-        for (int i = 0; i < 640; i++) {
-            for (int j = 0; j < 400; j++) {
-                graphicsBuffer[i][j] = dis.readByte();
-            }
-        }
         blinkState = dis.readInt();
         blinkClock = dis.readInt();
         cursorMode = CursorMode.valueOf(dis.readUTF());
         cursorRow = dis.readInt();
         cursorColumn = dis.readInt();
-        generateAlphanumericScreen();
     }
 
-    /**
-     * Erstellt den Alphanumerik-Bildschirm neu
-     */
-    private void generateAlphanumericScreen() {
-        for (int row = 0; row < 25; row++) {
-            for (int column = 0; column < 80; column++) {
-                updateAlphanumericScreen(row, column);
-            }
-        }
-    }
 }

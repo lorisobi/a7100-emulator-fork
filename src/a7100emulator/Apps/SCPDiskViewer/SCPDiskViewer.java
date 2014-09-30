@@ -6,7 +6,7 @@
  * 
  * Letzte Änderungen:
  *   05.04.2014 Kommentare vervollständigt
- *
+ *   27.09.2014 MD5 Summen ergänzt
  */
 package a7100emulator.Apps.SCPDiskViewer;
 
@@ -31,6 +31,7 @@ import javax.swing.table.AbstractTableModel;
 
 /**
  * Ansicht des SCP-Disketten-Tools
+ *
  * @author Dirk Bräuer
  */
 public class SCPDiskViewer extends JFrame {
@@ -78,6 +79,7 @@ public class SCPDiskViewer extends JFrame {
 
     /**
      * Erstellt eine neue Ansicht
+     *
      * @param model Modell
      */
     public SCPDiskViewer(SCPDiskModel model) {
@@ -90,13 +92,14 @@ public class SCPDiskViewer extends JFrame {
      * Initialisiert die Ansicht
      */
     private void initialize() {
-        this.setPreferredSize(new Dimension(700, 400));
+        this.setPreferredSize(new Dimension(1000, 400));
         this.getContentPane().setLayout(new BorderLayout());
 
         fileTable.getColumn("RO").setPreferredWidth(2);
         fileTable.getColumn("SYS").setPreferredWidth(2);
         fileTable.getColumn("XTRA").setPreferredWidth(2);
         fileTable.getColumn("User").setPreferredWidth(2);
+        fileTable.getColumn("MD5").setPreferredWidth(200);
         this.getContentPane().add(new JScrollPane(fileTable), BorderLayout.CENTER);
 
         JPanel panelButtons = new JPanel(new GridBagLayout());
@@ -121,7 +124,7 @@ public class SCPDiskViewer extends JFrame {
 
         this.getContentPane().add(panelButtons, BorderLayout.EAST);
 
-        JPanel panelLabels = new JPanel(new GridLayout(1,2));
+        JPanel panelLabels = new JPanel(new GridLayout(1, 2));
         labelDiskInfo.setHorizontalAlignment(SwingConstants.RIGHT);
         panelLabels.add(labelFileInfo);
         panelLabels.add(labelDiskInfo);
@@ -152,13 +155,14 @@ public class SCPDiskViewer extends JFrame {
 
     /**
      * Controller für SCP-Disketten Tool
-     * 
+     *
      * @author Dirk Bräuer
      */
     private class SCPDiskController implements ActionListener {
 
         /**
          * Verarbeitet ein Action-Event
+         *
          * @param e Event
          */
         @Override
@@ -202,13 +206,14 @@ public class SCPDiskViewer extends JFrame {
 
     /**
      * Tabellenmodell für SCP-Dateien
-     * 
+     *
      * @author Dirk Bräuer
      */
     private class SCPDiskTableModel extends AbstractTableModel {
 
         /**
          * Gibt die Anzahl der Zeilen zurück
+         *
          * @return Anzahl der Zeilen
          */
         @Override
@@ -218,15 +223,17 @@ public class SCPDiskViewer extends JFrame {
 
         /**
          * Gibt die Anzahl der Spalten zurück
+         *
          * @return Anzahl der Spalten
          */
         @Override
         public int getColumnCount() {
-            return 6;
+            return 7;
         }
 
         /**
          * Gibt den Spaltennamen zurück
+         *
          * @param column Spaltennummer
          * @return Spaltenname
          */
@@ -245,12 +252,14 @@ public class SCPDiskViewer extends JFrame {
                     return "User";
                 case 5:
                     return "Größe in Bytes";
+                case 6:
+                    return "MD5";
                 default:
                     throw new IllegalArgumentException("Column " + column + " existiert nicht!");
             }
         }
 
-                /**
+        /**
          * Gibt die Klasse der Spaltendaten zurück
          *
          * @param column Spaltennummer
@@ -260,6 +269,7 @@ public class SCPDiskViewer extends JFrame {
         public Class<?> getColumnClass(int column) {
             switch (column) {
                 case 0:
+                case 6:
                     return String.class;
                 case 1:
                 case 2:
@@ -273,7 +283,7 @@ public class SCPDiskViewer extends JFrame {
             }
         }
 
-                /**
+        /**
          * Gibt an ob die gewählte Zelle editierbar ist
          *
          * @param row Zeilennummer
@@ -284,7 +294,7 @@ public class SCPDiskViewer extends JFrame {
         public boolean isCellEditable(int row, int column) {
             return false;
         }
-        
+
         /**
          * Gibt das Objekt an der gegebenen Poision zurück
          *
@@ -309,11 +319,13 @@ public class SCPDiskViewer extends JFrame {
                     return file.getUser();
                 case 5:
                     return file.getData().length;
+                case 6:
+                    return file.getMD5();
                 default:
                     throw new IllegalArgumentException("Column " + column + " existiert nicht!");
             }
         }
-        
+
         /**
          * Setzt das Objekt der Zelle
          *

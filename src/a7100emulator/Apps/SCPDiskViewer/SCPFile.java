@@ -6,9 +6,15 @@
  * 
  * Letzte Änderungen:
  *   05.04.2014 Kommentare vervollständigt
+ *   27.09.2014 MD5 Summen ergänzt
  *
  */
 package a7100emulator.Apps.SCPDiskViewer;
+
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Klasse zur Verarbeitung einer SCP-Datei
@@ -45,6 +51,10 @@ public class SCPFile {
      * Inhalt der Datei
      */
     private byte[] data;
+    /**
+     * MD5 Hash
+     */
+    private String md5;
 
     /**
      * Erstellt eine neue SCP-Datei
@@ -120,6 +130,15 @@ public class SCPFile {
     }
 
     /**
+     * Gibt die MD5 Prüfsumme zurück
+     *
+     * @return MD5 Prüfsumme
+     */
+    String getMD5() {
+        return md5;
+    }
+
+    /**
      * Setzt den Schreibschutz der Datei
      *
      * @param readOnlyFile true - wenn schreibgeschützt , false - sonst
@@ -162,6 +181,19 @@ public class SCPFile {
      */
     void setData(byte[] data) {
         this.data = data;
+        try {
+            MessageDigest md5 = MessageDigest.getInstance("MD5");
+            md5.reset();
+            md5.update(data);
+            byte[] digest = md5.digest();
+            String digestString = "";
+            for (byte b : digest) {
+                digestString += String.format("%02X", b);
+            }
+            this.md5 = digestString;
+        } catch (NoSuchAlgorithmException ex) {
+            Logger.getLogger(SCPFile.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }
 
     /**
@@ -199,5 +231,14 @@ public class SCPFile {
      */
     void setExtra(boolean extra) {
         this.extra = extra;
+    }
+
+    /**
+     * Setzt die MD5 Prüfsumme
+     *
+     * @param MD5 MD5 Prüfsumme
+     */
+    void setMD5(String md5) {
+        this.md5 = md5;
     }
 }

@@ -119,11 +119,11 @@ public class K580WN59A {
             if (getBit(data, 3)) {
                 // OCW3
                 ocw3 = data;
-                //   System.out.println("Setze OCW3 " + Integer.toBinaryString(ocw3));
+                //System.out.println("Setze OCW3 " + Integer.toBinaryString(ocw3));
             } else {
                 // OCW2
                 ocw2 = data;
-                System.out.println("Setze OCW2 " + Integer.toBinaryString(ocw2));
+                //System.out.println("Setze OCW2 " + Integer.toBinaryString(ocw2));
             }
         }
     }

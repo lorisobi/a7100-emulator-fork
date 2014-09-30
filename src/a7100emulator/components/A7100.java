@@ -46,6 +46,10 @@ public class A7100 {
     /**
      * KGS-Modul
      */
+   // private KGS kgs = new KGS();
+    /**
+     * KGS-Modul
+     */
     private KGS kgs = new KGS();
     /**
      * KES-Modul
@@ -61,6 +65,7 @@ public class A7100 {
      */
     public A7100() {
         zve.start();
+        kgs.start();
     }
 
     /**
@@ -112,7 +117,7 @@ public class A7100 {
             ops1.saveState(dos);
             ops2.saveState(dos);
             ops3.saveState(dos);
-            kgs.saveState(dos);
+            //kgs.saveState(dos);
             kes.saveState(dos);
 
             InterruptSystem.getInstance().saveState(dos);
@@ -146,7 +151,7 @@ public class A7100 {
             ops1.loadState(dis);
             ops2.loadState(dis);
             ops3.loadState(dis);
-            kgs.loadState(dis);
+            //kgs.loadState(dis);
             kes.loadState(dis);
 
             InterruptSystem.getInstance().loadState(dis);
@@ -180,7 +185,7 @@ public class A7100 {
         ops1 = new OPS();
         ops2 = new OPS();
         ops3 = new OPS();
-        kgs = new KGS();
+        //kgs = new KGS();
         kes = new KES();
         asp = null;
 

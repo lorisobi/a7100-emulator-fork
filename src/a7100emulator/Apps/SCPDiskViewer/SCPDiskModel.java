@@ -16,12 +16,15 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
  * Modell des SCP-Disketten Tools
+ *
  * @author Dirk Bräuer
  */
 public class SCPDiskModel {
@@ -53,10 +56,11 @@ public class SCPDiskModel {
     /**
      * Inhalt des Bootloaders
      */
-    private final byte[] bootloader=new byte[0x1A00];
+    private final byte[] bootloader = new byte[0x1A00];
 
     /**
      * Gibt die Liste der SCP-Dateien zurück
+     *
      * @return Dateien
      */
     ArrayList<SCPFile> getFiles() {
@@ -65,6 +69,7 @@ public class SCPDiskModel {
 
     /**
      * Setzt die Ansicht
+     *
      * @param view Ansicht
      */
     public void setView(SCPDiskViewer view) {
@@ -73,6 +78,7 @@ public class SCPDiskModel {
 
     /**
      * Liest ein Diskettenabbild ein
+     *
      * @param image Abbild
      */
     void readImage(File image) {
@@ -85,9 +91,9 @@ public class SCPDiskModel {
             files.clear();
 
             imageName = image.getAbsolutePath();
-            usedBlocks=0;
+            usedBlocks = 0;
             System.arraycopy(buffer, 0, bootloader, 0, bootloader.length);
-            
+
             byte[] fcb = new byte[32];
             for (int index = DIRECTORY_OFFSET; index < DIRECTORY_OFFSET + DIRECTORY_LENGTH; index += 32) {
                 System.arraycopy(buffer, index, fcb, 0, 32);
@@ -118,10 +124,9 @@ public class SCPDiskModel {
                                 System.arraycopy(buffer, address, fileData, ((i - 16) / 2) * 0x800, remainBlocks > 15 ? 0x800 : remainBlocks * 0x80);
                                 remainBlocks -= 16;
                             }
-
                         }
-
                         scpFile.setData(fileData);
+
                         files.add(scpFile);
                     } else {
                         // Nicht erster Teil einer Datei
@@ -149,7 +154,7 @@ public class SCPDiskModel {
                 }
             }
             view.updateView();
-            System.out.println(usedBlocks+":"+usedBlocks*2048);
+            System.out.println(usedBlocks + ":" + usedBlocks * 2048);
         } catch (IOException ex) {
             Logger.getLogger(SCPDiskModel.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -157,6 +162,7 @@ public class SCPDiskModel {
 
     /**
      * Gibt den Namen des Abbilds zurück
+     *
      * @return Name
      */
     String getImageName() {
@@ -165,6 +171,7 @@ public class SCPDiskModel {
 
     /**
      * Speichert eine SCP-Datei
+     *
      * @param index Nummer der Datei
      * @param file Ausgabedatei
      */
@@ -183,6 +190,7 @@ public class SCPDiskModel {
 
     /**
      * Speichert alle Dateien des Abbildes
+     *
      * @param directory Verzeichniss für Ausgabe
      */
     void saveAllFiles(File directory) {
@@ -196,19 +204,21 @@ public class SCPDiskModel {
                 System.out.println("Datei " + filename + " existiert bereits!");
             }
         }
-        saveBootloader(new File(directory.getAbsolutePath() + File.separator+"bootloader"));
+        saveBootloader(new File(directory.getAbsolutePath() + File.separator + "bootloader"));
     }
 
     /**
      * Gibt die Disketteninformationen zurück
+     *
      * @return Disketteninformationen
      */
     String getDiskInfo() {
-        return usedBlocks*2+"K belegt,"+(620-usedBlocks*2)+"K frei";
+        return usedBlocks * 2 + "K belegt," + (620 - usedBlocks * 2) + "K frei";
     }
-    
+
     /**
      * Speichert den Bootloader
+     *
      * @param file Ausgabedatei
      */
     void saveBootloader(File file) {
@@ -220,6 +230,6 @@ public class SCPDiskModel {
         } catch (IOException ex) {
             Logger.getLogger(SCPDiskModel.class.getName()).log(Level.SEVERE, null, ex);
         }
-        
+
     }
 }
