@@ -6,6 +6,7 @@
  * 
  * Letzte Änderungen:
  *   01.04.2014 Kommentare vervollständigt
+ *   17.11.2014 Starten der Systemzeit implementiert
  *
  */
 package a7100emulator.components;
@@ -64,8 +65,16 @@ public class A7100 {
      * Erstellt einen neuen virtuellen A7100 und startet ihn
      */
     public A7100() {
-        zve.start();
-        kgs.start();
+        startGlobalClock();
+    }
+
+    /**
+     * Startet die Systemzeit
+     */
+    private void startGlobalClock() {
+        Thread clockThread;
+        clockThread = new Thread(GlobalClock.getInstance(), "Global Clock");
+        clockThread.start();
     }
 
     /**
@@ -113,6 +122,8 @@ public class A7100 {
         try {
             DataOutputStream dos = new DataOutputStream(new FileOutputStream("./state/state.a7100"));
 
+            // TODO: Speichern der Module ZPS, ASP, KGS
+            
             zve.saveState(dos);
             ops1.saveState(dos);
             ops2.saveState(dos);
@@ -147,6 +158,8 @@ public class A7100 {
         try {
             DataInputStream dis = new DataInputStream(new FileInputStream("./state/state.a7100"));
 
+            // TODO: Laden der Module ZPS, ASP, KGS
+            
             zve.loadState(dis);
             ops1.loadState(dis);
             ops2.loadState(dis);
@@ -190,5 +203,31 @@ public class A7100 {
         asp = null;
 
         zve.start();
+    }
+
+    /**
+     * Pausiert den A7100
+     */
+    public void pause() {
+        GlobalClock.getInstance().pause();
+    }
+
+    /**
+     * Lässt den A7100 weiterlaufen
+     */
+    public void resume() {
+        synchronized (GlobalClock.getInstance()) {
+            GlobalClock.getInstance().resume();
+            GlobalClock.getInstance().notify();
+        }
+    }
+    
+    /**
+     * Führt einen einzelnen Zeitschritt durch
+     */
+    public void singleStep() {
+        synchronized (GlobalClock.getInstance()) {
+            GlobalClock.getInstance().notify();
+        }
     }
 }

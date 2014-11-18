@@ -5,7 +5,7 @@
  * (c) 2011-2014 Dirk Bräuer
  * 
  * Letzte Änderungen:
- *   05.04.2014 Kommentare vervollständigt
+ *   05.04.2014 - Kommentare vervollständigt
  *
  */
 package a7100emulator.Tools;
@@ -26,10 +26,13 @@ import javax.sound.sampled.Line;
  */
 public class Beep {
 
+    /**
+     * Abzuspielendes Sample
+     */
     private Clip c = null;
 
     /**
-     *
+     * Gibt einen Ton aus
      */
     public Beep() {
         try {
@@ -41,6 +44,12 @@ public class Beep {
         }
     }
 
+    /**
+     * Erzeugt einen Ton mit den angegebenen Parametern
+     * @param frequency Frequenz
+     * @param af Audioformat
+     * @return Byte-Array mit Samples
+     */
     private static byte[] getSinusTone(int frequency, AudioFormat af) {
         byte sample_size = (byte) (af.getSampleSizeInBits() / 8);
         byte[] data = new byte[(int) af.getSampleRate() * sample_size];
@@ -60,7 +69,7 @@ public class Beep {
     }
 
     /**
-     *
+     * Spielt den Ton ab
      */
     public synchronized void play() {
         c.start();

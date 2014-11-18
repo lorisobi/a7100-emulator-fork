@@ -14,12 +14,12 @@ package a7100emulator;
 
 import a7100emulator.Apps.SCPDiskViewer.SCPDiskModel;
 import a7100emulator.Apps.SCPDiskViewer.SCPDiskViewer;
-import a7100emulator.Debug.Debugger;
 import a7100emulator.Debug.Decoder;
 import a7100emulator.Debug.MemoryAnalyzer;
 import a7100emulator.Debug.OpcodeStatistic;
 import a7100emulator.components.A7100;
 import a7100emulator.Tools.FloppyImageType;
+import a7100emulator.components.system.GlobalClock;
 import a7100emulator.components.system.Keyboard;
 import a7100emulator.components.system.MMS16Bus;
 import a7100emulator.components.system.Screen;
@@ -326,13 +326,13 @@ public class MainView extends JFrame {
                 a7100.reset();
             } else if (e.getSource().equals(menuEmulatorPause)) {
                 if (menuEmulatorPause.isSelected()) {
-                    a7100.getZVE().pause();
+                    a7100.pause();
                 } else {
-                    a7100.getZVE().resume();
+                    a7100.resume();
                 }
                 menuEmulatorSingle.setEnabled(menuEmulatorPause.isSelected());
             } else if (e.getSource().equals(menuEmulatorSingle)) {
-                a7100.getZVE().singleStep();
+                a7100.singleStep();
             } else if (e.getSource().equals(menuEmulatorSave)) {
                 a7100.saveState();
             } else if (e.getSource().equals(menuEmulatorLoad)) {
@@ -349,7 +349,8 @@ public class MainView extends JFrame {
                 Decoder.getInstance().save();
             } else if (e.getSource() == menuDebugDebuggerSwitch) {
                 boolean debug = menuDebugDebuggerSwitch.isSelected();
-//                Debugger.getInstance().setDebug(debug);
+a7100.getZVE().setDebug(debug);
+a7100.getKGS().setDebug(debug);
                 if (debug) {
                     Decoder.getInstance().clear();
                 }

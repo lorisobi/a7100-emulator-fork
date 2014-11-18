@@ -5,11 +5,13 @@
  * (c) 2011-2014 Dirk Bräuer
  * 
  * Letzte Änderungen:
- *   03.04.2014 Kommentare vervollständigt
+ *   03.04.2014 - Kommentare vervollständigt
+ *   18.11.2014 - getBit durch BitTest.getBit ersetzt
  *
  */
 package a7100emulator.components.ic;
 
+import a7100emulator.Tools.BitTest;
 import a7100emulator.components.system.InterruptSystem;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -84,21 +86,21 @@ public class KR580WW55A {
      */
     public void writeInit(int control) {
 //        System.out.println("Out Control: " + Integer.toHexString(control)+"/"+Integer.toBinaryString(control));
-        if (getBit(control, 7)) {
+        if (BitTest.getBit(control, 7)) {
             // Configure Mode
-            group_a_mode = getBit(control, 6) ? 2 : (getBit(control, 5) ? 1 : 0);
-            group_b_mode = getBit(control, 2) ? 1 : 0;
-            port_a_in_out = getBit(control, 4) ? In_Out.INPUT : In_Out.OUTPUT;
-            port_b_in_out = getBit(control, 1) ? In_Out.INPUT : In_Out.OUTPUT;
-            port_c_lower_in_out = getBit(control, 0) ? In_Out.INPUT : In_Out.OUTPUT;
-            port_c_higher_in_out = getBit(control, 3) ? In_Out.INPUT : In_Out.OUTPUT;
+            group_a_mode = BitTest.getBit(control, 6) ? 2 : (BitTest.getBit(control, 5) ? 1 : 0);
+            group_b_mode = BitTest.getBit(control, 2) ? 1 : 0;
+            port_a_in_out = BitTest.getBit(control, 4) ? In_Out.INPUT : In_Out.OUTPUT;
+            port_b_in_out = BitTest.getBit(control, 1) ? In_Out.INPUT : In_Out.OUTPUT;
+            port_c_lower_in_out = BitTest.getBit(control, 0) ? In_Out.INPUT : In_Out.OUTPUT;
+            port_c_higher_in_out = BitTest.getBit(control, 3) ? In_Out.INPUT : In_Out.OUTPUT;
         } else {
             // Bit set Mode
-            int bit = 0 + (getBit(control, 1) ? 1 : 0) + (getBit(control, 2) ? 2 : 0) + (getBit(control, 3) ? 4 : 0);
-            boolean oldState = getBit(bits, bit);
-            boolean newState = getBit(control, 0);
+            int bit = 0 + (BitTest.getBit(control, 1) ? 1 : 0) + (BitTest.getBit(control, 2) ? 2 : 0) + (BitTest.getBit(control, 3) ? 4 : 0);
+            boolean oldState = BitTest.getBit(bits, bit);
+            boolean newState = BitTest.getBit(control, 0);
 
-            if (getBit(control, 0)) {
+            if (BitTest.getBit(control, 0)) {
                 bits = bits | (0xFF & (0x01 << bit));
             } else {
                 bits = bits & (0xFF & (0x00 << bit));
@@ -194,17 +196,6 @@ public class KR580WW55A {
      */
     public int readPortC() {
         return 0;
-    }
-
-    /**
-     * Gibt an ob ein Bit des Operanden gesetzt ist
-     *
-     * @param op Operand
-     * @param i Zu prüfendes Bit
-     * @return true - wenn Bit gesetzt, false - sonst
-     */
-    private boolean getBit(int op, int i) {
-        return (((op >> i) & 0x1) == 0x1);
     }
 
     /**

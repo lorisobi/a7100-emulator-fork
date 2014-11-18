@@ -1,12 +1,16 @@
 /*
- * KGS_new.java
+ * KGS.java
  * 
  * Diese Datei gehört zum Projekt A7100 Emulator 
  * (c) 2011-2014 Dirk Bräuer
  * 
  * Letzte Änderungen:
- *   07.08.2014 Erste Version aus KGS.java kopiert
- *   09.08.2014 Zugriffe auf SystemMemory, SystemPorts und SystemClock durch MMS16Bus ersetzt
+ *   07.08.2014 - Erste Version aus KGS.java kopiert
+ *   09.08.2014 - Zugriffe auf SystemMemory, SystemPorts und SystemClock 
+ *                durch MMS16Bus ersetzt
+ *   30.09.2014 - Umbenannt in KGS
+ *              - Kommentare vervollständigt
+ *              - Darstellung funktionstüchtig
  *
  */
 package a7100emulator.components.modules;
@@ -16,6 +20,7 @@ import a7100emulator.Tools.Memory;
 import a7100emulator.components.ic.UA856;
 import a7100emulator.components.ic.UA857;
 import a7100emulator.components.ic.UA880;
+import a7100emulator.components.system.GlobalClock;
 import a7100emulator.components.system.MMS16Bus;
 import java.awt.Dimension;
 import java.awt.Graphics;
@@ -32,16 +37,13 @@ import javax.swing.JOptionPane;
 
 /**
  * Klasse zur Abbildung der KGS (Kontroller für grafisches Subsytem)
- * <p>
- * TODO: Diese Klasse ist die Neuimplementierung von KGS.java und soll diese
- * vollständig ersetzen
  *
  * @author Dirk Bräuer
  */
 public final class KGS implements IOModule, ClockModule {
 
     /**
-     * Arbeistspeicher der KGS
+     * Arbeitspeicher der KGS
      */
     private final Memory ram = new Memory(0x10000);
 
@@ -151,34 +153,28 @@ public final class KGS implements IOModule, ClockModule {
      */
     private ABG abg;
     /**
-     * Gibt den aktuellen Zähler für Interrupt-Weietrgabe an
-     */
-    private long interruptClock = 0;
-    /**
-     * Gibt an ob auf einen Interrupt der KGS gewartet wird
-     */
-    private boolean interruptWaiting = false;
-    /**
      * Select Byte 0
      */
-    private final int selectByte0 = 0x03;
+    private int selectByte0 = 0x03;
     /**
      * Select Byte 1
      */
-    private final int selectByte1 = 0x1C;
-
+    private int selectByte1 = 0x1C;
     /**
      * UA880 CPU der KGS
      */
-    private UA880 cpu = new UA880(this);
+    private final UA880 cpu = new UA880(this);
     /**
      * UA856 SIO der KGS
      */
-    private UA856 sio = new UA856();
+    private final UA856 sio = new UA856();
     /**
      * UA857 CTC der KGS
      */
-    private UA857 ctc = new UA857();
+    private final UA857 ctc = new UA857(this);
+    /**
+     * Memory-Select-Register
+     */
     private int msel;
 
     /**
@@ -198,13 +194,13 @@ public final class KGS implements IOModule, ClockModule {
     }
 
     /**
-     * Gibt ein Byte auf einem Port aus
+     * Gibt ein Byte auf einem Systemport aus
      *
      * @param port Port
      * @param data Daten
      */
     @Override
-    public void writePort_Byte(int port, int data) {
+    public void writePortByte(int port, int data) {
         //System.out.println("OUT Byte " + Integer.toHexString(data) + "(" + Integer.toBinaryString(data) + ","+((data>=0x20)?(char)data:"-")+")" + " to port " + Integer.toHexString(port));
         switch (port) {
             case PORT_KGS_STATE:
@@ -214,7 +210,7 @@ public final class KGS implements IOModule, ClockModule {
             case PORT_KGS_DATA:
                 dataIn = data;
                 setBit(IBF_BIT);
-                System.out.println("Ausgabe "+String.format("%02X",data)+" ("+((data>0x20)?(char)data:" ")+") Speicher:"+String.format("%04X",ram.readWord(0x2805)));
+                //System.out.println("Ausgabe " + String.format("%02X", data) + " (" + ((data > 0x20) ? (char) data : " ") + ") Speicher:" + String.format("%04X", ram.readWord(0x2805)));
                 break;
         }
     }
@@ -226,8 +222,8 @@ public final class KGS implements IOModule, ClockModule {
      * @param data Daten
      */
     @Override
-    public void writePort_Word(int port, int data) {
-        writePort_Byte(port, data);
+    public void writePortWord(int port, int data) {
+        writePortByte(port, data);
     }
 
     /**
@@ -237,7 +233,7 @@ public final class KGS implements IOModule, ClockModule {
      * @return gelesenes Byte
      */
     @Override
-    public int readPort_Byte(int port) {
+    public int readPortByte(int port) {
         int result = 0;
         switch (port) {
             case PORT_KGS_STATE:
@@ -245,6 +241,7 @@ public final class KGS implements IOModule, ClockModule {
                 break;
             case PORT_KGS_DATA:
                 result = dataOut;
+                System.out.println("Lese Byte von KGS: " + String.format("%02X", dataOut) + " " + Integer.toBinaryString(dataOut));
                 clearBit(OBF_BIT);
                 clearBit(INT_BIT);
                 break;
@@ -260,10 +257,16 @@ public final class KGS implements IOModule, ClockModule {
      * @return gelesenes Wort
      */
     @Override
-    public int readPort_Word(int port) {
-        return readPort_Byte(port);
+    public int readPortWord(int port) {
+        return readPortByte(port);
     }
 
+    /**
+     * Liest ein Byte von einem Lokalen Port
+     *
+     * @param port Port
+     * @return gelesenes Byte
+     */
     public int readLocalPort(int port) {
         switch (port) {
             case LOCAL_PORT_CTC_CHANNEL_0:
@@ -306,6 +309,12 @@ public final class KGS implements IOModule, ClockModule {
         return 0;
     }
 
+    /**
+     * Gibt ein Byte auf einem lokalen Port aus
+     *
+     * @param port Port
+     * @param data Daten
+     */
     public void writeLocalPort(int port, int data) {
         switch (port) {
             case LOCAL_PORT_CTC_CHANNEL_0:
@@ -322,12 +331,14 @@ public final class KGS implements IOModule, ClockModule {
                 break;
             case LOCAL_PORT_SIO_DATA_A:
                 sio.writeData(0, data);
+                System.out.println("Schreibe Kanal A:" + String.format("%02X", data));
                 break;
             case LOCAL_PORT_SIO_CONTROL_A:
                 sio.writeControl(0, data);
                 break;
             case LOCAL_PORT_SIO_DATA_B:
                 sio.writeData(1, data);
+                System.out.println("Schreibe Kanal B:" + String.format("%02X", data));
                 break;
             case LOCAL_PORT_SIO_CONTROL_B:
                 sio.writeControl(1, data);
@@ -365,6 +376,14 @@ public final class KGS implements IOModule, ClockModule {
         }
     }
 
+    /**
+     * Schreibt ein Wort in den Arbeitsspeicher der KGS/ABG. Abhängig vom
+     * eingestellten Memory-Select-Register werden die Daten in den lokalen RAM
+     * des KGS oder in den Bildwiederholspeicher der ABG geschrieben.
+     *
+     * @param address Adresse
+     * @param data Daten
+     */
     public void writeMemoryWord(int address, int data) {
         // Zugriffe auf lokalen KGS-Ram
         if (address <= 0x7FFF || msel == 0) {
@@ -374,6 +393,14 @@ public final class KGS implements IOModule, ClockModule {
         }
     }
 
+    /**
+     * Schreibt ein Byte in den Arbeitsspeicher der KGS/ABG. Abhängig vom
+     * eingestellten Memory-Select-Register werden die Daten in den lokalen RAM
+     * des KGS oder in den Bildwiederholspeicher der ABG geschrieben.
+     *
+     * @param address Adresse
+     * @param data Daten
+     */
     public void writeMemoryByte(int address, int data) {
         // Zugriffe auf lokalen KGS-Ram
         if (address <= 0x7FFF || msel == 0) {
@@ -383,6 +410,14 @@ public final class KGS implements IOModule, ClockModule {
         }
     }
 
+    /**
+     * Liest ein Wort aus dem Arbeitsspeicher der KGS/ABG. Abhängig vom
+     * eingestellten Memory-Select-Register werden die Daten aus dem lokalen RAM
+     * des KGS oder aus dem Bildwiederholspeicher der ABG gelesen.
+     *
+     * @param address Adresse
+     * @return gelesenes Wort
+     */
     public int readMemoryWord(int address) {
         // Zugriffe auf lokalen KGS-Ram
         if (address <= 0x7FFF || msel == 0) {
@@ -392,6 +427,14 @@ public final class KGS implements IOModule, ClockModule {
         }
     }
 
+    /**
+     * Liest ein Byte aus dem Arbeitsspeicher der KGS/ABG. Abhängig vom
+     * eingestellten Memory-Select-Register werden die Daten aus dem lokalen RAM
+     * des KGS oder aus dem Bildwiederholspeicher der ABG gelesen.
+     *
+     * @param address Adresse
+     * @return gelesenes Wort
+     */
     public int readMemoryByte(int address) {
         // Zugriffe auf lokalen KGS-Ram
         if (address <= 0x7FFF || msel == 0) {
@@ -401,6 +444,10 @@ public final class KGS implements IOModule, ClockModule {
         }
     }
 
+    /**
+     * Reicht die Anforderung einen nichtmaskierbaren Interrupt zu verarbeiten
+     * an die CPU weiter
+     */
     void requestNMI() {
         if (!sio.isDiagnose()) {
             cpu.requestNMI();
@@ -447,7 +494,7 @@ public final class KGS implements IOModule, ClockModule {
      */
     @Override
     public void registerClocks() {
-        MMS16Bus.getInstance().registerClockModule(this);
+        GlobalClock.getInstance().registerModule(this);
     }
 
     /**
@@ -457,13 +504,10 @@ public final class KGS implements IOModule, ClockModule {
      */
     @Override
     public void clockUpdate(int amount) {
-        if (interruptWaiting) {
-            interruptClock += amount;
-            if (interruptClock > 20) {
-                interruptWaiting = false;
-                MMS16Bus.getInstance().requestInterrupt(7);
-            }
-        }
+        amount = 4000;
+        cpu.updateClock(amount);
+        ctc.updateClock(amount);
+        sio.updateClock(amount);
     }
 
     /**
@@ -514,10 +558,16 @@ public final class KGS implements IOModule, ClockModule {
      */
     @Override
     public void saveState(DataOutputStream dos) throws IOException {
-        dos.writeInt(state);
-        dos.writeLong(interruptClock);
-        dos.writeBoolean(interruptWaiting);
         ram.saveMemory(dos);
+        dos.writeInt(state);
+        dos.writeInt(dataIn);
+        dos.writeInt(dataOut);
+        dos.writeInt(selectByte0);
+        dos.writeInt(selectByte1);
+        dos.writeInt(msel);
+        cpu.saveState(dos);
+        sio.saveState(dos);
+        ctc.saveState(dos);
         abg.saveState(dos);
     }
 
@@ -529,15 +579,45 @@ public final class KGS implements IOModule, ClockModule {
      */
     @Override
     public void loadState(DataInputStream dis) throws IOException {
-        state = dis.readInt();
-        interruptClock = dis.readLong();
-        interruptWaiting = dis.readBoolean();
         ram.loadMemory(dis);
+        state = dis.readInt();
+        dataIn = dis.readInt();
+        dataOut = dis.readInt();
+        selectByte0 = dis.readInt();
+        selectByte1 = dis.readInt();
+        msel = dis.readInt();
+        cpu.loadState(dis);
+        sio.loadState(dis);
+        ctc.loadState(dis);
         abg.loadState(dis);
     }
 
+    /**
+     * Startet die Abarbeitung durch die CPU
+     * <p>
+     * TODO: Ggf. entfernen
+     */
     public void start() {
-        Thread cpuThread = new Thread(cpu, "UA880 KGS");
-        cpuThread.start();
+        //    Thread cpuThread = new Thread(cpu, "UA880 KGS");
+        //    cpuThread.start();
+    }
+
+    /**
+     * Leitet die Anfrage der Interruptbehandlung an die CPU weiter
+     *
+     * @param i Interruptnummer
+     */
+    public void requestInterrupt(int i) {
+        System.out.println("Interrupt " + i + " auf KGS!");
+        cpu.requestInterrupt(i);
+    }
+
+    /**
+     * Aktiviert oder deaktiviert den Debugger der CPU
+     *
+     * @param debug true - Aktivieren, false - Deaktivieren
+     */
+    public void setDebug(boolean debug) {
+        cpu.setDebug(debug);
     }
 }

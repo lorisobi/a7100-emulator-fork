@@ -131,7 +131,7 @@ public final class OPS implements IOModule, MemoryModule {
      * @param data Daten
      */
     @Override
-    public void writePort_Byte(int port, int data) {
+    public void writePortByte(int port, int data) {
         if (data == 0) {
             parity = Parity.EVEN;
         } else {
@@ -147,7 +147,7 @@ public final class OPS implements IOModule, MemoryModule {
      * @param data Daten
      */
     @Override
-    public void writePort_Word(int port, int data) {
+    public void writePortWord(int port, int data) {
         //System.out.println("write Word auf OPS Port nicht implementiert");
     }
 
@@ -158,7 +158,7 @@ public final class OPS implements IOModule, MemoryModule {
      * @return gelesenes Byte
      */
     @Override
-    public int readPort_Byte(int port) {
+    public int readPortByte(int port) {
         return state;
     }
 
@@ -169,7 +169,7 @@ public final class OPS implements IOModule, MemoryModule {
      * @return gelesenes Wort
      */
     @Override
-    public int readPort_Word(int port) {
+    public int readPortWord(int port) {
         //System.out.println("read Word auf OPS Port nicht implementiert");
         return 0;
     }

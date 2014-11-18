@@ -6,6 +6,7 @@
  * 
  * Letzte Änderungen:
  *   07.08.2014 Erstellt
+ *   16.11.2014 Clock-Funktionalität entfernt
  *
  */
 package a7100emulator.components.system;
@@ -44,17 +45,13 @@ public class MMS16Bus {
      */
     private final HashMap<Integer, IOModule> ioModules = new HashMap();
     /**
-     * Liste der Module, welche den Systemtakt verwendet
-     */
-    private final LinkedList<ClockModule> clockModules = new LinkedList<ClockModule>();
-    /**
      * Größte mögliche Speicheradresse
      */
     private static final int MAX_ADDRESS = 0xFFFFF;
     /**
-     * Taktzähler
+     * Timeout
      */
-    private long clock = 0;
+    private boolean timeout = false;
     /**
      * Singleton Instanz des Systembusses
      */
@@ -98,14 +95,6 @@ public class MMS16Bus {
         ioModules.put(port, module);
     }
 
-    /**
-     * Registriert ein Modul, auf Änderungen der Systemzeit zu reagieren
-     *
-     * @param module Modul
-     */
-    public void registerClockModule(ClockModule module) {
-        clockModules.add(module);
-    }
 
     /**
      * Fordert einen Interrupt auf dem Systembus an
@@ -133,7 +122,7 @@ public class MMS16Bus {
                 return memoryModules.get(addressSpace);
             }
         }
-        updateClock(0xC000);
+        timeout = true;
         return null;
     }
 
@@ -224,9 +213,9 @@ public class MMS16Bus {
     public void writeIOByte(int port, int value) {
         IOModule module = ioModules.get(port);
         if (module == null) {
-            updateClock(0xC000);
+            timeout = true;
         } else {
-            module.writePort_Byte(port, 0xFF & value);
+            module.writePortByte(port, 0xFF & value);
         }
     }
 
@@ -239,10 +228,10 @@ public class MMS16Bus {
     public int readIOByte(int port) {
         IOModule module = ioModules.get(port);
         if (module == null) {
-            updateClock(0xC000);
+            timeout = true;
             return 0x00;
         } else {
-            return module.readPort_Byte(port);
+            return module.readPortByte(port);
         }
     }
 
@@ -255,9 +244,9 @@ public class MMS16Bus {
     public void writeIOWord(int port, int value) {
         IOModule module = ioModules.get(port);
         if (module == null) {
-            updateClock(0xC000);
+            timeout = true;
         } else {
-            module.writePort_Word(port, 0xFFFF & value);
+            module.writePortWord(port, 0xFFFF & value);
         }
     }
 
@@ -270,63 +259,28 @@ public class MMS16Bus {
     public int readIOWord(int port) {
         IOModule module = ioModules.get(port);
         if (module == null) {
-            updateClock(0xC000);
+            timeout = true;
             return 0xFF;
         }
-        return module.readPort_Word(port);
+        return module.readPortWord(port);
     }
 
     /**
-     * Aktualisiert den Taktgeber und benachrichtigt die registrierten Module
-     *
-     * @param amount Anzahl der Ticks
-     */
-    public void updateClock(int amount) {
-        updateModules(amount);
-        clock += amount;
-//        if ((clock - lastSync) > 196600) {
-//            lastSync = clock;
-//            long time = System.currentTimeMillis();
-//            long diff = time - timeSync;
-//            timeSync = time;
-//            if (diff < 40) {
-//                try {
-//                    Thread.sleep(40 - diff);
-//                } catch (InterruptedException ex) {
-//                }
-//            }
-//        }
-    }
-
-    /**
-     * Meldet die geänderte Systemzeit an die registrierten Module weiter
-     *
-     * @param amount Anzahl der Ticks
-     */
-    private void updateModules(int amount) {
-        for (ClockModule module : clockModules) {
-            module.clockUpdate(amount);
-        }
-    }
-
-    /**
-     * Speichert den Zustand des Taktgebers in einer Datei
+     * Speichert des Systembusses in einer Datei
      *
      * @param dos Stream zur Datei
      * @throws IOException Wenn Schreiben nicht erfolgreich war
      */
     public void saveState(DataOutputStream dos) throws IOException {
-        dos.writeLong(clock);
     }
 
     /**
-     * Lädt den Zustand des Systemtaktgebers aus einer Datei
+     * Lädt den Zustand des Systembusses aus einer Datei
      *
      * @param dis Stream zur Datei
      * @throws IOException Wenn Laden nicht erfolgreich war
      */
     public void loadState(DataInputStream dis) throws IOException {
-        clock = dis.readLong();
     }
 
     /**
@@ -335,8 +289,23 @@ public class MMS16Bus {
     public void reset() {
         memoryModules.clear();
         ioModules.clear();
-        clock = 0;
-        clockModules.clear();
+    }
+
+    /**
+     * Gibt an, ob bei dem letzten Schreib- oder Lesevorgang ein Timeout
+     * aufgetreten ist
+     *
+     * @return true - bei Timeout, false - sonst
+     */
+    public boolean isTimeout() {
+        return timeout;
+    }
+
+    /**
+     * Löscht den Timeout
+     */
+    public void clearTimeout() {
+        timeout = false;
     }
 
 }

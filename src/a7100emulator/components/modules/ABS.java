@@ -16,7 +16,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 
 /**
- * Klasse zur Abbildung der ABS (Alphanumerische Bildschirmsteuerung) 
+ * Klasse zur Abbildung der ABS (Alphanumerische Bildschirmsteuerung)
  * <p>
  * TODO: Diese Klasse ist noch nicht vollständig implementiert
  *
@@ -24,11 +24,17 @@ import java.io.IOException;
  */
 public class ABS implements IOModule {
 
+    /**
+     * Port ABS-Zustand
+     */
     private final static int PORT_ABS_STATE = 0x200;
+    /**
+     * Port ABS-Daten
+     */
     private final static int PORT_ABS_DATA = 0x202;
 
     /**
-     *
+     * Registriert die Ports am Systembus
      */
     @Override
     public void registerPorts() {
@@ -37,12 +43,13 @@ public class ABS implements IOModule {
     }
 
     /**
+     * Gibt ein Byte auf einem Port aus
      *
-     * @param port
-     * @param data
+     * @param port Port
+     * @param data Daten
      */
     @Override
-    public void writePort_Byte(int port, int data) {
+    public void writePortByte(int port, int data) {
         switch (port) {
             case PORT_ABS_STATE:
                 break;
@@ -52,12 +59,13 @@ public class ABS implements IOModule {
     }
 
     /**
+     * Gibt ein Wort auf einem Port aus
      *
-     * @param port
-     * @param data
+     * @param port Port
+     * @param data Daten
      */
     @Override
-    public void writePort_Word(int port, int data) {
+    public void writePortWord(int port, int data) {
         switch (port) {
             case PORT_ABS_STATE:
                 break;
@@ -67,28 +75,13 @@ public class ABS implements IOModule {
     }
 
     /**
+     * Liest ein byte von einem Port
      *
-     * @param port
-     * @return
+     * @param port Port
+     * @return gelesenes Byte
      */
     @Override
-    public int readPort_Byte(int port) {
-        switch (port) {
-            case PORT_ABS_STATE:
-                break;
-            case PORT_ABS_DATA:
-                break;
-        }
-        return 0;
-    }
-
-    /**
-     *
-     * @param port
-     * @return
-     */
-    @Override
-    public int readPort_Word(int port) {
+    public int readPortByte(int port) {
         switch (port) {
             case PORT_ABS_STATE:
                 break;
@@ -99,7 +92,24 @@ public class ABS implements IOModule {
     }
 
     /**
+     * Liest ein Wort von einem Port
      *
+     * @param port Port
+     * @return gelesenes Wort
+     */
+    @Override
+    public int readPortWord(int port) {
+        switch (port) {
+            case PORT_ABS_STATE:
+                break;
+            case PORT_ABS_DATA:
+                break;
+        }
+        return 0;
+    }
+
+    /**
+     * Initialisiert die ABS
      */
     @Override
     public void init() {
@@ -107,19 +117,20 @@ public class ABS implements IOModule {
     }
 
     /**
+     * Schreibt den Zustand der ABS in eine Datei
      *
-     * @param dos
-     * @throws IOException
-     */
-    @Override
+     * @param dos Stream zur Datei
+     * @throws IOException Wenn Schreiben nicht erfolgreich war
+     */    @Override
     public void saveState(DataOutputStream dos) throws IOException {
         throw new UnsupportedOperationException("Not supported yet.");
     }
 
     /**
+     * Liest den Zustand der ABS aus einer Datei
      *
-     * @param dis
-     * @throws IOException
+     * @param dis Stream zur Datei
+     * @throws IOException Wenn Lesen nicht erfolgreich war
      */
     @Override
     public void loadState(DataInputStream dis) throws IOException {

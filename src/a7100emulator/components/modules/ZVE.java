@@ -19,6 +19,7 @@ import a7100emulator.components.ic.K580WN59A;
 import a7100emulator.components.ic.KR580WI53;
 import a7100emulator.components.ic.KR580WM51A;
 import a7100emulator.components.ic.KR580WW55A;
+import a7100emulator.components.system.GlobalClock;
 import a7100emulator.components.system.MMS16Bus;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -167,7 +168,7 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
      * @param data Daten
      */
     @Override
-    public void writePort_Byte(int port, int data) {
+    public void writePortByte(int port, int data) {
         //System.out.println("OUT Byte " + Integer.toHexString(data) + "(" + Integer.toBinaryString(data) + ")" + " to port " + Integer.toHexString(port));
         switch (port) {
             case PORT_ZVE_8259A_1:
@@ -216,8 +217,8 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
      * @param data Daten
      */
     @Override
-    public void writePort_Word(int port, int data) {
-        System.out.println("OUT Word " + Integer.toHexString(data) + " to port " + Integer.toHexString(port));
+    public void writePortWord(int port, int data) {
+//        System.out.println("OUT Word " + Integer.toHexString(data) + " to port " + Integer.toHexString(port));
         switch (port) {
             case PORT_ZVE_8259A_1:
                 break;
@@ -253,7 +254,7 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
      * @return gelesenes Byte
      */
     @Override
-    public int readPort_Byte(int port) {
+    public int readPortByte(int port) {
         //System.out.println("IN Byte from port " + Integer.toHexString(port));
         switch (port) {
             case PORT_ZVE_8259A_1:
@@ -290,8 +291,8 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
      * @return gelesenes Wort
      */
     @Override
-    public int readPort_Word(int port) {
-        System.out.println("IN Byte from port " + Integer.toHexString(port));
+    public int readPortWord(int port) {
+//        System.out.println("IN Byte from port " + Integer.toHexString(port));
         switch (port) {
             case PORT_ZVE_8259A_1:
             case PORT_ZVE_8259A_2:
@@ -420,10 +421,12 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
 
     /**
      * Startet die CPU
+     * <p>
+     * TODO: ggf. entfernen
      */
     public void start() {
-        Thread cpuThread = new Thread(cpu, "K1810WM86");
-        cpuThread.start();
+    //    Thread cpuThread = new Thread(cpu, "K1810WM86");
+        //    cpuThread.start();
     }
 
     /**
@@ -431,7 +434,7 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
      */
     @Override
     public void registerClocks() {
-        MMS16Bus.getInstance().registerClockModule(this);
+        GlobalClock.getInstance().registerModule(this);
     }
 
     /**
@@ -441,6 +444,8 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
      */
     @Override
     public void clockUpdate(int amount) {
+        amount = 4915;
+        cpu.updateClock(amount);
         pti.updateClock(amount);
         usart.updateClock(amount);
     }
@@ -508,5 +513,14 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
      */
     public void stopCPU() {
         cpu.stop();
+    }
+
+    /**
+     * Aktiviert oder Deaktiviert den Debugger
+     *
+     * @param debug true - wenn Debugger aktiviert wird, false - sonst
+     */
+    public void setDebug(boolean debug) {
+        cpu.setDebug(debug);
     }
 }

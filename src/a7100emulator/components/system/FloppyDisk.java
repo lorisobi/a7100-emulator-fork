@@ -5,14 +5,22 @@
  * (c) 2011-2014 Dirk Bräuer
  * 
  * Letzte Änderungen:
- *   02.04.2014 Kommentare vervollständigt
- *   12.04.2014 Funktionen zum Lesen von Images, Neue Datenstruktur
- *   25.05.2014 Klasse umbenannt in FloppyDisk
+ *   02.04.2014 - Kommentare vervollständigt
+ *   12.04.2014 - Funktionen zum Lesen von Images, Neue Datenstruktur
+ *   25.05.2014 - Klasse umbenannt in FloppyDisk
+ *   18.11.2014 - getBit in BitTest.getBit geändert
  */
 package a7100emulator.components.system;
 
+import a7100emulator.Tools.BitTest;
 import a7100emulator.Tools.FloppyImageType;
-import java.io.*;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -70,7 +78,9 @@ public class FloppyDisk {
             Logger.getLogger(FloppyDrive.class.getName()).log(Level.SEVERE, null, ex);
         } finally {
             try {
-                in.close();
+                if (in != null) {
+                    in.close();
+                }
             } catch (IOException ex) {
                 Logger.getLogger(FloppyDrive.class.getName()).log(Level.SEVERE, null, ex);
             }
@@ -123,7 +133,9 @@ public class FloppyDisk {
             Logger.getLogger(FloppyDrive.class.getName()).log(Level.SEVERE, null, ex);
         } finally {
             try {
-                in.close();
+                if (in != null) {
+                    in.close();
+                }
             } catch (IOException ex) {
                 Logger.getLogger(FloppyDrive.class.getName()).log(Level.SEVERE, null, ex);
             }
@@ -251,8 +263,8 @@ public class FloppyDisk {
             int cylinder = buffer[pos++];
             // Lese Kopfnummer
             int head = buffer[pos++];
-            boolean useSectorCylinderMap = getBit(head, 7);
-            boolean useSectorHeadMap = getBit(head, 6);
+            boolean useSectorCylinderMap = BitTest.getBit(head, 7);
+            boolean useSectorHeadMap = BitTest.getBit(head, 6);
             head = head & 0x01;
 
             // Lese Anzahl der Sektoren
@@ -356,7 +368,7 @@ public class FloppyDisk {
                     checkAndAddDiskGeometry(cylinderNumber, headNumber, sectorNumber);
                     diskData[cylinder][head][sectorNumber - 1] = new byte[sectorSizeBytes];
 
-                    if (!getBit(flags, 5) && !getBit(flags, 6)) {
+                    if (!BitTest.getBit(flags, 5) && !BitTest.getBit(flags, 6)) {
                         int dataBlockSize = (buffer[pos++] & 0xFF) | ((int) buffer[pos++]) << 8;
                         int encoding = buffer[pos++];
                         switch (encoding) {
@@ -422,8 +434,8 @@ public class FloppyDisk {
         int trackCount = (int) (buffer[pos++] & 0xFF);
         int trackSize = (buffer[pos] & 0xFF) | ((int) buffer[pos + 1] & 0xFF) << 8;
         int flags = buffer[pos++];
-        boolean singleSide = getBit(flags, 4);
-        boolean singleDensity = getBit(flags, 6);
+        boolean singleSide = BitTest.getBit(flags, 4);
+        boolean singleDensity = BitTest.getBit(flags, 6);
 
         int HEADER_SIZE = 0x10;
         int sides = (singleSide) ? 1 : 2;
@@ -442,7 +454,7 @@ public class FloppyDisk {
                 sectorCount--;
 
                 for (int sec = 0; sec < sectorCount; sec++) {
-                    boolean doubleDensity = getBit(idam[sec], 15);
+                    boolean doubleDensity = BitTest.getBit(idam[sec], 15);
                     idam[sec] ^= 0x8000;
                     int blockPos = HEADER_SIZE + sides * t * trackSize + s * trackSize + idam[sec] + 1;
                     int cylinder = buffer[blockPos++];
@@ -464,17 +476,6 @@ public class FloppyDisk {
                 }
             }
         }
-    }
-
-    /**
-     * Prüft ob ein Bit des Operanden gesetzt ist
-     *
-     * @param op Operand
-     * @param i Nummer des Bits
-     * @return true - wenn das Bit gesetzt ist, false - sonst
-     */
-    private boolean getBit(int op, int i) {
-        return (((op >> i) & 0x1) == 0x1);
     }
 
     /**

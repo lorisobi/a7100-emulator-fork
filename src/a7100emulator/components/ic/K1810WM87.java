@@ -5,8 +5,8 @@
  * (c) 2011-2014 Dirk Bräuer
  * 
  * Letzte Änderungen:
- *   15.07.2014 Kommentare aktualisiert
- *   09.08.2014 Zugriffe auf SystemMemory und SystemPorts durch MMS16Bus ersetzt
+ *   15.07.2014 - Kommentare aktualisiert
+ *   09.08.2014 - Zugriffe auf SystemMemory und SystemPorts durch MMS16Bus ersetzt
  */
 package a7100emulator.components.ic;
 
@@ -82,16 +82,5 @@ public class K1810WM87 implements Runnable {
         while (true) {
             executeNextInstruction();
         }
-    }
-
-    /**
-     * Prüft ob ein Bit des Operanden gesetzt ist
-     *
-     * @param op Operand
-     * @param i Nummer des Bits
-     * @return true - wenn das Bit gesetzt ist, false - sonst
-     */
-    private boolean getBit(int op, int i) {
-        return (((op >> i) & 0x1) == 0x1);
     }
 }

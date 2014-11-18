@@ -5,12 +5,15 @@
  * (c) 2011-2014 Dirk Bräuer
  * 
  * Letzte Änderungen:
- *   05.04.2014 Kommentare vervollständigt
- *   12.04.2014 Parameter für Initialisierung hinzugefügt, Formatierung überarbeitet
+ *   05.04.2014 - Kommentare vervollständigt
+ *   12.04.2014 - Parameter für Initialisierung hinzugefügt
+ *              - Formatierung überarbeitet
+ *   18.11.2014 - getBit durch BitTest.getBit ersetzt
  *
  */
 package a7100emulator.components.system;
 
+import a7100emulator.Tools.BitTest;
 import a7100emulator.Tools.FloppyImageType;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -126,7 +129,7 @@ public class FloppyDrive {
      * @param interleave Interleave-Faktor
      */
     public void format(int cylinder, int head, int mod, int[] data, int interleave) {
-        if (cylinder == 0 && head == 0 && getBit(mod, 7)) {
+        if (cylinder == 0 && head == 0 && BitTest.getBit(mod, 7)) {
             switch (driveType) {
                 // 5.25" Diskette 16 Sektoren mit 128 Bytes
                 case K5600_20:
@@ -465,16 +468,5 @@ public class FloppyDrive {
             disk = new FloppyDisk();
             disk.loadState(dis);
         }
-    }
-
-    /**
-     * Prüft ob ein Bit des Operanden gesetzt ist
-     *
-     * @param op Operand
-     * @param i Nummer des Bits
-     * @return true - wenn das Bit gesetzt ist, false - sonst
-     */
-    private boolean getBit(int op, int i) {
-        return (((op >> i) & 0x1) == 0x1);
     }
 }

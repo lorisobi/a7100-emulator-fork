@@ -15,20 +15,28 @@
  *   25.05.2014 - ED Opcodes fast vollständig
  *              - DD/FD CB Opcodes fertig
  *   06.08.2014 - Debug-Ausgaben hinzugefügt
+ *   12.10.2014 - Taktzyklen ergänzt
+ *              - Vearbeitung Interrupts ergänzt
+ *              - Fehler in XOR behoben
+ *   16.11.2014 - Ticks zählen ergänzt
+ *   18.11.2014 - BitTest eingeführt
  *
  */
 package a7100emulator.components.ic;
 
 import a7100emulator.Debug.Debugger;
 import a7100emulator.Debug.DebuggerInfo;
+import a7100emulator.Tools.BitTest;
 import a7100emulator.components.modules.KGS;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.util.LinkedList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
  * Klasse zur Realisierung eines UA880 Prozessors für A7100 Subsysteme
- * <p>
- * TODO: Diese Klasse ist noch nicht vollständig implementiert
  *
  * @author Dirk Bräuer
  */
@@ -508,6 +516,7 @@ public class UA880 implements Runnable {
     private static final int _DD_FD_EX_SP_I = 0xE3;
     private static final int _DD_FD_PUSH_I = 0xE5;
     private static final int _DD_FD_JP_MEM_I = 0xE9;
+    private static final int _DD_FD_LD_I_SP = 0xF9;
 
     /**
      * Zweier ED
@@ -559,11 +568,11 @@ public class UA880 implements Runnable {
     private static final int _ED_LDI = 0xA0;
     private static final int _ED_CPI = 0xA1;
     private static final int _ED_INI = 0xA2;
-    private static final int _ED_OTI = 0xA3;
+    private static final int _ED_OUTI = 0xA3;
     private static final int _ED_LDD = 0xA8;
     private static final int _ED_CPD = 0xA9;
     private static final int _ED_IND = 0xAA;
-    private static final int _ED_OTD = 0xAB;
+    private static final int _ED_OUTD = 0xAB;
     private static final int _ED_LDIR = 0xB0;
     private static final int _ED_CPIR = 0xB1;
     private static final int _ED_INIR = 0xB2;
@@ -573,12 +582,9 @@ public class UA880 implements Runnable {
     private static final int _ED_INDR = 0xBA;
     private static final int _ED_OTDR = 0xBB;
 
-    private static final int TEST_OPCODE_X = 0xC0;
-    private static final int TEST_OPCODE_Y = 0x38;
-    private static final int TEST_OPCODE_Z = 0x07;
-    private static final int TEST_OPCODE_P = 0x30;
-    private static final int TEST_OPCODE_Q = 0x08;
-
+    /**
+     * Test 8-Bit-Register
+     */
     private static final int REG_B = 0x00;
     private static final int REG_C = 0x01;
     private static final int REG_D = 0x02;
@@ -588,6 +594,9 @@ public class UA880 implements Runnable {
     private static final int MEM_HL = 0x06;
     private static final int REG_A = 0x07;
 
+    /**
+     * Test 16-Bit-Register
+     */
     private static final int REGP_BC = 0x00;
     private static final int REGP_DE = 0x01;
     private static final int REGP_HL = 0x02;
@@ -608,10 +617,6 @@ public class UA880 implements Runnable {
     private static final int SIGN_FLAG = 0x80;
 
     /**
-     * Gibt an ob der Debug-Modus aktiv ist
-     */
-    private boolean debug = false;
-    /**
      * Zeiger auf Debugger Instanz
      */
     private final Debugger debugger = new Debugger("UA880_KGS", false);
@@ -621,25 +626,60 @@ public class UA880 implements Runnable {
     private final DebuggerInfo debugInfo = new DebuggerInfo();
     /**
      * Zeiger auf KGS
+     * <p>
+     * TODO: Verweis auf KGS entfernen oder abstrahieren
      */
     private final KGS kgs;
+    /**
+     * Gibt an, ob der Thread bereits beendet wurde
+     */
     private boolean stopped;
+    /**
+     * Gibt an, ob ein Nicht-Maskierbarer-Interrupt ansteht
+     */
     private boolean nmi = false;
+    /**
+     * Interrupt-Modus
+     */
+    private int interruptMode = 0;
+    /**
+     * Liste aller anstehendenInterruptanfragen
+     */
+    private final LinkedList<Integer> interruptsWaiting = new LinkedList<Integer>();
+    /**
+     * Lokaler Taktzähler
+     */
+    private int ticks;
 
+    /**
+     * Erstellt einen neuen Prozessor
+     *
+     * @param kgs Referenz auf KGS Modul
+     */
     public UA880(KGS kgs) {
         this.kgs = kgs;
-        debug = false;
         debugger.setDebug(false);
     }
 
+    /**
+     * Holt den nächsten Befehl aus dem Speicher und führt ihn aus
+     */
     private void executeNextInstruction() {
+        boolean debug = debugger.isDebug();
+
+        if (pc == 0x0122) {
+            // Dieser Hack lässt den ACT ABS/KGS Test erfolgreich durchlaufen
+            //TODO: Richtig implementieren
+            //a=0x0A;
+            System.out.println("Hack CTC!!!");
+        }
+
         int opcode = kgs.readMemoryByte(pc++);
         if (debug) {
             debugInfo.setIp(pc - 1);
             debugInfo.setOpcode(opcode);
         }
 
-//        System.out.println(String.format("%02Xh", opcode));
         switch (opcode) {
             case LD_B_B:
             case LD_C_C:
@@ -649,7 +689,7 @@ public class UA880 implements Runnable {
             case LD_L_L:
             case LD_A_A: {
                 // NOP
-                updateClock(4);
+                updateTicks(4);
                 if (debug) {
                     debugInfo.setCode("LD " + getRegisterString((opcode >> 3) & 0x07) + "," + getRegisterString(opcode & 0x07));
                     debugInfo.setOperands(String.format("%02Xh", getRegister(opcode & 0x07)));
@@ -699,7 +739,7 @@ public class UA880 implements Runnable {
             case LD_H_A:
             case LD_L_A: {
                 setRegister((opcode >> 3) & 0x07, getRegister(opcode & 0x07));
-                updateClock(4);
+                updateTicks(4);
                 if (debug) {
                     debugInfo.setCode("LD " + getRegisterString((opcode >> 3) & 0x07) + "," + getRegisterString(opcode & 0x07));
                     debugInfo.setOperands(String.format("%02Xh", getRegister(opcode & 0x07)));
@@ -714,7 +754,7 @@ public class UA880 implements Runnable {
             case LD_IMM_A:
             case LD_IMM_H: {
                 setRegister((opcode >> 3) & 0x07, kgs.readMemoryByte(pc++));
-                updateClock(7);
+                updateTicks(7);
                 if (debug) {
                     debugInfo.setCode("LD " + getRegisterString((opcode >> 3) & 0x07) + "," + String.format("%02Xh", kgs.readMemoryByte(pc - 1)));
                     debugInfo.setOperands(null);
@@ -722,8 +762,8 @@ public class UA880 implements Runnable {
             }
             break;
             case LD_A_MEM_BC: {
-                kgs.writeMemoryByte(getRegPairHLSP(REGP_BC), getRegister(REG_A));
-                updateClock(7);
+                kgs.writeMemoryByte(getRegisterPairHLSP(REGP_BC), getRegister(REG_A));
+                updateTicks(7);
                 if (debug) {
                     debugInfo.setCode("LD (BC),A");
                     debugInfo.setOperands(String.format("%02Xh", getRegister(REG_A)));
@@ -731,8 +771,8 @@ public class UA880 implements Runnable {
             }
             break;
             case LD_A_MEM_DE: {
-                kgs.writeMemoryByte(getRegPairHLSP(REGP_DE), getRegister(REG_A));
-                updateClock(7);
+                kgs.writeMemoryByte(getRegisterPairHLSP(REGP_DE), getRegister(REG_A));
+                updateTicks(7);
                 if (debug) {
                     debugInfo.setCode("LD (DE),A");
                     debugInfo.setOperands(String.format("%02Xh", getRegister(REG_A)));
@@ -743,7 +783,7 @@ public class UA880 implements Runnable {
                 int address = kgs.readMemoryWord(pc++);
                 pc++;
                 kgs.writeMemoryByte(address, getRegister(REG_A));
-                updateClock(13);
+                updateTicks(13);
                 if (debug) {
                     debugInfo.setCode("LD " + String.format("%04Xh", address) + ",A");
                     debugInfo.setOperands(String.format("%02Xh", getRegister(REG_A)));
@@ -751,21 +791,20 @@ public class UA880 implements Runnable {
             }
             break;
             case LD_MEM_BC_A: {
-                setRegister(REG_A, kgs.readMemoryByte(getRegPairHLSP(REGP_BC)));
-                updateClock(7);
+                setRegister(REG_A, kgs.readMemoryByte(getRegisterPairHLSP(REGP_BC)));
+                updateTicks(7);
                 if (debug) {
                     debugInfo.setCode("LD A,(BC)");
-                    debugInfo.setOperands(String.format("%02Xh", kgs.readMemoryByte(getRegPairHLSP(REGP_BC))));
+                    debugInfo.setOperands(String.format("%02Xh", kgs.readMemoryByte(getRegisterPairHLSP(REGP_BC))));
                 }
             }
             break;
             case LD_MEM_DE_A: {
-                setRegister(REG_A, kgs.readMemoryByte(getRegPairHLSP(REGP_DE)));
-                setRegister(REG_A, kgs.readMemoryByte(getRegPairHLSP(REGP_BC)));
-                updateClock(7);
+                setRegister(REG_A, kgs.readMemoryByte(getRegisterPairHLSP(REGP_DE)));
+                updateTicks(7);
                 if (debug) {
                     debugInfo.setCode("LD A,(DE)");
-                    debugInfo.setOperands(String.format("%02Xh", kgs.readMemoryByte(getRegPairHLSP(REGP_DE))));
+                    debugInfo.setOperands(String.format("%02Xh", kgs.readMemoryByte(getRegisterPairHLSP(REGP_DE))));
                 }
             }
             break;
@@ -773,7 +812,7 @@ public class UA880 implements Runnable {
                 int address = kgs.readMemoryWord(pc++);
                 pc++;
                 setRegister(REG_A, kgs.readMemoryByte(address));
-                updateClock(13);
+                updateTicks(13);
                 if (debug) {
                     debugInfo.setCode("LD A,(" + String.format("%04Xh", address) + ")");
                     debugInfo.setOperands(String.format("%02Xh", kgs.readMemoryByte(address)));
@@ -787,11 +826,11 @@ public class UA880 implements Runnable {
             case LD_MEM_HL_H:
             case LD_MEM_HL_L:
             case LD_MEM_HL_A: {
-                setRegister((opcode >> 3) & 0x07, kgs.readMemoryByte(getRegPairHLSP(REGP_HL)));
-                updateClock(7);
+                setRegister((opcode >> 3) & 0x07, kgs.readMemoryByte(getRegisterPairHLSP(REGP_HL)));
+                updateTicks(7);
                 if (debug) {
                     debugInfo.setCode("LD " + getRegisterString((opcode >> 3) & 0x07) + ",(HL)");
-                    debugInfo.setOperands(String.format("%02Xh", kgs.readMemoryByte(getRegPairHLSP(REGP_HL))));
+                    debugInfo.setOperands(String.format("%02Xh", kgs.readMemoryByte(getRegisterPairHLSP(REGP_HL))));
                 }
             }
             break;
@@ -802,8 +841,8 @@ public class UA880 implements Runnable {
             case LD_H_MEM_HL:
             case LD_L_MEM_HL:
             case LD_A_MEM_HL: {
-                kgs.writeMemoryByte(getRegPairHLSP(REGP_HL), getRegister(opcode & 0x07));
-                updateClock(7);
+                kgs.writeMemoryByte(getRegisterPairHLSP(REGP_HL), getRegister(opcode & 0x07));
+                updateTicks(7);
                 if (debug) {
                     debugInfo.setCode("LD (HL)," + getRegisterString(opcode & 0x07));
                     debugInfo.setOperands(String.format("%02Xh", getRegister(opcode & 0x07)));
@@ -820,19 +859,20 @@ public class UA880 implements Runnable {
             case LD_IMM_SP: {
                 int op1 = kgs.readMemoryWord(pc++);
                 pc++;
-                setRegPairHLSP((opcode >> 4) & 0x03, op1);
-                updateClock(10);
+                setRegisterPairHLSP((opcode >> 4) & 0x03, op1);
+                updateTicks(10);
                 if (debug) {
-                    debugInfo.setCode("LD " + getRegPairHLSPString((opcode >> 4) & 0x03) + "," + String.format("%04Xh", op1));
+                    debugInfo.setCode("LD " + getRegisterPairHLSPString((opcode >> 4) & 0x03) + "," + String.format("%04Xh", op1));
                     debugInfo.setOperands(null);
                 }
             }
             break;
             case LD_HL_MEM: {
-                int op1 = getRegPairHLSP(REGP_HL);
+                int op1 = getRegisterPairHLSP(REGP_HL);
                 int address = kgs.readMemoryWord(pc++);
                 pc++;
                 kgs.writeMemoryWord(address, op1);
+                updateTicks(16);
                 if (debug) {
                     debugInfo.setCode("LD (" + String.format("%04Xh", address) + "),HL");
                     debugInfo.setOperands(String.format("%04Xh", op1));
@@ -843,7 +883,8 @@ public class UA880 implements Runnable {
                 int address = kgs.readMemoryWord(pc++);
                 pc++;
                 int op1 = kgs.readMemoryWord(address);
-                setRegPairHLSP(REGP_HL, op1);
+                setRegisterPairHLSP(REGP_HL, op1);
+                updateTicks(16);
                 if (debug) {
                     debugInfo.setCode("LD HL,(" + String.format("%04Xh", address) + ")");
                     debugInfo.setOperands(String.format("%04Xh", op1));
@@ -852,7 +893,8 @@ public class UA880 implements Runnable {
             break;
             case LD_IMM_MEM_HL: {
                 int op1 = kgs.readMemoryByte(pc++);
-                kgs.writeMemoryByte(getRegPairHLSP(REGP_HL), op1);
+                kgs.writeMemoryByte(getRegisterPairHLSP(REGP_HL), op1);
+                updateTicks(10);
                 if (debug) {
                     debugInfo.setCode("LD (HL)," + String.format("%04Xh", op1) + ")");
                     debugInfo.setOperands(null);
@@ -860,7 +902,8 @@ public class UA880 implements Runnable {
             }
             break;
             case LD_HL_SP: {
-                setRegPairHLSP(REGP_SP, getRegPairHLSP(REGP_HL));
+                setRegisterPairHLSP(REGP_SP, getRegisterPairHLSP(REGP_HL));
+                updateTicks(6);
                 if (debug) {
                     debugInfo.setCode("LD SP,HL");
                     debugInfo.setOperands(null);
@@ -872,9 +915,10 @@ public class UA880 implements Runnable {
             case POP_HL:
             case POP_AF: {
                 int op1 = pop();
-                setRegPairAF((opcode >> 4) & 0x03, op1);
+                setRegisterPairAF((opcode >> 4) & 0x03, op1);
+                updateTicks(10);
                 if (debug) {
-                    debugInfo.setCode("POP " + getRegPairAFString((opcode >> 4) & 0x03));
+                    debugInfo.setCode("POP " + getRegisterPairAFString((opcode >> 4) & 0x03));
                     debugInfo.setOperands(String.format("%04Xh", op1));
                 }
             }
@@ -883,10 +927,11 @@ public class UA880 implements Runnable {
             case PUSH_DE:
             case PUSH_HL:
             case PUSH_AF: {
-                push(getRegPairAF((opcode >> 4) & 0x03));
+                push(getRegisterPairAF((opcode >> 4) & 0x03));
+                updateTicks(11);
                 if (debug) {
-                    debugInfo.setCode("PUSH " + getRegPairAFString((opcode >> 4) & 0x03));
-                    debugInfo.setOperands(String.format("%04Xh", getRegPairAF((opcode >> 4) & 0x03)));
+                    debugInfo.setCode("PUSH " + getRegisterPairAFString((opcode >> 4) & 0x03));
+                    debugInfo.setOperands(String.format("%04Xh", getRegisterPairAF((opcode >> 4) & 0x03)));
                 }
             }
             break;
@@ -897,6 +942,7 @@ public class UA880 implements Runnable {
             case OUT_A_IMM: {
                 int port = kgs.readMemoryByte(pc++);
                 kgs.writeLocalPort(port, getRegister(REG_A));
+                updateTicks(11);
                 if (debug) {
                     debugInfo.setCode("OUT (" + String.format("%02Xh", port) + "),A");
                     debugInfo.setOperands(String.format("%02Xh", getRegister(REG_A)));
@@ -906,6 +952,7 @@ public class UA880 implements Runnable {
             case IN_IMM_A: {
                 int port = kgs.readMemoryByte(pc++);
                 setRegister(REG_A, kgs.readLocalPort(port));
+                updateTicks(11);
                 if (debug) {
                     debugInfo.setCode("IN A,(" + String.format("%02Xh", port) + ")");
                     debugInfo.setOperands(String.format("%02Xh", getRegister(REG_A)));
@@ -923,6 +970,7 @@ public class UA880 implements Runnable {
                 exOp = f;
                 f = f_;
                 f_ = exOp;
+                updateTicks(4);
                 if (debug) {
                     debugInfo.setCode("EX AF,AF'");
                     debugInfo.setOperands(String.format("%02Xh%02Xh,%02Xh%02Xh", a_, f_, a, f));
@@ -948,6 +996,7 @@ public class UA880 implements Runnable {
                 exOp = e;
                 e = e_;
                 e_ = exOp;
+                updateTicks(4);
                 if (debug) {
                     debugInfo.setCode("EXX");
                     debugInfo.setOperands(null);
@@ -955,22 +1004,24 @@ public class UA880 implements Runnable {
             }
             break;
             case EX_HL_MEM_SP: {
-                int exOp = getRegPairHLSP(REGP_HL);
-                setRegPairHLSP(REGP_HL, kgs.readMemoryWord(sp));
+                int exOp = getRegisterPairHLSP(REGP_HL);
+                setRegisterPairHLSP(REGP_HL, kgs.readMemoryWord(sp));
                 kgs.writeMemoryWord(sp, exOp);
+                updateTicks(19);
                 if (debug) {
                     debugInfo.setCode("EX (SP),HL");
-                    debugInfo.setOperands(String.format("%04Xh,%04Xh", getRegPairHLSP(REGP_HL), kgs.readMemoryWord(sp)));
+                    debugInfo.setOperands(String.format("%04Xh,%04Xh", getRegisterPairHLSP(REGP_HL), kgs.readMemoryWord(sp)));
                 }
             }
             break;
             case EX_HL_DE: {
-                int exOp = getRegPairHLSP(REGP_HL);
-                setRegPairHLSP(REGP_HL, getRegPairHLSP(REGP_DE));
-                setRegPairHLSP(REGP_DE, exOp);
+                int exOp = getRegisterPairHLSP(REGP_HL);
+                setRegisterPairHLSP(REGP_HL, getRegisterPairHLSP(REGP_DE));
+                setRegisterPairHLSP(REGP_DE, exOp);
+                updateTicks(4);
                 if (debug) {
                     debugInfo.setCode("EX DE,HL");
-                    debugInfo.setOperands(String.format("%04Xh,%04Xh", getRegPairHLSP(REGP_HL), getRegPairHLSP(REGP_DE)));
+                    debugInfo.setOperands(String.format("%04Xh,%04Xh", getRegisterPairHLSP(REGP_HL), getRegisterPairHLSP(REGP_DE)));
                 }
             }
             break;
@@ -989,6 +1040,7 @@ public class UA880 implements Runnable {
                 int op2 = getRegister(opcode & 0x07);
                 int res = add8(op1, op2, false);
                 setRegister(REG_A, res);
+                updateTicks(4);
                 if (debug) {
                     debugInfo.setCode("ADD A," + getRegisterString(opcode & 0x07));
                     debugInfo.setOperands(String.format("%02Xh+%02Xh->%02Xh", op1, op2, res));
@@ -997,9 +1049,10 @@ public class UA880 implements Runnable {
             break;
             case ADD_MEM_HL_A: {
                 int op1 = getRegister(REG_A);
-                int op2 = kgs.readMemoryByte(getRegPairHLSP(REGP_HL));
+                int op2 = kgs.readMemoryByte(getRegisterPairHLSP(REGP_HL));
                 int res = add8(op1, op2, false);
                 setRegister(REG_A, res);
+                updateTicks(7);
                 if (debug) {
                     debugInfo.setCode("ADD A,(HL)");
                     debugInfo.setOperands(String.format("%02Xh+%02Xh->%02Xh", op1, op2, res));
@@ -1011,6 +1064,7 @@ public class UA880 implements Runnable {
                 int op2 = kgs.readMemoryByte(pc++);
                 int res = add8(op1, op2, false);
                 setRegister(REG_A, res);
+                updateTicks(7);
                 if (debug) {
                     debugInfo.setCode("ADD A," + String.format("%02Xh", op2));
                     debugInfo.setOperands(String.format("%02Xh+%02Xh->%02Xh", op1, op2, res));
@@ -1028,6 +1082,7 @@ public class UA880 implements Runnable {
                 int op2 = getRegister(opcode & 0x07);
                 int res = add8(op1, op2, true);
                 setRegister(REG_A, res);
+                updateTicks(4);
                 if (debug) {
                     debugInfo.setCode("ADC A," + getRegisterString(opcode & 0x07));
                     debugInfo.setOperands(String.format("%02Xh+%02Xh->%02Xh", op1, op2, res));
@@ -1036,9 +1091,10 @@ public class UA880 implements Runnable {
             break;
             case ADC_MEM_HL_A: {
                 int op1 = getRegister(REG_A);
-                int op2 = kgs.readMemoryByte(getRegPairHLSP(REGP_HL));
+                int op2 = kgs.readMemoryByte(getRegisterPairHLSP(REGP_HL));
                 int res = add8(op1, op2, true);
                 setRegister(REG_A, res);
+                updateTicks(7);
                 if (debug) {
                     debugInfo.setCode("ADC A,(HL)");
                     debugInfo.setOperands(String.format("%02Xh+%02Xh->%02Xh", op1, op2, res));
@@ -1050,6 +1106,7 @@ public class UA880 implements Runnable {
                 int op2 = kgs.readMemoryByte(pc++);
                 int res = add8(op1, op2, true);
                 setRegister(REG_A, res);
+                updateTicks(7);
                 if (debug) {
                     debugInfo.setCode("ADC A," + String.format("%02Xh", op2));
                     debugInfo.setOperands(String.format("%02Xh+%02Xh->%02Xh", op1, op2, res));
@@ -1067,6 +1124,7 @@ public class UA880 implements Runnable {
                 int op2 = getRegister(opcode & 0x07);
                 int res = sub8(op1, op2, false);
                 setRegister(REG_A, res);
+                updateTicks(4);
                 if (debug) {
                     debugInfo.setCode("SUB A," + getRegisterString(opcode & 0x07));
                     debugInfo.setOperands(String.format("%02Xh-%02Xh->%02Xh", op1, op2, res));
@@ -1075,9 +1133,10 @@ public class UA880 implements Runnable {
             break;
             case SUB_MEM_HL_A: {
                 int op1 = getRegister(REG_A);
-                int op2 = kgs.readMemoryByte(getRegPairHLSP(REGP_HL));
+                int op2 = kgs.readMemoryByte(getRegisterPairHLSP(REGP_HL));
                 int res = sub8(op1, op2, false);
                 setRegister(REG_A, res);
+                updateTicks(7);
                 if (debug) {
                     debugInfo.setCode("SUB A,(HL)");
                     debugInfo.setOperands(String.format("%02Xh-%02Xh->%02Xh", op1, op2, res));
@@ -1089,6 +1148,7 @@ public class UA880 implements Runnable {
                 int op2 = kgs.readMemoryByte(pc++);
                 int res = sub8(op1, op2, false);
                 setRegister(REG_A, res);
+                updateTicks(7);
                 if (debug) {
                     debugInfo.setCode("SUB A," + String.format("%02Xh", op2));
                     debugInfo.setOperands(String.format("%02Xh-%02Xh->%02Xh", op1, op2, res));
@@ -1106,6 +1166,7 @@ public class UA880 implements Runnable {
                 int op2 = getRegister(opcode & 0x07);
                 int res = sub8(op1, op2, true);
                 setRegister(REG_A, res);
+                updateTicks(4);
                 if (debug) {
                     debugInfo.setCode("SBC A," + getRegisterString(opcode & 0x07));
                     debugInfo.setOperands(String.format("%02Xh-%02Xh->%02Xh", op1, op2, res));
@@ -1114,9 +1175,10 @@ public class UA880 implements Runnable {
             break;
             case SBC_MEM_HL_A: {
                 int op1 = getRegister(REG_A);
-                int op2 = kgs.readMemoryByte(getRegPairHLSP(REGP_HL));
+                int op2 = kgs.readMemoryByte(getRegisterPairHLSP(REGP_HL));
                 int res = sub8(op1, op2, true);
                 setRegister(REG_A, res);
+                updateTicks(7);
                 if (debug) {
                     debugInfo.setCode("SBC A,(HL)");
                     debugInfo.setOperands(String.format("%02Xh-%02Xh->%02Xh", op1, op2, res));
@@ -1128,6 +1190,7 @@ public class UA880 implements Runnable {
                 int op2 = kgs.readMemoryByte(pc++);
                 int res = sub8(op1, op2, true);
                 setRegister(REG_A, res);
+                updateTicks(7);
                 if (debug) {
                     debugInfo.setCode("SBC A," + String.format("%02Xh", op2));
                     debugInfo.setOperands(String.format("%02Xh-%02Xh->%02Xh", op1, op2, res));
@@ -1144,6 +1207,7 @@ public class UA880 implements Runnable {
                 int op = getRegister((opcode >> 3) & 0x07);
                 int res = inc(op);
                 setRegister((opcode >> 3) & 0x07, res);
+                updateTicks(4);
                 if (debug) {
                     debugInfo.setCode("INC " + getRegisterString(opcode & 0x07));
                     debugInfo.setOperands(String.format("->%02Xh", res));
@@ -1151,9 +1215,10 @@ public class UA880 implements Runnable {
             }
             break;
             case INC_MEM_HL: {
-                int op = kgs.readMemoryByte(getRegPairHLSP(REGP_HL));
+                int op = kgs.readMemoryByte(getRegisterPairHLSP(REGP_HL));
                 int res = inc(op);
-                kgs.writeMemoryByte(getRegPairHLSP(REGP_HL), res);
+                kgs.writeMemoryByte(getRegisterPairHLSP(REGP_HL), res);
+                updateTicks(11);
                 if (debug) {
                     debugInfo.setCode("INC (HL)");
                     debugInfo.setOperands(String.format("->%02Xh", res));
@@ -1170,6 +1235,7 @@ public class UA880 implements Runnable {
                 int op = getRegister((opcode >> 3) & 0x07);
                 int res = dec(op);
                 setRegister((opcode >> 3) & 0x07, res);
+                updateTicks(4);
                 if (debug) {
                     debugInfo.setCode("DEC " + getRegisterString(opcode & 0x07));
                     debugInfo.setOperands(String.format("->%02Xh", res));
@@ -1177,9 +1243,10 @@ public class UA880 implements Runnable {
             }
             break;
             case DEC_MEM_HL: {
-                int op = kgs.readMemoryByte(getRegPairHLSP(REGP_HL));
+                int op = kgs.readMemoryByte(getRegisterPairHLSP(REGP_HL));
                 int res = dec(op);
-                kgs.writeMemoryByte(getRegPairHLSP(REGP_HL), res);
+                kgs.writeMemoryByte(getRegisterPairHLSP(REGP_HL), res);
+                updateTicks(11);
                 if (debug) {
                     debugInfo.setCode("DEC (HL)");
                     debugInfo.setOperands(String.format("->%02Xh", res));
@@ -1207,12 +1274,13 @@ public class UA880 implements Runnable {
                 checkZeroFlag(res);
                 checkSignFlag(res);
                 checkParityFlag(res);
-                if (getBit(op, 4) ^ getBit(res, 4)) {
+                if (BitTest.getBit(op, 4) ^ BitTest.getBit(res, 4)) {
                     setFlag(HALF_CARRY_FLAG);
                 } else {
                     clearFlag(HALF_CARRY_FLAG);
                 }
                 setRegister(REG_A, res);
+                updateTicks(4);
                 if (debug) {
                     debugInfo.setCode("DAA");
                     debugInfo.setOperands(null);
@@ -1224,6 +1292,7 @@ public class UA880 implements Runnable {
                 setRegister(REG_A, ~op);
                 setFlag(HALF_CARRY_FLAG);
                 setFlag(SUBTRACT_FLAG);
+                updateTicks(4);
                 if (debug) {
                     debugInfo.setCode("CPL");
                     debugInfo.setOperands(null);
@@ -1238,12 +1307,13 @@ public class UA880 implements Runnable {
             case ADD_DE_HL:
             case ADD_HL_HL:
             case ADD_SP_HL: {
-                int op1 = getRegPairHLSP(REGP_HL);
-                int op2 = getRegPairHLSP((opcode >> 4) & 0x03);
+                int op1 = getRegisterPairHLSP(REGP_HL);
+                int op2 = getRegisterPairHLSP((opcode >> 4) & 0x03);
                 int res = add16(op1, op2, false);
-                setRegPairHLSP(REGP_HL, res);
+                setRegisterPairHLSP(REGP_HL, res);
+                updateTicks(11);
                 if (debug) {
-                    debugInfo.setCode("ADD HL," + getRegPairHLSPString((opcode >> 4) & 0x03));
+                    debugInfo.setCode("ADD HL," + getRegisterPairHLSPString((opcode >> 4) & 0x03));
                     debugInfo.setOperands(String.format("%04Xh+%04Xh->%04Xh", op1, op2, res));
                 }
             }
@@ -1252,10 +1322,11 @@ public class UA880 implements Runnable {
             case INC_DE:
             case INC_HL:
             case INC_SP: {
-                int op = getRegPairHLSP((opcode >> 4) & 0x03);
-                setRegPairHLSP((opcode >> 4) & 0x03, op + 1);
+                int op = getRegisterPairHLSP((opcode >> 4) & 0x03);
+                setRegisterPairHLSP((opcode >> 4) & 0x03, op + 1);
+                updateTicks(6);
                 if (debug) {
-                    debugInfo.setCode("INC " + getRegPairHLSPString((opcode >> 4) & 0x03));
+                    debugInfo.setCode("INC " + getRegisterPairHLSPString((opcode >> 4) & 0x03));
                     debugInfo.setOperands(String.format("->%04Xh", op + 1));
                 }
             }
@@ -1264,10 +1335,11 @@ public class UA880 implements Runnable {
             case DEC_DE:
             case DEC_HL:
             case DEC_SP: {
-                int op = getRegPairHLSP((opcode >> 4) & 0x03);
-                setRegPairHLSP((opcode >> 4) & 0x03, op - 1);
+                int op = getRegisterPairHLSP((opcode >> 4) & 0x03);
+                setRegisterPairHLSP((opcode >> 4) & 0x03, op - 1);
+                updateTicks(6);
                 if (debug) {
-                    debugInfo.setCode("DEC " + getRegPairHLSPString((opcode >> 4) & 0x03));
+                    debugInfo.setCode("DEC " + getRegisterPairHLSPString((opcode >> 4) & 0x03));
                     debugInfo.setOperands(String.format("->%04Xh", op - 1));
                 }
             }
@@ -1287,6 +1359,7 @@ public class UA880 implements Runnable {
                 int op2 = getRegister(opcode & 0x07);
                 int res = and(op1, op2);
                 setRegister(REG_A, res);
+                updateTicks(4);
                 if (debug) {
                     debugInfo.setCode("AND " + getRegisterString(opcode & 0x07));
                     debugInfo.setOperands(String.format("%02Xh&%02Xh->%02Xh", op1, op2, res));
@@ -1295,9 +1368,10 @@ public class UA880 implements Runnable {
             break;
             case AND_MEM_HL: {
                 int op1 = getRegister(REG_A);
-                int op2 = kgs.readMemoryByte(getRegPairHLSP(REGP_HL));
+                int op2 = kgs.readMemoryByte(getRegisterPairHLSP(REGP_HL));
                 int res = and(op1, op2);
                 setRegister(REG_A, res);
+                updateTicks(7);
                 if (debug) {
                     debugInfo.setCode("AND (HL)");
                     debugInfo.setOperands(String.format("%02Xh&%02Xh->%02Xh", op1, op2, res));
@@ -1309,6 +1383,7 @@ public class UA880 implements Runnable {
                 int op2 = kgs.readMemoryByte(pc++);
                 int res = and(op1, op2);
                 setRegister(REG_A, res);
+                updateTicks(7);
                 if (debug) {
                     debugInfo.setCode("AND " + String.format("%02Xh", op2));
                     debugInfo.setOperands(String.format("%02Xh&%02Xh->%02Xh", op1, op2, res));
@@ -1326,6 +1401,7 @@ public class UA880 implements Runnable {
                 int op2 = getRegister(opcode & 0x07);
                 int res = xor(op1, op2);
                 setRegister(REG_A, res);
+                updateTicks(4);
                 if (debug) {
                     debugInfo.setCode("XOR " + getRegisterString(opcode & 0x07));
                     debugInfo.setOperands(String.format("%02Xh^%02Xh->%02Xh", op1, op2, res));
@@ -1334,9 +1410,10 @@ public class UA880 implements Runnable {
             break;
             case XOR_MEM_HL: {
                 int op1 = getRegister(REG_A);
-                int op2 = kgs.readMemoryByte(getRegPairHLSP(REGP_HL));
+                int op2 = kgs.readMemoryByte(getRegisterPairHLSP(REGP_HL));
                 int res = xor(op1, op2);
                 setRegister(REG_A, res);
+                updateTicks(7);
                 if (debug) {
                     debugInfo.setCode("XOR (HL)");
                     debugInfo.setOperands(String.format("%02Xh^%02Xh->%02Xh", op1, op2, res));
@@ -1348,6 +1425,7 @@ public class UA880 implements Runnable {
                 int op2 = kgs.readMemoryByte(pc++);
                 int res = xor(op1, op2);
                 setRegister(REG_A, res);
+                updateTicks(7);
                 if (debug) {
                     debugInfo.setCode("XOR " + String.format("%02Xh", op2));
                     debugInfo.setOperands(String.format("%02Xh^%02Xh->%02Xh", op1, op2, res));
@@ -1366,6 +1444,7 @@ public class UA880 implements Runnable {
                 int op2 = getRegister(opcode & 0x07);
                 int res = or(op1, op2);
                 setRegister(REG_A, res);
+                updateTicks(4);
                 if (debug) {
                     debugInfo.setCode("OR " + getRegisterString(opcode & 0x07));
                     debugInfo.setOperands(String.format("%02Xh|%02Xh->%02Xh", op1, op2, res));
@@ -1374,9 +1453,10 @@ public class UA880 implements Runnable {
             break;
             case OR_MEM_HL: {
                 int op1 = getRegister(REG_A);
-                int op2 = kgs.readMemoryByte(getRegPairHLSP(REGP_HL));
+                int op2 = kgs.readMemoryByte(getRegisterPairHLSP(REGP_HL));
                 int res = or(op1, op2);
                 setRegister(REG_A, res);
+                updateTicks(7);
                 if (debug) {
                     debugInfo.setCode("OR (HL)");
                     debugInfo.setOperands(String.format("%02Xh|%02Xh->%02Xh", op1, op2, res));
@@ -1388,6 +1468,7 @@ public class UA880 implements Runnable {
                 int op2 = kgs.readMemoryByte(pc++);
                 int res = or(op1, op2);
                 setRegister(REG_A, res);
+                updateTicks(7);
                 if (debug) {
                     debugInfo.setCode("OR " + String.format("%02Xh", op2));
                     debugInfo.setOperands(String.format("%02Xh|%02Xh->%02Xh", op1, op2, res));
@@ -1404,6 +1485,7 @@ public class UA880 implements Runnable {
                 int op1 = getRegister(REG_A);
                 int op2 = getRegister(opcode & 0x07);
                 sub8(op1, op2, false);
+                updateTicks(4);
                 if (debug) {
                     debugInfo.setCode("CP " + getRegisterString(opcode & 0x07));
                     debugInfo.setOperands(String.format("%02Xh,%02Xh", op1, op2));
@@ -1412,8 +1494,9 @@ public class UA880 implements Runnable {
             break;
             case CP_MEM_HL: {
                 int op1 = getRegister(REG_A);
-                int op2 = kgs.readMemoryByte(getRegPairHLSP(REGP_HL));
+                int op2 = kgs.readMemoryByte(getRegisterPairHLSP(REGP_HL));
                 sub8(op1, op2, false);
+                updateTicks(7);
                 if (debug) {
                     debugInfo.setCode("CP (HL)");
                     debugInfo.setOperands(String.format("%02Xh,%02Xh", op1, op2));
@@ -1424,6 +1507,7 @@ public class UA880 implements Runnable {
                 int op1 = getRegister(REG_A);
                 int op2 = kgs.readMemoryByte(pc++);
                 sub8(op1, op2, false);
+                updateTicks(7);
                 if (debug) {
                     debugInfo.setCode("CP " + String.format("%02Xh", op2));
                     debugInfo.setOperands(String.format("%02Xh,%02Xh", op1, op2));
@@ -1436,6 +1520,7 @@ public class UA880 implements Runnable {
              */
             case JP_IMM: {
                 pc = kgs.readMemoryWord(pc);
+                updateTicks(10);
                 if (debug) {
                     debugInfo.setCode("JP " + String.format("%04Xh", pc));
                     debugInfo.setOperands(null);
@@ -1443,7 +1528,8 @@ public class UA880 implements Runnable {
             }
             break;
             case JP_MEM_HL: {
-                pc = kgs.readMemoryWord(getRegPairHLSP(REGP_HL));
+                pc = kgs.readMemoryWord(getRegisterPairHLSP(REGP_HL));
+                updateTicks(4);
                 if (debug) {
                     debugInfo.setCode("JP (HL)");
                     debugInfo.setOperands(String.format("%04Xh", pc));
@@ -1456,6 +1542,7 @@ public class UA880 implements Runnable {
                 if (!getFlag(ZERO_FLAG)) {
                     pc = address;
                 }
+                updateTicks(10);
                 if (debug) {
                     debugInfo.setCode("JP NZ," + String.format("%04Xh", address));
                     debugInfo.setOperands(null);
@@ -1468,6 +1555,7 @@ public class UA880 implements Runnable {
                 if (getFlag(ZERO_FLAG)) {
                     pc = address;
                 }
+                updateTicks(10);
                 if (debug) {
                     debugInfo.setCode("JP Z," + String.format("%04Xh", address));
                     debugInfo.setOperands(null);
@@ -1480,6 +1568,7 @@ public class UA880 implements Runnable {
                 if (!getFlag(CARRY_FLAG)) {
                     pc = address;
                 }
+                updateTicks(10);
                 if (debug) {
                     debugInfo.setCode("JP NC," + String.format("%04Xh", address));
                     debugInfo.setOperands(null);
@@ -1492,6 +1581,7 @@ public class UA880 implements Runnable {
                 if (getFlag(CARRY_FLAG)) {
                     pc = address;
                 }
+                updateTicks(10);
                 if (debug) {
                     debugInfo.setCode("JP C," + String.format("%04Xh", address));
                     debugInfo.setOperands(null);
@@ -1504,6 +1594,7 @@ public class UA880 implements Runnable {
                 if (!getFlag(PARITY_OVERFLOW_FLAG)) {
                     pc = address;
                 }
+                updateTicks(10);
                 if (debug) {
                     debugInfo.setCode("JP PO," + String.format("%04Xh", address));
                     debugInfo.setOperands(null);
@@ -1516,6 +1607,7 @@ public class UA880 implements Runnable {
                 if (getFlag(PARITY_OVERFLOW_FLAG)) {
                     pc = address;
                 }
+                updateTicks(10);
                 if (debug) {
                     debugInfo.setCode("JP PE," + String.format("%04Xh", address));
                     debugInfo.setOperands(null);
@@ -1528,6 +1620,7 @@ public class UA880 implements Runnable {
                 if (!getFlag(SIGN_FLAG)) {
                     pc = address;
                 }
+                updateTicks(10);
                 if (debug) {
                     debugInfo.setCode("JP P," + String.format("%04Xh", address));
                     debugInfo.setOperands(null);
@@ -1540,6 +1633,7 @@ public class UA880 implements Runnable {
                 if (getFlag(SIGN_FLAG)) {
                     pc = address;
                 }
+                updateTicks(10);
                 if (debug) {
                     debugInfo.setCode("JP M," + String.format("%04Xh", address));
                     debugInfo.setOperands(null);
@@ -1549,6 +1643,7 @@ public class UA880 implements Runnable {
             case JR_IMM: {
                 int offset = (byte) kgs.readMemoryByte(pc++);
                 pc += offset;
+                updateTicks(12);
                 if (debug) {
                     debugInfo.setCode("JR " + String.format("%02Xh", offset));
                     debugInfo.setOperands(String.format("%04Xh", pc));
@@ -1559,6 +1654,9 @@ public class UA880 implements Runnable {
                 int offset = (byte) kgs.readMemoryByte(pc++);
                 if (!getFlag(ZERO_FLAG)) {
                     pc += offset;
+                    updateTicks(12);
+                } else {
+                    updateTicks(7);
                 }
                 if (debug) {
                     debugInfo.setCode("JR NZ," + String.format("%02Xh", offset));
@@ -1570,6 +1668,9 @@ public class UA880 implements Runnable {
                 int offset = (byte) kgs.readMemoryByte(pc++);
                 if (getFlag(ZERO_FLAG)) {
                     pc += offset;
+                    updateTicks(12);
+                } else {
+                    updateTicks(7);
                 }
                 if (debug) {
                     debugInfo.setCode("JR Z," + String.format("%02Xh", offset));
@@ -1581,6 +1682,9 @@ public class UA880 implements Runnable {
                 int offset = (byte) kgs.readMemoryByte(pc++);
                 if (!getFlag(CARRY_FLAG)) {
                     pc += offset;
+                    updateTicks(12);
+                } else {
+                    updateTicks(7);
                 }
                 if (debug) {
                     debugInfo.setCode("JR NC," + String.format("%02Xh", offset));
@@ -1592,6 +1696,9 @@ public class UA880 implements Runnable {
                 int offset = (byte) kgs.readMemoryByte(pc++);
                 if (getFlag(CARRY_FLAG)) {
                     pc += offset;
+                    updateTicks(12);
+                } else {
+                    updateTicks(7);
                 }
                 if (debug) {
                     debugInfo.setCode("JR C," + String.format("%02Xh", offset));
@@ -1606,6 +1713,9 @@ public class UA880 implements Runnable {
                 setRegister(REG_B, op);
                 if (op != 0) {
                     pc += offset;
+                    updateTicks(13);
+                } else {
+                    updateTicks(8);
                 }
                 if (debug) {
                     debugInfo.setCode("DJNZ " + offset);
@@ -1622,6 +1732,7 @@ public class UA880 implements Runnable {
                 pc++;
                 push(pc);
                 pc = address;
+                updateTicks(17);
                 if (debug) {
                     debugInfo.setCode("CALL " + String.format("%04Xh", address));
                     debugInfo.setOperands(null);
@@ -1634,6 +1745,9 @@ public class UA880 implements Runnable {
                 if (!getFlag(ZERO_FLAG)) {
                     push(pc);
                     pc = address;
+                    updateTicks(17);
+                } else {
+                    updateTicks(10);
                 }
                 if (debug) {
                     debugInfo.setCode("CALL NZ," + String.format("%04Xh", address));
@@ -1647,6 +1761,9 @@ public class UA880 implements Runnable {
                 if (getFlag(ZERO_FLAG)) {
                     push(pc);
                     pc = address;
+                    updateTicks(17);
+                } else {
+                    updateTicks(10);
                 }
                 if (debug) {
                     debugInfo.setCode("CALL Z," + String.format("%04Xh", address));
@@ -1660,6 +1777,9 @@ public class UA880 implements Runnable {
                 if (!getFlag(CARRY_FLAG)) {
                     push(pc);
                     pc = address;
+                    updateTicks(17);
+                } else {
+                    updateTicks(10);
                 }
                 if (debug) {
                     debugInfo.setCode("CALL NC," + String.format("%04Xh", address));
@@ -1673,6 +1793,9 @@ public class UA880 implements Runnable {
                 if (getFlag(CARRY_FLAG)) {
                     push(pc);
                     pc = address;
+                    updateTicks(17);
+                } else {
+                    updateTicks(10);
                 }
                 if (debug) {
                     debugInfo.setCode("CALL C," + String.format("%04Xh", address));
@@ -1686,6 +1809,9 @@ public class UA880 implements Runnable {
                 if (!getFlag(PARITY_OVERFLOW_FLAG)) {
                     push(pc);
                     pc = address;
+                    updateTicks(17);
+                } else {
+                    updateTicks(10);
                 }
                 if (debug) {
                     debugInfo.setCode("CALL PO," + String.format("%04Xh", address));
@@ -1699,6 +1825,9 @@ public class UA880 implements Runnable {
                 if (getFlag(PARITY_OVERFLOW_FLAG)) {
                     push(pc);
                     pc = address;
+                    updateTicks(17);
+                } else {
+                    updateTicks(10);
                 }
                 if (debug) {
                     debugInfo.setCode("CALL PE," + String.format("%04Xh", address));
@@ -1712,6 +1841,9 @@ public class UA880 implements Runnable {
                 if (!getFlag(SIGN_FLAG)) {
                     push(pc);
                     pc = address;
+                    updateTicks(17);
+                } else {
+                    updateTicks(10);
                 }
                 if (debug) {
                     debugInfo.setCode("CALL P," + String.format("%04Xh", address));
@@ -1725,6 +1857,9 @@ public class UA880 implements Runnable {
                 if (getFlag(SIGN_FLAG)) {
                     push(pc);
                     pc = address;
+                    updateTicks(17);
+                } else {
+                    updateTicks(10);
                 }
                 if (debug) {
                     debugInfo.setCode("CALL M," + String.format("%04Xh", address));
@@ -1735,6 +1870,7 @@ public class UA880 implements Runnable {
             case RET: {
                 int address = pop();
                 pc = address;
+                updateTicks(10);
                 if (debug) {
                     debugInfo.setCode("RET");
                     debugInfo.setOperands(String.format("%04Xh", address));
@@ -1745,6 +1881,9 @@ public class UA880 implements Runnable {
                 if (!getFlag(ZERO_FLAG)) {
                     int address = pop();
                     pc = address;
+                    updateTicks(11);
+                } else {
+                    updateTicks(5);
                 }
                 if (debug) {
                     debugInfo.setCode("RET NZ");
@@ -1756,6 +1895,9 @@ public class UA880 implements Runnable {
                 if (getFlag(ZERO_FLAG)) {
                     int address = pop();
                     pc = address;
+                    updateTicks(11);
+                } else {
+                    updateTicks(5);
                 }
                 if (debug) {
                     debugInfo.setCode("RET Z");
@@ -1767,6 +1909,9 @@ public class UA880 implements Runnable {
                 if (!getFlag(CARRY_FLAG)) {
                     int address = pop();
                     pc = address;
+                    updateTicks(11);
+                } else {
+                    updateTicks(5);
                 }
                 if (debug) {
                     debugInfo.setCode("RET NC");
@@ -1778,6 +1923,9 @@ public class UA880 implements Runnable {
                 if (getFlag(CARRY_FLAG)) {
                     int address = pop();
                     pc = address;
+                    updateTicks(11);
+                } else {
+                    updateTicks(5);
                 }
                 if (debug) {
                     debugInfo.setCode("RET C");
@@ -1789,6 +1937,9 @@ public class UA880 implements Runnable {
                 if (!getFlag(PARITY_OVERFLOW_FLAG)) {
                     int address = pop();
                     pc = address;
+                    updateTicks(11);
+                } else {
+                    updateTicks(5);
                 }
                 if (debug) {
                     debugInfo.setCode("RET PO");
@@ -1800,6 +1951,9 @@ public class UA880 implements Runnable {
                 if (getFlag(PARITY_OVERFLOW_FLAG)) {
                     int address = pop();
                     pc = address;
+                    updateTicks(11);
+                } else {
+                    updateTicks(5);
                 }
                 if (debug) {
                     debugInfo.setCode("RET PE");
@@ -1811,6 +1965,9 @@ public class UA880 implements Runnable {
                 if (!getFlag(SIGN_FLAG)) {
                     int address = pop();
                     pc = address;
+                    updateTicks(11);
+                } else {
+                    updateTicks(5);
                 }
                 if (debug) {
                     debugInfo.setCode("RET P");
@@ -1822,6 +1979,9 @@ public class UA880 implements Runnable {
                 if (getFlag(SIGN_FLAG)) {
                     int address = pop();
                     pc = address;
+                    updateTicks(11);
+                } else {
+                    updateTicks(5);
                 }
                 if (debug) {
                     debugInfo.setCode("RET M");
@@ -1839,6 +1999,7 @@ public class UA880 implements Runnable {
             case RST_38: {
                 push(pc);
                 pc = opcode & 0x38;
+                updateTicks(11);
                 if (debug) {
                     debugInfo.setCode("RST " + String.format("%02Xh", opcode & 0x38));
                     debugInfo.setOperands(null);
@@ -1852,6 +2013,7 @@ public class UA880 implements Runnable {
              */
             case NOP: {
                 // NOP
+                updateTicks(4);
                 if (debug) {
                     debugInfo.setCode("NOP");
                     debugInfo.setOperands(null);
@@ -1860,6 +2022,7 @@ public class UA880 implements Runnable {
             break;
             case SCF: {
                 setFlag(CARRY_FLAG);
+                updateTicks(4);
                 if (debug) {
                     debugInfo.setCode("SCF");
                     debugInfo.setOperands(null);
@@ -1872,6 +2035,7 @@ public class UA880 implements Runnable {
                 } else {
                     setFlag(CARRY_FLAG);
                 }
+                updateTicks(4);
                 if (debug) {
                     debugInfo.setCode("CCF");
                     debugInfo.setOperands(null);
@@ -1879,8 +2043,9 @@ public class UA880 implements Runnable {
             }
             break;
             case HALT: {
-                // HALT
-                System.out.println("HALT");
+                // TODO: HALT
+                System.out.println("UA880: Befehl HALT noch nicht implementiert");
+                updateTicks(4);
                 if (debug) {
                     debugInfo.setCode("HALT");
                     debugInfo.setOperands(null);
@@ -1889,7 +2054,9 @@ public class UA880 implements Runnable {
             break;
             case DI: {
                 iff1 = 0;
-                System.out.println("DI");
+                iff2 = 0;
+                //System.out.println("DI");
+                updateTicks(4);
                 if (debug) {
                     debugInfo.setCode("DI");
                     debugInfo.setOperands(null);
@@ -1898,7 +2065,9 @@ public class UA880 implements Runnable {
             break;
             case EI: {
                 iff1 = 1;
-                System.out.println("EI");
+                iff2 = 1;
+                //System.out.println("EI");
+                updateTicks(4);
                 if (debug) {
                     debugInfo.setCode("EI");
                     debugInfo.setOperands(null);
@@ -1912,7 +2081,7 @@ public class UA880 implements Runnable {
             case RLCA: {
                 int op = getRegister(REG_A);
                 int res = (op << 1) & 0xFF;
-                if (getBit(op, 7)) {
+                if (BitTest.getBit(op, 7)) {
                     setFlag(CARRY_FLAG);
                     res |= 0x01;
                 } else {
@@ -1921,6 +2090,7 @@ public class UA880 implements Runnable {
                 setRegister(REG_A, res);
                 clearFlag(HALF_CARRY_FLAG);
                 clearFlag(SUBTRACT_FLAG);
+                updateTicks(4);
                 if (debug) {
                     debugInfo.setCode("RLCA");
                     debugInfo.setOperands(Integer.toBinaryString(op) + "b->" + Integer.toBinaryString(res) + "b");
@@ -1930,7 +2100,7 @@ public class UA880 implements Runnable {
             case RRCA: {
                 int op = getRegister(REG_A);
                 int res = (op >> 1) & 0xFF;
-                if (getBit(op, 0)) {
+                if (BitTest.getBit(op, 0)) {
                     setFlag(CARRY_FLAG);
                     res |= 0x80;
                 } else {
@@ -1939,6 +2109,7 @@ public class UA880 implements Runnable {
                 setRegister(REG_A, res);
                 clearFlag(HALF_CARRY_FLAG);
                 clearFlag(SUBTRACT_FLAG);
+                updateTicks(4);
                 if (debug) {
                     debugInfo.setCode("RRCA");
                     debugInfo.setOperands(Integer.toBinaryString(op) + "b->" + Integer.toBinaryString(res) + "b");
@@ -1952,7 +2123,7 @@ public class UA880 implements Runnable {
                 if (getFlag(CARRY_FLAG)) {
                     res |= 0x01;
                 }
-                if (getBit(op, 7)) {
+                if (BitTest.getBit(op, 7)) {
                     setFlag(CARRY_FLAG);
                 } else {
                     clearFlag(CARRY_FLAG);
@@ -1960,6 +2131,7 @@ public class UA880 implements Runnable {
                 setRegister(REG_A, res);
                 clearFlag(HALF_CARRY_FLAG);
                 clearFlag(SUBTRACT_FLAG);
+                updateTicks(4);
                 if (debug) {
                     debugInfo.setCode("RLA");
                     debugInfo.setOperands(Integer.toBinaryString(op) + "b->" + Integer.toBinaryString(res) + "b");
@@ -1973,7 +2145,7 @@ public class UA880 implements Runnable {
                 if (getFlag(CARRY_FLAG)) {
                     res |= 0x80;
                 }
-                if (getBit(op, 0)) {
+                if (BitTest.getBit(op, 0)) {
                     setFlag(CARRY_FLAG);
                 } else {
                     clearFlag(CARRY_FLAG);
@@ -1981,6 +2153,7 @@ public class UA880 implements Runnable {
                 setRegister(REG_A, res);
                 clearFlag(HALF_CARRY_FLAG);
                 clearFlag(SUBTRACT_FLAG);
+                updateTicks(4);
                 if (debug) {
                     debugInfo.setCode("RRA");
                     debugInfo.setOperands(Integer.toBinaryString(op) + "b->" + Integer.toBinaryString(res) + "b");
@@ -1996,7 +2169,7 @@ public class UA880 implements Runnable {
                     case _CB_RLC: {
                         int op = getRegister(opcode2 & 0x07);
                         int res = (op << 1) & 0xFF;
-                        if (getBit(op, 7)) {
+                        if (BitTest.getBit(op, 7)) {
                             setFlag(CARRY_FLAG);
                             res |= 0x01;
                         } else {
@@ -2008,6 +2181,11 @@ public class UA880 implements Runnable {
                         checkSignFlag(res);
                         checkZeroFlag(res);
                         checkParityFlag(res);
+                        if ((opcode2 & 0x07) == 0x06) {
+                            updateTicks(15);
+                        } else {
+                            updateTicks(8);
+                        }
                         if (debug) {
                             debugInfo.setCode("RLC " + getRegisterString(opcode2 & 0x07));
                             debugInfo.setOperands(Integer.toBinaryString(op) + "b->" + Integer.toBinaryString(res) + "b");
@@ -2017,7 +2195,7 @@ public class UA880 implements Runnable {
                     case _CB_RRC: {
                         int op = getRegister(opcode2 & 0x07);
                         int res = (op >> 1) & 0xFF;
-                        if (getBit(op, 0)) {
+                        if (BitTest.getBit(op, 0)) {
                             setFlag(CARRY_FLAG);
                             res |= 0x80;
                         } else {
@@ -2029,6 +2207,11 @@ public class UA880 implements Runnable {
                         checkSignFlag(res);
                         checkZeroFlag(res);
                         checkParityFlag(res);
+                        if ((opcode2 & 0x07) == 0x06) {
+                            updateTicks(15);
+                        } else {
+                            updateTicks(8);
+                        }
                         if (debug) {
                             debugInfo.setCode("RRC " + getRegisterString(opcode2 & 0x07));
                             debugInfo.setOperands(Integer.toBinaryString(op) + "b->" + Integer.toBinaryString(res) + "b");
@@ -2041,7 +2224,7 @@ public class UA880 implements Runnable {
                         if (getFlag(CARRY_FLAG)) {
                             res |= 0x01;
                         }
-                        if (getBit(op, 7)) {
+                        if (BitTest.getBit(op, 7)) {
                             setFlag(CARRY_FLAG);
                         } else {
                             clearFlag(CARRY_FLAG);
@@ -2052,6 +2235,11 @@ public class UA880 implements Runnable {
                         checkSignFlag(res);
                         checkZeroFlag(res);
                         checkParityFlag(res);
+                        if ((opcode2 & 0x07) == 0x06) {
+                            updateTicks(15);
+                        } else {
+                            updateTicks(8);
+                        }
                         if (debug) {
                             debugInfo.setCode("RL " + getRegisterString(opcode2 & 0x07));
                             debugInfo.setOperands(Integer.toBinaryString(op) + "b->" + Integer.toBinaryString(res) + "b");
@@ -2064,7 +2252,7 @@ public class UA880 implements Runnable {
                         if (getFlag(CARRY_FLAG)) {
                             res |= 0x80;
                         }
-                        if (getBit(op, 0)) {
+                        if (BitTest.getBit(op, 0)) {
                             setFlag(CARRY_FLAG);
                         } else {
                             clearFlag(CARRY_FLAG);
@@ -2075,6 +2263,11 @@ public class UA880 implements Runnable {
                         checkSignFlag(res);
                         checkZeroFlag(res);
                         checkParityFlag(res);
+                        if ((opcode2 & 0x07) == 0x06) {
+                            updateTicks(15);
+                        } else {
+                            updateTicks(8);
+                        }
                         if (debug) {
                             debugInfo.setCode("RR " + getRegisterString(opcode2 & 0x07));
                             debugInfo.setOperands(Integer.toBinaryString(op) + "b->" + Integer.toBinaryString(res) + "b");
@@ -2084,7 +2277,7 @@ public class UA880 implements Runnable {
                     case _CB_SLA: {
                         int op = getRegister(opcode2 & 0x07);
                         int res = (op << 1) & 0xFF;
-                        if (getBit(op, 7)) {
+                        if (BitTest.getBit(op, 7)) {
                             setFlag(CARRY_FLAG);
                         } else {
                             clearFlag(CARRY_FLAG);
@@ -2095,6 +2288,11 @@ public class UA880 implements Runnable {
                         checkSignFlag(res);
                         checkZeroFlag(res);
                         checkParityFlag(res);
+                        if ((opcode2 & 0x07) == 0x06) {
+                            updateTicks(15);
+                        } else {
+                            updateTicks(8);
+                        }
                         if (debug) {
                             debugInfo.setCode("SLA " + getRegisterString(opcode2 & 0x07));
                             debugInfo.setOperands(Integer.toBinaryString(op) + "b->" + Integer.toBinaryString(res) + "b");
@@ -2104,10 +2302,10 @@ public class UA880 implements Runnable {
                     case _CB_SRA: {
                         int op = getRegister(opcode2 & 0x07);
                         int res = (op >> 1) & 0xFF;
-                        if (getBit(op, 7)) {
+                        if (BitTest.getBit(op, 7)) {
                             res |= 0x80;
                         }
-                        if (getBit(op, 0)) {
+                        if (BitTest.getBit(op, 0)) {
                             setFlag(CARRY_FLAG);
                         } else {
                             clearFlag(CARRY_FLAG);
@@ -2118,6 +2316,11 @@ public class UA880 implements Runnable {
                         checkSignFlag(res);
                         checkZeroFlag(res);
                         checkParityFlag(res);
+                        if ((opcode2 & 0x07) == 0x06) {
+                            updateTicks(15);
+                        } else {
+                            updateTicks(8);
+                        }
                         if (debug) {
                             debugInfo.setCode("SRA " + getRegisterString(opcode2 & 0x07));
                             debugInfo.setOperands(Integer.toBinaryString(op) + "b->" + Integer.toBinaryString(res) + "b");
@@ -2131,7 +2334,7 @@ public class UA880 implements Runnable {
                     case _CB_SRL: {
                         int op = getRegister(opcode2 & 0x07);
                         int res = (op >> 1) & 0xFF;
-                        if (getBit(op, 0)) {
+                        if (BitTest.getBit(op, 0)) {
                             setFlag(CARRY_FLAG);
                         } else {
                             clearFlag(CARRY_FLAG);
@@ -2142,6 +2345,11 @@ public class UA880 implements Runnable {
                         checkSignFlag(res);
                         checkZeroFlag(res);
                         checkParityFlag(res);
+                        if ((opcode2 & 0x07) == 0x06) {
+                            updateTicks(15);
+                        } else {
+                            updateTicks(8);
+                        }
                         if (debug) {
                             debugInfo.setCode("SRL " + getRegisterString(opcode2 & 0x07));
                             debugInfo.setOperands(Integer.toBinaryString(op) + "b->" + Integer.toBinaryString(res) + "b");
@@ -2158,16 +2366,21 @@ public class UA880 implements Runnable {
                     case _CB_BIT7: {
                         int bit = (opcode2 >> 3) & 0x07;
                         int op = getRegister(opcode2 & 0x07);
-                        if (getBit(op, bit)) {
+                        if (BitTest.getBit(op, bit)) {
                             clearFlag(ZERO_FLAG);
                         } else {
                             setFlag(ZERO_FLAG);
                         }
                         setFlag(HALF_CARRY_FLAG);
                         clearFlag(SUBTRACT_FLAG);
+                        if ((opcode2 & 0x07) == 0x06) {
+                            updateTicks(12);
+                        } else {
+                            updateTicks(8);
+                        }
                         if (debug) {
                             debugInfo.setCode("BIT " + bit + "," + getRegisterString(opcode2 & 0x07));
-                            debugInfo.setOperands(getBit(op, bit) ? "1" : "0");
+                            debugInfo.setOperands(BitTest.getBit(op, bit) ? "1" : "0");
                         }
                     }
                     break;
@@ -2182,6 +2395,11 @@ public class UA880 implements Runnable {
                         int bit = (opcode2 >> 3) & 0x07;
                         int op = getRegister(opcode2 & 0x07);
                         setRegister(opcode2 & 0x07, op & (~(0x01 << bit)));
+                        if ((opcode2 & 0x07) == 0x06) {
+                            updateTicks(15);
+                        } else {
+                            updateTicks(8);
+                        }
                         if (debug) {
                             debugInfo.setCode("RES " + bit + "," + getRegisterString(opcode2 & 0x07));
                             debugInfo.setOperands(null);
@@ -2199,6 +2417,11 @@ public class UA880 implements Runnable {
                         int bit = (opcode2 >> 3) & 0x07;
                         int op = getRegister(opcode2 & 0x07);
                         setRegister(opcode2 & 0x07, op | (0x01 << bit));
+                        if ((opcode2 & 0x07) == 0x06) {
+                            updateTicks(15);
+                        } else {
+                            updateTicks(8);
+                        }
                         if (debug) {
                             debugInfo.setCode("SET " + bit + "," + getRegisterString(opcode2 & 0x07));
                             debugInfo.setOperands(null);
@@ -2217,19 +2440,21 @@ public class UA880 implements Runnable {
                     case _DD_FD_ADD_DE_I:
                     case _DD_FD_ADD_IX_I:
                     case _DD_FD_ADD_SP_I: {
-                        int op1 = getRegPairISP((opcode2 >> 4) & 0x03, useIY);
-                        int op2 = getRegPairISP(REGP_IX_IY, useIY);
+                        int op1 = getRegisterPairISP((opcode2 >> 4) & 0x03, useIY);
+                        int op2 = getRegisterPairISP(REGP_IX_IY, useIY);
                         int res = add16(op1, op2, false);
-                        setRegPairISP(REGP_IX_IY, res, useIY);
+                        setRegisterPairISP(REGP_IX_IY, res, useIY);
+                        updateTicks(15);
                         if (debug) {
-                            debugInfo.setCode("ADD " + ((useIY) ? "IY" : "IX") + "," + getRegPairISPString((opcode2 >> 4) & 0x03, useIY));
+                            debugInfo.setCode("ADD " + ((useIY) ? "IY" : "IX") + "," + getRegisterPairISPString((opcode2 >> 4) & 0x03, useIY));
                             debugInfo.setOperands(String.format("%04Xh+%04Xh->%04Xh", op1, op2, res));
                         }
                     }
                     break;
                     case _DD_FD_LD_IMM_I: {
-                        setRegPairISP(REGP_IX_IY, kgs.readMemoryWord(pc++), useIY);
+                        setRegisterPairISP(REGP_IX_IY, kgs.readMemoryWord(pc++), useIY);
                         pc++;
+                        updateTicks(14);
                         if (debug) {
                             debugInfo.setCode("LD " + ((useIY) ? "IY" : "IX") + "," + String.format("%04Xh", kgs.readMemoryWord(pc - 2)));
                             debugInfo.setOperands(null);
@@ -2237,17 +2462,19 @@ public class UA880 implements Runnable {
                     }
                     break;
                     case _DD_FD_LD_I_MEM: {
-                        kgs.writeMemoryWord(kgs.readMemoryWord(pc++), getRegPairISP(REGP_IX_IY, useIY));
+                        kgs.writeMemoryWord(kgs.readMemoryWord(pc++), getRegisterPairISP(REGP_IX_IY, useIY));
                         pc++;
+                        updateTicks(20);
                         if (debug) {
                             debugInfo.setCode("LD " + String.format("%04Xh", kgs.readMemoryWord(pc - 2)) + "," + ((useIY) ? "IY" : "IX"));
-                            debugInfo.setOperands(String.format("%04Xh", getRegPairISP(REGP_IX_IY, useIY)));
+                            debugInfo.setOperands(String.format("%04Xh", getRegisterPairISP(REGP_IX_IY, useIY)));
                         }
                     }
                     break;
                     case _DD_FD_INC_I: {
-                        int op = getRegPairISP(REGP_IX_IY, useIY);
-                        setRegPairISP(REGP_IX_IY, op + 1, useIY);
+                        int op = getRegisterPairISP(REGP_IX_IY, useIY);
+                        setRegisterPairISP(REGP_IX_IY, op + 1, useIY);
+                        updateTicks(10);
                         if (debug) {
                             debugInfo.setCode("INC (" + ((useIY) ? "IY" : "IX") + ")");
                             debugInfo.setOperands(String.format("%04Xh", op + 1));
@@ -2267,8 +2494,9 @@ public class UA880 implements Runnable {
                     }
                     break;
                     case _DD_FD_LD_MEM_I: {
-                        setRegPairISP(REGP_IX_IY, kgs.readMemoryWord(kgs.readMemoryWord(pc++)), useIY);
+                        setRegisterPairISP(REGP_IX_IY, kgs.readMemoryWord(kgs.readMemoryWord(pc++)), useIY);
                         pc++;
+                        updateTicks(20);
                         if (debug) {
                             debugInfo.setCode("LD " + ((useIY) ? "IY" : "IX") + ",(" + String.format("%04Xh", kgs.readMemoryWord(pc - 2)) + ")");
                             debugInfo.setOperands(String.format("%04Xh", kgs.readMemoryWord(kgs.readMemoryWord(pc - 2))));
@@ -2276,8 +2504,9 @@ public class UA880 implements Runnable {
                     }
                     break;
                     case _DD_FD_DEC_I: {
-                        int op = getRegPairISP(REGP_IX_IY, useIY);
-                        setRegPairISP(REGP_IX_IY, op - 1, useIY);
+                        int op = getRegisterPairISP(REGP_IX_IY, useIY);
+                        setRegisterPairISP(REGP_IX_IY, op - 1, useIY);
+                        updateTicks(10);
                         if (debug) {
                             debugInfo.setCode("DEC (" + ((useIY) ? "IY" : "IX") + ")");
                             debugInfo.setOperands(String.format("%04Xh", op - 1));
@@ -2298,9 +2527,10 @@ public class UA880 implements Runnable {
                     break;
                     case _DD_FD_INC_I_0: {
                         int offset = (byte) kgs.readMemoryByte(pc++);
-                        int op = kgs.readMemoryByte(getRegPairISP(REGP_IX_IY, useIY) + offset);
+                        int op = kgs.readMemoryByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset);
                         int res = inc(op);
-                        kgs.writeMemoryByte(getRegPairISP(REGP_IX_IY, useIY) + offset, res);
+                        kgs.writeMemoryByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset, res);
+                        updateTicks(23);
                         if (debug) {
                             debugInfo.setCode("INC (" + ((useIY) ? "IY" : "IX") + "+" + String.format("%02Xh", offset));
                             debugInfo.setOperands(String.format("%02Xh", res));
@@ -2309,9 +2539,10 @@ public class UA880 implements Runnable {
                     break;
                     case _DD_FD_DEC_I_0: {
                         int offset = (byte) kgs.readMemoryByte(pc++);
-                        int op = kgs.readMemoryByte(getRegPairISP(REGP_IX_IY, useIY) + offset);
+                        int op = kgs.readMemoryByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset);
                         int res = dec(op);
-                        kgs.writeMemoryByte(getRegPairISP(REGP_IX_IY, useIY) + offset, res);
+                        kgs.writeMemoryByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset, res);
+                        updateTicks(23);
                         if (debug) {
                             debugInfo.setCode("DEC (" + ((useIY) ? "IY" : "IX") + "+" + String.format("%02Xh", offset));
                             debugInfo.setOperands(String.format("%02Xh", res));
@@ -2320,7 +2551,8 @@ public class UA880 implements Runnable {
                     break;
                     case _DD_FD_LD_IMM_I_0: {
                         int offset = (byte) kgs.readMemoryByte(pc++);
-                        kgs.writeMemoryByte(getRegPairISP(REGP_IX_IY, useIY) + offset, kgs.readMemoryByte(pc++));
+                        kgs.writeMemoryByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset, kgs.readMemoryByte(pc++));
+                        updateTicks(19);
                         if (debug) {
                             debugInfo.setCode("LD (" + ((useIY) ? "IY" : "IX") + "+" + String.format("%02Xh", offset) + "," + String.format("%04Xh", kgs.readMemoryByte(pc - 1)));
                             debugInfo.setOperands(null);
@@ -2351,10 +2583,11 @@ public class UA880 implements Runnable {
                     case _DD_FD_LD_I_0_L:
                     case _DD_FD_LD_I_0_A: {
                         int offset = (byte) kgs.readMemoryByte(pc++);
-                        setRegister((opcode2 >> 3) & 0x07, kgs.readMemoryByte(getRegPairISP(REGP_IX_IY, useIY) + offset));
+                        setRegister((opcode2 >> 3) & 0x07, kgs.readMemoryByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset));
+                        updateTicks(19);
                         if (debug) {
                             debugInfo.setCode("LD " + getRegisterString((opcode2 >> 3) & 0x07) + ",(" + ((useIY) ? "IY" : "IX") + "+" + String.format("%02Xh", offset) + ")");
-                            debugInfo.setOperands(String.format("%02Xh", kgs.readMemoryByte(getRegPairISP(REGP_IX_IY, useIY) + offset)));
+                            debugInfo.setOperands(String.format("%02Xh", kgs.readMemoryByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset)));
                         }
                     }
                     break;
@@ -2398,7 +2631,8 @@ public class UA880 implements Runnable {
                     case _DD_FD_LD_L_I_0:
                     case _DD_FD_LD_A_I_0: {
                         int offset = (byte) kgs.readMemoryByte(pc++);
-                        kgs.writeMemoryByte(getRegPairISP(REGP_IX_IY, useIY) + offset, getRegister(opcode2 & 0x07));
+                        kgs.writeMemoryByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset, getRegister(opcode2 & 0x07));
+                        updateTicks(19);
                         if (debug) {
                             debugInfo.setCode("LD " + ",(" + ((useIY) ? "IY" : "IX") + "+" + String.format("%02Xh", offset) + ")," + getRegisterString(opcode2 & 0x07));
                             debugInfo.setOperands(String.format("%02Xh", getRegister(opcode2 & 0x07)));
@@ -2416,9 +2650,10 @@ public class UA880 implements Runnable {
                     case _DD_FD_ADD_I_0_A: {
                         int offset = (byte) kgs.readMemoryByte(pc++);
                         int op1 = getRegister(REG_A);
-                        int op2 = kgs.readMemoryByte(getRegPairISP(REGP_IX_IY, useIY) + offset);
+                        int op2 = kgs.readMemoryByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset);
                         int res = add8(op1, op2, false);
                         setRegister(REG_A, res);
+                        updateTicks(19);
                         if (debug) {
                             debugInfo.setCode("ADD A,(" + ((useIY) ? "IY" : "IX") + "+" + String.format("%02Xh", offset) + ")");
                             debugInfo.setOperands(String.format("%02Xh+%02Xh->%02Xh", op1, op2, res));
@@ -2436,9 +2671,10 @@ public class UA880 implements Runnable {
                     case _DD_FD_ADC_I_0_A: {
                         int offset = (byte) kgs.readMemoryByte(pc++);
                         int op1 = getRegister(REG_A);
-                        int op2 = kgs.readMemoryByte(getRegPairISP(REGP_IX_IY, useIY) + offset);
+                        int op2 = kgs.readMemoryByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset);
                         int res = add8(op1, op2, true);
                         setRegister(REG_A, res);
+                        updateTicks(19);
                         if (debug) {
                             debugInfo.setCode("ADC A,(" + ((useIY) ? "IY" : "IX") + "+" + String.format("%02Xh", offset) + ")");
                             debugInfo.setOperands(String.format("%02Xh+%02Xh->%02Xh", op1, op2, res));
@@ -2456,9 +2692,10 @@ public class UA880 implements Runnable {
                     case _DD_FD_SUB_I_0_A: {
                         int offset = (byte) kgs.readMemoryByte(pc++);
                         int op1 = getRegister(REG_A);
-                        int op2 = kgs.readMemoryByte(getRegPairISP(REGP_IX_IY, useIY) + offset);
+                        int op2 = kgs.readMemoryByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset);
                         int res = sub8(op1, op2, false);
                         setRegister(REG_A, res);
+                        updateTicks(19);
                         if (debug) {
                             debugInfo.setCode("SUB A,(" + ((useIY) ? "IY" : "IX") + "+" + String.format("%02Xh", offset) + ")");
                             debugInfo.setOperands(String.format("%02Xh-%02Xh->%02Xh", op1, op2, res));
@@ -2476,9 +2713,10 @@ public class UA880 implements Runnable {
                     case _DD_FD_SBC_I_0_A: {
                         int offset = (byte) kgs.readMemoryByte(pc++);
                         int op1 = getRegister(REG_A);
-                        int op2 = kgs.readMemoryByte(getRegPairISP(REGP_IX_IY, useIY) + offset);
+                        int op2 = kgs.readMemoryByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset);
                         int res = sub8(op1, op2, true);
                         setRegister(REG_A, res);
+                        updateTicks(19);
                         if (debug) {
                             debugInfo.setCode("SBC A,(" + ((useIY) ? "IY" : "IX") + "+" + String.format("%02Xh", offset) + ")");
                             debugInfo.setOperands(String.format("%02Xh-%02Xh->%02Xh", op1, op2, res));
@@ -2496,9 +2734,10 @@ public class UA880 implements Runnable {
                     case _DD_FD_AND_I_0: {
                         int offset = (byte) kgs.readMemoryByte(pc++);
                         int op1 = getRegister(REG_A);
-                        int op2 = kgs.readMemoryByte(getRegPairISP(REGP_IX_IY, useIY) + offset);
+                        int op2 = kgs.readMemoryByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset);
                         int res = and(op1, op2);
                         setRegister(REG_A, res);
+                        updateTicks(19);
                         if (debug) {
                             debugInfo.setCode("AND A,(" + ((useIY) ? "IY" : "IX") + "+" + String.format("%02Xh", offset) + ")");
                             debugInfo.setOperands(String.format("%02Xh&%02Xh->%02Xh", op1, op2, res));
@@ -2516,9 +2755,10 @@ public class UA880 implements Runnable {
                     case _DD_FD_XOR_I_0: {
                         int offset = (byte) kgs.readMemoryByte(pc++);
                         int op1 = getRegister(REG_A);
-                        int op2 = kgs.readMemoryByte(getRegPairISP(REGP_IX_IY, useIY) + offset);
+                        int op2 = kgs.readMemoryByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset);
                         int res = xor(op1, op2);
                         setRegister(REG_A, res);
+                        updateTicks(19);
                         if (debug) {
                             debugInfo.setCode("XOR A,(" + ((useIY) ? "IY" : "IX") + "+" + String.format("%02Xh", offset) + ")");
                             debugInfo.setOperands(String.format("%02Xh^%02Xh->%02Xh", op1, op2, res));
@@ -2536,9 +2776,10 @@ public class UA880 implements Runnable {
                     case _DD_FD_OR_I_0: {
                         int offset = (byte) kgs.readMemoryByte(pc++);
                         int op1 = getRegister(REG_A);
-                        int op2 = kgs.readMemoryByte(getRegPairISP(REGP_IX_IY, useIY) + offset);
+                        int op2 = kgs.readMemoryByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset);
                         int res = or(op1, op2);
                         setRegister(REG_A, res);
+                        updateTicks(19);
                         if (debug) {
                             debugInfo.setCode("ADD A,(" + ((useIY) ? "IY" : "IX") + "+" + String.format("%02Xh", offset) + ")");
                             debugInfo.setOperands(String.format("%02Xh|%02Xh->%02Xh", op1, op2, res));
@@ -2556,8 +2797,9 @@ public class UA880 implements Runnable {
                     case _DD_FD_CP_I_0: {
                         int offset = (byte) kgs.readMemoryByte(pc++);
                         int op1 = getRegister(REG_A);
-                        int op2 = kgs.readMemoryByte(getRegPairISP(REGP_IX_IY, useIY) + offset);
+                        int op2 = kgs.readMemoryByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset);
                         sub8(op1, op2, false);
+                        updateTicks(19);
                         if (debug) {
                             debugInfo.setCode("ADD A,(" + ((useIY) ? "IY" : "IX") + "+" + String.format("%02Xh", offset) + ")");
                             debugInfo.setOperands(String.format("%02Xh,%02Xh", op1, op2));
@@ -2565,32 +2807,45 @@ public class UA880 implements Runnable {
                     }
                     break;
                     case _DD_FD_POP_I: {
-                        setRegPairISP(REGP_IX_IY, pop(), useIY);
+                        setRegisterPairISP(REGP_IX_IY, pop(), useIY);
+                        updateTicks(14);
                     }
                     break;
                     case _DD_FD_EX_SP_I: {
-                        int exop = kgs.readMemoryWord(getRegPairISP(REGP_SP, useIY));
-                        kgs.writeMemoryWord(getRegPairISP(REGP_SP, useIY), getRegPairISP(REGP_IX_IY, useIY));
-                        setRegPairISP(REGP_IX_IY, exop, useIY);
+                        int exop = kgs.readMemoryWord(getRegisterPairISP(REGP_SP, useIY));
+                        kgs.writeMemoryWord(getRegisterPairISP(REGP_SP, useIY), getRegisterPairISP(REGP_IX_IY, useIY));
+                        setRegisterPairISP(REGP_IX_IY, exop, useIY);
+                        updateTicks(23);
                         if (debug) {
                             debugInfo.setCode("EX " + ((useIY) ? "IY" : "IX") + "+(SP)");
-                            debugInfo.setOperands(String.format("%04Xh,%04Xh", kgs.readMemoryWord(getRegPairISP(REGP_SP, useIY)), exop));
+                            debugInfo.setOperands(String.format("%04Xh,%04Xh", kgs.readMemoryWord(getRegisterPairISP(REGP_SP, useIY)), exop));
                         }
                     }
                     break;
                     case _DD_FD_PUSH_I: {
-                        push(getRegPairISP(REGP_IX_IY, useIY));
+                        push(getRegisterPairISP(REGP_IX_IY, useIY));
+                        updateTicks(15);
                         if (debug) {
                             debugInfo.setCode("PUSH " + ((useIY) ? "IY" : "IX"));
-                            debugInfo.setOperands(String.format("%04Xh", getRegPairISP(REGP_IX_IY, useIY)));
+                            debugInfo.setOperands(String.format("%04Xh", getRegisterPairISP(REGP_IX_IY, useIY)));
                         }
                     }
                     break;
                     case _DD_FD_JP_MEM_I: {
-                        pc = getRegPairISP(REGP_IX_IY, useIY);
+                        pc = getRegisterPairISP(REGP_IX_IY, useIY);
+                        updateTicks(8);
                         if (debug) {
                             debugInfo.setCode("JP (" + ((useIY) ? "IY" : "IX") + ")");
                             debugInfo.setOperands(String.format("%04Xh", pc));
+                        }
+                    }
+                    break;
+                    case _DD_FD_LD_I_SP: {
+                        setRegisterPairHLSP(REGP_SP, getRegisterPairISP(REGP_IX_IY, useIY));
+                        updateTicks(10);
+                        if (debug) {
+                            debugInfo.setCode("LD SP," + ((useIY) ? "IY" : "IX"));
+                            debugInfo.setOperands(String.format("%04Xh", getRegisterPairISP(REGP_IX_IY, useIY)));
                         }
                     }
                     break;
@@ -2600,20 +2855,25 @@ public class UA880 implements Runnable {
                         switch (opcode3 & 0xF8) {
                             case _CB_RLC: {
                                 if ((opcode3 & 0x07) == 0x06) {
-                                    int op = kgs.readMemoryByte(getRegPairISP(REGP_IX_IY, useIY) + offset);
+                                    int op = kgs.readMemoryByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset);
                                     int res = (op << 1) & 0xFF;
-                                    if (getBit(op, 7)) {
+                                    if (BitTest.getBit(op, 7)) {
                                         setFlag(CARRY_FLAG);
                                         res |= 0x01;
                                     } else {
                                         clearFlag(CARRY_FLAG);
                                     }
-                                    kgs.writeMemoryByte(getRegPairISP(REGP_IX_IY, useIY) + offset, res);
+                                    kgs.writeMemoryByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset, res);
                                     clearFlag(HALF_CARRY_FLAG);
                                     clearFlag(SUBTRACT_FLAG);
                                     checkSignFlag(res);
                                     checkZeroFlag(res);
                                     checkParityFlag(res);
+                                    updateTicks(23);
+                                    if (debug) {
+                                        debugInfo.setCode("RLC (" + ((useIY) ? "IY" : "IX") + "+" + String.format("%02Xh", offset) + ")");
+                                        debugInfo.setOperands(Integer.toBinaryString(op) + "b->" + Integer.toBinaryString(res) + "b");
+                                    }
                                 } else {
                                     System.out.println("Unoffizieller Opcode RCL (IX/IY+d)->r");
                                 }
@@ -2621,20 +2881,25 @@ public class UA880 implements Runnable {
                             break;
                             case _CB_RRC: {
                                 if ((opcode3 & 0x07) == 0x06) {
-                                    int op = kgs.readMemoryByte(getRegPairISP(REGP_IX_IY, useIY) + offset);
+                                    int op = kgs.readMemoryByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset);
                                     int res = (op >> 1) & 0xFF;
-                                    if (getBit(op, 0)) {
+                                    if (BitTest.getBit(op, 0)) {
                                         setFlag(CARRY_FLAG);
                                         res |= 0x80;
                                     } else {
                                         clearFlag(CARRY_FLAG);
                                     }
-                                    kgs.writeMemoryByte(getRegPairISP(REGP_IX_IY, useIY) + offset, res);
+                                    kgs.writeMemoryByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset, res);
                                     clearFlag(HALF_CARRY_FLAG);
                                     clearFlag(SUBTRACT_FLAG);
                                     checkSignFlag(res);
                                     checkZeroFlag(res);
                                     checkParityFlag(res);
+                                    updateTicks(23);
+                                    if (debug) {
+                                        debugInfo.setCode("RRC (" + ((useIY) ? "IY" : "IX") + "+" + String.format("%02Xh", offset) + ")");
+                                        debugInfo.setOperands(Integer.toBinaryString(op) + "b->" + Integer.toBinaryString(res) + "b");
+                                    }
                                 } else {
                                     System.out.println("Unoffizieller Opcode RRC (IX/IY+d)->r");
                                 }
@@ -2642,22 +2907,27 @@ public class UA880 implements Runnable {
                             break;
                             case _CB_RL: {
                                 if ((opcode3 & 0x07) == 0x06) {
-                                    int op = kgs.readMemoryByte(getRegPairISP(REGP_IX_IY, useIY) + offset);
+                                    int op = kgs.readMemoryByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset);
                                     int res = (op << 1) & 0xFF;
                                     if (getFlag(CARRY_FLAG)) {
                                         res |= 0x01;
                                     }
-                                    if (getBit(op, 7)) {
+                                    if (BitTest.getBit(op, 7)) {
                                         setFlag(CARRY_FLAG);
                                     } else {
                                         clearFlag(CARRY_FLAG);
                                     }
-                                    kgs.writeMemoryByte(getRegPairISP(REGP_IX_IY, useIY) + offset, res);
+                                    kgs.writeMemoryByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset, res);
                                     clearFlag(HALF_CARRY_FLAG);
                                     clearFlag(SUBTRACT_FLAG);
                                     checkSignFlag(res);
                                     checkZeroFlag(res);
                                     checkParityFlag(res);
+                                    updateTicks(23);
+                                    if (debug) {
+                                        debugInfo.setCode("RL (" + ((useIY) ? "IY" : "IX") + "+" + String.format("%02Xh", offset) + ")");
+                                        debugInfo.setOperands(Integer.toBinaryString(op) + "b->" + Integer.toBinaryString(res) + "b");
+                                    }
                                 } else {
                                     System.out.println("Unoffizieller Opcode RL (IX/IY+d)->r");
                                 }
@@ -2665,22 +2935,27 @@ public class UA880 implements Runnable {
                             break;
                             case _CB_RR: {
                                 if ((opcode3 & 0x07) == 0x06) {
-                                    int op = kgs.readMemoryByte(getRegPairISP(REGP_IX_IY, useIY) + offset);
+                                    int op = kgs.readMemoryByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset);
                                     int res = (op >> 1) & 0xFF;
                                     if (getFlag(CARRY_FLAG)) {
                                         res |= 0x80;
                                     }
-                                    if (getBit(op, 0)) {
+                                    if (BitTest.getBit(op, 0)) {
                                         setFlag(CARRY_FLAG);
                                     } else {
                                         clearFlag(CARRY_FLAG);
                                     }
-                                    kgs.writeMemoryByte(getRegPairISP(REGP_IX_IY, useIY) + offset, res);
+                                    kgs.writeMemoryByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset, res);
                                     clearFlag(HALF_CARRY_FLAG);
                                     clearFlag(SUBTRACT_FLAG);
                                     checkSignFlag(res);
                                     checkZeroFlag(res);
                                     checkParityFlag(res);
+                                    updateTicks(23);
+                                    if (debug) {
+                                        debugInfo.setCode("RR (" + ((useIY) ? "IY" : "IX") + "+" + String.format("%02Xh", offset) + ")");
+                                        debugInfo.setOperands(Integer.toBinaryString(op) + "b->" + Integer.toBinaryString(res) + "b");
+                                    }
                                 } else {
                                     System.out.println("Unoffizieller Opcode RR (IX/IY+d)->r");
                                 }
@@ -2688,19 +2963,24 @@ public class UA880 implements Runnable {
                             break;
                             case _CB_SLA: {
                                 if ((opcode3 & 0x07) == 0x06) {
-                                    int op = kgs.readMemoryByte(getRegPairISP(REGP_IX_IY, useIY) + offset);
+                                    int op = kgs.readMemoryByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset);
                                     int res = (op << 1) & 0xFF;
-                                    if (getBit(op, 7)) {
+                                    if (BitTest.getBit(op, 7)) {
                                         setFlag(CARRY_FLAG);
                                     } else {
                                         clearFlag(CARRY_FLAG);
                                     }
-                                    kgs.writeMemoryByte(getRegPairISP(REGP_IX_IY, useIY) + offset, res);
+                                    kgs.writeMemoryByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset, res);
                                     clearFlag(HALF_CARRY_FLAG);
                                     clearFlag(SUBTRACT_FLAG);
                                     checkSignFlag(res);
                                     checkZeroFlag(res);
                                     checkParityFlag(res);
+                                    updateTicks(23);
+                                    if (debug) {
+                                        debugInfo.setCode("SLA (" + ((useIY) ? "IY" : "IX") + "+" + String.format("%02Xh", offset) + ")");
+                                        debugInfo.setOperands(Integer.toBinaryString(op) + "b->" + Integer.toBinaryString(res) + "b");
+                                    }
                                 } else {
                                     System.out.println("Unoffizieller Opcode SLA (IX/IY+d)->r");
                                 }
@@ -2708,22 +2988,27 @@ public class UA880 implements Runnable {
                             break;
                             case _CB_SRA: {
                                 if ((opcode3 & 0x07) == 0x06) {
-                                    int op = kgs.readMemoryByte(getRegPairISP(REGP_IX_IY, useIY) + offset);
+                                    int op = kgs.readMemoryByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset);
                                     int res = (op >> 1) & 0xFF;
-                                    if (getBit(op, 7)) {
+                                    if (BitTest.getBit(op, 7)) {
                                         res |= 0x80;
                                     }
-                                    if (getBit(op, 0)) {
+                                    if (BitTest.getBit(op, 0)) {
                                         setFlag(CARRY_FLAG);
                                     } else {
                                         clearFlag(CARRY_FLAG);
                                     }
-                                    kgs.writeMemoryByte(getRegPairISP(REGP_IX_IY, useIY) + offset, res);
+                                    kgs.writeMemoryByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset, res);
                                     clearFlag(HALF_CARRY_FLAG);
                                     clearFlag(SUBTRACT_FLAG);
                                     checkSignFlag(res);
                                     checkZeroFlag(res);
                                     checkParityFlag(res);
+                                    updateTicks(23);
+                                    if (debug) {
+                                        debugInfo.setCode("SRA (" + ((useIY) ? "IY" : "IX") + "+" + String.format("%02Xh", offset) + ")");
+                                        debugInfo.setOperands(Integer.toBinaryString(op) + "b->" + Integer.toBinaryString(res) + "b");
+                                    }
                                 } else {
                                     System.out.println("Unoffizieller Opcode SRA (IX/IY+d)->r");
                                 }
@@ -2735,19 +3020,24 @@ public class UA880 implements Runnable {
                             break;
                             case _CB_SRL: {
                                 if ((opcode3 & 0x07) == 0x06) {
-                                    int op = kgs.readMemoryByte(getRegPairISP(REGP_IX_IY, useIY) + offset);
+                                    int op = kgs.readMemoryByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset);
                                     int res = (op >> 1) & 0xFF;
-                                    if (getBit(op, 0)) {
+                                    if (BitTest.getBit(op, 0)) {
                                         setFlag(CARRY_FLAG);
                                     } else {
                                         clearFlag(CARRY_FLAG);
                                     }
-                                    kgs.writeMemoryByte(getRegPairISP(REGP_IX_IY, useIY) + offset, res);
+                                    kgs.writeMemoryByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset, res);
                                     clearFlag(HALF_CARRY_FLAG);
                                     clearFlag(SUBTRACT_FLAG);
                                     checkSignFlag(res);
                                     checkZeroFlag(res);
                                     checkParityFlag(res);
+                                    updateTicks(23);
+                                    if (debug) {
+                                        debugInfo.setCode("SRL (" + ((useIY) ? "IY" : "IX") + "+" + String.format("%02Xh", offset) + ")");
+                                        debugInfo.setOperands(Integer.toBinaryString(op) + "b->" + Integer.toBinaryString(res) + "b");
+                                    }
                                 } else {
                                     System.out.println("Unoffizieller Opcode SRL (IX/IY+d)->r");
                                 }
@@ -2763,14 +3053,19 @@ public class UA880 implements Runnable {
                             case _CB_BIT7: {
                                 if ((opcode3 & 0x07) == 0x06) {
                                     int bit = (opcode2 >> 3) & 0x07;
-                                    int op = kgs.readMemoryByte(getRegPairISP(REGP_IX_IY, useIY) + offset);
-                                    if (getBit(op, bit)) {
+                                    int op = kgs.readMemoryByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset);
+                                    if (BitTest.getBit(op, bit)) {
                                         clearFlag(ZERO_FLAG);
                                     } else {
                                         setFlag(ZERO_FLAG);
                                     }
                                     setFlag(HALF_CARRY_FLAG);
                                     clearFlag(SUBTRACT_FLAG);
+                                    updateTicks(20);
+                                    if (debug) {
+                                        debugInfo.setCode("BIT " + bit + ",(" + ((useIY) ? "IY" : "IX") + "+" + String.format("%02Xh", offset) + ")");
+                                        debugInfo.setOperands(BitTest.getBit(op, bit) ? "1" : "0");
+                                    }
                                 } else {
                                     System.out.println("Unoffizieller Opcode BIT (IX/IY+d)->r");
                                 }
@@ -2786,8 +3081,14 @@ public class UA880 implements Runnable {
                             case _CB_RES7: {
                                 if ((opcode3 & 0x07) == 0x06) {
                                     int bit = (opcode2 >> 3) & 0x07;
-                                    int op = kgs.readMemoryByte(getRegPairISP(REGP_IX_IY, useIY) + offset);
-                                    kgs.writeMemoryByte(getRegPairISP(REGP_IX_IY, useIY) + offset, op & (~(0x01 << bit)));
+                                    int op = kgs.readMemoryByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset);
+                                    kgs.writeMemoryByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset, op & (~(0x01 << bit)));
+                                    updateTicks(23);
+                                    if (debug) {
+                                        debugInfo.setCode("RES " + bit + ",(" + ((useIY) ? "IY" : "IX") + "+" + String.format("%02Xh", offset) + ")");
+                                        debugInfo.setOperands(null);
+                                    }
+
                                 } else {
                                     System.out.println("Unoffizieller Opcode RES (IX/IY+d)->r");
                                 }
@@ -2803,8 +3104,13 @@ public class UA880 implements Runnable {
                             case _CB_SET7: {
                                 if ((opcode3 & 0x07) == 0x06) {
                                     int bit = (opcode2 >> 3) & 0x07;
-                                    int op = kgs.readMemoryByte(getRegPairISP(REGP_IX_IY, useIY) + offset);
-                                    kgs.writeMemoryByte(getRegPairISP(REGP_IX_IY, useIY) + offset, op | (0x01 << bit));
+                                    int op = kgs.readMemoryByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset);
+                                    kgs.writeMemoryByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset, op | (0x01 << bit));
+                                    updateTicks(20);
+                                    if (debug) {
+                                        debugInfo.setCode("SET " + bit + ",(" + ((useIY) ? "IY" : "IX") + "+" + String.format("%02Xh", offset) + ")");
+                                        debugInfo.setOperands(null);
+                                    }
                                 } else {
                                     System.out.println("Unoffizieller Opcode SET (IX/IY+d)->r");
                                 }
@@ -2828,6 +3134,7 @@ public class UA880 implements Runnable {
                     case _ED_IN_C_A: {
                         int port = getRegister(REG_C);
                         setRegister((opcode2 >> 3) & 0x07, kgs.readLocalPort(port));
+                        updateTicks(12);
                         if (debug) {
                             debugInfo.setCode("IN " + getRegisterString((opcode2 >> 3) & 0x07) + ",(C)");
                             debugInfo.setOperands(String.format("%02Xh", port));
@@ -2843,6 +3150,7 @@ public class UA880 implements Runnable {
                     case _ED_OUT_A_C: {
                         int port = getRegister(REG_C);
                         kgs.writeLocalPort(port, getRegister((opcode2 >> 3) & 0x07));
+                        updateTicks(12);
                         if (debug) {
                             debugInfo.setCode("OUT (C)," + getRegisterString((opcode2 >> 3) & 0x07));
                             debugInfo.setOperands(String.format("%02Xh", port));
@@ -2853,12 +3161,13 @@ public class UA880 implements Runnable {
                     case _ED_SBC_DE_HL:
                     case _ED_SBC_HL_HL:
                     case _ED_SBC_SP_HL: {
-                        int op1 = getRegPairHLSP(REGP_HL);
-                        int op2 = getRegPairHLSP((opcode2 >> 4) & 0x03);
+                        int op1 = getRegisterPairHLSP(REGP_HL);
+                        int op2 = getRegisterPairHLSP((opcode2 >> 4) & 0x03);
                         int res = sub16(op1, op2, true);
-                        setRegPairHLSP(REGP_HL, res);
+                        setRegisterPairHLSP(REGP_HL, res);
+                        updateTicks(15);
                         if (debug) {
-                            debugInfo.setCode("SBC (HL)," + getRegPairHLSPString((opcode2 >> 4) & 0x03));
+                            debugInfo.setCode("SBC (HL)," + getRegisterPairHLSPString((opcode2 >> 4) & 0x03));
                             debugInfo.setOperands(String.format("%04Xh-%04Xh->%04Xh", op1, op2, res));
                         }
                     }
@@ -2869,10 +3178,11 @@ public class UA880 implements Runnable {
                     case _ED_LD_SP_MEM: {
                         int address = kgs.readMemoryWord(pc++);
                         pc++;
-                        kgs.writeMemoryWord(address, getRegPairHLSP((opcode2 >> 4) & 0x03));
+                        kgs.writeMemoryWord(address, getRegisterPairHLSP((opcode2 >> 4) & 0x03));
+                        updateTicks(20);
                         if (debug) {
-                            debugInfo.setCode("LD (" + String.format("%04Xh", address) + ")," + getRegPairHLSPString((opcode2 >> 4) & 0x03));
-                            debugInfo.setOperands(String.format("%04Xh", getRegPairHLSP((opcode2 >> 4) & 0x03)));
+                            debugInfo.setCode("LD (" + String.format("%04Xh", address) + ")," + getRegisterPairHLSPString((opcode2 >> 4) & 0x03));
+                            debugInfo.setOperands(String.format("%04Xh", getRegisterPairHLSP((opcode2 >> 4) & 0x03)));
                         }
                     }
                     break;
@@ -2892,7 +3202,9 @@ public class UA880 implements Runnable {
                         } else {
                             clearFlag(PARITY_OVERFLOW_FLAG);
                         }
+                        setRegister(REG_A, res);
                         checkHalfCarryFlagSub(0, op);
+                        updateTicks(8);
                         if (debug) {
                             debugInfo.setCode("NEG");
                             debugInfo.setOperands(String.format("%02Xh->%02Xh", op, res));
@@ -2902,6 +3214,7 @@ public class UA880 implements Runnable {
                     case _ED_RETN: {
                         pc = pop();
                         iff1 = iff2;
+                        updateTicks(14);
                         if (debug) {
                             debugInfo.setCode("RETN");
                             debugInfo.setOperands(null);
@@ -2910,6 +3223,8 @@ public class UA880 implements Runnable {
                     break;
                     case _ED_IM0: {
                         // TODO
+                        interruptMode = 0;
+                        updateTicks(8);
                         if (debug) {
                             debugInfo.setCode("IM 0");
                             debugInfo.setOperands(null);
@@ -2918,6 +3233,7 @@ public class UA880 implements Runnable {
                     break;
                     case _ED_LD_A_INT: {
                         i = getRegister(REG_A);
+                        updateTicks(9);
                         if (debug) {
                             debugInfo.setCode("LD I,A");
                             debugInfo.setOperands(String.format("%02X", getRegister(REG_A)));
@@ -2928,12 +3244,13 @@ public class UA880 implements Runnable {
                     case _ED_ADC_DE_HL:
                     case _ED_ADC_HL_HL:
                     case _ED_ADC_SP_HL: {
-                        int op1 = getRegPairHLSP(REGP_HL);
-                        int op2 = getRegPairHLSP((opcode2 >> 4) & 0x03);
+                        int op1 = getRegisterPairHLSP(REGP_HL);
+                        int op2 = getRegisterPairHLSP((opcode2 >> 4) & 0x03);
                         int res = add16(op1, op2, true);
-                        setRegPairHLSP(REGP_HL, res);
+                        setRegisterPairHLSP(REGP_HL, res);
+                        updateTicks(15);
                         if (debug) {
-                            debugInfo.setCode("ADC (HL)," + getRegPairHLSPString((opcode2 >> 4) & 0x03));
+                            debugInfo.setCode("ADC (HL)," + getRegisterPairHLSPString((opcode2 >> 4) & 0x03));
                             debugInfo.setOperands(String.format("%04Xh+%04Xh->%04Xh", op1, op2, res));
                         }
                     }
@@ -2944,15 +3261,17 @@ public class UA880 implements Runnable {
                     case _ED_LD_MEM_SP: {
                         int address = kgs.readMemoryWord(pc++);
                         pc++;
-                        setRegPairHLSP((opcode2 >> 4) & 0x03, kgs.readMemoryWord(address));
+                        setRegisterPairHLSP((opcode2 >> 4) & 0x03, kgs.readMemoryWord(address));
+                        updateTicks(20);
                         if (debug) {
-                            debugInfo.setCode("LD (" + String.format("%04Xh", address) + "," + getRegPairHLSPString((opcode2 >> 4) & 0x03));
+                            debugInfo.setCode("LD (" + String.format("%04Xh", address) + "," + getRegisterPairHLSPString((opcode2 >> 4) & 0x03));
                             debugInfo.setOperands(String.format("%04Xh", kgs.readMemoryWord(address)));
                         }
                     }
                     break;
                     case _ED_RETI: {
                         pc = pop();
+                        updateTicks(14);
                         if (debug) {
                             debugInfo.setCode("RETI");
                             debugInfo.setOperands(null);
@@ -2961,6 +3280,7 @@ public class UA880 implements Runnable {
                     break;
                     case _ED_LD_A_R: {
                         r = getRegister(REG_A);
+                        updateTicks(9);
                         if (debug) {
                             debugInfo.setCode("LD R,A");
                             debugInfo.setOperands(String.format("%02X", getRegister(REG_A)));
@@ -2969,6 +3289,8 @@ public class UA880 implements Runnable {
                     break;
                     case _ED_IM1: {
                         // TODO
+                        interruptMode = 1;
+                        updateTicks(8);
                         if (debug) {
                             debugInfo.setCode("IM 1");
                             debugInfo.setOperands(null);
@@ -2977,6 +3299,7 @@ public class UA880 implements Runnable {
                     break;
                     case _ED_LD_INT_A: {
                         setRegister(REG_A, i);
+                        updateTicks(9);
                         if (debug) {
                             debugInfo.setCode("LD A,I");
                             debugInfo.setOperands(String.format("%02X", i));
@@ -2985,6 +3308,8 @@ public class UA880 implements Runnable {
                     break;
                     case _ED_IM2: {
                         // TODO
+                        interruptMode = 2;
+                        updateTicks(8);
                         if (debug) {
                             debugInfo.setCode("IM 2");
                             debugInfo.setOperands(null);
@@ -2993,6 +3318,7 @@ public class UA880 implements Runnable {
                     break;
                     case _ED_LD_R_A: {
                         setRegister(REG_A, r);
+                        updateTicks(9);
                         if (debug) {
                             debugInfo.setCode("LD A,R");
                             debugInfo.setOperands(String.format("%02X", r));
@@ -3000,16 +3326,17 @@ public class UA880 implements Runnable {
                     }
                     break;
                     case _ED_RRD: {
-                        int op1 = kgs.readMemoryByte(getRegPairHLSP(REGP_HL));
+                        int op1 = kgs.readMemoryByte(getRegisterPairHLSP(REGP_HL));
                         int op2 = getRegister(REG_A);
                         int res1 = (op2 & 0xF0) | (op1 & 0x0F);
                         setRegister(REG_A, res1);
-                        kgs.writeMemoryByte(getRegPairHLSP(REGP_HL), (op1 >> 4) | (op2 << 4));
+                        kgs.writeMemoryByte(getRegisterPairHLSP(REGP_HL), (op1 >> 4) | (op2 << 4));
                         checkSignFlag(res1);
                         checkZeroFlag(res1);
                         clearFlag(HALF_CARRY_FLAG);
                         checkParityFlag(res1);
                         clearFlag(SUBTRACT_FLAG);
+                        updateTicks(18);
                         if (debug) {
                             debugInfo.setCode("RRD");
                             debugInfo.setOperands(null);
@@ -3017,16 +3344,17 @@ public class UA880 implements Runnable {
                     }
                     break;
                     case _ED_RLD: {
-                        int op1 = kgs.readMemoryByte(getRegPairHLSP(REGP_HL));
+                        int op1 = kgs.readMemoryByte(getRegisterPairHLSP(REGP_HL));
                         int op2 = getRegister(REG_A);
                         int res1 = (op2 & 0xF0) | (op1 >> 4);
                         setRegister(REG_A, res1);
-                        kgs.writeMemoryByte(getRegPairHLSP(REGP_HL), (op1 << 4) | (op2 & 0x0F));
+                        kgs.writeMemoryByte(getRegisterPairHLSP(REGP_HL), (op1 << 4) | (op2 & 0x0F));
                         checkSignFlag(res1);
                         checkZeroFlag(res1);
                         clearFlag(HALF_CARRY_FLAG);
                         checkParityFlag(res1);
                         clearFlag(SUBTRACT_FLAG);
+                        updateTicks(18);
                         if (debug) {
                             debugInfo.setCode("RLD");
                             debugInfo.setOperands(null);
@@ -3042,30 +3370,36 @@ public class UA880 implements Runnable {
                     }
                     break;
                     case _ED_LDI: {
-                        kgs.writeMemoryByte(getRegPairHLSP(REGP_DE), kgs.readMemoryByte(getRegPairHLSP(REGP_HL)));
-                        setRegPairHLSP(REGP_DE, getRegPairHLSP(REGP_DE) + 1);
-                        setRegPairHLSP(REGP_HL, getRegPairHLSP(REGP_HL) + 1);
-                        setRegPairHLSP(REGP_BC, getRegPairHLSP(REGP_BC) - 1);
+                        kgs.writeMemoryByte(getRegisterPairHLSP(REGP_DE), kgs.readMemoryByte(getRegisterPairHLSP(REGP_HL)));
+                        setRegisterPairHLSP(REGP_DE, getRegisterPairHLSP(REGP_DE) + 1);
+                        setRegisterPairHLSP(REGP_HL, getRegisterPairHLSP(REGP_HL) + 1);
+                        setRegisterPairHLSP(REGP_BC, getRegisterPairHLSP(REGP_BC) - 1);
                         clearFlag(HALF_CARRY_FLAG);
                         clearFlag(SUBTRACT_FLAG);
-                        if (getRegPairHLSP(REGP_BC) == 0) {
+                        if (getRegisterPairHLSP(REGP_BC) == 0) {
                             clearFlag(PARITY_OVERFLOW_FLAG);
                         } else {
                             setFlag(PARITY_OVERFLOW_FLAG);
+                        }
+                        updateTicks(16);
+                        if (debug) {
+                            debugInfo.setCode("LDI");
+                            debugInfo.setOperands(null);
                         }
                     }
                     break;
                     case _ED_CPI: {
                         int op1 = getRegister(REG_A);
-                        int op2 = kgs.readMemoryByte(getRegPairHLSP(REGP_HL));
+                        int op2 = kgs.readMemoryByte(getRegisterPairHLSP(REGP_HL));
                         sub8(op1, op2, false);
-                        setRegPairHLSP(REGP_HL, getRegPairHLSP(REGP_HL) + 1);
-                        setRegPairHLSP(REGP_BC, getRegPairHLSP(REGP_BC) - 1);
-                        if (getRegPairHLSP(REGP_BC) == 0) {
+                        setRegisterPairHLSP(REGP_HL, getRegisterPairHLSP(REGP_HL) + 1);
+                        setRegisterPairHLSP(REGP_BC, getRegisterPairHLSP(REGP_BC) - 1);
+                        if (getRegisterPairHLSP(REGP_BC) == 0) {
                             clearFlag(PARITY_OVERFLOW_FLAG);
                         } else {
                             setFlag(PARITY_OVERFLOW_FLAG);
                         }
+                        updateTicks(16);
                         if (debug) {
                             debugInfo.setCode("CPI");
                             debugInfo.setOperands(null);
@@ -3074,8 +3408,8 @@ public class UA880 implements Runnable {
                     break;
                     case _ED_INI: {
                         int port = getRegister(REG_C);
-                        kgs.writeMemoryByte(getRegPairHLSP(REGP_HL), kgs.readLocalPort(port));
-                        setRegPairHLSP(REGP_HL, getRegPairHLSP(REGP_HL) + 1);
+                        kgs.writeMemoryByte(getRegisterPairHLSP(REGP_HL), kgs.readLocalPort(port));
+                        setRegisterPairHLSP(REGP_HL, getRegisterPairHLSP(REGP_HL) + 1);
                         setRegister(REG_B, getRegister(REG_B) - 1);
                         setFlag(SUBTRACT_FLAG);
                         if (getRegister(REG_B) == 0) {
@@ -3083,16 +3417,17 @@ public class UA880 implements Runnable {
                         } else {
                             clearFlag(ZERO_FLAG);
                         }
+                        updateTicks(16);
                         if (debug) {
                             debugInfo.setCode("INI");
                             debugInfo.setOperands(null);
                         }
                     }
                     break;
-                    case _ED_OTI: {
+                    case _ED_OUTI: {
                         int port = getRegister(REG_C);
-                        kgs.writeLocalPort(port, kgs.readMemoryByte(getRegPairHLSP(REGP_HL)));
-                        setRegPairHLSP(REGP_HL, getRegPairHLSP(REGP_HL) + 1);
+                        kgs.writeLocalPort(port, kgs.readMemoryByte(getRegisterPairHLSP(REGP_HL)));
+                        setRegisterPairHLSP(REGP_HL, getRegisterPairHLSP(REGP_HL) + 1);
                         setRegister(REG_B, getRegister(REG_B) - 1);
                         setFlag(SUBTRACT_FLAG);
                         if (getRegister(REG_B) == 0) {
@@ -3100,24 +3435,26 @@ public class UA880 implements Runnable {
                         } else {
                             clearFlag(ZERO_FLAG);
                         }
+                        updateTicks(16);
                         if (debug) {
-                            debugInfo.setCode("OTI");
+                            debugInfo.setCode("OUTI");
                             debugInfo.setOperands(null);
                         }
                     }
                     break;
                     case _ED_LDD: {
-                        kgs.writeMemoryByte(getRegPairHLSP(REGP_DE), kgs.readMemoryByte(getRegPairHLSP(REGP_HL)));
-                        setRegPairHLSP(REGP_DE, getRegPairHLSP(REGP_DE) - 1);
-                        setRegPairHLSP(REGP_HL, getRegPairHLSP(REGP_HL) - 1);
-                        setRegPairHLSP(REGP_BC, getRegPairHLSP(REGP_BC) - 1);
+                        kgs.writeMemoryByte(getRegisterPairHLSP(REGP_DE), kgs.readMemoryByte(getRegisterPairHLSP(REGP_HL)));
+                        setRegisterPairHLSP(REGP_DE, getRegisterPairHLSP(REGP_DE) - 1);
+                        setRegisterPairHLSP(REGP_HL, getRegisterPairHLSP(REGP_HL) - 1);
+                        setRegisterPairHLSP(REGP_BC, getRegisterPairHLSP(REGP_BC) - 1);
                         clearFlag(HALF_CARRY_FLAG);
                         clearFlag(SUBTRACT_FLAG);
-                        if (getRegPairHLSP(REGP_BC) == 0) {
+                        if (getRegisterPairHLSP(REGP_BC) == 0) {
                             clearFlag(PARITY_OVERFLOW_FLAG);
                         } else {
                             setFlag(PARITY_OVERFLOW_FLAG);
                         }
+                        updateTicks(16);
                         if (debug) {
                             debugInfo.setCode("LDD");
                             debugInfo.setOperands(null);
@@ -3126,15 +3463,16 @@ public class UA880 implements Runnable {
                     break;
                     case _ED_CPD: {
                         int op1 = getRegister(REG_A);
-                        int op2 = kgs.readMemoryByte(getRegPairHLSP(REGP_HL));
+                        int op2 = kgs.readMemoryByte(getRegisterPairHLSP(REGP_HL));
                         sub8(op1, op2, false);
-                        setRegPairHLSP(REGP_HL, getRegPairHLSP(REGP_HL) - 1);
-                        setRegPairHLSP(REGP_BC, getRegPairHLSP(REGP_BC) - 1);
-                        if (getRegPairHLSP(REGP_BC) == 0) {
+                        setRegisterPairHLSP(REGP_HL, getRegisterPairHLSP(REGP_HL) - 1);
+                        setRegisterPairHLSP(REGP_BC, getRegisterPairHLSP(REGP_BC) - 1);
+                        if (getRegisterPairHLSP(REGP_BC) == 0) {
                             clearFlag(PARITY_OVERFLOW_FLAG);
                         } else {
                             setFlag(PARITY_OVERFLOW_FLAG);
                         }
+                        updateTicks(16);
                         if (debug) {
                             debugInfo.setCode("CPD");
                             debugInfo.setOperands(null);
@@ -3143,8 +3481,8 @@ public class UA880 implements Runnable {
                     break;
                     case _ED_IND: {
                         int port = getRegister(REG_C);
-                        kgs.writeMemoryByte(getRegPairHLSP(REGP_HL), kgs.readLocalPort(port));
-                        setRegPairHLSP(REGP_HL, getRegPairHLSP(REGP_HL) - 1);
+                        kgs.writeMemoryByte(getRegisterPairHLSP(REGP_HL), kgs.readLocalPort(port));
+                        setRegisterPairHLSP(REGP_HL, getRegisterPairHLSP(REGP_HL) - 1);
                         setRegister(REG_B, getRegister(REG_B) - 1);
                         setFlag(SUBTRACT_FLAG);
                         if (getRegister(REG_B) == 0) {
@@ -3152,16 +3490,17 @@ public class UA880 implements Runnable {
                         } else {
                             clearFlag(ZERO_FLAG);
                         }
+                        updateTicks(16);
                         if (debug) {
                             debugInfo.setCode("IND");
                             debugInfo.setOperands(null);
                         }
                     }
                     break;
-                    case _ED_OTD: {
+                    case _ED_OUTD: {
                         int port = getRegister(REG_C);
-                        kgs.writeLocalPort(port, kgs.readMemoryByte(getRegPairHLSP(REGP_HL)));
-                        setRegPairHLSP(REGP_HL, getRegPairHLSP(REGP_HL) - 1);
+                        kgs.writeLocalPort(port, kgs.readMemoryByte(getRegisterPairHLSP(REGP_HL)));
+                        setRegisterPairHLSP(REGP_HL, getRegisterPairHLSP(REGP_HL) - 1);
                         setRegister(REG_B, getRegister(REG_B) - 1);
                         setFlag(SUBTRACT_FLAG);
                         if (getRegister(REG_B) == 0) {
@@ -3169,6 +3508,7 @@ public class UA880 implements Runnable {
                         } else {
                             clearFlag(ZERO_FLAG);
                         }
+                        updateTicks(16);
                         if (debug) {
                             debugInfo.setCode("OTD");
                             debugInfo.setOperands(null);
@@ -3176,12 +3516,16 @@ public class UA880 implements Runnable {
                     }
                     break;
                     case _ED_LDIR: {
-                        do {
-                            kgs.writeMemoryByte(getRegPairHLSP(REGP_DE), kgs.readMemoryByte(getRegPairHLSP(REGP_HL)));
-                            setRegPairHLSP(REGP_DE, getRegPairHLSP(REGP_DE) + 1);
-                            setRegPairHLSP(REGP_HL, getRegPairHLSP(REGP_HL) + 1);
-                            setRegPairHLSP(REGP_BC, getRegPairHLSP(REGP_BC) - 1);
-                        } while (getRegPairHLSP(REGP_BC) != 0);
+                        kgs.writeMemoryByte(getRegisterPairHLSP(REGP_DE), kgs.readMemoryByte(getRegisterPairHLSP(REGP_HL)));
+                        setRegisterPairHLSP(REGP_DE, getRegisterPairHLSP(REGP_DE) + 1);
+                        setRegisterPairHLSP(REGP_HL, getRegisterPairHLSP(REGP_HL) + 1);
+                        setRegisterPairHLSP(REGP_BC, getRegisterPairHLSP(REGP_BC) - 1);
+                        if (getRegisterPairHLSP(REGP_BC) != 0) {
+                            pc -= 2;
+                            updateTicks(21);
+                        } else {
+                            updateTicks(16);
+                        }
                         clearFlag(HALF_CARRY_FLAG);
                         clearFlag(PARITY_OVERFLOW_FLAG);
                         clearFlag(SUBTRACT_FLAG);
@@ -3192,14 +3536,18 @@ public class UA880 implements Runnable {
                     }
                     break;
                     case _ED_CPIR: {
-                        do {
-                            int op1 = getRegister(REG_A);
-                            int op2 = kgs.readMemoryByte(getRegPairHLSP(REGP_HL));
-                            sub8(op1, op2, false);
-                            setRegPairHLSP(REGP_HL, getRegPairHLSP(REGP_HL) - 1);
-                            setRegPairHLSP(REGP_BC, getRegPairHLSP(REGP_BC) - 1);
-                        } while ((getRegPairHLSP(REGP_BC) != 0) & !getFlag(ZERO_FLAG));
-                        if (getRegPairHLSP(REGP_BC) == 0) {
+                        int op1 = getRegister(REG_A);
+                        int op2 = kgs.readMemoryByte(getRegisterPairHLSP(REGP_HL));
+                        sub8(op1, op2, false);
+                        setRegisterPairHLSP(REGP_HL, getRegisterPairHLSP(REGP_HL) - 1);
+                        setRegisterPairHLSP(REGP_BC, getRegisterPairHLSP(REGP_BC) - 1);
+                        if ((getRegisterPairHLSP(REGP_BC) != 0) && (op1 != op2)) {
+                            pc -= 2;
+                            updateTicks(21);
+                        } else {
+                            updateTicks(16);
+                        }
+                        if (getRegisterPairHLSP(REGP_BC) == 0) {
                             clearFlag(PARITY_OVERFLOW_FLAG);
                         } else {
                             setFlag(PARITY_OVERFLOW_FLAG);
@@ -3212,14 +3560,16 @@ public class UA880 implements Runnable {
                     break;
                     case _ED_INIR: {
                         int port = getRegister(REG_C);
-                        kgs.writeMemoryByte(getRegPairHLSP(REGP_HL), kgs.readLocalPort(port));
-                        setRegPairHLSP(REGP_HL, getRegPairHLSP(REGP_HL) + 1);
+                        kgs.writeMemoryByte(getRegisterPairHLSP(REGP_HL), kgs.readLocalPort(port));
+                        setRegisterPairHLSP(REGP_HL, getRegisterPairHLSP(REGP_HL) + 1);
                         setRegister(REG_B, getRegister(REG_B) - 1);
                         setFlag(SUBTRACT_FLAG);
                         if (getRegister(REG_B) != 0) {
-                            pc = pc - 2;
+                            pc -= 2;
+                            updateTicks(21);
                         } else {
                             setFlag(ZERO_FLAG);
+                            updateTicks(16);
                         }
                         if (debug) {
                             debugInfo.setCode("INIR");
@@ -3229,14 +3579,16 @@ public class UA880 implements Runnable {
                     break;
                     case _ED_OTIR: {
                         int port = getRegister(REG_C);
-                        kgs.writeLocalPort(port, kgs.readMemoryByte(getRegPairHLSP(REGP_HL)));
-                        setRegPairHLSP(REGP_HL, getRegPairHLSP(REGP_HL) + 1);
+                        kgs.writeLocalPort(port, kgs.readMemoryByte(getRegisterPairHLSP(REGP_HL)));
+                        setRegisterPairHLSP(REGP_HL, getRegisterPairHLSP(REGP_HL) + 1);
                         setRegister(REG_B, getRegister(REG_B) - 1);
                         setFlag(SUBTRACT_FLAG);
                         if (getRegister(REG_B) != 0) {
                             pc = pc - 2;
+                            updateTicks(21);
                         } else {
                             setFlag(ZERO_FLAG);
+                            updateTicks(16);
                         }
                         if (debug) {
                             debugInfo.setCode("OTIR");
@@ -3245,12 +3597,16 @@ public class UA880 implements Runnable {
                     }
                     break;
                     case _ED_LDDR: {
-                        do {
-                            kgs.writeMemoryByte(getRegPairHLSP(REGP_DE), kgs.readMemoryByte(getRegPairHLSP(REGP_HL)));
-                            setRegPairHLSP(REGP_DE, getRegPairHLSP(REGP_DE) - 1);
-                            setRegPairHLSP(REGP_HL, getRegPairHLSP(REGP_HL) - 1);
-                            setRegPairHLSP(REGP_BC, getRegPairHLSP(REGP_BC) - 1);
-                        } while (getRegPairHLSP(REGP_BC) != 0);
+                        kgs.writeMemoryByte(getRegisterPairHLSP(REGP_DE), kgs.readMemoryByte(getRegisterPairHLSP(REGP_HL)));
+                        setRegisterPairHLSP(REGP_DE, getRegisterPairHLSP(REGP_DE) - 1);
+                        setRegisterPairHLSP(REGP_HL, getRegisterPairHLSP(REGP_HL) - 1);
+                        setRegisterPairHLSP(REGP_BC, getRegisterPairHLSP(REGP_BC) - 1);
+                        if (getRegisterPairHLSP(REGP_BC) != 0) {
+                            pc -= 2;
+                            updateTicks(21);
+                        } else {
+                            updateTicks(16);
+                        }
                         clearFlag(HALF_CARRY_FLAG);
                         clearFlag(SUBTRACT_FLAG);
                         clearFlag(PARITY_OVERFLOW_FLAG);
@@ -3261,14 +3617,18 @@ public class UA880 implements Runnable {
                     }
                     break;
                     case _ED_CPDR: {
-                        do {
-                            int op1 = getRegister(REG_A);
-                            int op2 = kgs.readMemoryByte(getRegPairHLSP(REGP_HL));
-                            sub8(op1, op2, false);
-                            setRegPairHLSP(REGP_HL, getRegPairHLSP(REGP_HL) - 1);
-                            setRegPairHLSP(REGP_BC, getRegPairHLSP(REGP_BC) - 1);
-                        } while ((getRegPairHLSP(REGP_BC) != 0) & !getFlag(ZERO_FLAG));
-                        if (getRegPairHLSP(REGP_BC) == 0) {
+                        int op1 = getRegister(REG_A);
+                        int op2 = kgs.readMemoryByte(getRegisterPairHLSP(REGP_HL));
+                        sub8(op1, op2, false);
+                        setRegisterPairHLSP(REGP_HL, getRegisterPairHLSP(REGP_HL) - 1);
+                        setRegisterPairHLSP(REGP_BC, getRegisterPairHLSP(REGP_BC) - 1);
+                        if ((getRegisterPairHLSP(REGP_BC) != 0) && (op1 != op2)) {
+                            pc -= 2;
+                            updateTicks(21);
+                        } else {
+                            updateTicks(16);
+                        }
+                        if (getRegisterPairHLSP(REGP_BC) == 0) {
                             clearFlag(PARITY_OVERFLOW_FLAG);
                         } else {
                             setFlag(PARITY_OVERFLOW_FLAG);
@@ -3281,14 +3641,16 @@ public class UA880 implements Runnable {
                     break;
                     case _ED_INDR: {
                         int port = getRegister(REG_C);
-                        kgs.writeMemoryByte(getRegPairHLSP(REGP_HL), kgs.readLocalPort(port));
-                        setRegPairHLSP(REGP_HL, getRegPairHLSP(REGP_HL) - 1);
+                        kgs.writeMemoryByte(getRegisterPairHLSP(REGP_HL), kgs.readLocalPort(port));
+                        setRegisterPairHLSP(REGP_HL, getRegisterPairHLSP(REGP_HL) - 1);
                         setRegister(REG_B, getRegister(REG_B) - 1);
                         setFlag(SUBTRACT_FLAG);
                         if (getRegister(REG_B) != 0) {
-                            pc = pc - 2;
+                            pc -= 2;
+                            updateTicks(21);
                         } else {
                             setFlag(ZERO_FLAG);
+                            updateTicks(16);
                         }
                         if (debug) {
                             debugInfo.setCode("INDR");
@@ -3298,14 +3660,16 @@ public class UA880 implements Runnable {
                     break;
                     case _ED_OTDR: {
                         int port = getRegister(REG_C);
-                        kgs.writeLocalPort(port, kgs.readMemoryByte(getRegPairHLSP(REGP_HL)));
-                        setRegPairHLSP(REGP_HL, getRegPairHLSP(REGP_HL) - 1);
+                        kgs.writeLocalPort(port, kgs.readMemoryByte(getRegisterPairHLSP(REGP_HL)));
+                        setRegisterPairHLSP(REGP_HL, getRegisterPairHLSP(REGP_HL) - 1);
                         setRegister(REG_B, getRegister(REG_B) - 1);
                         setFlag(SUBTRACT_FLAG);
                         if (getRegister(REG_B) != 0) {
-                            pc = pc - 2;
+                            pc -= 2;
+                            updateTicks(21);
                         } else {
                             setFlag(ZERO_FLAG);
+                            updateTicks(16);
                         }
                         if (debug) {
                             debugInfo.setCode("OTDR");
@@ -3328,8 +3692,14 @@ public class UA880 implements Runnable {
 
     }
 
-    private void setRegister(int reg, int value) {
-        switch (reg) {
+    /**
+     * Setzt den Wert eines Registers
+     *
+     * @param register Register
+     * @param value Wert
+     */
+    private void setRegister(int register, int value) {
+        switch (register) {
             case REG_B:
                 b = value & 0xFF;
                 break;
@@ -3349,7 +3719,7 @@ public class UA880 implements Runnable {
                 l = value & 0xFF;
                 break;
             case MEM_HL:
-                kgs.writeMemoryByte(getRegPairHLSP(REGP_HL), value);
+                kgs.writeMemoryByte(getRegisterPairHLSP(REGP_HL), value);
                 break;
             case REG_A:
                 a = value & 0xFF;
@@ -3359,8 +3729,14 @@ public class UA880 implements Runnable {
         }
     }
 
-    private int getRegister(int reg) {
-        switch (reg) {
+    /**
+     * Gibt den Wert eines Registers zurück
+     *
+     * @param register Register
+     * @return Inhalt des Registers
+     */
+    private int getRegister(int register) {
+        switch (register) {
             case REG_B:
                 return b & 0xFF;
             case REG_C:
@@ -3374,7 +3750,7 @@ public class UA880 implements Runnable {
             case REG_L:
                 return l & 0xFF;
             case MEM_HL:
-                return kgs.readMemoryByte(getRegPairHLSP(REGP_HL));
+                return kgs.readMemoryByte(getRegisterPairHLSP(REGP_HL));
             case REG_A:
                 return a & 0xFF;
             default:
@@ -3382,8 +3758,14 @@ public class UA880 implements Runnable {
         }
     }
 
-    private String getRegisterString(int reg) {
-        switch (reg) {
+    /**
+     * Liefert einen String, welcher das Register repräsentiert
+     *
+     * @param register Register
+     * @return String
+     */
+    private String getRegisterString(int register) {
+        switch (register) {
             case REG_B:
                 return "B";
             case REG_C:
@@ -3405,8 +3787,15 @@ public class UA880 implements Runnable {
         }
     }
 
-    private int getRegPairHLSP(int regp) {
-        switch (regp) {
+    /**
+     * Gibt den Inhalt eines Registerpaares oder des Stackpointers (BC,DE,HL,SP)
+     * als 16-bit Wert zurück
+     *
+     * @param registerPair Registerpaar
+     * @return Inhalt des Registerpaars
+     */
+    private int getRegisterPairHLSP(int registerPair) {
+        switch (registerPair) {
             case REGP_BC:
                 return ((b & 0xFF) << 8) | (c & 0xFF);
             case REGP_DE:
@@ -3420,8 +3809,15 @@ public class UA880 implements Runnable {
         }
     }
 
-    private String getRegPairHLSPString(int regp) {
-        switch (regp) {
+    /**
+     * Gibt den String zurück, welcher ein Registerpaar oder den Stackpointer
+     * (BC,DE,HL,SP) repräsentiert
+     *
+     * @param registerPair Registerpaar
+     * @return Inhalt des Registerpaars
+     */
+    private String getRegisterPairHLSPString(int registerPair) {
+        switch (registerPair) {
             case REGP_BC:
                 return "BC";
             case REGP_DE:
@@ -3435,8 +3831,15 @@ public class UA880 implements Runnable {
         }
     }
 
-    private void setRegPairHLSP(int regp, int value) {
-        switch (regp) {
+    /**
+     * Setzt den Inhalt eines Registerpaares oder des Stackpointers
+     * (BC,DE,HL,SP)
+     *
+     * @param registerPair Registerpaar
+     * @param value Wert
+     */
+    private void setRegisterPairHLSP(int registerPair, int value) {
+        switch (registerPair) {
             case REGP_BC:
                 c = value & 0xFF;
                 b = (value >> 8) & 0xFF;
@@ -3457,12 +3860,20 @@ public class UA880 implements Runnable {
         }
     }
 
-    private int getRegPairISP(int regp, boolean useIY) {
-        switch (regp) {
+    /**
+     * Gibt den Inhalt eines Registerpaares, des Stackpointers oder eines
+     * Indexregisters (BC,DE,SP,IX/IY) als 16-bit Wert zurück
+     *
+     * @param registerPair Registerpaar
+     * @param useIY true - IndexRegister IY, false - Indexregister IX
+     * @return Inhalt des Registerpaars
+     */
+    private int getRegisterPairISP(int registerPair, boolean useIY) {
+        switch (registerPair) {
             case REGP_BC:
             case REGP_DE:
             case REGP_SP:
-                return getRegPairHLSP(regp);
+                return getRegisterPairHLSP(registerPair);
             case REGP_IX_IY:
                 return (useIY ? iy : ix);
             default:
@@ -3470,12 +3881,20 @@ public class UA880 implements Runnable {
         }
     }
 
-    private String getRegPairISPString(int regp, boolean useIY) {
-        switch (regp) {
+    /**
+     * Gibt den String zurück, welcher ein Registerpaar, den Stackpointer oder
+     * ein Indexregister (BC,DE,HL,IX/IY) repräsentiert
+     *
+     * @param registerPair Registerpaar
+     * @param useIY true - IndexRegister IY, false - Indexregister IX
+     * @return Inhalt des Registerpaars
+     */
+    private String getRegisterPairISPString(int registerPair, boolean useIY) {
+        switch (registerPair) {
             case REGP_BC:
             case REGP_DE:
             case REGP_SP:
-                return getRegPairHLSPString(regp);
+                return getRegisterPairHLSPString(registerPair);
             case REGP_IX_IY:
                 return (useIY ? "IY" : "IX");
             default:
@@ -3483,12 +3902,20 @@ public class UA880 implements Runnable {
         }
     }
 
-    private void setRegPairISP(int regp, int value, boolean useIY) {
-        switch (regp) {
+    /**
+     * Setzt den Inhalt eines Registerpaares, des Stackpointers oder eines
+     * Indexregisters (BC,DE,SP,IX/IY)
+     *
+     * @param registerPair Registerpaar
+     * @param useIY true - IndexRegister IY, false - Indexregister IX
+     * @param value Wert
+     */
+    private void setRegisterPairISP(int registerPair, int value, boolean useIY) {
+        switch (registerPair) {
             case REGP_BC:
             case REGP_DE:
             case REGP_SP:
-                setRegPairHLSP(regp, value);
+                setRegisterPairHLSP(registerPair, value);
                 break;
             case REGP_IX_IY:
                 if (useIY) {
@@ -3502,27 +3929,38 @@ public class UA880 implements Runnable {
         }
     }
 
-    private int getRegPairAF(int regp) {
-        switch (regp) {
+    /**
+     * Gibt den Inhalt eines Registerpaares (BC,DE,HL,AF) als 16-bit Wert zurück
+     *
+     * @param registerPair Registerpaar
+     * @return Inhalt des Registerpaars
+     */
+    private int getRegisterPairAF(int registerPair) {
+        switch (registerPair) {
             case REGP_BC:
             case REGP_DE:
             case REGP_HL:
-                return getRegPairHLSP(regp);
+                return getRegisterPairHLSP(registerPair);
             case REGP_AF:
                 return ((a & 0xFF) << 8) | (f & 0xFF);
             default:
-                System.out.println("Register " + regp + " not detected! " + (pc - 1));
-                System.exit(0);
                 throw new IllegalStateException("Register not detected");
         }
     }
 
-    private String getRegPairAFString(int regp) {
-        switch (regp) {
+    /**
+     * Gibt den String zurück, welcher ein Registerpaar (BC,DE,HL,AF)
+     * repräsentiert
+     *
+     * @param registerPair Registerpaar
+     * @return Inhalt des Registerpaars
+     */
+    private String getRegisterPairAFString(int registerPair) {
+        switch (registerPair) {
             case REGP_BC:
             case REGP_DE:
             case REGP_HL:
-                return getRegPairHLSPString(regp);
+                return getRegisterPairHLSPString(registerPair);
             case REGP_AF:
                 return "AF";
             default:
@@ -3530,12 +3968,18 @@ public class UA880 implements Runnable {
         }
     }
 
-    private void setRegPairAF(int regp, int value) {
-        switch (regp) {
+    /**
+     * Setzt den Inhalt eines Registerpaares (BC,DE,HL,AF)
+     *
+     * @param registerPair Registerpaar
+     * @param value Wert
+     */
+    private void setRegisterPairAF(int registerPair, int value) {
+        switch (registerPair) {
             case REGP_BC:
             case REGP_DE:
             case REGP_HL:
-                setRegPairHLSP(regp, value);
+                setRegisterPairHLSP(registerPair, value);
                 break;
             case REGP_AF:
                 f = value & 0xFF;
@@ -3546,17 +3990,34 @@ public class UA880 implements Runnable {
         }
     }
 
+    /**
+     * Liest ein Wort vom Stack
+     *
+     * @return Gelesenes Wort
+     */
     public int pop() {
         int result = kgs.readMemoryWord(sp);
-        setRegPairHLSP(REGP_SP, getRegPairHLSP(REGP_SP) + 2);
+        setRegisterPairHLSP(REGP_SP, getRegisterPairHLSP(REGP_SP) + 2);
         return result;
     }
 
+    /**
+     * Legt ein Wert auf dem Stack ab
+     *
+     * @param value Zu speicherndes Wort
+     */
     public void push(int value) {
-        setRegPairHLSP(REGP_SP, getRegPairHLSP(REGP_SP) - 2);
+        setRegisterPairHLSP(REGP_SP, getRegisterPairHLSP(REGP_SP) - 2);
         kgs.writeMemoryWord(sp, value);
     }
 
+    /**
+     * Führt eine UND Operation durch und setzt die entsprechenden Flags
+     *
+     * @param op1 1. Operand
+     * @param op2 2. Operand
+     * @return Ergebnis
+     */
     private int and(int op1, int op2) {
         int res = op1 & op2;
         checkSignFlag(res);
@@ -3568,6 +4029,13 @@ public class UA880 implements Runnable {
         return res;
     }
 
+    /**
+     * Führt eine ODER Operation durch und setzt die entsprechenden Flags
+     *
+     * @param op1 1. Operand
+     * @param op2 2. Operand
+     * @return Ergebnis
+     */
     private int or(int op1, int op2) {
         int res = op1 | op2;
         checkSignFlag(res);
@@ -3579,6 +4047,13 @@ public class UA880 implements Runnable {
         return res;
     }
 
+    /**
+     * Führt eine XOR Operation durch und setzt die entsprechenden Flags
+     *
+     * @param op1 1. Operand
+     * @param op2 2. Operand
+     * @return Ergebnis
+     */
     private int xor(int op1, int op2) {
         int res = op1 ^ op2;
         checkSignFlag(res);
@@ -3590,6 +4065,13 @@ public class UA880 implements Runnable {
         return res;
     }
 
+    /**
+     * Addiert zwei Bytes und setzt die entsprechenden Flags
+     *
+     * @param op1 1. Operand
+     * @param op2 2. Operand
+     * @return Ergebnis
+     */
     private int add8(int op1, int op2, boolean useCarry) {
         if (useCarry & getFlag(CARRY_FLAG)) {
             op2++;
@@ -3604,6 +4086,13 @@ public class UA880 implements Runnable {
         return res;
     }
 
+    /**
+     * Addiert zwei Wörter und setzt die entsprechenden Flags
+     *
+     * @param op1 1. Operand
+     * @param op2 2. Operand
+     * @return Ergebnis
+     */
     private int add16(int op1, int op2, boolean useCarry) {
         if (useCarry & getFlag(CARRY_FLAG)) {
             op2++;
@@ -3615,6 +4104,13 @@ public class UA880 implements Runnable {
         return res;
     }
 
+    /**
+     * Subtrahiert zwei Bytes und setzt die entsprechenden Flags
+     *
+     * @param op1 1. Operand
+     * @param op2 2. Operand
+     * @return Ergebnis
+     */
     private int sub8(int op1, int op2, boolean useCarry) {
         if (useCarry & getFlag(CARRY_FLAG)) {
             op2++;
@@ -3629,6 +4125,13 @@ public class UA880 implements Runnable {
         return res;
     }
 
+    /**
+     * Subtrahiert zwei Wörter und setzt die entsprechenden Flags
+     *
+     * @param op1 1. Operand
+     * @param op2 2. Operand
+     * @return Ergebnis
+     */
     private int sub16(int op1, int op2, boolean useCarry) {
         if (useCarry & getFlag(CARRY_FLAG)) {
             op2++;
@@ -3643,6 +4146,12 @@ public class UA880 implements Runnable {
         return res;
     }
 
+    /**
+     * Inkrementiert einen Operanden und setzt die entsprechenden Flags
+     *
+     * @param op Operand
+     * @return Ergebnis
+     */
     private int inc(int op) {
         int res = op + 1;
         clearFlag(SUBTRACT_FLAG);
@@ -3653,6 +4162,12 @@ public class UA880 implements Runnable {
         return res;
     }
 
+    /**
+     * Dekrementiert einen Operanden und setzt die entsprechenden Flags
+     *
+     * @param op Operand
+     * @return Ergebnis
+     */
     private int dec(int op) {
         int res = op - 1;
         setFlag(SUBTRACT_FLAG);
@@ -3735,6 +4250,13 @@ public class UA880 implements Runnable {
         }
     }
 
+    /**
+     * Setzt das Overflow-Flag entsprechend einer ausgeführten Addition op1+op2
+     *
+     * @param op1 1. Operand
+     * @param op2 2. Operand
+     * @param res Ergebnis
+     */
     private void checkOverflowFlagAdd(int op1, int op2, int res) {
         if (((op1 & 0x80) == 0x80 && (op2 & 0x80) == 0x80 && (res & 0x80) == 0x00) | ((op1 & 0x80) == 0x00 && (op2 & 0x80) == 0x00 && (res & 0x80) == 0x80)) {
             setFlag(PARITY_OVERFLOW_FLAG);
@@ -3744,7 +4266,7 @@ public class UA880 implements Runnable {
     }
 
     /**
-     * Setzt das Overflow Flag entsprechend einer ausgeführten Subtraktion von
+     * Setzt das Overflow-Flag entsprechend einer ausgeführten Subtraktion von
      * zwei Bytes op1-op2
      *
      * @param op1 Erster Operand
@@ -3773,6 +4295,11 @@ public class UA880 implements Runnable {
         }
     }
 
+    /**
+     * Setzt das Parity-Flag entsprechend einer vorangehenden Operation
+     *
+     * @param res Ergebnis
+     */
     private void checkParityFlag(int res) {
         int sum = 0;
         for (int bit = 7; bit >= 0; bit--) {
@@ -3787,6 +4314,11 @@ public class UA880 implements Runnable {
         }
     }
 
+    /**
+     * Setzt das Zero-Flag entsprechend einer vorangehenden Operation
+     *
+     * @param res Ergebnis
+     */
     private void checkZeroFlag(int res) {
         if ((res & 0xFF) == 0) {
             setFlag(ZERO_FLAG);
@@ -3795,6 +4327,11 @@ public class UA880 implements Runnable {
         }
     }
 
+    /**
+     * Setzt das Sign-Flag entsprechend einer vorangehenden Operation
+     *
+     * @param res Ergebnis
+     */
     private void checkSignFlag(int res) {
         if (res < 0 || (res & 0x80) == 0x80) {
             setFlag(SIGN_FLAG);
@@ -3803,38 +4340,104 @@ public class UA880 implements Runnable {
         }
     }
 
+    /**
+     * Gibt an, ob ein Flag gesetzt ist
+     *
+     * @param flag Zu prüfendes Flag
+     * @return true - wenn Flag gesetzt ist, false-sonst
+     */
     private boolean getFlag(int flag) {
         return (f & flag) != 0;
     }
 
+    /**
+     * Setzt ein Flag
+     *
+     * @param flag Zu setzendes Flag
+     */
     private void setFlag(int flag) {
         f |= flag;
     }
 
+    /**
+     * Löscht ein Flag
+     *
+     * @param flag Zu löschendes Flag
+     */
     private void clearFlag(int flag) {
         f &= ~flag;
     }
 
     /**
-     * Prüft ob ein Bit des Operanden gesetzt ist
+     * Aktualisiert die Anzahl der Taktzyklen
      *
-     * @param op Operand
-     * @param i Nummer des Bits
-     * @return true - wenn das Bit gesetzt ist, false - sonst
+     * @param cycles Anzahl der Zyklen
      */
-    private boolean getBit(int op, int i) {
-        return (((op >> i) & 0x1) == 0x1);
+    public void updateTicks(int cycles) {
+        ticks += cycles;
     }
 
-    private void updateClock(long cycles) {
-
+    /**
+     * Aktualisiert die Uhrzeit und lässt die entsprechende Menge an Befehlen
+     * ablaufen
+     * <p>
+     * TODO: HALT Befehl implementieren
+     *
+     * @param amount Anzahl der Zyklen
+     */
+    public void updateClock(int amount) {
+        while (ticks < amount) {
+            executeNextInstruction();
+            if (nmi) {
+                nmi = false;
+                nmi();
+            } else if (iff1 == 1 && iff2 == 1) {
+                if (interruptsWaiting.size() > 0) {
+                    interrupt(interruptsWaiting.pollFirst());
+                }
+            }
+        }
+        ticks -= amount;
     }
 
+    /**
+     * Arbeitet einen nichtmaskierbaren Interrupt ab
+     */
     private void nmi() {
         push(pc);
         iff2 = iff1;
         iff1 = 0;
         pc = 0x0066;
+    }
+
+    /**
+     * Arbeitet einen Interrupt ab
+     *
+     * @param irq Interrupt ID
+     */
+    private void interrupt(int irq) {
+        iff1 = 0;
+        iff2 = 0;
+        switch (interruptMode) {
+            case 0:
+                // TODO Interrupt-Modus 0
+                break;
+            case 1:
+                // TODO Interrupt-Modus 1
+                push(pc);
+                pc = 0x0038;
+                break;
+            case 2:
+                // TODO Interrupt-Modus 2
+                int isr_address = (i << 8) | irq;
+                push(pc);
+
+                pc = kgs.readMemoryWord(isr_address);
+                System.out.println("Starte Interrupt an: " + String.format("%04X", pc));
+                break;
+            default:
+                throw new IllegalStateException("Unbekannter Interrupt-Modus!");
+        }
     }
 
     /**
@@ -3845,24 +4448,68 @@ public class UA880 implements Runnable {
         while (!stopped) {
             executeNextInstruction();
             if (nmi) {
-                nmi=false;
+                nmi = false;
                 nmi();
+            } else if (iff1 == 1 && iff2 == 1) {
+                if (interruptsWaiting.size() > 0) {
+                    interrupt(interruptsWaiting.pollFirst());
+                }
             }
         }
     }
 
-//    public static void main(String[] args) {
-//        UA880 cpu = new UA880();
-//        cpu.debug = true;
-//        cpu.pc = 0x0000;
-//        cpu.debugger.setDebug(true);
-//        cpu.memory = new Memory(0xFFFF);
-//        cpu.memory.loadFile(0x0000, new File("./eproms/KGS-K7070-152.rom"), Memory.FileLoadMode.LOW_AND_HIGH_BYTE);
-//        Thread cpuThread = new Thread(cpu);
-//        cpuThread.start();
-//
-//    }
+    /**
+     * Fordert für den nächsten Zyklus die Abarbeitung eines nichtmaskierbaren
+     * Interrupts an
+     */
     public void requestNMI() {
         this.nmi = true;
     }
+
+    /**
+     * Fordert für den nächsten Zyklus die Abarbeitung eines Interrupts an
+     *
+     * @param i Interruptnummer
+     */
+    public void requestInterrupt(int i) {
+        if (iff1 == 1 && iff2 == 1) {
+            System.out.println("Interrupt auf CPU akzeptiert");
+            interruptsWaiting.add(i);
+            interruptsWaiting.sort(null);
+        }
+    }
+
+    /**
+     * Aktiviert oder Deaktiviert den Debugger
+     *
+     * @param debug true - zum Aktivieren, false- sonst
+     */
+    public void setDebug(boolean debug) {
+        debugger.setDebug(debug);
+    }
+
+    /**
+     * Speichert den Zustand der CPU in einer Datei
+     * <p>
+     * TODO: Funktion noch nicht implementiert
+     *
+     * @param dos Stream zur Datei
+     * @throws IOException Wenn Schreiben nicht erfolgreich war
+     */
+    public void saveState(DataOutputStream dos) throws IOException {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    /**
+     * Lädt den Zustand der CPU aus einer Datei
+     * <p>
+     * TODO: Funktion noch nicht implementiert
+     *
+     * @param dis Stream zur Datei
+     * @throws IOException Wenn Lesen nicht erfolgreich war
+     */
+    public void loadState(DataInputStream dis) throws IOException {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
 }

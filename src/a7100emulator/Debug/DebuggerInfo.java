@@ -42,28 +42,12 @@ public class DebuggerInfo {
      * Debug-String der Operanden
      */
     private String operands;
-    /**
-     * Singleton Instanz
-     */
-    //private static DebuggerInfo instance;
 
     /**
      * Erstellt eine neue DebuggerInfo
      */
     public DebuggerInfo() {
     }
-
-//    /**
-//     * Gibt die Singleton Instanz zurück
-//     *
-//     * @return Instanz
-//     */
-//    public static DebuggerInfo getInstance() {
-//        if (instance == null) {
-//            instance = new DebuggerInfo();
-//        }
-//        return instance;
-//    }
 
     /**
      * Liefert die Systemzeit zurück

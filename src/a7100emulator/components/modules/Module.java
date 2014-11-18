@@ -5,7 +5,7 @@
  * (c) 2011-2014 Dirk Bräuer
  * 
  * Letzte Änderungen:
- *   02.04.2014 Kommentare vervollständigt
+ *   02.04.2014 - Kommentare vervollständigt
  *
  */
 package a7100emulator.components.modules;
@@ -41,5 +41,6 @@ public interface Module {
      * @throws IOException Wenn Lesen nicht erfolgreich war
      */
     public void loadState(DataInputStream dis) throws IOException;
+  
 
 }

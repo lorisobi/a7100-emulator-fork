@@ -28,5 +28,5 @@ public interface ClockModule extends Module {
      * @param amount Anzahl der Ticks
      */
     void clockUpdate(int amount);
-
+    
 }

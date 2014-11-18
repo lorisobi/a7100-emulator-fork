@@ -5,13 +5,17 @@
  * (c) 2011-2014 Dirk Bräuer
  * 
  * Letzte Änderungen:
- *   03.04.2014 Kommentare vervollständigt
- *   23.07.2014 Aktualisierung Systemzeit an Tastatur weiterreichen
- *   24.07.2014 Methoden ausgelagert, Abfrage ob RTS gesetzt, Konstanten erstellt
+ *   03.04.2014 - Kommentare vervollständigt
+ *   23.07.2014 - Aktualisierung Systemzeit an Tastatur weiterreichen
+ *   24.07.2014 - Methoden ausgelagert
+ *              - Abfrage ob RTS gesetzt
+ *              - Konstanten erstellt
+ *   18.11.2014 - getBit durch BitTest.getBit ersetzt
  *
  */
 package a7100emulator.components.ic;
 
+import a7100emulator.Tools.BitTest;
 import a7100emulator.components.system.Keyboard;
 import a7100emulator.components.system.MMS16Bus;
 import java.io.DataInputStream;
@@ -97,6 +101,13 @@ public class KR580WM51A {
      * Tastatur
      */
     public KR580WM51A() {
+        registerAtKeyboard();
+    }
+
+    /**
+     * Registriert den USART bei der Tastatur
+     */
+    private void registerAtKeyboard() {
         Keyboard.getInstance().registerController(this);
     }
 
@@ -126,13 +137,13 @@ public class KR580WM51A {
 //            System.out.print(" Receive-Enable:" + getBit(newCommand, 2));
 //            System.out.print(" DTR:" + getBit(newCommand, 1));
 //            System.out.println(" Transmit-Enable:" + getBit(newCommand, 0));
-            if (getBit(newCommand, 6)) {
+            if (BitTest.getBit(newCommand, 6)) {
                 reset();
             }
-            if (getBit(newCommand, 4)) {
+            if (BitTest.getBit(newCommand, 4)) {
                 errorReset();
             }
-            if (getBit(newCommand,0) && !getBit(newCommand,5)) {
+            if (BitTest.getBit(newCommand, 0) && !BitTest.getBit(newCommand, 5)) {
                 writeDataToDevice(0x00);
             }
             command = newCommand;
@@ -162,7 +173,7 @@ public class KR580WM51A {
      */
     public void writeDataToDevice(int data) {
         // Prüfe ob RTS nicht gesetzt
-        if (!getBit(command, 5)) {
+        if (!BitTest.getBit(command, 5)) {
 //            System.out.println("Sende an Tastatur:" + String.format("%02X", data));
             Keyboard.getInstance().receiveByte(data);
         }
@@ -203,7 +214,7 @@ public class KR580WM51A {
     public void receiveData(int data) {
 //        System.out.println("Empfange von Tastatur:" + String.format("%02X", data & 0xFF));
         // Prüfe, dass RTS nicht gesetzt
-//        if (!getBit(command, 5)) {
+//        if (!BitTest.getBit(command, 5)) {
         // Wenn Puffer noch nicht leer -> Overrun Fehler
 //            if (receiveBuffer != 0x00) {
 //                state |= STATE_OE;
@@ -221,17 +232,6 @@ public class KR580WM51A {
      */
     public void updateClock(int amount) {
         Keyboard.getInstance().updateClock(amount);
-    }
-
-    /**
-     * Gibt an ob ein Bit des Operanden gesetzt ist
-     *
-     * @param op Operand
-     * @param i Zu prüfendes Bit
-     * @return true - wenn Bit gesetzt, false - sonst
-     */
-    private boolean getBit(int op1, int i) {
-        return (((op1 >> i) & 0x1) == 0x1);
     }
 
     /**

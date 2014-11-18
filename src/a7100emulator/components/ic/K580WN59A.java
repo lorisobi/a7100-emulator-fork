@@ -5,12 +5,15 @@
  * (c) 2011-2014 Dirk Bräuer
  * 
  * Letzte Änderungen:
- *   05.04.2014 Kommentare vervollständigt
- *   25.07.2014 OCW1 und IMR zusammengefasst, IRR und OCW1 zurückgesetzt beim Empfang von ICW1
+ *   05.04.2014 - Kommentare vervollständigt
+ *   25.07.2014 - OCW1 und IMR zusammengefasst
+ *              - IRR und OCW1 zurückgesetzt beim Empfang von ICW1
+ *   18.11.2014 - getBit durch BitTest.getBit ersetzt
  *
  */
 package a7100emulator.components.ic;
 
+import a7100emulator.Tools.BitTest;
 import a7100emulator.components.system.InterruptSystem;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -80,6 +83,13 @@ public class K580WN59A {
      * Erstellt einen neuen PIC und initialisiert ihn
      */
     public K580WN59A() {
+        registerController();
+    }
+
+    /**
+     * Registriert den Controller als System-Interrupt-Controller
+     */
+    private void registerController() {
         InterruptSystem.getInstance().setPIC(this);
     }
 
@@ -108,7 +118,7 @@ public class K580WN59A {
      * @param data Daten
      */
     public void writePort0(int data) {
-        if (getBit(data, 4)) {
+        if (BitTest.getBit(data, 4)) {
             // ICW1
             icw1 = data;
             ocw1 = 0x00;
@@ -116,7 +126,7 @@ public class K580WN59A {
             icw1Send = true;
             // System.out.println("Setze ICW1 " + Integer.toBinaryString(icw1));
         } else {
-            if (getBit(data, 3)) {
+            if (BitTest.getBit(data, 3)) {
                 // OCW3
                 ocw3 = data;
                 //System.out.println("Setze OCW3 " + Integer.toBinaryString(ocw3));
@@ -140,13 +150,13 @@ public class K580WN59A {
             icw2Send = true;
             icw1Send = false;
             // System.out.println("Setze ICW2 " + Integer.toBinaryString(icw2));
-        } else if (icw2Send && !getBit(icw1, 1)) {
+        } else if (icw2Send && !BitTest.getBit(icw1, 1)) {
             // ICW3
             icw3 = data;
             icw3Send = true;
             icw2Send = false;
             // System.out.println("Setze ICW3 " + Integer.toBinaryString(icw3));
-        } else if (getBit(icw1, 0) && (icw3Send || icw2Send)) {
+        } else if (BitTest.getBit(icw1, 0) && (icw3Send || icw2Send)) {
             // ICW4
             icw4 = data;
             icw2Send = false;
@@ -168,7 +178,7 @@ public class K580WN59A {
         if (id < 0 || id > 7) {
             return;
         }
-        if (!getBit(ocw1, id)) {
+        if (!BitTest.getBit(ocw1, id)) {
 //            System.out.println("Interrupt Anfrage " + id + " akzeptiert!");
             irr |= (1 << id);
         }
@@ -181,23 +191,12 @@ public class K580WN59A {
      */
     public int getInterrupt() {
         for (int i = 0; i <= 7; i++) {
-            if (getBit(irr, i)) {
+            if (BitTest.getBit(irr, i)) {
                 irr &= ~(1 << i);
                 return i | (icw2 & 0xF8);
             }
         }
         return -1;
-    }
-
-    /**
-     * Prüft ob ein Bit des Operanden gesetzt ist
-     *
-     * @param op1 Operand
-     * @param i Zu Prüfendes Bit
-     * @return true - wenn Bit gesetzt , false - sonst
-     */
-    private boolean getBit(int op1, int i) {
-        return (((op1 >> i) & 0x1) == 0x1);
     }
 
     /**

@@ -5,7 +5,8 @@
  * (c) 2011-2014 Dirk Bräuer
  * 
  * Letzte Änderungen:
- *   05.04.2014 Kommentare vervollständigt
+ *   05.04.2014 - Kommentare vervollständigt
+ *   18.11.2014 - getBit durch BitTest ersetzt
  *
  */
 package a7100emulator.Tools;
@@ -68,7 +69,7 @@ public class BitmapGenerator {
         for (int lineIndex = 0; lineIndex < 16; lineIndex++) {
             int line = linecode[lineIndex];
             for (int columnIndex = 0; columnIndex < 8; columnIndex++) {
-                if (getBit(line, columnIndex) || (lineIndex == 13 && underline)) {
+                if (BitTest.getBit(line, columnIndex) || (lineIndex == 13 && underline)) {
                     image.setRGB(7 - columnIndex, lineIndex, f_color);
                 } else {
                     image.setRGB(7 - columnIndex, lineIndex, b_color);
@@ -76,16 +77,5 @@ public class BitmapGenerator {
             }
         }
         return image;
-    }
-
-    /**
-     * Prüft ob ein Bit des Operanden gesetzt ist
-     *
-     * @param op1 Operand
-     * @param i zu prüfendes Bit
-     * @return true - wenn Bit gesetzt , false - sonst
-     */
-    private static boolean getBit(int op1, int i) {
-        return (((op1 >> i) & 0x1) == 0x1);
     }
 }

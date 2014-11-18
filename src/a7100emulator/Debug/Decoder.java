@@ -5,12 +5,12 @@
  * (c) 2011-2014 Dirk Bräuer
  * 
  * Letzte Änderungen:
- *   05.04.2014 Kommentare vervollständigt
+ *   05.04.2014 - Kommentare vervollständigt
+ *   18.11.2014 - Fehlerausgabe geändert
  *
  */
 package a7100emulator.Debug;
 
-import a7100emulator.Tools.BitmapGenerator;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.io.FileNotFoundException;
@@ -26,6 +26,9 @@ import javax.swing.table.AbstractTableModel;
 
 /**
  * Singleton-Klasse zum Bereitstellen von Decoder Informationen
+ * <p>
+ * TODO: Diese Klasse arbeitet nicht mit der neuen Debugger Version zusammen,
+ * Singleton muss entfernt werden
  *
  * @author Dirk Bräuer
  */
@@ -39,10 +42,6 @@ public class Decoder {
      * Instanz des Decoders
      */
     private static Decoder instance;
-    /**
-     * Referenz auf Debugger Informationen
-     */
-//    private final DebuggerInfo debugInfo = DebuggerInfo.getInstance();
     /**
      * Zuletzt hinzugefügte Adresse
      */
@@ -74,7 +73,6 @@ public class Decoder {
      * Zeigt die Decoder-Informationen in einem Fensteran
      */
     public void show() {
-        
         JFrame frame = new JFrame("Disassembler");
         frame.setMinimumSize(new Dimension(600, 500));
         frame.setPreferredSize(new Dimension(600, 500));
@@ -83,7 +81,7 @@ public class Decoder {
         try {
             Thread.sleep(100);
         } catch (InterruptedException ex) {
-            Logger.getLogger(BitmapGenerator.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(Decoder.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
 
@@ -106,6 +104,8 @@ public class Decoder {
 
     /**
      * Fügt die aktuellen Debug-Informationen dem Decoder hinzu
+     *
+     * @param debugInfo Debug-Informationen
      */
     public void addItem(DebuggerInfo debugInfo) {
 //        String debugString = String.format("%04X:%04X ", debugInfo.getCs(), debugInfo.getIp()) + debugInfo.getCode();

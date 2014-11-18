@@ -5,13 +5,15 @@
  * (c) 2011-2014 Dirk Bräuer
  * 
  * Letzte Änderungen:
- *   02.04.2014 Kommentare vervollständigt
- *   12.04.2014 Verarbeitung der Init Parameter
- *   09.08.2014 Zugriffe auf SystemMemory, SystemPorts und SystemClock durch MMS16Bus ersetzt
+ *   02.04.2014 - Kommentare vervollständigt
+ *   12.04.2014 - Verarbeitung der Init Parameter
+ *   09.08.2014 - Zugriffe auf SystemMemory, SystemPorts und SystemClock durch
+ *                MMS16Bus ersetzt
  *
  */
 package a7100emulator.components.modules;
 
+import a7100emulator.Tools.BitTest;
 import a7100emulator.Tools.Memory;
 import a7100emulator.components.system.*;
 import java.io.DataInputStream;
@@ -126,8 +128,8 @@ public final class KES implements IOModule, ClockModule {
      * @param data Daten
      */
     @Override
-    public void writePort_Byte(int port, int data) {
-        writePort_Word(port, data);
+    public void writePortByte(int port, int data) {
+        writePortWord(port, data);
     }
 
     /**
@@ -137,7 +139,7 @@ public final class KES implements IOModule, ClockModule {
      * @param data Daten
      */
     @Override
-    public void writePort_Word(int port, int data) {
+    public void writePortWord(int port, int data) {
         switch (port) {
             case PORT_KES_1_WAKEUP_1:
                 switch (data) {
@@ -172,7 +174,7 @@ public final class KES implements IOModule, ClockModule {
      * @return gelesene Daten
      */
     @Override
-    public int readPort_Byte(int port) {
+    public int readPortByte(int port) {
         switch (port) {
             case PORT_KES_1_WAKEUP_1:
             case PORT_KES_1_WAKEUP_2:
@@ -188,7 +190,7 @@ public final class KES implements IOModule, ClockModule {
      * @return gelesene Daten
      */
     @Override
-    public int readPort_Word(int port) {
+    public int readPortWord(int port) {
         switch (port) {
             case PORT_KES_1_WAKEUP_1:
             case PORT_KES_1_WAKEUP_2:
@@ -270,7 +272,7 @@ public final class KES implements IOModule, ClockModule {
 //                System.out.println("sectorsPerTrack:" + sectorsPerTrack);
 //                System.out.println("bytesPerSector:" + bytesPerSector);
 //                System.out.println("replaceCylinders:"+replaceCylinders);
-                System.out.println("Initialisiere Laufwerk " + deviceCode);
+//                System.out.println("Initialisiere Laufwerk " + deviceCode);
                 switch (deviceCode) {
                     case 0x00:
                     case 0x02:
@@ -289,14 +291,14 @@ public final class KES implements IOModule, ClockModule {
                         status |= (drive.getDiskInsert()) ? 0x00 : 0xC0;
 
                         drive.setCylinder(cylinder & 0x7FFF);
-                        drive.setDoubleStep(getBit(cylinder, 15));
+                        drive.setDoubleStep(BitTest.getBit(cylinder, 15));
                         drive.setPrecompensation(fixedHeads & 0x3);
                         drive.setReduceCurrent((fixedHeads >> 2) & 0x3);
                         drive.setHeadSink((fixedHeads >> 6) & 0x1);
                         drive.setHeads(moveHeads);
                         drive.setSectorsPerTrack(sectorsPerTrack);
                         drive.setBytesPerSector(bytesPerSector);
-                        drive.setMfmMode(getBit(replaceCylinders, 0));
+                        drive.setMfmMode(BitTest.getBit(replaceCylinders, 0));
                         drive.setStepTime((replaceCylinders >> 1) & 0x7);
                         drive.setHeadTime((replaceCylinders >> 4) & 0x15);
                         break;
@@ -310,7 +312,7 @@ public final class KES implements IOModule, ClockModule {
                 int driveNr = mms16.readMemoryByte(ccbAddress + 0x2A);
                 int memAddr = (mms16.readMemoryWord(ccbAddress + 0x34) << 4) + mms16.readMemoryWord(ccbAddress + 0x32);
                 int status = 0x01;
-                if (getBit(driveNr, 4)) {
+                if (BitTest.getBit(driveNr, 4)) {
                     FloppyDrive drive = afs.getFloppy(driveNr & 0x03);
                     // Typ Floppy
                     status |= 0x08;
@@ -478,22 +480,12 @@ public final class KES implements IOModule, ClockModule {
     }
 
     /**
-     * Prüft ein Bit im gegebenen Operanden
-     *
-     * @param op Operand
-     * @param i Nummer des Bits
-     * @return true wenn Bit gesetzt, false sonst
-     */
-    private boolean getBit(int op, int i) {
-        return (((op >> i) & 0x1) == 0x1);
-    }
-
-    /**
      * Registiert das Modul für Änderungen der Systemzeit
      */
     @Override
     public void registerClocks() {
-        MMS16Bus.getInstance().registerClockModule(this);
+        //MMS16Bus.getInstance().registerClockModule(this);
+        GlobalClock.getInstance().registerModule(this);
     }
 
     /**
@@ -504,12 +496,12 @@ public final class KES implements IOModule, ClockModule {
     @Override
     public void clockUpdate(int amount) {
         if (interruptWaiting) {
-            interruptClock += amount;
+            //interruptClock += amount;
             // Zeit für Operation auf 2000 Zyklen gesetzt
-            if (interruptClock > 2000) {
+            //if (interruptClock > 2000) {
                 interruptWaiting = false;
                 MMS16Bus.getInstance().requestInterrupt(5);
-            }
+            //}
         }
     }
 

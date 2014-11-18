@@ -7,6 +7,7 @@
  * Letzte Änderungen:
  *   05.04.2014 Kommentare vervollständigt
  *   31.08.2014 Singleton entfernt
+ *   17.11.2014 Kommentare ergänzt
  *
  */
 package a7100emulator.Debug;
@@ -51,6 +52,9 @@ public class Debugger {
 
     /**
      * Erstellt einen neuen Debugger
+     *
+     * @param filename Dateiname für LOG-File
+     * @param useCS Gibt an, ob Codesegmente verwendet werden
      */
     public Debugger(String filename, boolean useCS) {
         this.filename = filename;
@@ -85,12 +89,10 @@ public class Debugger {
     /**
      * Fügt einen Zeile zur Debug-Ausgabe hinzu basierend auf den aktuellen
      * Debugger Informationen
+     *
+     * @param debugInfo Debug-Informationen
      */
     public void addLine(DebuggerInfo debugInfo) {
-        // Ignoriere Interrupts
-//        if (debugInfo.getCs() == 0x0104) {
-//            return;
-//        }
         String debugString;
         if (useCS) {
             debugString = String.format("%04X:%04X [%02X] ", debugInfo.getCs(), debugInfo.getIp(), debugInfo.getOpcode()) + debugInfo.getCode();

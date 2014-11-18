@@ -154,7 +154,6 @@ public class SCPDiskModel {
                 }
             }
             view.updateView();
-            System.out.println(usedBlocks + ":" + usedBlocks * 2048);
         } catch (IOException ex) {
             Logger.getLogger(SCPDiskModel.class.getName()).log(Level.SEVERE, null, ex);
         }
