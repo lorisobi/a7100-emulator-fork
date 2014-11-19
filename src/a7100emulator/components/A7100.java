@@ -13,7 +13,11 @@ package a7100emulator.components;
 
 import a7100emulator.components.modules.*;
 import a7100emulator.components.system.*;
-import java.io.*;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -27,54 +31,49 @@ public class A7100 {
     /**
      * ZVE-Modul
      */
-    private ZVE zve = new ZVE();
+    private ZVE zve;
     /**
      * ZPS-Modul
      */
-    private ZPS zps = null;
+    private ZPS zps;
     /**
      * 1. OPS-Modul
      */
-    private OPS ops1 = new OPS();
+    private OPS ops1;
     /**
      * 2. OPS-Modul
      */
-    private OPS ops2 = new OPS();
+    private OPS ops2;
     /**
      * 3. OPS-Modul
      */
-    private OPS ops3 = new OPS();
+    private OPS ops3;
     /**
      * KGS-Modul
      */
-   // private KGS kgs = new KGS();
-    /**
-     * KGS-Modul
-     */
-    private KGS kgs = new KGS();
+    private KGS kgs;
     /**
      * KES-Modul
      */
-    private KES kes = new KES();
+    private KES kes;
     /**
      * ASP-Modul
      */
-    private ASP asp = null;
+    private ASP asp;
 
     /**
      * Erstellt einen neuen virtuellen A7100 und startet ihn
      */
     public A7100() {
-        startGlobalClock();
+        initModules();
+        startMainCPU();
     }
 
     /**
      * Startet die Systemzeit
      */
-    private void startGlobalClock() {
-        Thread clockThread;
-        clockThread = new Thread(GlobalClock.getInstance(), "Global Clock");
-        clockThread.start();
+    private void startMainCPU() {
+        zve.start();
     }
 
     /**
@@ -113,8 +112,9 @@ public class A7100 {
      * sowie der verwendeten Peripherie aufgerufen.
      */
     public void saveState() {
-        zve.pause();
+        pause();
         try {
+            // Warte 100ms um das Anhalten des Systems zu garantieren
             Thread.sleep(100);
         } catch (InterruptedException ex) {
             Logger.getLogger(A7100.class.getName()).log(Level.SEVERE, null, ex);
@@ -122,25 +122,25 @@ public class A7100 {
         try {
             DataOutputStream dos = new DataOutputStream(new FileOutputStream("./state/state.a7100"));
 
-            // TODO: Speichern der Module ZPS, ASP, KGS
-            
+            // TODO: Speichern der Module ZPS, ASP
             zve.saveState(dos);
             ops1.saveState(dos);
             ops2.saveState(dos);
             ops3.saveState(dos);
-            //kgs.saveState(dos);
+            kgs.saveState(dos);
             kes.saveState(dos);
 
             InterruptSystem.getInstance().saveState(dos);
             Keyboard.getInstance().saveState(dos);
             MMS16Bus.getInstance().saveState(dos);
+            GlobalClock.getInstance().saveState(dos);
 
             dos.flush();
             dos.close();
         } catch (IOException ex) {
             Logger.getLogger(A7100.class.getName()).log(Level.SEVERE, null, ex);
         }
-        zve.resume();
+        resume();
     }
 
     /**
@@ -149,8 +149,9 @@ public class A7100 {
      * sowie der verwendeten Peripherie aufgerufen.
      */
     public void loadState() {
-        zve.pause();
+        pause();
         try {
+            // Warte 100ms um das Anhalten des Systems zu garantieren
             Thread.sleep(100);
         } catch (InterruptedException ex) {
             Logger.getLogger(A7100.class.getName()).log(Level.SEVERE, null, ex);
@@ -158,24 +159,24 @@ public class A7100 {
         try {
             DataInputStream dis = new DataInputStream(new FileInputStream("./state/state.a7100"));
 
-            // TODO: Laden der Module ZPS, ASP, KGS
-            
+            // TODO: Laden der Module ZPS, ASP
             zve.loadState(dis);
             ops1.loadState(dis);
             ops2.loadState(dis);
             ops3.loadState(dis);
-            //kgs.loadState(dis);
+            kgs.loadState(dis);
             kes.loadState(dis);
 
             InterruptSystem.getInstance().loadState(dis);
             Keyboard.getInstance().loadState(dis);
             MMS16Bus.getInstance().loadState(dis);
+            GlobalClock.getInstance().loadState(dis);
 
             dis.close();
         } catch (IOException ex) {
             Logger.getLogger(A7100.class.getName()).log(Level.SEVERE, null, ex);
         }
-        zve.resume();
+        resume();
     }
 
     /**
@@ -184,11 +185,47 @@ public class A7100 {
      */
     public void reset() {
         zve.stopCPU();
+        try {
+            // Warte 100ms um das Anhalten des Systems zu garantieren
+            Thread.sleep(100);
+        } catch (InterruptedException ex) {
+            Logger.getLogger(A7100.class.getName()).log(Level.SEVERE, null, ex);
+        }
 
-        MMS16Bus.getInstance().reset();;
+        MMS16Bus.getInstance().reset();
         InterruptSystem.getInstance().reset();
         Keyboard.getInstance().reset();
+        GlobalClock.getInstance().reset();
 
+        initModules();
+        startMainCPU();
+    }
+
+    /**
+     * Pausiert den A7100.
+     */
+    public void pause() {
+        zve.pause();
+    }
+
+    /**
+     * Lässt den A7100 weiterlaufen.
+     */
+    public void resume() {
+        zve.resume();
+    }
+
+    /**
+     * Führt einen einzelnen Zeitschritt durch
+     */
+    public void singleStep() {
+        zve.singleStep();
+    }
+
+    /**
+     * Legt die MMS16-Module an und führt ggf. Initialisierungen durch.
+     */
+    private void initModules() {
         OPS.ops_count = 0;
         KES.kes_count = 0;
         ASP.asp_count = 0;
@@ -198,36 +235,8 @@ public class A7100 {
         ops1 = new OPS();
         ops2 = new OPS();
         ops3 = new OPS();
-        //kgs = new KGS();
+        kgs = new KGS();
         kes = new KES();
         asp = null;
-
-        zve.start();
-    }
-
-    /**
-     * Pausiert den A7100
-     */
-    public void pause() {
-        GlobalClock.getInstance().pause();
-    }
-
-    /**
-     * Lässt den A7100 weiterlaufen
-     */
-    public void resume() {
-        synchronized (GlobalClock.getInstance()) {
-            GlobalClock.getInstance().resume();
-            GlobalClock.getInstance().notify();
-        }
-    }
-    
-    /**
-     * Führt einen einzelnen Zeitschritt durch
-     */
-    public void singleStep() {
-        synchronized (GlobalClock.getInstance()) {
-            GlobalClock.getInstance().notify();
-        }
     }
 }

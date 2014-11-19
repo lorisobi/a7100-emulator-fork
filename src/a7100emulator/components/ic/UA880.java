@@ -20,6 +20,10 @@
  *              - Fehler in XOR behoben
  *   16.11.2014 - Ticks zählen ergänzt
  *   18.11.2014 - BitTest eingeführt
+ *              - Speichern und Laden implemetiert
+ *              - Interface IC implementiert
+ *   19.11.2014 - Ticks auf double geändert
+ *              - Thread Funktionalität vorerst entfernt
  *
  */
 package a7100emulator.components.ic;
@@ -40,8 +44,12 @@ import java.util.logging.Logger;
  *
  * @author Dirk Bräuer
  */
-public class UA880 implements Runnable {
+public class UA880 implements IC {
 
+    /**
+     * Taktverhältnis zur Haupt CPU
+     */
+    private static final double TICK_RATIO = 4000.0 / 4915.0;
     /**
      * Hauptregister
      */
@@ -635,6 +643,10 @@ public class UA880 implements Runnable {
      */
     private boolean stopped;
     /**
+     * Gibt an, ob sich die CPU im HALT Zustand befindet.
+     */
+    private boolean halt = false;
+    /**
      * Gibt an, ob ein Nicht-Maskierbarer-Interrupt ansteht
      */
     private boolean nmi = false;
@@ -649,10 +661,10 @@ public class UA880 implements Runnable {
     /**
      * Lokaler Taktzähler
      */
-    private int ticks;
+    private double ticks;
 
     /**
-     * Erstellt einen neuen Prozessor
+     * Erstellt einen neuen Prozessor.
      *
      * @param kgs Referenz auf KGS Modul
      */
@@ -668,10 +680,10 @@ public class UA880 implements Runnable {
         boolean debug = debugger.isDebug();
 
         if (pc == 0x0122) {
-            // Dieser Hack lässt den ACT ABS/KGS Test erfolgreich durchlaufen
+            //Dieser Hack lässt den ACT ABS/KGS Test erfolgreich durchlaufen
             //TODO: Richtig implementieren
-            //a=0x0A;
-            System.out.println("Hack CTC!!!");
+            a=0x0A;
+            System.out.println("Hack CTC!!! a=" + a);
         }
 
         int opcode = kgs.readMemoryByte(pc++);
@@ -3222,7 +3234,6 @@ public class UA880 implements Runnable {
                     }
                     break;
                     case _ED_IM0: {
-                        // TODO
                         interruptMode = 0;
                         updateTicks(8);
                         if (debug) {
@@ -3288,7 +3299,6 @@ public class UA880 implements Runnable {
                     }
                     break;
                     case _ED_IM1: {
-                        // TODO
                         interruptMode = 1;
                         updateTicks(8);
                         if (debug) {
@@ -3307,7 +3317,6 @@ public class UA880 implements Runnable {
                     }
                     break;
                     case _ED_IM2: {
-                        // TODO
                         interruptMode = 2;
                         updateTicks(8);
                         if (debug) {
@@ -4375,6 +4384,7 @@ public class UA880 implements Runnable {
      */
     public void updateTicks(int cycles) {
         ticks += cycles;
+        kgs.localClockUpdate(cycles);
     }
 
     /**
@@ -4386,7 +4396,9 @@ public class UA880 implements Runnable {
      * @param amount Anzahl der Zyklen
      */
     public void updateClock(int amount) {
-        while (ticks < amount) {
+        double amountScaled = amount * TICK_RATIO;
+        //System.out.println("Scaled: "+amountScaled+" Ticks:"+ticks);
+        while (ticks < amountScaled) {
             executeNextInstruction();
             if (nmi) {
                 nmi = false;
@@ -4397,7 +4409,7 @@ public class UA880 implements Runnable {
                 }
             }
         }
-        ticks -= amount;
+        ticks -= amountScaled;
     }
 
     /**
@@ -4441,24 +4453,6 @@ public class UA880 implements Runnable {
     }
 
     /**
-     * Startet den Thread des UA880
-     */
-    @Override
-    public void run() {
-        while (!stopped) {
-            executeNextInstruction();
-            if (nmi) {
-                nmi = false;
-                nmi();
-            } else if (iff1 == 1 && iff2 == 1) {
-                if (interruptsWaiting.size() > 0) {
-                    interrupt(interruptsWaiting.pollFirst());
-                }
-            }
-        }
-    }
-
-    /**
      * Fordert für den nächsten Zyklus die Abarbeitung eines nichtmaskierbaren
      * Interrupts an
      */
@@ -4473,7 +4467,7 @@ public class UA880 implements Runnable {
      */
     public void requestInterrupt(int i) {
         if (iff1 == 1 && iff2 == 1) {
-            System.out.println("Interrupt auf CPU akzeptiert");
+            System.out.println("Interrupt auf CPU akzeptiert.");
             interruptsWaiting.add(i);
             interruptsWaiting.sort(null);
         }
@@ -4490,26 +4484,87 @@ public class UA880 implements Runnable {
 
     /**
      * Speichert den Zustand der CPU in einer Datei
-     * <p>
-     * TODO: Funktion noch nicht implementiert
      *
      * @param dos Stream zur Datei
      * @throws IOException Wenn Schreiben nicht erfolgreich war
      */
-    public void saveState(DataOutputStream dos) throws IOException {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    @Override
+    public void saveState(final DataOutputStream dos) throws IOException {
+        dos.writeInt(a);
+        dos.writeInt(b);
+        dos.writeInt(d);
+        dos.writeInt(h);
+        dos.writeInt(f);
+        dos.writeInt(c);
+        dos.writeInt(e);
+        dos.writeInt(l);
+        dos.writeInt(a_);
+        dos.writeInt(b_);
+        dos.writeInt(d_);
+        dos.writeInt(h_);
+        dos.writeInt(f_);
+        dos.writeInt(c_);
+        dos.writeInt(e_);
+        dos.writeInt(l_);
+        dos.writeInt(i);
+        dos.writeInt(r);
+        dos.writeInt(ix);
+        dos.writeInt(iy);
+        dos.writeInt(sp);
+        dos.writeInt(pc);
+        dos.writeInt(iff1);
+        dos.writeInt(iff2);
+        dos.writeBoolean(halt);
+        dos.writeBoolean(nmi);
+        dos.writeInt(interruptMode);
+        dos.writeInt(interruptsWaiting.size());
+        for (Integer irw : interruptsWaiting) {
+            dos.writeInt(irw);
+        }
+        dos.writeDouble(ticks);
     }
 
     /**
      * Lädt den Zustand der CPU aus einer Datei
-     * <p>
-     * TODO: Funktion noch nicht implementiert
      *
      * @param dis Stream zur Datei
      * @throws IOException Wenn Lesen nicht erfolgreich war
      */
-    public void loadState(DataInputStream dis) throws IOException {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    @Override
+    public void loadState(final DataInputStream dis) throws IOException {
+        a = dis.readInt();
+        b = dis.readInt();
+        d = dis.readInt();
+        h = dis.readInt();
+        f = dis.readInt();
+        c = dis.readInt();
+        e = dis.readInt();
+        l = dis.readInt();
+        a_ = dis.readInt();
+        b_ = dis.readInt();
+        d_ = dis.readInt();
+        h_ = dis.readInt();
+        f_ = dis.readInt();
+        c_ = dis.readInt();
+        e_ = dis.readInt();
+        l_ = dis.readInt();
+        i = dis.readInt();
+        r = dis.readInt();
+        ix = dis.readInt();
+        iy = dis.readInt();
+        sp = dis.readInt();
+        pc = dis.readInt();
+        iff1 = dis.readInt();
+        iff2 = dis.readInt();
+        halt = dis.readBoolean();
+        nmi = dis.readBoolean();
+        interruptMode = dis.readInt();
+        interruptsWaiting.clear();
+        int sizeInt = dis.readInt();
+        for (int irw = 0; irw < sizeInt; irw++) {
+            interruptsWaiting.add(dis.readInt());
+        }
+        ticks = dis.readDouble();
     }
 
 }

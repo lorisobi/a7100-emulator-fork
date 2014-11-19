@@ -425,8 +425,8 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
      * TODO: ggf. entfernen
      */
     public void start() {
-    //    Thread cpuThread = new Thread(cpu, "K1810WM86");
-        //    cpuThread.start();
+        Thread cpuThread = new Thread(cpu, "K1810WM86");
+        cpuThread.start();
     }
 
     /**
@@ -444,8 +444,6 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
      */
     @Override
     public void clockUpdate(int amount) {
-        amount = 4915;
-        cpu.updateClock(amount);
         pti.updateClock(amount);
         usart.updateClock(amount);
     }

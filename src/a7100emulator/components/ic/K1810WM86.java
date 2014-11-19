@@ -16,6 +16,7 @@
  *                Instruktionen
  *   18.11.2014 - getBit durch BitTest ersetzt
  *              - Kommentare ergänzt
+ *              - Interface IC implementiert
  */
 package a7100emulator.components.ic;
 
@@ -24,6 +25,7 @@ import a7100emulator.Debug.DebuggerInfo;
 import a7100emulator.Debug.Decoder;
 import a7100emulator.Debug.OpcodeStatistic;
 import a7100emulator.Tools.BitTest;
+import a7100emulator.components.system.GlobalClock;
 import a7100emulator.components.system.InterruptSystem;
 import a7100emulator.components.system.MMS16Bus;
 import java.io.DataInputStream;
@@ -37,7 +39,7 @@ import java.util.logging.Logger;
  *
  * @author Dirk Bräuer
  */
-public class K1810WM86 implements Runnable {
+public class K1810WM86 implements Runnable, IC {
 
     /**
      * Interrupt System
@@ -596,6 +598,10 @@ public class K1810WM86 implements Runnable {
      * Zählt die Takte der aktuellen Befehlsausführung
      */
     private int ticks = 0;
+    /**
+     * Referenz auf Systemzeit
+     */
+    private final GlobalClock clock = GlobalClock.getInstance();
 
     /**
      * Erzeugt eine neue CPU
@@ -6324,9 +6330,16 @@ public class K1810WM86 implements Runnable {
             int pbaddr = (ds << 4) + dx;
             System.out.println(String.format("PB-Adresse: %05X", pbaddr));
             int pbctrladdr = (mms16.readMemoryWord(pbaddr + 2) << 4) + mms16.readMemoryWord(pbaddr);
-            System.out.println(String.format("PB-Ctrl-Adresse: %05X", pbctrladdr));
-            int ctrlcode = mms16.readMemoryByte(pbctrladdr);
-            System.out.println("Operationscode " + ctrlcode);
+            int pbintinaddr = (mms16.readMemoryWord(pbaddr + 6) << 4) + mms16.readMemoryWord(pbaddr + 4);
+            int pbptsinaddr = (mms16.readMemoryWord(pbaddr + 10) << 4) + mms16.readMemoryWord(pbaddr + 8);
+            int pbptsintout = (mms16.readMemoryWord(pbaddr + 14) << 4) + mms16.readMemoryWord(pbaddr + 12);
+            int pbptsoutaddr = (mms16.readMemoryWord(pbaddr + 18) << 4) + mms16.readMemoryWord(pbaddr + 16);
+            //System.out.println(String.format("PB-Ctrl-Adresse: %05X", pbctrladdr));
+            int ctrlcode1 = mms16.readMemoryByte(pbctrladdr);
+            int ctrlcode2 = mms16.readMemoryByte(pbctrladdr + 1);
+            int ctrlcode4 = mms16.readMemoryByte(pbctrladdr + 3);
+
+            System.out.println("Operationscode: " + ctrlcode1 + ", Anzahl der Punkte: " + ctrlcode2 + ", Anzahl Int-Parameter: " + ctrlcode4);
         }
         push(flags);
         clearFlag(INTERRUPT_ENABLE_FLAG);
@@ -6339,28 +6352,41 @@ public class K1810WM86 implements Runnable {
     }
 
     /**
-     * Startet den CPU-Thread TODO: entfernen
+     * Führt einen CPU-Zyklus aus. Dies umfasst das Ausführen des nächsten
+     * OPCodes sowie das Abfragen eventuell anstehender Interrupts.
+     */
+    private void executeCPUCycle() {
+        if (!isHalted) {
+            executeNextInstruction();
+            if (mms16.isTimeout()) {
+                // 10 ms Timeout
+                updateTicks(49150);
+                mms16.clearTimeout();
+            }
+        } else {
+            updateTicks(3);
+        }
+        if (interruptSystem.getNMI()) {
+            interrupt(0x02);
+        } else if (getFlag(INTERRUPT_ENABLE_FLAG)) {
+            int irq = InterruptSystem.getInstance().getPIC().getInterrupt();
+            if (irq != -1) {
+                if (debugger.isDebug()) {
+                    debugger.addComment("Verarbeite Interrupt: " + irq);
+                }
+                interrupt(irq);
+            }
+        }
+    }
+
+    /**
+     * Startet den CPU-Thread
+     * <p>
+     * TODO: Beste Realisierung noch unklar
      */
     @Override
     public void run() {
         while (!stopped) {
-            if (!isHalted) {
-                executeNextInstruction();
-            } else {
-                updateTicks(3);
-            }
-            if (interruptSystem.getNMI()) {
-                interrupt(0x02);
-            } else if (getFlag(INTERRUPT_ENABLE_FLAG)) {
-                int irq = InterruptSystem.getInstance().getPIC().getInterrupt();
-                if (irq != -1) {
-                    if (debugger.isDebug()) {
-                        debugger.addComment("Verarbeite Interrupt: " + irq);
-                    }
-                    interrupt(irq);
-                }
-            }
-
             if (suspended) {
                 synchronized (this) {
                     try {
@@ -6370,6 +6396,7 @@ public class K1810WM86 implements Runnable {
                     }
                 }
             }
+            executeCPUCycle();
         }
     }
 
@@ -6400,39 +6427,7 @@ public class K1810WM86 implements Runnable {
      */
     private void updateTicks(int amount) {
         ticks += amount;
-    }
-
-    /**
-     * Aktualisiert die Systemzeit und führt darauf basierend eine Anzahl von
-     * Instruktionen aus
-     *
-     * @param amount Anzahl der Takte
-     */
-    public void updateClock(int amount) {
-        while (ticks < amount) {
-            if (!isHalted) {
-                executeNextInstruction();
-                if (mms16.isTimeout()) {
-                    // 10 ms Timeout
-                    ticks += amount * 10;
-                    mms16.clearTimeout();
-                }
-            } else {
-                updateTicks(3);
-            }
-            if (interruptSystem.getNMI()) {
-                interrupt(0x02);
-            } else if (getFlag(INTERRUPT_ENABLE_FLAG)) {
-                int irq = InterruptSystem.getInstance().getPIC().getInterrupt();
-                if (irq != -1) {
-                    if (debugger.isDebug()) {
-                        debugger.addComment("Verarbeite Interrupt: " + irq);
-                    }
-                    interrupt(irq);
-                }
-            }
-        }
-        ticks -= amount;
+        clock.updateClock(amount);
     }
 
     /**
@@ -6441,6 +6436,7 @@ public class K1810WM86 implements Runnable {
      * @param dos Stream zur Datei
      * @throws IOException Wenn Schreiben nicht erfolgreich war
      */
+    @Override
     public void saveState(final DataOutputStream dos) throws IOException {
         dos.writeInt(ax);
         dos.writeInt(bx);
@@ -6460,7 +6456,7 @@ public class K1810WM86 implements Runnable {
         dos.writeInt(string_prefix);
         dos.writeBoolean(isHalted);
         dos.writeBoolean(stiWaiting);
-        // TODO: Restliche Daten ergänzen
+        dos.writeInt(ticks);
     }
 
     /**
@@ -6469,7 +6465,8 @@ public class K1810WM86 implements Runnable {
      * @param dis Stream zur Datei
      * @throws IOException Wenn Lesen nicht erfolgreich war
      */
-    public void loadState(DataInputStream dis) throws IOException {
+    @Override
+    public void loadState(final DataInputStream dis) throws IOException {
         ax = dis.readInt();
         bx = dis.readInt();
         cx = dis.readInt();
@@ -6488,7 +6485,7 @@ public class K1810WM86 implements Runnable {
         string_prefix = dis.readInt();
         isHalted = dis.readBoolean();
         stiWaiting = dis.readBoolean();
-        // TODO: Restliche Daten ergänzen
+        ticks = dis.readInt();
     }
 
     /**

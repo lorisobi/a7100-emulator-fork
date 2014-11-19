@@ -7,6 +7,7 @@
  * Letzte Änderungen:
  *   03.04.2014 - Kommentare vervollständigt
  *   18.11.2014 - getBit durch BitTest.getBit ersetzt
+ *              - Interface IC implementiert
  *
  */
 package a7100emulator.components.ic;
@@ -22,7 +23,7 @@ import java.io.IOException;
  *
  * @author Dirk Bräuer
  */
-public class KR580WW55A {
+public class KR580WW55A implements IC {
 
     /**
      * Aktueller Modus des jeweiligen Ports
@@ -204,7 +205,8 @@ public class KR580WW55A {
      * @param dos Stream zur Datei
      * @throws IOException Wenn Schreiben nicht erfolgreich war
      */
-    public void saveState(DataOutputStream dos) throws IOException {
+    @Override
+    public void saveState(final DataOutputStream dos) throws IOException {
         dos.writeInt(group_a_mode);
         dos.writeInt(group_b_mode);
         dos.writeUTF(port_c_lower_in_out.name());
@@ -221,7 +223,8 @@ public class KR580WW55A {
      * @param dis Stream zur Datei
      * @throws IOException Wenn Lesen nicht erfolgreich war
      */
-    public void loadState(DataInputStream dis) throws IOException {
+    @Override
+    public void loadState(final DataInputStream dis) throws IOException {
         group_a_mode = dis.readInt();
         group_b_mode = dis.readInt();
         port_c_lower_in_out = In_Out.valueOf(dis.readUTF());

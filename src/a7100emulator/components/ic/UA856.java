@@ -7,11 +7,14 @@
  * Letzte Änderungen:
  *   12.08.2014 - Erstellt
  *   28.09.2014 - Lesen von Diagnosestatus hinzugefügt
+ *   18.11.2014 - Speichern und Laden implementiert
+ *              - Interface IC implementiert
  *
  */
 package a7100emulator.components.ic;
 
 import a7100emulator.Tools.BitTest;
+import a7100emulator.Tools.StateSavable;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -24,7 +27,7 @@ import java.util.LinkedList;
  *
  * @author Dirk Bräuer
  */
-public class UA856 {
+public class UA856 implements IC {
 
     /**
      * Serielle Ein-/Ausgabekanäle
@@ -106,26 +109,28 @@ public class UA856 {
 
     /**
      * Speichert den Zustand des SIO in einer Datei
-     * <p>
-     * TODO: Noch nicht implementiert
      *
      * @param dos Stream zur Datei
      * @throws IOException Wenn Schreiben nicht erfolgreich war
      */
-    public void saveState(DataOutputStream dos) throws IOException {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    @Override
+    public void saveState(final DataOutputStream dos) throws IOException {
+        for (SioChannel channel : channels) {
+            channel.saveState(dos);
+        }
     }
 
     /**
      * Liest den Zustand des SIO aus einer Datei
-     * <p>
-     * TODO: Noch nicht implementiert
      *
      * @param dis Stream zur Datei
      * @throws IOException Wenn Lesen nicht erfolgreich war
      */
-    public void loadState(DataInputStream dis) throws IOException {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    @Override
+    public void loadState(final DataInputStream dis) throws IOException {
+        for (SioChannel channel : channels) {
+            channel.loadState(dis);
+        }
     }
 
     /**
@@ -141,12 +146,12 @@ public class UA856 {
     /**
      * Klasse zur Realisierung eines SIO-Kanals
      */
-    class SioChannel {
+    class SioChannel implements StateSavable {
 
         /**
          * Puffer der empfangenen Bytes
          */
-        private LinkedList<Integer> receiveData = new LinkedList<Integer>();
+        private final LinkedList<Integer> receiveData = new LinkedList<Integer>();
         /**
          * Datenbyte Transmit
          */
@@ -222,7 +227,7 @@ public class UA856 {
         private int readControl() {
             switch (registerPointer) {
                 case 0:
-                    // TODO
+                    // TODO: Lesen noch nicht implementiert
                     return 0x04;
                 case 1:
                     return 0;
@@ -230,6 +235,47 @@ public class UA856 {
                     return 0;
                 default:
                     throw new IllegalStateException("Ungültiger Register Zeiger");
+            }
+        }
+
+        /**
+         * Speichert den Zustand des SIO-Kanals in einer Datei
+         *
+         * @param dos Stream zur Datei
+         * @throws IOException Wenn Schreiben nicht erfolgreich war
+         */
+        @Override
+        public void saveState(final DataOutputStream dos) throws IOException {
+            dos.writeInt(outputData);
+            dos.writeInt(inputData);
+            for (int i = 0; i < 7; i++) {
+                dos.writeInt(writeRegister[i]);
+            }
+            dos.writeInt(registerPointer);
+            dos.writeInt(receiveData.size());
+            for (Integer rd : receiveData) {
+                dos.writeInt(rd);
+            }
+        }
+
+        /**
+         * Liest den Zustand des SIO-Kanals aus einer Datei
+         *
+         * @param dis Stream zur Datei
+         * @throws IOException Wenn Lesen nicht erfolgreich war
+         */
+        @Override
+        public void loadState(final DataInputStream dis) throws IOException {
+            outputData = dis.readInt();
+            inputData = dis.readInt();
+            for (int i = 0; i < 7; i++) {
+                writeRegister[i] = dis.readInt();
+            }
+            registerPointer = dis.readInt();
+            receiveData.clear();
+            int sizeRD = dis.readInt();
+            for (int rd = 0; rd < sizeRD; rd++) {
+                receiveData.add(dis.readInt());
             }
         }
     }

@@ -9,12 +9,14 @@
  *   12.04.2014 - Parameter für Initialisierung hinzugefügt
  *              - Formatierung überarbeitet
  *   18.11.2014 - getBit durch BitTest.getBit ersetzt
+ *              - Interface StateSavable implementiert
  *
  */
 package a7100emulator.components.system;
 
 import a7100emulator.Tools.BitTest;
 import a7100emulator.Tools.FloppyImageType;
+import a7100emulator.Tools.StateSavable;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
@@ -25,7 +27,7 @@ import java.io.IOException;
  *
  * @author Dirk Bräuer
  */
-public class FloppyDrive {
+public class FloppyDrive implements StateSavable  {
 
     /**
      * Laufwerkstyp
@@ -445,7 +447,8 @@ public class FloppyDrive {
      * @param dos Stream zur Datei
      * @throws IOException Wenn Schreiben nicht erfolgreich war
      */
-    public void saveState(DataOutputStream dos) throws IOException {
+    @Override
+    public void saveState(final DataOutputStream dos) throws IOException {
         dos.writeUTF(driveType.name());
         if (disk == null) {
             dos.writeBoolean(false);
@@ -461,7 +464,8 @@ public class FloppyDrive {
      * @param dis Stream zur Datei
      * @throws IOException Wenn Lesen nicht erfolgreich war
      */
-    public void loadState(DataInputStream dis) throws IOException {
+    @Override
+    public void loadState(final DataInputStream dis) throws IOException {
         driveType = DriveType.valueOf(dis.readUTF());
         boolean diskInserted = dis.readBoolean();
         if (diskInserted) {

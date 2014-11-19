@@ -5,11 +5,13 @@
  * (c) 2011-2014 Dirk Bräuer
  * 
  * Letzte Änderungen:
- *   05.04.2014 Kommentare vervollständigt
+ *   05.04.2014 - Kommentare vervollständigt
+ *   18.11.2014 - Interface StateSavable implementiert
  *
  */
 package a7100emulator.components.system;
 
+import a7100emulator.Tools.StateSavable;
 import a7100emulator.components.ic.K580WN59A;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -20,7 +22,7 @@ import java.io.IOException;
  *
  * @author Dirk Bräuer
  */
-public class InterruptSystem {
+public class InterruptSystem implements StateSavable {
 
     /**
      * Gibt an ob der Parity NMI aktiv ist
@@ -117,6 +119,7 @@ public class InterruptSystem {
      * @param dos Stream zur Datei
      * @throws IOException Wenn Schreiben nicht erfolgreich war
      */
+    @Override
     public void saveState(DataOutputStream dos) throws IOException {
         dos.writeBoolean(parityNMIEnable);
         dos.writeBoolean(nmi);
@@ -128,6 +131,7 @@ public class InterruptSystem {
      * @param dis Stream zur Datei
      * @throws IOException Wenn Laden nicht erfolgreich war
      */
+    @Override
     public void loadState(DataInputStream dis) throws IOException {
         parityNMIEnable = dis.readBoolean();
         nmi = dis.readBoolean();

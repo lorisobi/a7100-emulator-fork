@@ -10,6 +10,7 @@
  */
 package a7100emulator.components.modules;
 
+import a7100emulator.Tools.StateSavable;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -19,7 +20,7 @@ import java.io.IOException;
  *
  * @author Dirk Bräuer
  */
-public interface Module {
+public interface Module extends StateSavable {
 
     /**
      * Initialisiert das Modul
@@ -41,6 +42,5 @@ public interface Module {
      * @throws IOException Wenn Lesen nicht erfolgreich war
      */
     public void loadState(DataInputStream dis) throws IOException;
-  
 
 }

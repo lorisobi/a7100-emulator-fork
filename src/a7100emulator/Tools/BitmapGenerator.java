@@ -62,7 +62,6 @@ public class BitmapGenerator {
         } else if (intense) {
             f_color = INTENSE_GREEN;
         } else if (flash) {
-            // TODO - Blinkende Schrift, momentan dargestellt durch rot
             f_color = new Color(255, 0, 0).getRGB();
         }
 

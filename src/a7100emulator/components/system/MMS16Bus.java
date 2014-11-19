@@ -5,14 +5,16 @@
  * (c) 2011-2014 Dirk Bräuer
  * 
  * Letzte Änderungen:
- *   07.08.2014 Erstellt
- *   16.11.2014 Clock-Funktionalität entfernt
+ *   07.08.2014 - Erstellt
+ *   16.11.2014 - Clock-Funktionalität entfernt
+ *   18.11.2014 - Speichern und Laden implementiert
+ *              - Interface StateSavable implementiert
  *
  */
 package a7100emulator.components.system;
 
 import a7100emulator.Tools.AddressSpace;
-import a7100emulator.components.modules.ClockModule;
+import a7100emulator.Tools.StateSavable;
 import a7100emulator.components.modules.MemoryModule;
 import a7100emulator.components.modules.IOModule;
 import java.io.DataInputStream;
@@ -20,7 +22,6 @@ import java.io.DataOutputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -34,7 +35,7 @@ import java.util.logging.Logger;
  *
  * @author Dirk Bräuer
  */
-public class MMS16Bus {
+public class MMS16Bus implements StateSavable {
 
     /**
      * Liste mit Modulen, welche Speicher bereitstellen
@@ -94,7 +95,6 @@ public class MMS16Bus {
     public void registerIOPort(IOModule module, int port) {
         ioModules.put(port, module);
     }
-
 
     /**
      * Fordert einen Interrupt auf dem Systembus an
@@ -271,7 +271,9 @@ public class MMS16Bus {
      * @param dos Stream zur Datei
      * @throws IOException Wenn Schreiben nicht erfolgreich war
      */
-    public void saveState(DataOutputStream dos) throws IOException {
+    @Override
+    public void saveState(final DataOutputStream dos) throws IOException {
+        dos.writeBoolean(timeout);
     }
 
     /**
@@ -280,7 +282,9 @@ public class MMS16Bus {
      * @param dis Stream zur Datei
      * @throws IOException Wenn Laden nicht erfolgreich war
      */
-    public void loadState(DataInputStream dis) throws IOException {
+    @Override
+    public void loadState(final DataInputStream dis) throws IOException {
+        timeout = dis.readBoolean();
     }
 
     /**

@@ -6,7 +6,10 @@
  * 
  * Letzte Änderungen:
  *   09.08.2014 - Erstellt aus ABG.java
- *   30.09.2014 - Umbenannt in ABG, Kommentare vervollständigt, Darstellung Funktionstüchtig, Laden und Speichern implemetiert
+ *   30.09.2014 - Umbenannt in ABG
+ *              - Kommentare vervollständigt
+ *              - Darstellung Funktionstüchtig
+ *              - Laden und Speichern implemetiert
  *              
  */
 package a7100emulator.components.modules;
@@ -241,7 +244,7 @@ public final class ABG implements Module, ClockModule {
     @Override
     public void registerClocks() {
         //MMS16Bus.getInstance().registerClockModule(this);
-        GlobalClock.getInstance().registerModule(this);
+        //GlobalClock.getInstance().registerModule(this);
     }
 
     /**
@@ -252,7 +255,7 @@ public final class ABG implements Module, ClockModule {
     @Override
     public void clockUpdate(int amount) {
         localClock += amount;
-        if (localClock > 20) {
+        if (localClock > 80000) {
             localClock = 0;
             updateScreen();
             kgs.requestNMI();
@@ -500,6 +503,7 @@ public final class ABG implements Module, ClockModule {
         int address_gr = 0x7FFF;
 
         int splitline = (split_register == 0xFF) ? 0 : ((split_register == 0xFE) ? 400 : (split_register * 2 - 1));
+
         for (int line = 0; line < 400; line++) {
             for (int column = 0; column < 640; column += 8) {
                 if (line < splitline) {
@@ -538,7 +542,7 @@ public final class ABG implements Module, ClockModule {
         for (int pixel = 0; pixel < 8; pixel++) {
             boolean b1 = BitTest.getBit(data, pixel);
             if (cursor) {
-                // TODO
+                // TODO: Attribut Blinken implementieren
                 if (blink_fnct) {
                     screenImage.setRGB(column + 7 - pixel, line, intense ? INTENSE_GREEN : GREEN);
                 } else {

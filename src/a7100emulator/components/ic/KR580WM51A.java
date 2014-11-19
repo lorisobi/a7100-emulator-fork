@@ -11,6 +11,7 @@
  *              - Abfrage ob RTS gesetzt
  *              - Konstanten erstellt
  *   18.11.2014 - getBit durch BitTest.getBit ersetzt
+ *              - Interface IC implementiert
  *
  */
 package a7100emulator.components.ic;
@@ -29,7 +30,7 @@ import java.io.IOException;
  *
  * @author Dirk Bräuer
  */
-public class KR580WM51A {
+public class KR580WM51A implements IC {
 
     /**
      * Statusbit Transmitter Ready
@@ -240,7 +241,8 @@ public class KR580WM51A {
      * @param dos Stream zur Datei
      * @throws IOException Wenn Schreiben nicht erfolgreich war
      */
-    public void saveState(DataOutputStream dos) throws IOException {
+    @Override
+    public void saveState(final DataOutputStream dos) throws IOException {
         dos.writeInt(command);
         dos.writeInt(mode);
         dos.writeInt(state);
@@ -254,7 +256,8 @@ public class KR580WM51A {
      * @param dis Stream zur Datei
      * @throws IOException Wenn Laden nicht erfolgreich war
      */
-    public void loadState(DataInputStream dis) throws IOException {
+    @Override
+    public void loadState(final DataInputStream dis) throws IOException {
         command = dis.readInt();
         mode = dis.readInt();
         state = dis.readInt();

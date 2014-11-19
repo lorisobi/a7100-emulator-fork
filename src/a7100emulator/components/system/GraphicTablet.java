@@ -1,12 +1,11 @@
 /*
- * HardDisk.java
+ * GraphicTablet.java
  * 
  * Diese Datei gehört zum Projekt A7100 Emulator 
  * (c) 2011-2014 Dirk Bräuer
  * 
  * Letzte Änderungen:
- *   05.04.2014 - Kommentare vervollständigt
- *   18.11.2014 - Interface StateSavable implementiert
+ *   19.11.2014 - Erstellt
  *
  */
 package a7100emulator.components.system;
@@ -17,20 +16,19 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 
 /**
- * Klasse zur Abbildung einer Festplatte
+ * Klasse zur Realisierung des Grafiktabletts K6405
  * <p>
- * TODO: Diese Klasse ist noch nicht vollständig implementiert und wird nur für
- * die Emulation des A7150 benötigt
+ * TODO: Diese Klasse ist noch nicht implementiert.
  *
  * @author Dirk Bräuer
  */
-public class HardDisk implements StateSavable {
+public class GraphicTablet implements StateSavable {
 
     /**
-     * Speichert den Zustand der Festplatte in einer Datei
+     * Speichert den Zustand des Grafiktabletts in einer Datei.
      *
      * @param dos Stream zur Datei
-     * @throws IOException Wenn Speichern fehlschlägt
+     * @throws IOException Wenn Speichern fehlgeschlagen ist
      */
     @Override
     public void saveState(DataOutputStream dos) throws IOException {
@@ -38,10 +36,10 @@ public class HardDisk implements StateSavable {
     }
 
     /**
-     * Lädt den Zustand der Festplatte aus einer Datei
+     * Lädt den Zustand des Grafiktablets aus einer Datei.
      *
      * @param dis Stream zur Datei
-     * @throws IOException Wenn Laden fehlschlägt
+     * @throws IOException Wenn Speichern fehlgeschlagen ist
      */
     @Override
     public void loadState(DataInputStream dis) throws IOException {

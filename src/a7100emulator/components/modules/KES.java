@@ -86,7 +86,7 @@ public final class KES implements IOModule, ClockModule {
     /**
      * Referenz auf angeschlossene AFS (Anschlußsteuerung für Folienspeicher)
      */
-    private AFS afs = new AFS();
+    private final AFS afs = new AFS();
     /**
      * Counter für Interrupt Freigabe
      */
@@ -496,12 +496,12 @@ public final class KES implements IOModule, ClockModule {
     @Override
     public void clockUpdate(int amount) {
         if (interruptWaiting) {
-            //interruptClock += amount;
+            interruptClock += amount;
             // Zeit für Operation auf 2000 Zyklen gesetzt
-            //if (interruptClock > 2000) {
+            if (interruptClock > 2000) {
                 interruptWaiting = false;
                 MMS16Bus.getInstance().requestInterrupt(5);
-            //}
+            }
         }
     }
 

@@ -9,11 +9,15 @@
  *   12.04.2014 - Funktionen zum Lesen von Images, Neue Datenstruktur
  *   25.05.2014 - Klasse umbenannt in FloppyDisk
  *   18.11.2014 - getBit in BitTest.getBit geändert
+ *              - Interface StateSavable implementiert
+ *              - Fehler beim Laden des Zustands behoben
+ *
  */
 package a7100emulator.components.system;
 
 import a7100emulator.Tools.BitTest;
 import a7100emulator.Tools.FloppyImageType;
+import a7100emulator.Tools.StateSavable;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
@@ -30,7 +34,7 @@ import java.util.logging.Logger;
  *
  * @author Dirk Bräuer
  */
-public class FloppyDisk {
+public class FloppyDisk implements StateSavable {
 
     /**
      * Daten der Diskette
@@ -201,49 +205,7 @@ public class FloppyDisk {
     }
 
     /**
-     * Speichert die Diskette in eine Datei
-     *
-     * @param dos Stream zur Datei
-     * @throws IOException Wenn Schreiben nicht erfolgreich
-     */
-    void saveState(DataOutputStream dos) throws IOException {
-        dos.writeInt(diskData.length);
-        for (byte[][][] cylinder : diskData) {
-            dos.writeInt(cylinder.length);
-            for (byte[][] head : cylinder) {
-                dos.writeInt(head.length);
-                for (byte[] sector : head) {
-                    dos.writeInt(sector.length);
-                    dos.write(sector);
-                }
-            }
-        }
-        dos.writeBoolean(writeProtect);
-    }
-
-    /**
-     * Liest die Diskette aus einer Datei
-     *
-     * @param dis Stream zur Datei
-     * @throws IOException Wenn Lesen nicht erfolgreich war
-     */
-    void loadState(DataInputStream dis) throws IOException {
-        diskData = new byte[dis.readInt()][0][0][0];
-        for (byte[][][] cylinder : diskData) {
-            cylinder = new byte[dis.readInt()][][];
-            for (byte[][] head : cylinder) {
-                head = new byte[dis.readInt()][];
-                for (byte[] sector : head) {
-                    sector = new byte[dis.readInt()];
-                    dis.read(sector);
-                }
-            }
-        }
-        writeProtect = dis.readBoolean();
-    }
-
-    /**
-     * Liest ein Imagedisk Image
+     * Liest ein Imagedisk Image.
      *
      * @param buffer Image Daten
      */
@@ -462,7 +424,7 @@ public class FloppyDisk {
                     int sector = buffer[blockPos++];
                     int sectorSize = (int) Math.pow(2, 7 + buffer[blockPos++]);
 
-                    this.checkAndAddDiskGeometry(cylinder, head, sector);
+                    checkAndAddDiskGeometry(cylinder, head, sector);
                     diskData[t][s][sec] = new byte[sectorSize];
                     // crc
                     blockPos++;
@@ -603,6 +565,53 @@ public class FloppyDisk {
         if ((sector - 1) >= diskData[cylinder][head].length) {
             addSector(cylinder, head, sector);
         }
+    }
+
+    /**
+     * Speichert die Diskette in eine Datei
+     *
+     * @param dos Stream zur Datei
+     * @throws IOException Wenn Schreiben nicht erfolgreich
+     */
+    @Override
+    public void saveState(DataOutputStream dos) throws IOException {
+        dos.writeInt(diskData.length);
+        for (byte[][][] cylinder : diskData) {
+            dos.writeInt(cylinder.length);
+            for (byte[][] head : cylinder) {
+                dos.writeInt(head.length);
+                for (byte[] sector : head) {
+                    dos.writeInt(sector.length);
+                    dos.write(sector);
+                }
+            }
+        }
+        dos.writeBoolean(writeProtect);
+    }
+
+    /**
+     * Liest die Diskette aus einer Datei
+     *
+     * @param dis Stream zur Datei
+     * @throws IOException Wenn Lesen nicht erfolgreich war
+     */
+    @Override
+    public void loadState(DataInputStream dis) throws IOException {
+        diskData = new byte[0][0][0][0];
+        int cylinders = dis.readInt();
+        for (int t = 0; t < cylinders; t++) {
+            int heads = dis.readInt();
+            for (int h = 0; h < heads; h++) {
+                int sectors = dis.readInt();
+                for (int s = 0; s < sectors; s++) {
+                    checkAndAddDiskGeometry(t, h, s + 1);
+                    int sectorSize = dis.readInt();
+                    diskData[t][h][s] = new byte[sectorSize];
+                    dis.read(diskData[t][h][s]);
+                }
+            }
+        }
+        writeProtect = dis.readBoolean();
     }
 
 }

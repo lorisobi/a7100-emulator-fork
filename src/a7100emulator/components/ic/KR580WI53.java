@@ -5,13 +5,16 @@
  * (c) 2011-2014 Dirk Bräuer
  * 
  * Letzte Änderungen:
- *   03.04.2014 Kommentare vervollständigt
- *   26.07.2014 Unterscheidung der Modi
- *   27.07.2014 Puffer für kleine Aktualisierungszeiten hinzugefügt, Implementierung Mode 0, 2 und 3
+ *   03.04.2014 - Kommentare vervollständigt
+ *   26.07.2014 - Unterscheidung der Modi
+ *   27.07.2014 - Puffer für kleine Aktualisierungszeiten hinzugefügt
+ *              - Implementierung Mode 0, 2 und 3
+ *              - Interface IC implementiert
  *
  */
 package a7100emulator.components.ic;
 
+import a7100emulator.Tools.StateSavable;
 import a7100emulator.components.system.MMS16Bus;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -22,7 +25,7 @@ import java.io.IOException;
  *
  * @author Dirk Bräuer
  */
-public class KR580WI53 {
+public class KR580WI53 implements IC {
 
     /**
      * Bitmaske zum Prüfen des angesprochenen Timers
@@ -131,6 +134,7 @@ public class KR580WI53 {
      * @param dos Stream zur Datei
      * @throws IOException Wenn Schreiben nicht erfolgreiche war
      */
+    @Override
     public void saveState(DataOutputStream dos) throws IOException {
         for (int i = 0; i < 3; i++) {
             counter[i].saveState(dos);
@@ -144,6 +148,7 @@ public class KR580WI53 {
      * @param dis Stream zur Datei
      * @throws IOException Wenn Lesen nicht erfolgreich war
      */
+    @Override
     public void loadState(DataInputStream dis) throws IOException {
         for (int i = 0; i < 3; i++) {
             counter[i].loadState(dis);
@@ -154,7 +159,7 @@ public class KR580WI53 {
     /**
      * Klasse zur Realisierung eines Zählers
      */
-    private class Counter {
+    private class Counter implements StateSavable {
 
         /**
          * Nummer des Zählers
@@ -235,7 +240,7 @@ public class KR580WI53 {
                         break;
                     case 1:
                         // Mode 1
-                        // TODO
+                        // TODO: Modus 1 noch nicht Implementiert
                         break;
                     case 2:
                     case 6:
@@ -246,11 +251,11 @@ public class KR580WI53 {
                         break;
                     case 4:
                         // Mode 4
-                        // TODO
+                        // TODO: Modus 4 noch nicht implementiert
                         break;
                     case 5:
                         // Mode 5
-                        // TODO
+                        // TODO: Modus 5 noch nicht implementiert
                         break;
                 }
             }
@@ -362,12 +367,12 @@ public class KR580WI53 {
                         break;
                     case 1:
                         // Mode 1
-                        // TODO
+                        // TODO: Modus 1 noch nicht implementiert
                         break;
                     case 2:
                     case 6:
-                        // Mode 2
-                        // TODO
+                        // Mode 2/6
+                        // TODO: Modus 2/6 noch nicht implementiert
                         break;
                     case 3:
                     case 7:
@@ -383,11 +388,11 @@ public class KR580WI53 {
                         break;
                     case 4:
                         // Mode 4
-                        // TODO
+                        // TODO: Modus 4 noch nicht implementiert
                         break;
                     case 5:
                         // Mode 5
-                        // TODO
+                        // TODO: Modus 5 noch nciht implementiert
                         break;
                 }
 
@@ -405,7 +410,8 @@ public class KR580WI53 {
          * @param dos Stream zur Datei
          * @throws IOException Wenn Schreiben nicht erfolgreich war
          */
-        private void saveState(DataOutputStream dos) throws IOException {
+        @Override
+        public void saveState(final DataOutputStream dos) throws IOException {
             dos.writeBoolean(running);
             dos.writeBoolean(latched);
             dos.writeInt(value);
@@ -423,7 +429,8 @@ public class KR580WI53 {
          * @param dis Stream zur Datei
          * @throws IOException Wenn Laden nicht erfolgreich war
          */
-        private void loadState(DataInputStream dis) throws IOException {
+        @Override
+        public void loadState(final DataInputStream dis) throws IOException {
             running = dis.readBoolean();
             latched = dis.readBoolean();
             value = dis.readInt();

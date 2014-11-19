@@ -7,14 +7,19 @@
  * Letzte Änderungen:
  *   16.11.2014 - Erste Version
  *   18.11.2014 - Kommentare vervollständigt
+ *              - Speichern und Laden implementiert
+ *              - Interface StateSavable implementiert
+ *   19.11.2014 - Thread Funktionalität entfernt
  *
  */
 package a7100emulator.components.system;
 
+import a7100emulator.Tools.StateSavable;
 import a7100emulator.components.modules.ClockModule;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
 import java.util.LinkedList;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * Klasse zur Abbildung der globalen Systemzeit. Dies ist die
@@ -23,7 +28,7 @@ import java.util.logging.Logger;
  *
  * @author Dirk Bräuer
  */
-public class GlobalClock implements Runnable {
+public class GlobalClock implements StateSavable {
 
     /**
      * Singleton Instanz
@@ -37,10 +42,6 @@ public class GlobalClock implements Runnable {
      * Liste mit allen Modulen, welche die globale Systemzeit verwenden
      */
     private final LinkedList<ClockModule> modules = new LinkedList<ClockModule>();
-    /**
-     * Gibt an, ob der Zeitgeben angehalten wurde
-     */
-    private boolean suspended;
 
     /**
      * Privater Konstruktor
@@ -50,7 +51,8 @@ public class GlobalClock implements Runnable {
 
     /**
      * Gibt die Singleton-Instanz zurück.
-     * @return  Singleton-Instanz
+     *
+     * @return Singleton-Instanz
      */
     public static GlobalClock getInstance() {
         if (instance == null) {
@@ -60,53 +62,56 @@ public class GlobalClock implements Runnable {
     }
 
     /**
-     * Registriert ein Modul für die Änderungen an der Systemzeit
-     * @param module 
+     * Registriert ein Modul für die Änderungen an der Systemzeit.
+     *
+     * @param module
      */
     public void registerModule(ClockModule module) {
-        synchronized (modules) {
-            modules.add(module);
+        modules.add(module);
+    }
+
+    /**
+     * Aktualisiert die Systemzeit auf Basis der Haupt-CPU Frequenz.
+     *
+     * @param amount Anzahl der Ticks
+     */
+    public void updateClock(int amount) {
+        clock += amount;
+        for (ClockModule module : modules) {
+            module.clockUpdate(amount);
+        }
+        if ((clock / 4915000) > (clock - amount) / 4915000) {
+            System.out.println("Globale Zeit: " + clock / 4915000 + "s");
         }
     }
-   
+
     /**
-     * Startet den Thread der Systemzeit
+     * Speichert den Zustand der Systemzeit in einer Datei.
+     *
+     * @param dos Stream zur Datei
+     * @throws IOException Wenn Schreiben nicht erfolgreich war
      */
     @Override
-    public void run() {
-        boolean stopped = false;
-        while (!stopped) {
-            clock++;
-            for (ClockModule module : modules) {
-                module.clockUpdate(1);
-            }
-            if ((clock / 1000) > (clock - 1) / 1000) {
-                System.out.println("Globale Zeit: " + clock / 1000 + "s");
-            }
-            if (suspended) {
-                synchronized (this) {
-                    try {
-                        wait();
-                    } catch (InterruptedException ex) {
-                        Logger.getLogger(GlobalClock.class.getName()).log(Level.SEVERE, null, ex);
-                    }
-                }
-            }
-        }
+    public void saveState(DataOutputStream dos) throws IOException {
+        dos.writeLong(clock);
     }
 
     /**
-     * Pausiert den Zeitgeber
+     * Lädt den Zustand der Systemzeit aus einer Datei.
+     *
+     * @param dis Stream zur Datei
+     * @throws IOException Wenn Laden nicht erfolgreich war
      */
-    public void pause() {
-        suspended = true;
+    @Override
+    public void loadState(DataInputStream dis) throws IOException {
+        clock = dis.readLong();
     }
 
     /**
-     * Lässt den Zeitgeber weiterlaufen
+     * Setzt die Systemzeit zurück in den Grundzustand.
      */
-    public void resume() {
-        suspended = false;
+    public void reset() {
+        modules.clear();
+        clock = 0;
     }
-
 }

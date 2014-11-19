@@ -11,6 +11,7 @@
  *   30.09.2014 - Umbenannt in KGS
  *              - Kommentare vervollständigt
  *              - Darstellung funktionstüchtig
+ *   19.11.2014 - Trennung Systemtakt / CPU-Takt
  *
  */
 package a7100emulator.components.modules;
@@ -354,11 +355,9 @@ public final class KGS implements IOModule, ClockModule {
             case LOCAL_PORT_INT_FLAG:
                 setBit(INT_BIT);
                 MMS16Bus.getInstance().requestInterrupt(7);
-//                System.out.println("Setze INT Bit");
                 break;
             case LOCAL_PORT_ERR_FLAG:
                 setBit(ERR_BIT);
-//                System.out.println("Setze ERR Bit");
                 break;
             case LOCAL_PORT_MSEL:
                 msel = data;
@@ -498,16 +497,16 @@ public final class KGS implements IOModule, ClockModule {
     }
 
     /**
-     * Verarbeitet Änderungen der Systemzeit
+     * Verarbeitet Änderungen der Systemzeit. Diese Funktion lässt den UA880
+     * Prozessor Befehle abarbeiten. Die Anzahl der Befehle hängt von der Anzahl
+     * der ausgeführten Befehle der Haupt-CPU ab. Andere Komponenten des Systems
+     * werden nicht benachrichtigt.
      *
      * @param amount Anzahl der Ticks
      */
     @Override
     public void clockUpdate(int amount) {
-        amount = 4000;
         cpu.updateClock(amount);
-        ctc.updateClock(amount);
-        sio.updateClock(amount);
     }
 
     /**
@@ -593,16 +592,6 @@ public final class KGS implements IOModule, ClockModule {
     }
 
     /**
-     * Startet die Abarbeitung durch die CPU
-     * <p>
-     * TODO: Ggf. entfernen
-     */
-    public void start() {
-        //    Thread cpuThread = new Thread(cpu, "UA880 KGS");
-        //    cpuThread.start();
-    }
-
-    /**
      * Leitet die Anfrage der Interruptbehandlung an die CPU weiter
      *
      * @param i Interruptnummer
@@ -619,5 +608,17 @@ public final class KGS implements IOModule, ClockModule {
      */
     public void setDebug(boolean debug) {
         cpu.setDebug(debug);
+    }
+
+    /**
+     * Aktualisiert die Systemzeit der Komponenten des KGS auf Basis der
+     * Taktzyklen des UA880.
+     *
+     * @param cycles Anzahl der Takte
+     */
+    public void localClockUpdate(int cycles) {
+        ctc.updateClock(cycles);
+        sio.updateClock(cycles);
+        abg.clockUpdate(cycles);
     }
 }

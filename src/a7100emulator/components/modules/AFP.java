@@ -5,10 +5,15 @@
  * (c) 2011-2014 Dirk Bräuer
  * 
  * Letzte Änderungen:
- *   01.04.2014 Kommentare vervollständigt
+ *   01.04.2014 - Kommentare vervollständigt
+ *   18.11.2014 - Interface Modul hinzugefügt
  *
  */
 package a7100emulator.components.modules;
+
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
 
 /**
  * Klasse zur Abbildung der AFP (Adapter für Festplatten)
@@ -18,6 +23,21 @@ package a7100emulator.components.modules;
  *
  * @author Dirk Bräuer
  */
-public class AFP {
+public class AFP implements Module {
+
+    @Override
+    public void init() {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public void saveState(DataOutputStream dos) throws IOException {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public void loadState(DataInputStream dis) throws IOException {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
 
 }

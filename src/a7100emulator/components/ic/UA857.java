@@ -5,12 +5,15 @@
  * (c) 2011-2014 Dirk Bräuer
  * 
  * Letzte Änderungen:
- *   12.08.2014 Erstellt
+ *   12.08.2014 - Erstellt
+ *   18.11.2014 - Speichern und Laden implementiert
+ *              - Interface IC implementiert
  *
  */
 package a7100emulator.components.ic;
 
 import a7100emulator.Tools.BitTest;
+import a7100emulator.Tools.StateSavable;
 import a7100emulator.components.modules.KGS;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -95,7 +98,10 @@ public class UA857 {
      * @throws IOException Wenn Schreiben nicht erfolgreich war
      */
     public void saveState(DataOutputStream dos) throws IOException {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        dos.writeInt(interruptVector);
+        for (Counter cnt : counter) {
+            cnt.saveState(dos);
+        }
     }
 
     /**
@@ -107,18 +113,21 @@ public class UA857 {
      * @throws IOException Wenn Lesen nicht erfolgreich war
      */
     public void loadState(DataInputStream dis) throws IOException {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        interruptVector = dis.readInt();
+        for (Counter cnt : counter) {
+            cnt.loadState(dis);
+        }
     }
 
     /**
      * Klasse zur Realisierung eines CTC-Zählerkanals
      */
-    class Counter {
+    class Counter implements StateSavable {
 
         /**
          * ID des Zählers
          */
-        private int id;
+        private final int id;
         /**
          * Steuerwort
          */
@@ -213,6 +222,40 @@ public class UA857 {
                     }
                 }
             }
+        }
+
+        /**
+         * Speichert den Zustand des Zählers in einer Datei
+         *
+         * @param dos Stream zur Datei
+         * @throws IOException Wenn Speichern fehlgeschlagen
+         */
+        @Override
+        public void saveState(DataOutputStream dos) throws IOException {
+            dos.writeInt(controlWord);
+            dos.writeInt(timeConstant);
+            dos.writeInt(buffer);
+            dos.writeInt(value);
+            dos.writeBoolean(timeConstantFollowing);
+            dos.writeBoolean(running);
+            dos.writeBoolean(interruptPending);
+        }
+
+        /**
+         * Lädt den Zustand des Zählers aus einer Datei
+         *
+         * @param dis Stream zur Datei
+         * @throws IOException Wenn Laden fehlgeschlagen
+         */
+        @Override
+        public void loadState(DataInputStream dis) throws IOException {
+            controlWord = dis.readInt();
+            timeConstant = dis.readInt();
+            buffer = dis.readInt();
+            value = dis.readInt();
+            timeConstantFollowing = dis.readBoolean();
+            running = dis.readBoolean();
+            interruptPending = dis.readBoolean();
         }
     }
 }
