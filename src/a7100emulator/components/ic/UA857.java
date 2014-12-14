@@ -8,6 +8,7 @@
  *   12.08.2014 - Erstellt
  *   18.11.2014 - Speichern und Laden implementiert
  *              - Interface IC implementiert
+ *   12.12.2014 - Reset implementiert
  *
  */
 package a7100emulator.components.ic;
@@ -174,14 +175,23 @@ public class UA857 {
             if (timeConstantFollowing) {
                 timeConstant = data;
                 value = data;
-                //System.out.println("Time Constant " + id + ": " + Integer.toBinaryString(data));
+//                System.out.println("Time Constant " + id + ": " + Integer.toBinaryString(data));
                 timeConstantFollowing = false;
                 if (!BitTest.getBit(controlWord, 3)) {
                     running = true;
                 }
             } else {
                 controlWord = data;
-                //System.out.println("Control Word " + id + ": " + Integer.toBinaryString(data));
+//                System.out.print("Control Word " + id + ": " + Integer.toBinaryString(data));
+//                System.out.print(" Interrupt: "+BitTest.getBit(controlWord, 7));
+//                System.out.print(",Mode: "+(BitTest.getBit(controlWord, 6)?"Timer":"Counter"));
+//                System.out.print(",Prescaler: "+(BitTest.getBit(controlWord, 5)?"256":"16"));
+//                System.out.print(",Edge: "+(BitTest.getBit(controlWord, 4)?"Rising Edge":"Falling Edge"));
+//                System.out.print(",Time Trigger: "+(BitTest.getBit(controlWord, 3)?"Pulse":"Time Constant"));
+//                System.out.print(",TimeConstant follows: "+BitTest.getBit(controlWord, 2));
+//                System.out.println(",Reset: "+BitTest.getBit(controlWord, 1));
+                if (BitTest.getBit(controlWord, 1))
+                    running=false;
                 if (BitTest.getBit(controlWord, 2)) {
                     timeConstantFollowing = true;
                 }

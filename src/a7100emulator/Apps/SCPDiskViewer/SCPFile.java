@@ -5,8 +5,8 @@
  * (c) 2011-2014 Dirk Bräuer
  * 
  * Letzte Änderungen:
- *   05.04.2014 Kommentare vervollständigt
- *   27.09.2014 MD5 Summen ergänzt
+ *   05.04.2014 - Kommentare vervollständigt
+ *   27.09.2014 - MD5 Summen ergänzt
  *
  */
 package a7100emulator.Apps.SCPDiskViewer;

@@ -239,4 +239,12 @@ public class A7100 {
         kes = new KES();
         asp = null;
     }
+
+    /**
+     * Gibt die Referenz auf die an der KGS angeschlossene ABG zurück.
+     * @return ABG
+     */
+    public ABG getABG() {
+        return kgs.getABG();
+    }
 }

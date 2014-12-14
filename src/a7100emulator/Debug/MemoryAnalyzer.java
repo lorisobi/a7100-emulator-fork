@@ -5,12 +5,14 @@
  * (c) 2011-2014 Dirk Bräuer
  * 
  * Letzte Änderungen:
- *   05.04.2014 Kommentare vervollständigt
- *
+ *   05.04.2014 - Kommentare vervollständigt
+ *   12.12.2014 - Übergabe Speicher in Konstruktor
+ *   14.12.2014 - Fehler bei ASCII Darstellung behoben
  */
 package a7100emulator.Debug;
 
 import GUITools.RowHeadRenderer;
+import a7100emulator.Tools.Memory;
 import a7100emulator.components.system.MMS16Bus;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
@@ -30,6 +32,34 @@ import javax.swing.table.AbstractTableModel;
 public class MemoryAnalyzer {
 
     /**
+     * Anzuzeigender Speicher
+     */
+    private final Memory memory;
+    /**
+     * Fenstertitel
+     */
+    private final String title;
+
+    /**
+     * Erstellt eine neue Speicheranzeige für den systemspeicher
+     */
+    public MemoryAnalyzer() {
+        this(null, "Systemspeicher");
+    }
+
+    /**
+     * Erstellt eine neue Speicheranzeige
+     *
+     * @param memory Speicher oder <code>null</code> um den Systemspeicher
+     * anzuzeigen
+     * @param title Fenstertitel
+     */
+    public MemoryAnalyzer(Memory memory, String title) {
+        this.memory = memory;
+        this.title = title;
+    }
+
+    /**
      * Zeigt den Speicherinhalt in einem separaten Fenster an
      */
     public void show() {
@@ -39,7 +69,7 @@ public class MemoryAnalyzer {
         table.getColumn("").setPreferredWidth(150);
         table.getColumn("ASCII").setMinWidth(150);
         table.setFont(new Font("Monospaced", Font.PLAIN, 14));
-        JFrame frame = new JFrame("Memory");
+        JFrame frame = new JFrame(title);
         frame.setMinimumSize(new Dimension(800, 600));
         frame.setPreferredSize(new Dimension(800, 600));
         frame.getContentPane().add(new JScrollPane(table), BorderLayout.CENTER);
@@ -65,7 +95,7 @@ public class MemoryAnalyzer {
          */
         @Override
         public int getRowCount() {
-            return 65536;
+            return (memory == null) ? 65536 : memory.getSize() / 16;
         }
 
         /**
@@ -132,7 +162,12 @@ public class MemoryAnalyzer {
             } else if (column == 17) {
                 String ascii = "";
                 for (int i = 0; i < 16; i++) {
-                    Integer val = MMS16Bus.getInstance().readMemoryByte(row * 16 + i);
+                    Integer val;
+                    if (memory == null) {
+                        val = MMS16Bus.getInstance().readMemoryByte(row * 16 + i);
+                    } else {
+                        val = memory.readByte(row * 16 + i);
+                    }
                     if (val < 0x20 || val == 127) {
                         ascii += '.';
                     } else {
@@ -141,7 +176,11 @@ public class MemoryAnalyzer {
                 }
                 return ascii;
             } else {
-                return String.format("%02X", MMS16Bus.getInstance().readMemoryByte(row * 16 + column - 1));
+                if (memory == null) {
+                    return String.format("%02X", MMS16Bus.getInstance().readMemoryByte(row * 16 + column - 1));
+                } else {
+                    return String.format("%02X", memory.readByte(row * 16 + column - 1));
+                }
             }
         }
 

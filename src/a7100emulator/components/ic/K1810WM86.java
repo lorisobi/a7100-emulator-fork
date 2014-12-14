@@ -6336,10 +6336,17 @@ public class K1810WM86 implements Runnable, IC {
             int pbptsoutaddr = (mms16.readMemoryWord(pbaddr + 18) << 4) + mms16.readMemoryWord(pbaddr + 16);
             //System.out.println(String.format("PB-Ctrl-Adresse: %05X", pbctrladdr));
             int ctrlcode1 = mms16.readMemoryByte(pbctrladdr);
-            int ctrlcode2 = mms16.readMemoryByte(pbctrladdr + 1);
-            int ctrlcode4 = mms16.readMemoryByte(pbctrladdr + 3);
+            int ctrlcode2 = mms16.readMemoryByte(pbctrladdr + 2);
+            int ctrlcode4 = mms16.readMemoryByte(pbctrladdr + 4);
 
             System.out.println("Operationscode: " + ctrlcode1 + ", Anzahl der Punkte: " + ctrlcode2 + ", Anzahl Int-Parameter: " + ctrlcode4);
+            if (ctrlcode2 > 0) {
+                System.out.print("Punkte: ");
+                for (int i = 0; i < ctrlcode2; i++) {
+                    System.out.print("(" + mms16.readMemoryWord(pbptsinaddr + 4 * i) + "," + mms16.readMemoryWord(pbptsinaddr + 4 * i + 2) + ") ");
+                }
+                System.out.println();
+            }
         }
         push(flags);
         clearFlag(INTERRUPT_ENABLE_FLAG);

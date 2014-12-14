@@ -10,27 +10,33 @@
  *              - Kommentare vervollständigt
  *              - Darstellung Funktionstüchtig
  *              - Laden und Speichern implemetiert
- *              
+ *   14.12.2014 - Anzeigen und Speichern der Bildwiederholspeicher implementiert           
  */
 package a7100emulator.components.modules;
 
+import a7100emulator.Debug.MemoryAnalyzer;
 import a7100emulator.Tools.BitTest;
 import a7100emulator.Tools.Memory;
-import a7100emulator.components.system.GlobalClock;
 import a7100emulator.components.system.Screen;
 import java.awt.Color;
+import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.image.BufferedImage;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.swing.JComponent;
+import javax.swing.JFrame;
 
 /**
  * Klasse zur Abbildung der ABG (Anschlußsteuerung für grafischen Bildschirm)
  *
  * @author Dirk Bräuer
  */
-public final class ABG implements Module, ClockModule {
+public final class ABG implements Module {
 
     /**
      * Enum zur Abbildung der möglichen Cursordarstellungen
@@ -168,9 +174,9 @@ public final class ABG implements Module, ClockModule {
      */
     private static final int BLACK = new Color(0, 0, 0).getRGB();
     /**
-     * aktuell Dargestellter Bildschirm
+     * Aktuell Dargestellter Bildschirm
      */
-    private BufferedImage screenImage = new BufferedImage(640, 400, BufferedImage.TYPE_INT_RGB);
+    private final BufferedImage screenImage = new BufferedImage(640, 400, BufferedImage.TYPE_INT_RGB);
     /**
      * Zähler für Bildschirmupdates
      */
@@ -209,7 +215,7 @@ public final class ABG implements Module, ClockModule {
     private final KGS kgs;
 
     /**
-     * Erstellt eine neue ABG und initialisiert diese
+     * Erstellt eine neue ABG und initialisiert diese.
      *
      * @param kgs Zeiger auf KGS Modul
      */
@@ -219,7 +225,7 @@ public final class ABG implements Module, ClockModule {
     }
 
     /**
-     * Intitialisiert die ABG
+     * Intitialisiert die ABG.
      */
     @Override
     public void init() {
@@ -233,26 +239,13 @@ public final class ABG implements Module, ClockModule {
         g.setColor(new Color(BLACK));
         g.fillRect(0, 0, 640, 400);
         Screen.getInstance().setImage(screenImage);
-
-        // Modul für Änderungen der Systemzeit registrieren
-        registerClocks();
     }
 
     /**
-     * Registriert das Modul für Änderungen der Systemzeit
-     */
-    @Override
-    public void registerClocks() {
-        //MMS16Bus.getInstance().registerClockModule(this);
-        //GlobalClock.getInstance().registerModule(this);
-    }
-
-    /**
-     * Verarbeitet die geänderte Systemzeit
+     * Verarbeitet die geänderte Taktzeit der KGS.
      *
      * @param amount Anzahl der Ticks
      */
-    @Override
     public void clockUpdate(int amount) {
         localClock += amount;
         if (localClock > 80000) {
@@ -507,17 +500,15 @@ public final class ABG implements Module, ClockModule {
         for (int line = 0; line < 400; line++) {
             for (int column = 0; column < 640; column += 8) {
                 if (line < splitline) {
-                    updateGraphicsScreen(address_gr, column, line);
+                    updateGraphicsScreen(address_gr, column, line, screenImage);
                     address_gr = (address_gr - 1) & 0x7FFF;
                 } else {
                     if (line == splitline) {
                         kgs.requestNMI();
                     }
-
-                    updateAlphanumericScreen(address_an, column, line);
+                    updateAlphanumericScreen(address_an, column, line, screenImage);
                     address_an = (address_an - 1) & 0x7FFF;
                 }
-                //address = (address - 1) & 0x7FFF;
             }
         }
         Screen.getInstance().repaint();
@@ -530,7 +521,7 @@ public final class ABG implements Module, ClockModule {
      * @param column Spalte auf Bildschirm
      * @param line Zeile auf Bildschirm
      */
-    private void updateAlphanumericScreen(int address, int column, int line) {
+    private void updateAlphanumericScreen(int address, int column, int line, BufferedImage image) {
         int data = alphanumericMemory[0].readByte(address);
         int attribute = alphanumericMemory[1].readByte(address);
         boolean intense = (attribute & ATTRIBUTE_INTENSE) != 0;
@@ -544,15 +535,15 @@ public final class ABG implements Module, ClockModule {
             if (cursor) {
                 // TODO: Attribut Blinken implementieren
                 if (blink_fnct) {
-                    screenImage.setRGB(column + 7 - pixel, line, intense ? INTENSE_GREEN : GREEN);
+                    image.setRGB(column + 7 - pixel, line, intense ? INTENSE_GREEN : GREEN);
                 } else {
-                    screenImage.setRGB(column + 7 - pixel, line, BLACK);
+                    image.setRGB(column + 7 - pixel, line, BLACK);
                 }
             } else {
                 if (b1 ^ inverse) {
-                    screenImage.setRGB(column + 7 - pixel, line, intense ? INTENSE_GREEN : GREEN);
+                    image.setRGB(column + 7 - pixel, line, intense ? INTENSE_GREEN : GREEN);
                 } else {
-                    screenImage.setRGB(column + 7 - pixel, line, BLACK);
+                    image.setRGB(column + 7 - pixel, line, BLACK);
                 }
             }
         }
@@ -565,21 +556,146 @@ public final class ABG implements Module, ClockModule {
      * @param column Spalte auf Bildschirm
      * @param line Zeile auf Bildschirm
      */
-    private void updateGraphicsScreen(int address, int column, int line) {
+    private void updateGraphicsScreen(int address, int column, int line, BufferedImage image) {
         int data1 = graphicMemory[0].readByte(address);
         int data2 = graphicMemory[1].readByte(address);
         for (int pixel = 0; pixel < 8; pixel++) {
             boolean b1 = BitTest.getBit(data1, pixel);
             boolean b2 = BitTest.getBit(data2, pixel);
             if (b1 && !b2) {
-                screenImage.setRGB(column + 7 - pixel, line, DARK_GREEN);
+                image.setRGB(column + 7 - pixel, line, DARK_GREEN);
             } else if (!b1 && b2) {
-                screenImage.setRGB(column + 7 - pixel, line, GREEN);
+                image.setRGB(column + 7 - pixel, line, GREEN);
             } else if (b1 && b2) {
-                screenImage.setRGB(column + 7 - pixel, line, INTENSE_GREEN);
+                image.setRGB(column + 7 - pixel, line, INTENSE_GREEN);
             } else {
-                screenImage.setRGB(column + 7 - pixel, line, BLACK);
+                image.setRGB(column + 7 - pixel, line, BLACK);
             }
+        }
+    }
+
+    /**
+     * Zeigt den Inhalt des Alphanumerikspeichers an
+     */
+    public void showAlphanumericScreen() {
+        final BufferedImage alphanumericImage = new BufferedImage(640, 400, BufferedImage.TYPE_INT_RGB);
+
+        int address_an = ~address_counter & 0x7FFF;
+
+        for (int line = 0; line < 400; line++) {
+            for (int column = 0; column < 640; column += 8) {
+                updateAlphanumericScreen(address_an, column, line, alphanumericImage);
+                address_an = (address_an - 1) & 0x7FFF;
+            }
+        }
+
+        JFrame frame = new JFrame("Alphanumerik-Bildschirm");
+        frame.setResizable(false);
+        JComponent component = new JComponent() {
+
+            @Override
+            public void paint(Graphics g) {
+                g.drawImage(alphanumericImage, 0, 0, null);
+            }
+        };
+        component.setMinimumSize(new Dimension(640, 400));
+        component.setPreferredSize(new Dimension(640, 400));
+        frame.add(component);
+
+        try {
+            Thread.sleep(100);
+        } catch (InterruptedException ex) {
+            Logger.getLogger(ABG.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        frame.setVisible(true);
+        frame.pack();
+    }
+
+    /**
+     * Zeigt den Inhalt des Grafikspeichers an
+     */
+    public void showGraphicScreen() {
+        final BufferedImage graphicImage = new BufferedImage(640, 400, BufferedImage.TYPE_INT_RGB);
+
+        int address_gr = 0x7FFF;
+
+        for (int line = 0; line < 400; line++) {
+            for (int column = 0; column < 640; column += 8) {
+                updateGraphicsScreen(address_gr, column, line, graphicImage);
+                address_gr = (address_gr - 1) & 0x7FFF;
+            }
+        }
+
+        JFrame frame = new JFrame("Grafik-Bildschirm");
+        frame.setResizable(false);
+        JComponent component = new JComponent() {
+
+            @Override
+            public void paint(Graphics g) {
+                g.drawImage(graphicImage, 0, 0, null);
+            }
+        };
+        component.setMinimumSize(new Dimension(640, 400));
+        component.setPreferredSize(new Dimension(640, 400));
+        frame.add(component);
+
+        try {
+            Thread.sleep(100);
+        } catch (InterruptedException ex) {
+            Logger.getLogger(ABG.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        frame.setVisible(true);
+        frame.pack();
+    }
+
+    /**
+     * Zeigt den Inhalt des ABG-Speichers
+     * @param page Speicherebene
+     */
+    public void showMemory(int page) {
+        switch (page) {
+            case 0:
+                (new MemoryAnalyzer(alphanumericMemory[0], "Alpahnumerikspeicher Ebene 1")).show();
+                break;
+            case 1:
+                (new MemoryAnalyzer(alphanumericMemory[1], "Alpahnumerikspeicher Ebene 2")).show();
+                break;
+            case 2:
+                (new MemoryAnalyzer(graphicMemory[0], "Grafikspeicher Ebene 1")).show();
+                break;
+            case 3:
+                (new MemoryAnalyzer(graphicMemory[1], "Grafikspeicher Ebene 2")).show();
+                break;
+        }
+    }
+
+    /**
+     * Schreibt den Inhalt des ABG-Speichers in eine Datei
+     *
+     * @param filename Dateiname
+     * @param page Speicherebene
+     */
+    public void dumpMemory(String filename, int page) {
+        DataOutputStream dos;
+        try {
+            dos = new DataOutputStream(new FileOutputStream(filename));
+            switch (page) {
+                case 0:
+                    alphanumericMemory[0].saveMemory(dos);
+                    break;
+                case 1:
+                    alphanumericMemory[1].saveMemory(dos);
+                    break;
+                case 2:
+                    graphicMemory[0].saveMemory(dos);
+                    break;
+                case 3:
+                    graphicMemory[1].saveMemory(dos);
+                    break;
+            }
+            dos.close();
+        } catch (IOException ex) {
+            Logger.getLogger(ABG.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
 

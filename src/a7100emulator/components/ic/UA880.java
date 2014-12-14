@@ -24,6 +24,10 @@
  *              - Interface IC implementiert
  *   19.11.2014 - Ticks auf double geändert
  *              - Thread Funktionalität vorerst entfernt
+ *   04.12.2014 - Abfrage ob debug aktiv ist
+ *   08.12.2014 - Fehler Debugausgabe INC, DEC behoben
+ *   12.12.2014 - CTC Hack entfernt
+ *   14.12.2014 - checkSignFlag für 16 Bit implementiert
  *
  */
 package a7100emulator.components.ic;
@@ -40,7 +44,9 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Klasse zur Realisierung eines UA880 Prozessors für A7100 Subsysteme
+ * Klasse zur Realisierung eines UA880 Prozessors für A7100 Subsysteme.
+ * <p>
+ * TODO: Prüfen ob 16 Bit checkSignFlag immer verwendet wird
  *
  * @author Dirk Bräuer
  */
@@ -679,13 +685,12 @@ public class UA880 implements IC {
     private void executeNextInstruction() {
         boolean debug = debugger.isDebug();
 
-        if (pc == 0x0122) {
-            //Dieser Hack lässt den ACT ABS/KGS Test erfolgreich durchlaufen
-            //TODO: Richtig implementieren
-            a=0x0A;
-            System.out.println("Hack CTC!!! a=" + a);
-        }
-
+//        if (pc == 0x0122) {
+//            //Dieser Hack lässt den ACT ABS/KGS Test erfolgreich durchlaufen
+//            //TODO: Richtig implementieren
+//            //a = 0x0A;
+//            System.out.println("Hack CTC!!! a=" + a);
+//        }
         int opcode = kgs.readMemoryByte(pc++);
         if (debug) {
             debugInfo.setIp(pc - 1);
@@ -1221,7 +1226,7 @@ public class UA880 implements IC {
                 setRegister((opcode >> 3) & 0x07, res);
                 updateTicks(4);
                 if (debug) {
-                    debugInfo.setCode("INC " + getRegisterString(opcode & 0x07));
+                    debugInfo.setCode("INC " + getRegisterString((opcode >> 3) & 0x07));
                     debugInfo.setOperands(String.format("->%02Xh", res));
                 }
             }
@@ -1249,7 +1254,7 @@ public class UA880 implements IC {
                 setRegister((opcode >> 3) & 0x07, res);
                 updateTicks(4);
                 if (debug) {
-                    debugInfo.setCode("DEC " + getRegisterString(opcode & 0x07));
+                    debugInfo.setCode("DEC " + getRegisterString((opcode >> 3) & 0x07));
                     debugInfo.setOperands(String.format("->%02Xh", res));
                 }
             }
@@ -1284,7 +1289,7 @@ public class UA880 implements IC {
                     res = op + correction;
                 }
                 checkZeroFlag(res);
-                checkSignFlag(res);
+                checkSignFlag8(res);
                 checkParityFlag(res);
                 if (BitTest.getBit(op, 4) ^ BitTest.getBit(res, 4)) {
                     setFlag(HALF_CARRY_FLAG);
@@ -2190,7 +2195,7 @@ public class UA880 implements IC {
                         setRegister(opcode2 & 0x07, res);
                         clearFlag(HALF_CARRY_FLAG);
                         clearFlag(SUBTRACT_FLAG);
-                        checkSignFlag(res);
+                        checkSignFlag8(res);
                         checkZeroFlag(res);
                         checkParityFlag(res);
                         if ((opcode2 & 0x07) == 0x06) {
@@ -2216,7 +2221,7 @@ public class UA880 implements IC {
                         setRegister(opcode2 & 0x07, res);
                         clearFlag(HALF_CARRY_FLAG);
                         clearFlag(SUBTRACT_FLAG);
-                        checkSignFlag(res);
+                        checkSignFlag8(res);
                         checkZeroFlag(res);
                         checkParityFlag(res);
                         if ((opcode2 & 0x07) == 0x06) {
@@ -2244,7 +2249,7 @@ public class UA880 implements IC {
                         setRegister(opcode2 & 0x07, res);
                         clearFlag(HALF_CARRY_FLAG);
                         clearFlag(SUBTRACT_FLAG);
-                        checkSignFlag(res);
+                        checkSignFlag8(res);
                         checkZeroFlag(res);
                         checkParityFlag(res);
                         if ((opcode2 & 0x07) == 0x06) {
@@ -2272,7 +2277,7 @@ public class UA880 implements IC {
                         setRegister(opcode2 & 0x07, res);
                         clearFlag(HALF_CARRY_FLAG);
                         clearFlag(SUBTRACT_FLAG);
-                        checkSignFlag(res);
+                        checkSignFlag8(res);
                         checkZeroFlag(res);
                         checkParityFlag(res);
                         if ((opcode2 & 0x07) == 0x06) {
@@ -2297,7 +2302,7 @@ public class UA880 implements IC {
                         setRegister(opcode2 & 0x07, res);
                         clearFlag(HALF_CARRY_FLAG);
                         clearFlag(SUBTRACT_FLAG);
-                        checkSignFlag(res);
+                        checkSignFlag8(res);
                         checkZeroFlag(res);
                         checkParityFlag(res);
                         if ((opcode2 & 0x07) == 0x06) {
@@ -2325,7 +2330,7 @@ public class UA880 implements IC {
                         setRegister(opcode2 & 0x07, res);
                         clearFlag(HALF_CARRY_FLAG);
                         clearFlag(SUBTRACT_FLAG);
-                        checkSignFlag(res);
+                        checkSignFlag8(res);
                         checkZeroFlag(res);
                         checkParityFlag(res);
                         if ((opcode2 & 0x07) == 0x06) {
@@ -2354,7 +2359,7 @@ public class UA880 implements IC {
                         setRegister(opcode2 & 0x07, res);
                         clearFlag(HALF_CARRY_FLAG);
                         clearFlag(SUBTRACT_FLAG);
-                        checkSignFlag(res);
+                        checkSignFlag8(res);
                         checkZeroFlag(res);
                         checkParityFlag(res);
                         if ((opcode2 & 0x07) == 0x06) {
@@ -2878,7 +2883,7 @@ public class UA880 implements IC {
                                     kgs.writeMemoryByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset, res);
                                     clearFlag(HALF_CARRY_FLAG);
                                     clearFlag(SUBTRACT_FLAG);
-                                    checkSignFlag(res);
+                                    checkSignFlag8(res);
                                     checkZeroFlag(res);
                                     checkParityFlag(res);
                                     updateTicks(23);
@@ -2904,7 +2909,7 @@ public class UA880 implements IC {
                                     kgs.writeMemoryByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset, res);
                                     clearFlag(HALF_CARRY_FLAG);
                                     clearFlag(SUBTRACT_FLAG);
-                                    checkSignFlag(res);
+                                    checkSignFlag8(res);
                                     checkZeroFlag(res);
                                     checkParityFlag(res);
                                     updateTicks(23);
@@ -2932,7 +2937,7 @@ public class UA880 implements IC {
                                     kgs.writeMemoryByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset, res);
                                     clearFlag(HALF_CARRY_FLAG);
                                     clearFlag(SUBTRACT_FLAG);
-                                    checkSignFlag(res);
+                                    checkSignFlag8(res);
                                     checkZeroFlag(res);
                                     checkParityFlag(res);
                                     updateTicks(23);
@@ -2960,7 +2965,7 @@ public class UA880 implements IC {
                                     kgs.writeMemoryByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset, res);
                                     clearFlag(HALF_CARRY_FLAG);
                                     clearFlag(SUBTRACT_FLAG);
-                                    checkSignFlag(res);
+                                    checkSignFlag8(res);
                                     checkZeroFlag(res);
                                     checkParityFlag(res);
                                     updateTicks(23);
@@ -2985,7 +2990,7 @@ public class UA880 implements IC {
                                     kgs.writeMemoryByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset, res);
                                     clearFlag(HALF_CARRY_FLAG);
                                     clearFlag(SUBTRACT_FLAG);
-                                    checkSignFlag(res);
+                                    checkSignFlag8(res);
                                     checkZeroFlag(res);
                                     checkParityFlag(res);
                                     updateTicks(23);
@@ -3013,7 +3018,7 @@ public class UA880 implements IC {
                                     kgs.writeMemoryByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset, res);
                                     clearFlag(HALF_CARRY_FLAG);
                                     clearFlag(SUBTRACT_FLAG);
-                                    checkSignFlag(res);
+                                    checkSignFlag8(res);
                                     checkZeroFlag(res);
                                     checkParityFlag(res);
                                     updateTicks(23);
@@ -3042,7 +3047,7 @@ public class UA880 implements IC {
                                     kgs.writeMemoryByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset, res);
                                     clearFlag(HALF_CARRY_FLAG);
                                     clearFlag(SUBTRACT_FLAG);
-                                    checkSignFlag(res);
+                                    checkSignFlag8(res);
                                     checkZeroFlag(res);
                                     checkParityFlag(res);
                                     updateTicks(23);
@@ -3128,6 +3133,10 @@ public class UA880 implements IC {
                                 }
                             }
                             break;
+                            default:
+                                System.out.println("Ungültiger OPCODE " + String.format("%02X %02X", opcode, opcode2));
+                                System.exit(0);
+                                break;
                         }
                     }
                     break;
@@ -3179,7 +3188,7 @@ public class UA880 implements IC {
                         setRegisterPairHLSP(REGP_HL, res);
                         updateTicks(15);
                         if (debug) {
-                            debugInfo.setCode("SBC (HL)," + getRegisterPairHLSPString((opcode2 >> 4) & 0x03));
+                            debugInfo.setCode("SBC HL," + getRegisterPairHLSPString((opcode2 >> 4) & 0x03));
                             debugInfo.setOperands(String.format("%04Xh-%04Xh->%04Xh", op1, op2, res));
                         }
                     }
@@ -3202,7 +3211,7 @@ public class UA880 implements IC {
                         int op = getRegister(REG_A);
                         int res = 0 - op;
                         setFlag(SUBTRACT_FLAG);
-                        checkSignFlag(res);
+                        checkSignFlag8(res);
                         checkZeroFlag(res);
                         if (op == 0x00) {
                             setFlag(CARRY_FLAG);
@@ -3275,7 +3284,7 @@ public class UA880 implements IC {
                         setRegisterPairHLSP((opcode2 >> 4) & 0x03, kgs.readMemoryWord(address));
                         updateTicks(20);
                         if (debug) {
-                            debugInfo.setCode("LD (" + String.format("%04Xh", address) + "," + getRegisterPairHLSPString((opcode2 >> 4) & 0x03));
+                            debugInfo.setCode("LD " + getRegisterPairHLSPString((opcode2 >> 4) & 0x03) + ",(" + String.format("%04Xh", address) + ")");
                             debugInfo.setOperands(String.format("%04Xh", kgs.readMemoryWord(address)));
                         }
                     }
@@ -3340,7 +3349,7 @@ public class UA880 implements IC {
                         int res1 = (op2 & 0xF0) | (op1 & 0x0F);
                         setRegister(REG_A, res1);
                         kgs.writeMemoryByte(getRegisterPairHLSP(REGP_HL), (op1 >> 4) | (op2 << 4));
-                        checkSignFlag(res1);
+                        checkSignFlag8(res1);
                         checkZeroFlag(res1);
                         clearFlag(HALF_CARRY_FLAG);
                         checkParityFlag(res1);
@@ -3358,7 +3367,7 @@ public class UA880 implements IC {
                         int res1 = (op2 & 0xF0) | (op1 >> 4);
                         setRegister(REG_A, res1);
                         kgs.writeMemoryByte(getRegisterPairHLSP(REGP_HL), (op1 << 4) | (op2 & 0x0F));
-                        checkSignFlag(res1);
+                        checkSignFlag8(res1);
                         checkZeroFlag(res1);
                         clearFlag(HALF_CARRY_FLAG);
                         checkParityFlag(res1);
@@ -3686,16 +3695,26 @@ public class UA880 implements IC {
                         }
                     }
                     break;
+                    default:
+                        System.out.println("Ungültiger OPCODE " + String.format("%02X %02X", opcode, opcode2));
+                        System.exit(0);
+                        break;
                 }
             }
             break;
+            default:
+                System.out.println("Ungültiger OPCODE " + String.format("%02X", opcode));
+                System.exit(0);
+                break;
         }
-        if (debugInfo.getCode() != null) {
-            debugger.addLine(debugInfo);
-            try {
-                Thread.sleep(debugger.getSlowdown());
-            } catch (InterruptedException ex) {
-                Logger.getLogger(K1810WM86.class.getName()).log(Level.SEVERE, null, ex);
+        if (debug) {
+            if (debugInfo.getCode() != null) {
+                debugger.addLine(debugInfo);
+                try {
+                    Thread.sleep(debugger.getSlowdown());
+                } catch (InterruptedException ex) {
+                    Logger.getLogger(K1810WM86.class.getName()).log(Level.SEVERE, null, ex);
+                }
             }
         }
 
@@ -4029,7 +4048,7 @@ public class UA880 implements IC {
      */
     private int and(int op1, int op2) {
         int res = op1 & op2;
-        checkSignFlag(res);
+        checkSignFlag8(res);
         checkZeroFlag(res);
         checkParityFlag(res);
         setFlag(HALF_CARRY_FLAG);
@@ -4047,7 +4066,7 @@ public class UA880 implements IC {
      */
     private int or(int op1, int op2) {
         int res = op1 | op2;
-        checkSignFlag(res);
+        checkSignFlag8(res);
         checkZeroFlag(res);
         checkParityFlag(res);
         clearFlag(HALF_CARRY_FLAG);
@@ -4065,7 +4084,7 @@ public class UA880 implements IC {
      */
     private int xor(int op1, int op2) {
         int res = op1 ^ op2;
-        checkSignFlag(res);
+        checkSignFlag8(res);
         checkZeroFlag(res);
         checkParityFlag(res);
         setFlag(HALF_CARRY_FLAG);
@@ -4088,7 +4107,7 @@ public class UA880 implements IC {
         int res = op1 + op2;
         clearFlag(SUBTRACT_FLAG);
         checkZeroFlag(res);
-        checkSignFlag(res);
+        checkSignFlag8(res);
         checkOverflowFlagAdd(op1, op2, res);
         checkHalfCarryFlagAdd(op1, op2);
         checkCarryFlagAdd8(res);
@@ -4108,6 +4127,11 @@ public class UA880 implements IC {
         }
         int res = op1 + op2;
         clearFlag(SUBTRACT_FLAG);
+        if (useCarry) {
+            // Nur bei ADC werden diese Flags gesetzt
+            checkZeroFlag(res);
+            checkSignFlag16(res);
+        }
         checkHalfCarryFlagAdd(op1 >> 8, op2 >> 8);
         checkCarryFlagAdd16(res);
         return res;
@@ -4127,7 +4151,7 @@ public class UA880 implements IC {
         int res = op1 - op2;
         setFlag(SUBTRACT_FLAG);
         checkZeroFlag(res);
-        checkSignFlag(res);
+        checkSignFlag8(res);
         checkOverflowFlagSub8(op1, op2, res);
         checkHalfCarryFlagSub(op1, op2);
         checkCarryFlagSub(res);
@@ -4148,7 +4172,7 @@ public class UA880 implements IC {
         int res = op1 - op2;
         setFlag(SUBTRACT_FLAG);
         checkZeroFlag(res);
-        checkSignFlag(res);
+        checkSignFlag16(res);
         checkOverflowFlagSub16(op1, op2, res);
         checkHalfCarryFlagSub(op1 >> 8, op2 >> 8);
         checkCarryFlagSub(res);
@@ -4165,7 +4189,7 @@ public class UA880 implements IC {
         int res = op + 1;
         clearFlag(SUBTRACT_FLAG);
         checkZeroFlag(res);
-        checkSignFlag(res);
+        checkSignFlag8(res);
         checkOverflowFlagAdd(op, 1, res);
         checkHalfCarryFlagAdd(op, 1);
         return res;
@@ -4181,7 +4205,7 @@ public class UA880 implements IC {
         int res = op - 1;
         setFlag(SUBTRACT_FLAG);
         checkZeroFlag(res);
-        checkSignFlag(res);
+        checkSignFlag8(res);
         checkOverflowFlagSub8(op, 1, res);
         checkHalfCarryFlagSub(op, 1);
         return res;
@@ -4337,12 +4361,27 @@ public class UA880 implements IC {
     }
 
     /**
-     * Setzt das Sign-Flag entsprechend einer vorangehenden Operation
+     * Setzt das Sign-Flag entsprechend einer vorangehenden Operation von Byte
+     * Operanden.
      *
      * @param res Ergebnis
      */
-    private void checkSignFlag(int res) {
+    private void checkSignFlag8(int res) {
         if (res < 0 || (res & 0x80) == 0x80) {
+            setFlag(SIGN_FLAG);
+        } else {
+            clearFlag(SIGN_FLAG);
+        }
+    }
+
+    /**
+     * Setzt das Sign-Flag entsprechend einer vorangehenden Operation von Wort
+     * Operanden.
+     *
+     * @param res Ergebnis
+     */
+    private void checkSignFlag16(int res) {
+        if (res < 0 || (res & 0x8000) == 0x8000) {
             setFlag(SIGN_FLAG);
         } else {
             clearFlag(SIGN_FLAG);
@@ -4416,6 +4455,9 @@ public class UA880 implements IC {
      * Arbeitet einen nichtmaskierbaren Interrupt ab
      */
     private void nmi() {
+        if (debugger.isDebug()) {
+            debugger.addComment("Verarbeite NMI");
+        }
         push(pc);
         iff2 = iff1;
         iff1 = 0;
@@ -4428,6 +4470,9 @@ public class UA880 implements IC {
      * @param irq Interrupt ID
      */
     private void interrupt(int irq) {
+        if (debugger.isDebug()) {
+            debugger.addComment("Verarbeite Interrupt " + irq);
+        }
         iff1 = 0;
         iff2 = 0;
         switch (interruptMode) {
@@ -4445,7 +4490,7 @@ public class UA880 implements IC {
                 push(pc);
 
                 pc = kgs.readMemoryWord(isr_address);
-                System.out.println("Starte Interrupt an: " + String.format("%04X", pc));
+                //System.out.println("Starte Interrupt an: " + String.format("%04X", pc));
                 break;
             default:
                 throw new IllegalStateException("Unbekannter Interrupt-Modus!");
@@ -4466,11 +4511,11 @@ public class UA880 implements IC {
      * @param i Interruptnummer
      */
     public void requestInterrupt(int i) {
-        if (iff1 == 1 && iff2 == 1) {
-            System.out.println("Interrupt auf CPU akzeptiert.");
-            interruptsWaiting.add(i);
-            interruptsWaiting.sort(null);
-        }
+        //if (iff1 == 1 && iff2 == 1) {
+        //System.out.println("Interrupt auf CPU akzeptiert.");
+        interruptsWaiting.add(i);
+        interruptsWaiting.sort(null);
+        //}
     }
 
     /**

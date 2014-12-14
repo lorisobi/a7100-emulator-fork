@@ -5,7 +5,7 @@
  * (c) 2011-2014 Dirk Bräuer
  * 
  * Letzte Änderungen:
- *   05.04.2014 Kommentare vervollständigt
+ *   05.04.2014 - Kommentare vervollständigt
  *
  */
 package a7100emulator.Apps.SCPDiskViewer;
@@ -16,8 +16,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -77,7 +75,7 @@ public class SCPDiskModel {
     }
 
     /**
-     * Liest ein Diskettenabbild ein
+     * Liest ein Diskettenabbild ein.
      *
      * @param image Abbild
      */

@@ -14,7 +14,7 @@ import a7100emulator.Tools.StateSavable;
 
 /**
  * Interface für alle Schaltkreise
- * @author Dirk
+ * @author Dirk Bräuer
  */
 public interface IC extends StateSavable {
     

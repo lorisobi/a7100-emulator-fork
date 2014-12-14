@@ -80,9 +80,9 @@ public class GlobalClock implements StateSavable {
         for (ClockModule module : modules) {
             module.clockUpdate(amount);
         }
-        if ((clock / 4915000) > (clock - amount) / 4915000) {
-            System.out.println("Globale Zeit: " + clock / 4915000 + "s");
-        }
+//        if ((clock / 4915000) > (clock - amount) / 4915000) {
+//            System.out.println("Globale Zeit: " + clock / 4915000 + "s");
+//        }
     }
 
     /**

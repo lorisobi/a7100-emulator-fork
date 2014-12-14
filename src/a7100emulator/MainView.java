@@ -5,10 +5,14 @@
  * (c) 2011-2014 Dirk Bräuer
  * 
  * Letzte Änderungen:
- *   05.04.2014 Kommentare vervollständigt
- *   12.04.2014 Laden von verschiedenen Image-Typen implementiert
- *   31.08.2014 Debugger deaktiviert, da Singleton Instranz entfernt
- *
+ *   05.04.2014 - Kommentare vervollständigt
+ *   12.04.2014 - Laden von verschiedenen Image-Typen implementiert
+ *   31.08.2014 - Debugger deaktiviert, da Singleton Instranz entfernt
+ *   04.12.2014 - Dump KGS Speicher hinzugefügt
+ *              - Menüeinträge umbenannt
+ *   12.12.2014 - Menü Debug neu strukturiert
+ *              - Zeige KGS Speicher hinzugefügt
+ *   14.12.2014 - Zeigen/Speichern ABG Speicher
  */
 package a7100emulator;
 
@@ -19,7 +23,6 @@ import a7100emulator.Debug.MemoryAnalyzer;
 import a7100emulator.Debug.OpcodeStatistic;
 import a7100emulator.components.A7100;
 import a7100emulator.Tools.FloppyImageType;
-import a7100emulator.components.system.GlobalClock;
 import a7100emulator.components.system.Keyboard;
 import a7100emulator.components.system.MMS16Bus;
 import a7100emulator.components.system.Screen;
@@ -134,49 +137,101 @@ public class MainView extends JFrame {
      */
     private final JCheckBoxMenuItem menuDevicesDrive1WriteProtect = new JCheckBoxMenuItem("Schreibschutz");
     /**
-     * Untermenü Speicher
+     * Untermenü Debug -> System
      */
-    private final JMenu menuDebugMemory = new JMenu("Speicher");
+    private final JMenu menuDebugSystem = new JMenu("System");
     /**
-     * Untermenü Decoder
+     * Untermenü Debug -> ZVE
      */
-    private final JMenu menuDebugDecoder = new JMenu("Decoder");
+    private final JMenu menuDebugZVE = new JMenu("ZVE");
     /**
-     * Untermenü Debugger
+     * Untermenü Debug -> KGS
      */
-    private final JMenu menuDebugDebugger = new JMenu("Debugger");
+    private final JMenu menuDebugKGS = new JMenu("KGS");
+    /**
+     * Untermenü Debug -> KES
+     */
+    private final JMenu menuDebugKES = new JMenu("KES");
+    /**
+     * Untermenü Debug -> ABG
+     */
+    private final JMenu menuDebugABG = new JMenu("ABG");
     /**
      * Menüeintrag Debugger aktivieren
      */
-    private final JCheckBoxMenuItem menuDebugDebuggerSwitch = new JCheckBoxMenuItem("Debugger");
-    /**
-     * Menüeintrag Verzögerung setzen
-     */
-    private final JMenuItem menuDebugDebuggerSlowdown = new JMenuItem("Setze Verzögerung");
+    private final JCheckBoxMenuItem menuDebugZVEDebuggerSwitch = new JCheckBoxMenuItem("Debugger");
     /**
      * Menüeintrag Speicher anzeigen
      */
-    private final JMenuItem menuDebugMemoryShow = new JMenuItem("zeigen");
+    private final JMenuItem menuDebugSystemMemoryShow = new JMenuItem("Zeige Systemspeicher");
     /**
      * Menüeintrag Speicher in Datei Schreiben
      */
-    private final JMenuItem menuDebugMemoryDump = new JMenuItem("Dump");
+    private final JMenuItem menuDebugSystemMemoryDump = new JMenuItem("Dump Systemspeicher");
+    /**
+     * Menüeintrag Zeige KGS Speicher
+     */
+    private final JMenuItem menuDebugKGSMemoryShow = new JMenuItem("Zeige KGS Speicher");
+    /**
+     * Menüeintrag Speicher in Datei Schreiben
+     */
+    private final JMenuItem menuDebugKGSMemoryDump = new JMenuItem("Dump KGS Speicher");
     /**
      * Menüeintrag Decoder anzeigen
      */
-    private final JMenuItem menuDebugDecoderShow = new JMenuItem("zeigen");
+    private final JMenuItem menuDebugZVEDecoderShow = new JMenuItem("Zeige Decoder");
     /**
      * Menüeintrag Decoderinformationen speichern
      */
-    private final JMenuItem menuDebugDecoderDump = new JMenuItem("Dump");
+    private final JMenuItem menuDebugZVEDecoderDump = new JMenuItem("Dump Decoder");
     /**
      * Menüeintrag Zeichensatz anzeigen
      */
-    private final JMenuItem menuDebugCharacters = new JMenuItem("KGS Zeichensatz");
+    private final JMenuItem menuDebugKGSCharacters = new JMenuItem("KGS Zeichensatz");
     /**
      * Menüeintrag Opcode-Statistik speichern
      */
-    private final JMenuItem menuOpcodeStatistic = new JMenuItem("Dump Statistik");
+    private final JMenuItem menuDebugZVEOpcodeStatistic = new JMenuItem("Dump Opcode Statistik");
+    /**
+     * Menüeintrag ABG Zeige Alphanumerik
+     */
+    private final JMenuItem menuDebugABGAlphanumerics = new JMenuItem("Alphanumerikbild zeigen");
+    /**
+     * Menüeintrag ABG Zeige Grafikbild
+     */
+    private final JMenuItem menuDebugABGGraphics = new JMenuItem("Grafikbild zeigen");
+    /**
+     * Menüeintrag ABG Zeige Alphanumerikspeicher Ebene 1
+     */
+    private final JMenuItem menuDebugABGAlphanumericsPage1 = new JMenuItem("Alphanumerikspeicher Ebene 1 zeigen");
+    /**
+     * Menüeintrag ABG Zeige Alphanumerikspeicher Ebene 2
+     */
+    private final JMenuItem menuDebugABGAlphanumericsPage2 = new JMenuItem("Alphanumerikspeicher Ebene 2 zeigen");
+    /**
+     * Menüeintrag ABG Zeige Grafikspeicher Ebene 1
+     */
+    private final JMenuItem menuDebugABGGraphicsPage1 = new JMenuItem("Grafikspeicher Ebene 1 zeigen");
+    /**
+     * Menüeintrag ABG Zeige Graphikspeicher Ebene 2
+     */
+    private final JMenuItem menuDebugABGGraphicsPage2 = new JMenuItem("Grafikspeicher Ebene 2 zeigen");
+    /**
+     * Menüeintrag ABG Zeige Alphanumerikspeicher Ebene 1
+     */
+    private final JMenuItem menuDebugABGDumpAlphanumericsPage1 = new JMenuItem("Dump Alphanumerikspeicher Ebene 1");
+    /**
+     * Menüeintrag ABG Zeige Alphanumerikspeicher Ebene 2
+     */
+    private final JMenuItem menuDebugABGDumpAlphanumericsPage2 = new JMenuItem("Dump Alphanumerikspeicher Ebene 2");
+    /**
+     * Menüeintrag ABG Zeige Grafikspeicher Ebene 1
+     */
+    private final JMenuItem menuDebugABGDumpGraphicsPage1 = new JMenuItem("Dump Grafikspeicher Ebene 1");
+    /**
+     * Menüeintrag ABG Zeige Graphikspeicher Ebene 2
+     */
+    private final JMenuItem menuDebugABGDumpGraphicsPage2 = new JMenuItem("Dump Grafikspeicher Ebene 2");
     /**
      * Menü Tools
      */
@@ -263,26 +318,50 @@ public class MainView extends JFrame {
         menuDevicesDrive1WriteProtect.addActionListener(controller);
 
         menubar.add(menuDebug);
-        menuDebug.add(menuDebugMemory);
-        menuDebugMemory.add(menuDebugMemoryShow);
-        menuDebugMemory.add(menuDebugMemoryDump);
-        menuDebug.add(menuDebugDecoder);
-        menuDebugDecoder.add(menuDebugDecoderShow);
-        menuDebugDecoder.add(menuDebugDecoderDump);
-        menuDebug.add(menuDebugDebugger);
-        menuDebugDebugger.add(menuDebugDebuggerSwitch);
-        menuDebugDebugger.add(menuDebugDebuggerSlowdown);
-        menuDebug.add(menuDebugCharacters);
-        menuDebug.add(menuOpcodeStatistic);
+        menuDebug.add(menuDebugSystem);
+        menuDebugSystem.add(menuDebugSystemMemoryShow);
+        menuDebugSystem.add(menuDebugSystemMemoryDump);
+        menuDebug.add(menuDebugZVE);
+        menuDebugZVE.add(menuDebugZVEDebuggerSwitch);
+        menuDebugZVE.add(menuDebugZVEDecoderShow);
+        menuDebugZVE.add(menuDebugZVEDecoderDump);
+        menuDebugZVE.add(menuDebugZVEOpcodeStatistic);
+        menuDebug.add(menuDebugKGS);
+        menuDebugKGS.add(menuDebugKGSMemoryShow);
+        menuDebugKGS.add(menuDebugKGSMemoryDump);
+        menuDebugKGS.add(menuDebugKGSCharacters);
+        menuDebug.add(menuDebugKES);
+        menuDebug.add(menuDebugABG);
+        menuDebugABG.add(menuDebugABGAlphanumerics);
+        menuDebugABG.add(menuDebugABGGraphics);
+        menuDebugABG.add(menuDebugABGAlphanumericsPage1);
+        menuDebugABG.add(menuDebugABGAlphanumericsPage2);
+        menuDebugABG.add(menuDebugABGGraphicsPage1);
+        menuDebugABG.add(menuDebugABGGraphicsPage2);
+        menuDebugABG.add(menuDebugABGDumpAlphanumericsPage1);
+        menuDebugABG.add(menuDebugABGDumpAlphanumericsPage2);
+        menuDebugABG.add(menuDebugABGDumpGraphicsPage1);
+        menuDebugABG.add(menuDebugABGDumpGraphicsPage2);
 
-        menuDebugDebuggerSwitch.addActionListener(controller);
-        menuDebugDebuggerSlowdown.addActionListener(controller);
-        menuDebugMemoryShow.addActionListener(controller);
-        menuDebugMemoryDump.addActionListener(controller);
-        menuDebugDecoderShow.addActionListener(controller);
-        menuDebugDecoderDump.addActionListener(controller);
-        menuDebugCharacters.addActionListener(controller);
-        menuOpcodeStatistic.addActionListener(controller);
+        menuDebugSystemMemoryShow.addActionListener(controller);
+        menuDebugSystemMemoryDump.addActionListener(controller);
+        menuDebugZVEDebuggerSwitch.addActionListener(controller);
+        menuDebugZVEDecoderShow.addActionListener(controller);
+        menuDebugZVEDecoderDump.addActionListener(controller);
+        menuDebugZVEOpcodeStatistic.addActionListener(controller);
+        menuDebugKGSMemoryShow.addActionListener(controller);
+        menuDebugKGSMemoryDump.addActionListener(controller);
+        menuDebugKGSCharacters.addActionListener(controller);
+        menuDebugABGAlphanumerics.addActionListener(controller);
+        menuDebugABGGraphics.addActionListener(controller);
+        menuDebugABGAlphanumericsPage1.addActionListener(controller);
+        menuDebugABGAlphanumericsPage2.addActionListener(controller);
+        menuDebugABGGraphicsPage1.addActionListener(controller);
+        menuDebugABGGraphicsPage2.addActionListener(controller);
+        menuDebugABGDumpAlphanumericsPage1.addActionListener(controller);
+        menuDebugABGDumpAlphanumericsPage2.addActionListener(controller);
+        menuDebugABGDumpGraphicsPage1.addActionListener(controller);
+        menuDebugABGDumpGraphicsPage2.addActionListener(controller);
 
         menubar.add(menuTools);
         menuTools.add(menuToolsSCPDiskViewer);
@@ -339,31 +418,49 @@ public class MainView extends JFrame {
                 a7100.loadState();
             } else if (e.getSource() == menuEmulatorExit) {
                 System.exit(0);
-            } else if (e.getSource().equals(menuDebugMemoryShow)) {
+            } else if (e.getSource().equals(menuDebugSystemMemoryShow)) {
                 (new MemoryAnalyzer()).show();
-            } else if (e.getSource() == menuDebugDecoderShow) {
+            } else if (e.getSource() == menuDebugZVEDecoderShow) {
                 Decoder.getInstance().show();
-            } else if (e.getSource() == menuDebugMemoryDump) {
-                MMS16Bus.getInstance().dumpSystemMemory("./debug/user_dump.hex");
-            } else if (e.getSource() == menuDebugDecoderDump) {
+            } else if (e.getSource() == menuDebugSystemMemoryDump) {
+                MMS16Bus.getInstance().dumpSystemMemory("./debug/system_user_dump.hex");
+            } else if (e.getSource() == menuDebugKGSMemoryShow) {
+                a7100.getKGS().showMemory();
+            } else if (e.getSource() == menuDebugKGSMemoryDump) {
+                a7100.getKGS().dumpMemory("./debug/kgs_user_dump.hex");
+            } else if (e.getSource() == menuDebugZVEDecoderDump) {
                 Decoder.getInstance().save();
-            } else if (e.getSource() == menuDebugDebuggerSwitch) {
-                boolean debug = menuDebugDebuggerSwitch.isSelected();
-a7100.getZVE().setDebug(debug);
-a7100.getKGS().setDebug(debug);
+            } else if (e.getSource() == menuDebugZVEDebuggerSwitch) {
+                boolean debug = menuDebugZVEDebuggerSwitch.isSelected();
+                a7100.getZVE().setDebug(debug);
+                a7100.getKGS().setDebug(debug);
                 if (debug) {
                     Decoder.getInstance().clear();
                 }
-            } else if (e.getSource() == menuDebugDebuggerSlowdown) {
-                try {
-//                    int slowdown = Integer.parseInt(JOptionPane.showInputDialog(null, "Verzögerung in ms:", Debugger.getInstance().getSlowdown()));
-//                    Debugger.getInstance().setSlowdown(slowdown);
-                } catch (NumberFormatException ex) {
-                }
-            } else if (e.getSource() == menuDebugCharacters) {
+            } else if (e.getSource() == menuDebugKGSCharacters) {
                 a7100.getKGS().showCharacters();
-            } else if (e.getSource() == menuOpcodeStatistic) {
+            } else if (e.getSource() == menuDebugZVEOpcodeStatistic) {
                 OpcodeStatistic.getInstance().dump();
+            } else if (e.getSource() == menuDebugABGAlphanumerics) {
+                a7100.getABG().showAlphanumericScreen();
+            } else if (e.getSource() == menuDebugABGGraphics) {
+                a7100.getABG().showGraphicScreen();
+            } else if (e.getSource() == menuDebugABGAlphanumericsPage1) {
+                a7100.getABG().showMemory(0);
+            } else if (e.getSource() == menuDebugABGAlphanumericsPage2) {
+                a7100.getABG().showMemory(1);
+            } else if (e.getSource() == menuDebugABGGraphicsPage1) {
+                a7100.getABG().showMemory(2);
+            } else if (e.getSource() == menuDebugABGGraphicsPage2) {
+                a7100.getABG().showMemory(3);
+            } else if (e.getSource() == menuDebugABGDumpAlphanumericsPage1) {
+                a7100.getABG().dumpMemory("./debug/abg_an1_user_dump.hex", 0);
+            } else if (e.getSource() == menuDebugABGDumpAlphanumericsPage2) {
+                a7100.getABG().dumpMemory("./debug/abg_an2_user_dump.hex", 1);
+            } else if (e.getSource() == menuDebugABGDumpGraphicsPage1) {
+                a7100.getABG().dumpMemory("./debug/abg_gr1_user_dump.hex", 2);
+            } else if (e.getSource() == menuDebugABGDumpGraphicsPage2) {
+                a7100.getABG().dumpMemory("./debug/abg_gr2_user_dump.hex", 3);
             } else if (e.getSource() == menuDevicesDrive0Load) {
                 loadImageFile(0);
             } else if (e.getSource() == menuDevicesDrive0Save) {

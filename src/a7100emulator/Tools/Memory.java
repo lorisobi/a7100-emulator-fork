@@ -153,6 +153,14 @@ public class Memory {
         result = ((hb << 8) | (lb & 0xFF));
         return result & 0xFFFF;
     }
+    
+    /**
+     * Gibt die Größe des Speichers in bytes zurück
+     * @return Speichergröße
+     */ 
+    public int getSize() {
+        return memory.length;
+    }
 
     /**
      * Schreibt den Speicherinhalt in eine Datei

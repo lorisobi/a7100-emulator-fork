@@ -12,10 +12,12 @@
  *              - Kommentare vervollständigt
  *              - Darstellung funktionstüchtig
  *   19.11.2014 - Trennung Systemtakt / CPU-Takt
+ *   04.12.2014 - Dump RAM implementiert
  *
  */
 package a7100emulator.components.modules;
 
+import a7100emulator.Debug.MemoryAnalyzer;
 import a7100emulator.Tools.BitmapGenerator;
 import a7100emulator.Tools.Memory;
 import a7100emulator.components.ic.UA856;
@@ -29,6 +31,7 @@ import java.awt.image.BufferedImage;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -403,7 +406,13 @@ public final class KGS implements IOModule, ClockModule {
     public void writeMemoryByte(int address, int data) {
         // Zugriffe auf lokalen KGS-Ram
         if (address <= 0x7FFF || msel == 0) {
+//            if (address == 0x3617) {
+//                System.out.println("Überschreibe Adresse 0x3617");
+//
+//                //System.exit(0);
+//            }
             ram.writeByte(address, data);
+
         } else {
             abg.writeByte(msel, ~address & 0x7FFF, data);
         }
@@ -440,6 +449,22 @@ public final class KGS implements IOModule, ClockModule {
             return ram.readByte(address);
         } else {
             return abg.readByte(msel, ~address & 0x7FFF);
+        }
+    }
+
+    /**
+     * Schreibt den Inhalt des KGS-RAM in eine Datei
+     *
+     * @param filename Dateiname
+     */
+    public void dumpMemory(String filename) {
+        DataOutputStream dos;
+        try {
+            dos = new DataOutputStream(new FileOutputStream(filename));
+            ram.saveMemory(dos);
+            dos.close();
+        } catch (IOException ex) {
+            Logger.getLogger(KGS.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
 
@@ -597,7 +622,7 @@ public final class KGS implements IOModule, ClockModule {
      * @param i Interruptnummer
      */
     public void requestInterrupt(int i) {
-        System.out.println("Interrupt " + i + " auf KGS!");
+        //System.out.println("Interrupt " + i + " auf KGS!");
         cpu.requestInterrupt(i);
     }
 
@@ -620,5 +645,20 @@ public final class KGS implements IOModule, ClockModule {
         ctc.updateClock(cycles);
         sio.updateClock(cycles);
         abg.clockUpdate(cycles);
+    }
+
+    /**
+     * Zeigt den Speicher des KGS an.
+     */
+    public void showMemory() {
+        (new MemoryAnalyzer(ram, "KGS-Speicher")).show();
+    }
+
+    /**
+     * Gibt die Referenz auf die ABG zurück.
+     * @return ABG
+     */
+    public ABG getABG() {
+        return abg;
     }
 }
