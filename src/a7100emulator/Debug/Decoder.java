@@ -108,7 +108,6 @@ public class Decoder {
      * @param debugInfo Debug-Informationen
      */
     public void addItem(DebuggerInfo debugInfo) {
-//        String debugString = String.format("%04X:%04X ", debugInfo.getCs(), debugInfo.getIp()) + debugInfo.getCode();
         lastAddress = debugInfo.getCs() * 16 + debugInfo.getIp();
         synchronized (decoder) {
             decoder.put(lastAddress, new String[]{String.format("%04X:%04X", debugInfo.getCs(), debugInfo.getIp()), debugInfo.getCode(), debugInfo.getOperands() == null ? "" : debugInfo.getOperands()});

@@ -12,7 +12,7 @@
  *              - Konstanten erstellt
  *   18.11.2014 - getBit durch BitTest.getBit ersetzt
  *              - Interface IC implementiert
- *
+ *   18.12.2014 - Keyboard Reset Hack hinzugefügt
  */
 package a7100emulator.components.ic;
 
@@ -98,6 +98,11 @@ public class KR580WM51A implements IC {
     private int receiveBuffer;
 
     /**
+     * Tastatur-Reset Hack
+     */
+    private static boolean keyboardResetHack;
+
+    /**
      * Erstellt einen neuen USART Schaltkreis und registriert ihn bei der
      * Tastatur
      */
@@ -145,7 +150,9 @@ public class KR580WM51A implements IC {
                 errorReset();
             }
             if (BitTest.getBit(newCommand, 0) && !BitTest.getBit(newCommand, 5)) {
-                writeDataToDevice(0x00);
+                if (!keyboardResetHack) {
+                    writeDataToDevice(0x00);
+                }
             }
             command = newCommand;
         }
@@ -248,6 +255,7 @@ public class KR580WM51A implements IC {
         dos.writeInt(state);
         dos.writeBoolean(modeInstruction);
         dos.writeInt(receiveBuffer);
+        dos.writeBoolean(keyboardResetHack);
     }
 
     /**
@@ -263,5 +271,25 @@ public class KR580WM51A implements IC {
         state = dis.readInt();
         modeInstruction = dis.readBoolean();
         receiveBuffer = dis.readInt();
+        KR580WM51A.keyboardResetHack = dis.readBoolean();
+    }
+
+    /**
+     * Aktiviert oder Deaktiviert den Tastatur-Reset-Hack.
+     *
+     * @param keyboardResetHack <code>true</code>um den Hack zu aktivieren,
+     * <code>false</code> sonst
+     */
+    public static void setKeyboardResetHack(boolean keyboardResetHack) {
+        KR580WM51A.keyboardResetHack = keyboardResetHack;
+    }
+
+    /**
+     * Gibt an, ob der Tastatur-Reset-Hack aktiv ist
+     *
+     * @return <code>true</code>wenn Hack aktiv ist, <code>false</code> sonst
+     */
+    public static boolean isKeyboardResetHack() {
+        return KR580WM51A.keyboardResetHack;
     }
 }

@@ -11,7 +11,7 @@
  *   18.11.2014 - getBit in BitTest.getBit geändert
  *              - Interface StateSavable implementiert
  *              - Fehler beim Laden des Zustands behoben
- *
+ *   18.12.2014 - Fehler beim Wechsel von Kopf behoben
  */
 package a7100emulator.components.system;
 
@@ -441,7 +441,7 @@ public class FloppyDisk implements StateSavable {
     }
 
     /**
-     * Liest Daten an der angegebenen Position von der Diskette
+     * Liest Daten an der angegebenen Position von der Diskette.
      *
      * @param cylinder Zylindernummer
      * @param sector Sektornummer
@@ -456,19 +456,25 @@ public class FloppyDisk implements StateSavable {
         System.arraycopy(sectorData, 0, res, 0, byteToCopy);
         cnt -= byteToCopy;
         if (cnt > 0) {
-            if (diskData[cylinder][head].length == (sector - 1)) {
+            if (diskData[cylinder][head].length == sector) {
+                // Wenn letzter Sektor
                 sector = 1;
-                if (diskData[cylinder].length == head) {
-                    head = 1;
-                    if (diskData.length == cylinder) {
+                if (diskData[cylinder].length == (head + 1)) {
+                    // Wenn Letzter Kopf
+                    head = 0;
+                    if (diskData.length == (cylinder+1)) {
+                        // Letzter Zylinder
                         throw new IllegalStateException("End of Disk");
                     } else {
+                        // Nicht letzter Zylinder
                         cylinder++;
                     }
                 } else {
+                    // Nicht letzter Kopf
                     head++;
                 }
             } else {
+                // Nicht letzter Sector
                 sector++;
             }
             byte[] nextData = readData(cylinder, sector, head, cnt);
@@ -478,7 +484,7 @@ public class FloppyDisk implements StateSavable {
     }
 
     /**
-     * Schreibt Daten auf die Diskette
+     * Schreibt Daten auf die Diskette.
      *
      * @param cylinder Zylindernummer
      * @param sector Sektornummer
@@ -492,19 +498,25 @@ public class FloppyDisk implements StateSavable {
         if (byteToCopy < data.length) {
             byte[] resData = new byte[data.length - byteToCopy];
             System.arraycopy(data, byteToCopy, resData, 0, data.length - byteToCopy);
-            if (diskData[cylinder][head].length == (sector - 1)) {
+            if (diskData[cylinder][head].length == sector) {
+                // Wenn letzter Sektor
                 sector = 1;
-                if (diskData[cylinder].length == head) {
-                    head = 1;
-                    if (diskData.length == cylinder) {
+                if (diskData[cylinder].length == (head+1)) {
+                    // Wenn letzter Kopf
+                    head = 0;
+                    if (diskData.length == (cylinder+1)) {
+                        // Wenn letzter Zylinder
                         throw new IllegalStateException("End of Disk");
                     } else {
+                        // Nicht letzter Zylinder
                         cylinder++;
                     }
                 } else {
+                    // Nicht letzter Kopf
                     head++;
                 }
             } else {
+                // Nicht letzter Sektor
                 sector++;
             }
             writeData(cylinder, sector, head, resData);

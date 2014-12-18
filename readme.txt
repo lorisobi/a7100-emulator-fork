@@ -1,4 +1,4 @@
-A7100 Emulator - Readme v0.6.20
+A7100 Emulator - Readme v0.7.90
 ===============================
 
 Inhaltsverzeichnis:
@@ -39,6 +39,22 @@ verbreitet werden, solange die folgenden Bedingungen erfüllt sind:
 --------------------------------------------------------------------------------
 2. Letzte Änderungen
 
+  v0.7.90 - 19.12.2014
+  Neue Features
+    - KGS/ABG neu implementiert mit Emulation des UA880 Subsystems
+    - Grafikkommandos sind ausführbar
+    - Debugger-System neu implementiert (Debuggen des UA880, Ausgabe Speicher 
+      KGS und ABG)
+    - Hinzufügen von Dateien im SCP-Disketten-Tool
+    - Hacks hinzugefügt
+  Änderungen/Bugfixes:
+    - Tastaturpuffer neu implementiert
+  Softwarekompatibilität:
+    - Läuft mit kleinen Einschränkungen -> Läuft : SCP 2.2, SCP 3.0
+    - Läuft Nicht -> Läuft: L
+    - Läuft Nicht -> Läuft mit kleinen Einschränkungen: Grafik M/16
+    - Läuft Nicht -> Funktioniert in Teilen: Gedit M/16
+  ----------------------------------------
   v0.6.20 - 15.07.2014
   Neue Features:
     - Lesen von Teledisk, Imagedisk und Catweasel-Images
@@ -86,44 +102,46 @@ verbreitet werden, solange die folgenden Bedingungen erfüllt sind:
 --------------------------------------------------------------------------------
 3. Softwarekompatibilität
 
-Legende:  *** - Funktioniert soweit getestet
-          **  - Funktioniert mit kleinen Einschränkungen
-          *   - Funktioniert nur in Teilen
-          !!! - Startet nicht
-          !!  - Absturz nach Titel          
-          GKS - Läuft nicht, benötigt GKS der KGS
-          ??? - Nicht getestet    
+Legende:
+Status:  *** - Funktioniert soweit getestet
+         **  - Funktioniert mit kleinen Einschränkungen
+         *   - Funktioniert nur in Teilen
+         !!! - Startet nicht
+         !!  - Absturz nach Titel          
+         ??? - Nicht getestet    
+Hacks :  P - Paritätsprüfung OPS abschalten
+         K - Tastaturreset abschalten
                           
-Programm    Version Status Anmerkungen
+Programm Version Status Hack Anmerkungen
 
 Betriebssysteme
-SCP         2.2    **     Tastatureingaben beim Start fehlerhaft / keine Ramdisk
-SCP         3.0    **     Tastatureingaben beim Start fehlerhaft
+SCP         2.2    ***     
+SCP         3.0    ***     
 SCP         3.1    ***
 SCP         3.2    ***
-MUTOS              !!     Hängt in HLT Befehl
+MUTOS              !!        Hängt in HLT Befehl / Trap
 BOS                ???
 
 Grafikprogramme
-Gedit M/16         GKS    Startet nicht (NMI occured), Benötigt SCP/GX
-Grafik/M16  1.0    GKS    Startet, Benötigt SCP/GX
+Gedit M/16  2.0    *    P    Unregelmäßiger Start, Darstellungsfehler
+Grafik/M16  1.0    **        Darstellungsfehler Tortengrafik
 
 Textverarbeitung
-Text 40     4.0    **     Format A4BREIT (und andere?) funktioniert nicht
-Wordstar           ***
+Text 40     4.0    **   K    Format A4BREIT (und andere?) funktioniert nicht
+Wordstar           ***  
 Edit               ***
 
 Tabellenkalkulation
-Tabcalc M16 3.0    ***
-Tabcalc M16 2.0    ***
+Tabcalc M16 3.0    ***  K
+Tabcalc M16 2.0    ***  K
 
 Datenbanken
-Redabas     5.0    ***    Startet in Kommandozeile
-Dbase              ***    Startet in Kommandozeile
+Redabas     5.0    ***       Startet in Kommandozeile
+Dbase              ***       Startet in Kommandozeile
 
 Programmierung
 Basic 1700  1.03   ***
-Pascal      3.01   **     Darstellungsfehler im Editor + Compiler
+Pascal      3.01   **        Darstellungsfehler im Compiler
 Fortran            ???
 
 Spiele
@@ -140,7 +158,7 @@ Init               ***
 Copydisk           ***
 Stat               ***
 LDCopy             ***
-L                  !!!   Fehler mit Übertragung Grafikkommando
+L                  ***   
 Graphics           ***
 
 Sonstiges
@@ -159,9 +177,7 @@ abgelegt werden:
          - CGCL     ./eproms/ZVE-K2771.10-262.rom
     KGS: - KGS-ROM  ./eproms/KGS-K7070-152.rom
     
-Andere als die angegebenen Versionen wurden bisher nicht getestet. Für die KGS
-werden gegenwärtig nur die oberen 2Kbyte (ab Adresse 0x1800) benötigt, welche
-den festen Zeichensatz enthalten.
+Andere als die angegebenen Versionen wurden bisher nicht getestet.
 
 4.2 Arbeit mit Disketten
 4.2.1 Diskettenabbilder
@@ -176,7 +192,8 @@ Speichern muss über Geräte->Laufwerk X->Speicher Image erfolgen.
 
 4.2.3 SCP-Disk Betrachter
 Der Diskbetrachter ermöglicht das Lesen von SCP-Disketten sowie das extrahieren
-der darauf enthaltenen Dateien. Auch hier werden nur Binärdateien unterstützt.
+der darauf enthaltenen Dateien. Seit Version v0.7.90 können auch Dateien dem 
+Image hinzugefügt werden. Auch hier werden nur Binärdateien unterstützt.
 
 4.3 Konfiguration des A7100
 Im der aktuellen Version ist der A7100 mit folgenden Moduln bestückt:
@@ -200,24 +217,39 @@ Im der aktuellen Version ist der A7100 mit folgenden Moduln bestückt:
 -------------------------------------------------------------------------------- 
 5. Bekannte Fehler / Nicht unterstützte Funktionen
 
-KES/KGS Simulation:
-Die UA880 auf KGS und KES werden momentan eher simuliert statt emuliert. Für die
-KES stellt dies in der Regel kein Problem dar. Bei der KGS kann dies zu Fehlern
-bei der Verwendung von ESC-Steuerfolgen führen. Außerdem wird bedingt dadurch 
-keine grafische Ausgabe unterstützt.
+KGS/ABG Synchronisation:
+Die mit Version v0.7.90 erfolgte Neuimplementierung von KGS/ABG läuft noch nicht
+vollständig stabil. So kann es bei der Synchronisation zwischen der ZVE und den
+Subsystemen zu Deadlocks kommen. Dies ist teilweise auch von Nutzeraktivitäten
+abhängig. Für manche Programme (bspw. Gedit) hilft hier nur mehrfaches
+neustarten. Außerdem sollten bei Problemen die Tastatureingaben nicht zu schnell
+hintereinander ausgeführt werden.
+
+Hacks:
+Der Tastaturcontroller und die Paritätsprüfung der OPS-Module sind noch nicht
+vollständig bzw. noch nicht korrekt implementiert. Um dennoch gegenwärtig 
+möglichst viel Software zu unterstützen, lässt sich über das Menü Hacks die
+Funktionalität der Komponenten zur Laufzeit ändern. Welche Änderungen für
+welche Software notwendig ist, lässt sich aus der Softwarekompatibilitätsliste
+entnehmen.
+
+KES Simulation:
+Der UA880 auf dem KES wird momentan noch simuliert. Dies stellt jedoch in den
+meisten Fällen kein Problem dar.
 
 Keine Frontbaugruppe:
 Die Funktionen der Frontbaugruppe "Bereitschaft Ferneinschaltung" sowie der
 Tongeber werden nicht unterstützt. 
 
-Geschwindigkeit:
-Der Emulator läuft gegenwärtig "so schnell wie möglich". Dies führt dazu, dass
-manche Programme (vor allem Spiele) zu schnell laufen. Auch führt dies zu
-unregelmäßigem Blinken des Cursors.
+Performance:
+Die Emulation der KGS-CPU und das damit verbundene ständige Berechnen der
+Anzeige aus den Bildwiederholspeichern der ABG führt dazu, dass der Emulator
+in Version v0.7.90 deutlich langsamer läuft als in den vorherigen Versionen.
 
-Blinkender Text:
-Blinkender Text wird momentan nicht unterstützt. Dieser Text wird im Emulator
-zur Unterscheidung rot dargestellt.
+Probleme bei der Darstellung:
+Blinkender Text wird momentan nicht unterstützt. Zusätzlich gibt es Probleme bei
+der Verwendung einer Splitgrenze. Der Alphanumerikteil wird in diesem Fall 
+fehlerhaft dargestellt.
 
 --------------------------------------------------------------------------------
 6. Unterstützung
@@ -226,16 +258,15 @@ Die Entwicklung des Emulators ist entscheidend von der vorhandenen A7100
 Dokumentation und Software abhängig. Hier werden die fehlenden Unterlagen und
 Programme gelistet:
 Dringend:
-  - KES K 5170 Dokumentation (Rechner und Geräte Band 2)
   - Dokumentation zur KGS-Firmware Version 6 (GRAF6.FRM)
-Wäre schön:
-  - ABG K 7072 Dokumentation (Rechner und Geräte Band 2)
   - AFS K 5171.20 EPROMS
+Wäre schön:
   - A7150 Rechner und Geräte Band 2/3
+  - Sämtliche nicht getestete Software
 Nicht so wichtig:
-  - OPS K 3571 Dokumentation (Rechner und Geräte Band 2)
-  - ZPS K 2071 Dokumentation (Rechner und Geräte Band 2)
-
+  - Tastatur EPROMS
+  - Andere Versionen (wenn vorhanden) der ZVE EPROMS
+  
 --------------------------------------------------------------------------------
 7. Kontakt
 

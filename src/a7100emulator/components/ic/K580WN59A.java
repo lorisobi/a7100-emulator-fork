@@ -37,6 +37,7 @@ public class K580WN59A implements IC {
     private int irr = 0;
     /**
      * Interrupt-Service Routine
+     * TODO: implementieren
      */
     private int isr = 0;
     /**
@@ -177,10 +178,10 @@ public class K580WN59A implements IC {
      */
     public void requestInterrupt(int id) {
         if (id < 0 || id > 7) {
-            return;
+            throw new IllegalArgumentException("Ungültiger Interrupt " + id);
         }
         if (!BitTest.getBit(ocw1, id)) {
-//            System.out.println("Interrupt Anfrage " + id + " akzeptiert!");
+            //System.out.println("Interrupt Anfrage " + id + " akzeptiert!");
             irr |= (1 << id);
         }
     }

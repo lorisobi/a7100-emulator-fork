@@ -6325,29 +6325,29 @@ public class K1810WM86 implements Runnable, IC {
      * @param interruptID ID Interruptcode
      */
     private void interrupt(int interruptID) {
-        if (interruptID == 224 && cx == 0x0473) {
-            System.out.println("SCP-GX Aufruf:");
-            int pbaddr = (ds << 4) + dx;
-            System.out.println(String.format("PB-Adresse: %05X", pbaddr));
-            int pbctrladdr = (mms16.readMemoryWord(pbaddr + 2) << 4) + mms16.readMemoryWord(pbaddr);
-            int pbintinaddr = (mms16.readMemoryWord(pbaddr + 6) << 4) + mms16.readMemoryWord(pbaddr + 4);
-            int pbptsinaddr = (mms16.readMemoryWord(pbaddr + 10) << 4) + mms16.readMemoryWord(pbaddr + 8);
-            int pbptsintout = (mms16.readMemoryWord(pbaddr + 14) << 4) + mms16.readMemoryWord(pbaddr + 12);
-            int pbptsoutaddr = (mms16.readMemoryWord(pbaddr + 18) << 4) + mms16.readMemoryWord(pbaddr + 16);
-            //System.out.println(String.format("PB-Ctrl-Adresse: %05X", pbctrladdr));
-            int ctrlcode1 = mms16.readMemoryByte(pbctrladdr);
-            int ctrlcode2 = mms16.readMemoryByte(pbctrladdr + 2);
-            int ctrlcode4 = mms16.readMemoryByte(pbctrladdr + 4);
-
-            System.out.println("Operationscode: " + ctrlcode1 + ", Anzahl der Punkte: " + ctrlcode2 + ", Anzahl Int-Parameter: " + ctrlcode4);
-            if (ctrlcode2 > 0) {
-                System.out.print("Punkte: ");
-                for (int i = 0; i < ctrlcode2; i++) {
-                    System.out.print("(" + mms16.readMemoryWord(pbptsinaddr + 4 * i) + "," + mms16.readMemoryWord(pbptsinaddr + 4 * i + 2) + ") ");
-                }
-                System.out.println();
-            }
-        }
+//        if (interruptID == 224 && cx == 0x0473) {
+//            System.out.println("SCP-GX Aufruf:");
+//            int pbaddr = (ds << 4) + dx;
+//            System.out.println(String.format("PB-Adresse: %05X", pbaddr));
+//            int pbctrladdr = (mms16.readMemoryWord(pbaddr + 2) << 4) + mms16.readMemoryWord(pbaddr);
+//            int pbintinaddr = (mms16.readMemoryWord(pbaddr + 6) << 4) + mms16.readMemoryWord(pbaddr + 4);
+//            int pbptsinaddr = (mms16.readMemoryWord(pbaddr + 10) << 4) + mms16.readMemoryWord(pbaddr + 8);
+//            int pbptsintout = (mms16.readMemoryWord(pbaddr + 14) << 4) + mms16.readMemoryWord(pbaddr + 12);
+//            int pbptsoutaddr = (mms16.readMemoryWord(pbaddr + 18) << 4) + mms16.readMemoryWord(pbaddr + 16);
+//            //System.out.println(String.format("PB-Ctrl-Adresse: %05X", pbctrladdr));
+//            int ctrlcode1 = mms16.readMemoryByte(pbctrladdr);
+//            int ctrlcode2 = mms16.readMemoryByte(pbctrladdr + 2);
+//            int ctrlcode4 = mms16.readMemoryByte(pbctrladdr + 4);
+//
+//            System.out.println("Operationscode: " + ctrlcode1 + ", Anzahl der Punkte: " + ctrlcode2 + ", Anzahl Int-Parameter: " + ctrlcode4);
+//            if (ctrlcode2 > 0) {
+//                System.out.print("Punkte: ");
+//                for (int i = 0; i < ctrlcode2; i++) {
+//                    System.out.print("(" + mms16.readMemoryWord(pbptsinaddr + 4 * i) + "," + mms16.readMemoryWord(pbptsinaddr + 4 * i + 2) + ") ");
+//                }
+//                System.out.println();
+//            }
+//        }
         push(flags);
         clearFlag(INTERRUPT_ENABLE_FLAG);
         clearFlag(TRAP_FLAG);
@@ -6388,8 +6388,6 @@ public class K1810WM86 implements Runnable, IC {
 
     /**
      * Startet den CPU-Thread
-     * <p>
-     * TODO: Beste Realisierung noch unklar
      */
     @Override
     public void run() {
@@ -6426,9 +6424,7 @@ public class K1810WM86 implements Runnable, IC {
 
     /**
      * Aktualisiert die Anzahl der verstrichenen Takte nach einer
-     * Befehlsausführung
-     * <p>
-     * TODO: ggf. inline machen
+     * Befehlsausführung.
      *
      * @param amount Anzahl der Takte
      */

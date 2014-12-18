@@ -78,7 +78,7 @@ public class InterruptSystem implements StateSavable {
     }
 
     /**
-     * Gibt an ob ein NMI aufgetreten ist und schaltet diesen ggf. ab
+     * Gibt an ob ein NMI aufgetreten ist und schaltet diesen ggf. ab.
      *
      * @return true - wenn NMI aufgetreten , false - sonst
      */

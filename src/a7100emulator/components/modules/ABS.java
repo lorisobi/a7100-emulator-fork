@@ -18,7 +18,7 @@ import java.io.IOException;
 /**
  * Klasse zur Abbildung der ABS (Alphanumerische Bildschirmsteuerung)
  * <p>
- * TODO: Diese Klasse ist noch nicht vollständig implementiert
+ * TODO: Diese Klasse ist noch nicht vollständig implementiert.
  *
  * @author Dirk Bräuer
  */
@@ -121,7 +121,8 @@ public class ABS implements IOModule {
      *
      * @param dos Stream zur Datei
      * @throws IOException Wenn Schreiben nicht erfolgreich war
-     */    @Override
+     */
+    @Override
     public void saveState(DataOutputStream dos) throws IOException {
         throw new UnsupportedOperationException("Not supported yet.");
     }

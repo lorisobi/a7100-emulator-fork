@@ -13,6 +13,8 @@
  *   12.12.2014 - Menü Debug neu strukturiert
  *              - Zeige KGS Speicher hinzugefügt
  *   14.12.2014 - Zeigen/Speichern ABG Speicher
+ *   17.12.2014 - Hacks hinzugefügt
+ *   19.12.2014 - Datum für Screenshots auf 24h Anzeige umgestellt
  */
 package a7100emulator;
 
@@ -23,6 +25,8 @@ import a7100emulator.Debug.MemoryAnalyzer;
 import a7100emulator.Debug.OpcodeStatistic;
 import a7100emulator.components.A7100;
 import a7100emulator.Tools.FloppyImageType;
+import a7100emulator.components.ic.KR580WM51A;
+import a7100emulator.components.modules.OPS;
 import a7100emulator.components.system.Keyboard;
 import a7100emulator.components.system.MMS16Bus;
 import a7100emulator.components.system.Screen;
@@ -239,11 +243,24 @@ public class MainView extends JFrame {
     /**
      * Menüeintrag SCP-Disk Betrachter starten
      */
-    private final JMenuItem menuToolsSCPDiskViewer = new JMenuItem("SCP-Disk Betrachter");
+    private final JMenuItem menuToolsSCPDiskTool = new JMenuItem("SCP-Disk Tool");
     /**
      * Menüeintrag Screenshot speichern
      */
     private final JMenuItem menuToolsScreenshot = new JMenuItem("Bildschirmfoto");
+    /**
+     * Menü Emulator Hacks TODO: Hacks wenn möglich entfernen
+     */
+    private final JMenu menuHacks = new JMenu("Hacks");
+    /**
+     * Menüeintrag Emulator Hacks -> Deaktiviere Tastatur Reset TODO: Hacks wenn
+     * möglich entfernen
+     */
+    private final JCheckBoxMenuItem menuHacksKeyboardReset = new JCheckBoxMenuItem("KR580WM51A Tastaturreset deaktivieren", false);
+    /**
+     * Menüeintrag Emulator Einzelschritt TODO: Hacks Wenn möglich entfernen
+     */
+    private final JCheckBoxMenuItem menuHacksParityCheck = new JCheckBoxMenuItem("OPS Paritätsprüfung deaktivieren", false);
     /**
      * Menüeintrag Über
      */
@@ -364,11 +381,18 @@ public class MainView extends JFrame {
         menuDebugABGDumpGraphicsPage2.addActionListener(controller);
 
         menubar.add(menuTools);
-        menuTools.add(menuToolsSCPDiskViewer);
+        menuTools.add(menuToolsSCPDiskTool);
         menuTools.add(menuToolsScreenshot);
 
-        menuToolsSCPDiskViewer.addActionListener(controller);
+        menuToolsSCPDiskTool.addActionListener(controller);
         menuToolsScreenshot.addActionListener(controller);
+
+        menubar.add(menuHacks);
+        menuHacks.add(menuHacksKeyboardReset);
+        menuHacks.add(menuHacksParityCheck);
+
+        menuHacksKeyboardReset.addActionListener(controller);
+        menuHacksParityCheck.addActionListener(controller);
 
         menubar.add(menuHelp);
         menuHelp.add(menuHelpAbout);
@@ -416,6 +440,8 @@ public class MainView extends JFrame {
                 a7100.saveState();
             } else if (e.getSource().equals(menuEmulatorLoad)) {
                 a7100.loadState();
+                menuHacksKeyboardReset.setSelected(KR580WM51A.isKeyboardResetHack());
+                menuHacksParityCheck.setSelected(OPS.isParityCheckHack());
             } else if (e.getSource() == menuEmulatorExit) {
                 System.exit(0);
             } else if (e.getSource().equals(menuDebugSystemMemoryShow)) {
@@ -489,12 +515,12 @@ public class MainView extends JFrame {
                 a7100.getKES().getAFS().getFloppy(1).newDisk();
             } else if (e.getSource() == menuDevicesDrive1WriteProtect) {
                 a7100.getKES().getAFS().getFloppy(1).setWriteProtect(menuDevicesDrive0WriteProtect.isSelected());
-            } else if (e.getSource() == menuToolsSCPDiskViewer) {
+            } else if (e.getSource() == menuToolsSCPDiskTool) {
                 SCPDiskModel model = new SCPDiskModel();
                 SCPDiskViewer view = new SCPDiskViewer(model);
                 model.setView(view);
             } else if (e.getSource() == menuToolsScreenshot) {
-                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd hh-mm-ss");
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH-mm-ss");
                 String dateString = sdf.format(Calendar.getInstance().getTime());
                 File snapFile = new File("./screenshots/" + dateString + " A7100.png");
                 if (snapFile.exists()) {
@@ -508,6 +534,10 @@ public class MainView extends JFrame {
                 } catch (IOException ex) {
                     Logger.getLogger(MainView.class.getName()).log(Level.SEVERE, null, ex);
                 }
+            } else if (e.getSource() == menuHacksKeyboardReset) {
+                KR580WM51A.setKeyboardResetHack(menuHacksKeyboardReset.isSelected());
+            } else if (e.getSource() == menuHacksParityCheck) {
+                OPS.setParityHack(menuHacksParityCheck.isSelected());
             } else if (e.getSource() == menuHelpAbout) {
                 JPanel pan_about = new JPanel();
                 pan_about.setLayout(new BorderLayout());
@@ -515,7 +545,7 @@ public class MainView extends JFrame {
                 JPanel pan_desc = new JPanel();
                 pan_desc.setBorder(BorderFactory.createEmptyBorder(0, 50, 0, 10));
                 pan_desc.setLayout(new GridLayout(2, 1));
-                pan_desc.add(new JLabel("A7100 - Emulator v0.6.20"));
+                pan_desc.add(new JLabel("A7100 - Emulator v0.7.90"));
                 pan_desc.add(new JLabel("2011-2014 Dirk Bräuer"));
                 pan_about.add(pan_desc, BorderLayout.CENTER);
                 JTextArea licenseText = new JTextArea();

@@ -421,8 +421,6 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
 
     /**
      * Startet die CPU
-     * <p>
-     * TODO: ggf. entfernen
      */
     public void start() {
         Thread cpuThread = new Thread(cpu, "K1810WM86");

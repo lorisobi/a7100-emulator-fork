@@ -26,7 +26,7 @@ import java.util.LinkedList;
 /**
  * Klasse zur Realisierung der A7100 Tastaturen
  * <p>
- * TODO: Tastaturtyp K7672 noch nicht implementiert
+ * TODO: Tastaturtyp K7672 noch nicht implementiert.
  *
  * @author Dirk Bräuer
  */
@@ -170,6 +170,7 @@ public class Keyboard implements KeyListener, StateSavable {
      */
     @Override
     public void keyReleased(KeyEvent e) {
+        // TODO: Grafiktasten vollständig implementieren
         boolean keyShift = e.isShiftDown();
         boolean keyCtrl = e.isControlDown();
         boolean keyAlt = e.isAltDown();
@@ -340,19 +341,20 @@ public class Keyboard implements KeyListener, StateSavable {
                 sendBytes(new byte[]{0x1B, 0x5B, 0x44});
                 break;
             case KeyEvent.VK_HOME:
-                if (e.isShiftDown()) // PA2
-                {
+                if (e.isShiftDown()) {
+                    // PA2
                     sendBytes(new byte[]{0x1B, 0x30, 0x79});
-                } else // PA1
-                {
+                } else {
+                    // PA1
                     sendBytes(new byte[]{0x1B, 0x30, 0x78});
                 }
                 break;
             case KeyEvent.VK_END:
-                if (e.isShiftDown()) // Links Oben
-                {
+                if (e.isShiftDown()) {
+                    // Links Oben
                     sendBytes(new byte[]{0x1B, 0x5B, 0x48});
-                } else {            // PA3
+                } else {   
+                    // PA3
                     sendBytes(new byte[]{0x1B, 0x30, 0x7A});
                 }
                 break;
@@ -481,6 +483,7 @@ public class Keyboard implements KeyListener, StateSavable {
         } else {
             if (keyboardClock >= 1000) {
                 if (!sendBuffer.isEmpty()) {
+                    //System.out.println("Sende Byte: "+sendBuffer.peek());
                     ifssController.receiveData(sendBuffer.poll());
                 }
                 keyboardClock = 0;
@@ -496,6 +499,7 @@ public class Keyboard implements KeyListener, StateSavable {
     public void receiveByte(int b) {
         commands[byteCnt++] = (byte) (b & 0xFF);
         if (kbdType.equals(KeyboardType.K7637)) {
+            //System.out.println("Empfange Byte:"+b);
             if (b == 0x00) {
                 byteCnt = 0;
                 sendBuffer.clear();

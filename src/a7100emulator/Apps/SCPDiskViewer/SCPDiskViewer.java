@@ -5,13 +5,16 @@
  * (c) 2011-2014 Dirk Bräuer
  * 
  * Letzte Änderungen:
- *   05.04.2014 Kommentare vervollständigt
- *   27.09.2014 MD5 Summen ergänzt
+ *   05.04.2014 - Kommentare vervollständigt
+ *   27.09.2014 - MD5 Summen ergänzt
+ *   16.12.2014 - Hinzufügen von Datein ermöglicht
+ *              - Ansicht angepasst
  */
 package a7100emulator.Apps.SCPDiskViewer;
 
 import java.awt.BorderLayout;
 import java.awt.Dimension;
+import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.GridLayout;
@@ -19,15 +22,25 @@ import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.text.NumberFormat;
+import java.text.ParseException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JFileChooser;
+import javax.swing.JFormattedTextField;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.SwingConstants;
 import javax.swing.table.AbstractTableModel;
+import javax.swing.text.MaskFormatter;
 
 /**
  * Ansicht des SCP-Disketten-Tools
@@ -65,6 +78,14 @@ public class SCPDiskViewer extends JFrame {
      */
     private final JButton buttonExtractBootloader = new JButton("Anfangslader speichern");
     /**
+     * Button Datei Hinzufügen
+     */
+    private final JButton buttonAddFile = new JButton("Datei hinzufügen");
+    /**
+     * Button Image speichern
+     */
+    private final JButton buttonSaveImage = new JButton("Disketten Image speichern");
+    /**
      * Button - Beenden
      */
     private final JButton buttonExit = new JButton("Beenden");
@@ -92,7 +113,7 @@ public class SCPDiskViewer extends JFrame {
      * Initialisiert die Ansicht
      */
     private void initialize() {
-        this.setPreferredSize(new Dimension(1000, 400));
+        this.setPreferredSize(new Dimension(1200, 600));
         this.getContentPane().setLayout(new BorderLayout());
 
         fileTable.getColumn("RO").setPreferredWidth(2);
@@ -100,6 +121,8 @@ public class SCPDiskViewer extends JFrame {
         fileTable.getColumn("XTRA").setPreferredWidth(2);
         fileTable.getColumn("User").setPreferredWidth(2);
         fileTable.getColumn("MD5").setPreferredWidth(200);
+
+        fileTable.setFont(new Font("Monospaced", Font.PLAIN, 14));
         this.getContentPane().add(new JScrollPane(fileTable), BorderLayout.CENTER);
 
         JPanel panelButtons = new JPanel(new GridBagLayout());
@@ -115,6 +138,10 @@ public class SCPDiskViewer extends JFrame {
         panelButtons.add(buttonExtractAllFiles, gbc);
         gbc.gridy++;
         panelButtons.add(buttonExtractBootloader, gbc);
+        gbc.gridy++;
+        panelButtons.add(buttonAddFile, gbc);
+        gbc.gridy++;
+        panelButtons.add(buttonSaveImage, gbc);
         gbc.gridy++;
         gbc.anchor = GridBagConstraints.SOUTH;
         gbc.fill = GridBagConstraints.HORIZONTAL;
@@ -140,6 +167,8 @@ public class SCPDiskViewer extends JFrame {
         buttonExtractSingleFile.addActionListener(controller);
         buttonExtractAllFiles.addActionListener(controller);
         buttonExtractBootloader.addActionListener(controller);
+        buttonAddFile.addActionListener(controller);
+        buttonSaveImage.addActionListener(controller);
 
         this.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
     }
@@ -151,6 +180,12 @@ public class SCPDiskViewer extends JFrame {
         ((SCPDiskTableModel) fileTable.getModel()).fireTableDataChanged();
         labelFileInfo.setText(diskModel.getImageName());
         labelDiskInfo.setText(diskModel.getDiskInfo());
+        boolean diskLoaded = diskModel.diskLoaded();
+        buttonExtractSingleFile.setEnabled(diskLoaded);
+        buttonExtractAllFiles.setEnabled(diskLoaded);
+        buttonExtractBootloader.setEnabled(diskLoaded);
+        buttonAddFile.setEnabled(diskLoaded);
+        buttonSaveImage.setEnabled(diskLoaded);
     }
 
     /**
@@ -178,11 +213,9 @@ public class SCPDiskViewer extends JFrame {
                 if (selectedRow != -1) {
                     SCPFile file = diskModel.getFiles().get(selectedRow);
                     JFileChooser saveDialog = new JFileChooser("./disks/");
-
                     saveDialog.setSelectedFile(new File(file.getFullName()));
                     if (saveDialog.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
                         diskModel.saveFile(selectedRow, saveDialog.getSelectedFile());
-
                     }
                 }
             } else if (e.getSource() == buttonExtractAllFiles) {
@@ -193,10 +226,80 @@ public class SCPDiskViewer extends JFrame {
                 }
             } else if (e.getSource() == buttonExtractBootloader) {
                 JFileChooser saveDialog = new JFileChooser("./disks/");
-
                 saveDialog.setSelectedFile(new File("bootloader.img"));
                 if (saveDialog.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
                     diskModel.saveBootloader(saveDialog.getSelectedFile());
+                }
+            } else if (e.getSource() == buttonAddFile) {
+                JFileChooser loadDialog = new JFileChooser(".");
+                loadDialog.setFileSelectionMode(JFileChooser.FILES_ONLY);
+                if (loadDialog.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
+                    try {
+                        File importFile = loadDialog.getSelectedFile();
+
+                        int startExtension = importFile.getName().lastIndexOf('.');
+                        String extension = (startExtension == -1 ? "" : importFile.getName().substring(startExtension + 1)).toUpperCase();
+                        if (extension.length() > 3) {
+                            extension = extension.substring(0, 3);
+                        }
+                        String filename = (startExtension == -1 ? importFile.getName() : importFile.getName().substring(0, startExtension)).toUpperCase();
+                        if (filename.length() > 8) {
+                            filename = filename.substring(0, 8);
+                        }
+
+                        byte[] data = new byte[(int) importFile.length()];
+                        InputStream in = new FileInputStream(importFile);
+                        in.read(data);
+                        in.close();
+
+                        JFormattedTextField editFilename = new JFormattedTextField(new MaskFormatter("********"));
+                        JFormattedTextField editExtension = new JFormattedTextField(new MaskFormatter("***"));
+                        JCheckBox checkReadOnly = new JCheckBox("");
+                        JCheckBox checkSystem = new JCheckBox("");
+                        JCheckBox checkExtra = new JCheckBox("");
+                        JFormattedTextField editUser = new JFormattedTextField(NumberFormat.getIntegerInstance());
+
+                        editFilename.setText(filename);
+                        editExtension.setText(extension);
+                        editUser.setValue(0);
+
+                        JPanel panelEdit = new JPanel(new GridLayout(6, 2));
+                        panelEdit.add(new JLabel("Dateiname:"));
+                        panelEdit.add(editFilename);
+                        panelEdit.add(new JLabel("Erweiterung:"));
+                        panelEdit.add(editExtension);
+                        panelEdit.add(new JLabel("Schreibgeschützt:"));
+                        panelEdit.add(checkReadOnly);
+                        panelEdit.add(new JLabel("System:"));
+                        panelEdit.add(checkSystem);
+                        panelEdit.add(new JLabel("Extra:"));
+                        panelEdit.add(checkExtra);
+                        panelEdit.add(new JLabel("Nutzer:"));
+                        panelEdit.add(editUser);
+                        if (JOptionPane.showConfirmDialog(null, panelEdit, "Datei importieren", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE) == JOptionPane.OK_OPTION) {
+                            filename = editFilename.getText().toUpperCase();
+                            extension = editExtension.getText().toUpperCase();
+                            boolean readOnly = checkReadOnly.isSelected();
+                            boolean system = checkSystem.isSelected();
+                            boolean extra = checkExtra.isSelected();
+                            int user = Integer.parseInt(editUser.getText());
+                            user = (user < 0) ? 0 : ((user > 15) ? 15 : user);
+                            diskModel.insertFile(filename, extension, readOnly, system, extra, user, data);
+                        }
+                    } catch (Exception ex) {
+                        Logger.getLogger(SCPDiskViewer.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                }
+            } else if (e.getSource() == buttonSaveImage) {
+                JFileChooser saveDialog = new JFileChooser("./disks/");
+                saveDialog.setFileSelectionMode(JFileChooser.FILES_ONLY);
+                if (saveDialog.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
+                    File saveFile = saveDialog.getSelectedFile();
+                    if (saveFile.exists()) {
+                        JOptionPane.showMessageDialog(null, "Datei ist bereits vorhanden!", "Fehler Image Speichern", JOptionPane.ERROR_MESSAGE);
+                    } else {
+                        diskModel.saveImage(saveFile);
+                    }
                 }
             } else if (e.getSource() == buttonExit) {
                 SCPDiskViewer.this.dispose();

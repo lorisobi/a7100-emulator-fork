@@ -685,12 +685,6 @@ public class UA880 implements IC {
     private void executeNextInstruction() {
         boolean debug = debugger.isDebug();
 
-//        if (pc == 0x0122) {
-//            //Dieser Hack lässt den ACT ABS/KGS Test erfolgreich durchlaufen
-//            //TODO: Richtig implementieren
-//            //a = 0x0A;
-//            System.out.println("Hack CTC!!! a=" + a);
-//        }
         int opcode = kgs.readMemoryByte(pc++);
         if (debug) {
             debugInfo.setIp(pc - 1);
@@ -4431,12 +4425,12 @@ public class UA880 implements IC {
      * ablaufen
      * <p>
      * TODO: HALT Befehl implementieren
+     * Prüfen ob Berechnung ok ist
      *
      * @param amount Anzahl der Zyklen
      */
     public void updateClock(int amount) {
         double amountScaled = amount * TICK_RATIO;
-        //System.out.println("Scaled: "+amountScaled+" Ticks:"+ticks);
         while (ticks < amountScaled) {
             executeNextInstruction();
             if (nmi) {

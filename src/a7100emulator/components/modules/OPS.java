@@ -5,10 +5,10 @@
  * (c) 2011-2014 Dirk Bräuer
  * 
  * Letzte Änderungen:
- *   01.04.2014 Kommentare vervollständigt
- *   09.08.2014 Zugriffe auf SystemMemory, SystemPorts durch MMS16Bus ersetzt
- *              Interrupts auf MMS16 umgeleitet
- *
+ *   01.04.2014 - Kommentare vervollständigt
+ *   09.08.2014 - Zugriffe auf SystemMemory, SystemPorts durch MMS16Bus ersetzt
+ *              - Interrupts auf MMS16 umgeleitet
+ *   18.12.2014 - Parity Hack ergänzt
  */
 package a7100emulator.components.modules;
 
@@ -94,6 +94,11 @@ public final class OPS implements IOModule, MemoryModule {
      * Status der OPS
      */
     private int state = 0x0F;
+
+    /**
+     * Gibt an, ob die Pariotätsprüfung durchgeführt werden soll
+     */
+    private static boolean parityHack;
 
     /**
      * Erstellt eine neue OPS
@@ -216,11 +221,14 @@ public final class OPS implements IOModule, MemoryModule {
     @Override
     public int readByte(int address) {
         // Parity Hack für A C T
-        if ((address - ops_offset) == 0x20000) {
-            int par = (byte) checkParity(address - ops_offset);
-            if (par != parityBits[address - ops_offset]) {
-                state &= ~0x07;
-                MMS16Bus.getInstance().requestInterrupt(0);
+        // TODO: Richtig implementieren
+        if (!parityHack) {
+            if ((address - ops_offset) == 0x20000) {
+                int par = (byte) checkParity(address - ops_offset);
+                if (par != parityBits[address - ops_offset]) {
+                    state &= ~0x07;
+                    MMS16Bus.getInstance().requestInterrupt(0);
+                }
             }
         }
         return memory.readByte(address - ops_offset);
@@ -235,12 +243,14 @@ public final class OPS implements IOModule, MemoryModule {
     @Override
     public int readWord(int address) {
         // Parity Hack für A C T
-        if ((address - ops_offset) == 0x20000) {
-            int par1 = (byte) checkParity(memory.readByte(address - ops_offset));
-            int par2 = (byte) checkParity(memory.readByte(address - ops_offset + 1));
-            if (par1 != parityBits[address - ops_offset] || par2 != parityBits[address - ops_offset + 1]) {
-                state &= ~0x07;
-                MMS16Bus.getInstance().requestInterrupt(0);
+        if (!parityHack) {
+            if ((address - ops_offset) == 0x20000) {
+                int par1 = (byte) checkParity(memory.readByte(address - ops_offset));
+                int par2 = (byte) checkParity(memory.readByte(address - ops_offset + 1));
+                if (par1 != parityBits[address - ops_offset] || par2 != parityBits[address - ops_offset + 1]) {
+                    state &= ~0x07;
+                    MMS16Bus.getInstance().requestInterrupt(0);
+                }
             }
         }
         return memory.readWord(address - ops_offset);
@@ -256,8 +266,10 @@ public final class OPS implements IOModule, MemoryModule {
     public void writeByte(int address, int data) {
         memory.writeByte(address - ops_offset, data);
         // Parity Hack für A C T
-        if ((address - ops_offset) == 0x20000) {
-            parityBits[address - ops_offset] = (byte) checkParity(data);
+        if (!parityHack) {
+            if ((address - ops_offset) == 0x20000) {
+                parityBits[address - ops_offset] = (byte) checkParity(data);
+            }
         }
     }
 
@@ -271,9 +283,11 @@ public final class OPS implements IOModule, MemoryModule {
     public void writeWord(int address, int data) {
         memory.writeWord(address - ops_offset, data);
         // Parity Hack für A C T
-        if ((address - ops_offset) == 0x20000) {
-            parityBits[address - ops_offset] = (byte) checkParity(data & 0xFF);
-            parityBits[address - ops_offset + 1] = (byte) checkParity((data >> 8) & 0xFF);
+        if (!parityHack) {
+            if ((address - ops_offset) == 0x20000) {
+                parityBits[address - ops_offset] = (byte) checkParity(data & 0xFF);
+                parityBits[address - ops_offset + 1] = (byte) checkParity((data >> 8) & 0xFF);
+            }
         }
     }
 
@@ -304,6 +318,7 @@ public final class OPS implements IOModule, MemoryModule {
         dos.writeInt(ops_offset);
         dos.writeUTF(parity.name());
         dos.writeInt(state);
+        dos.writeBoolean(parityHack);
     }
 
     /**
@@ -319,5 +334,26 @@ public final class OPS implements IOModule, MemoryModule {
         ops_offset = dis.readInt();
         parity = Parity.valueOf(dis.readUTF());
         state = dis.readInt();
+        parityHack = dis.readBoolean();
     }
+
+    /**
+     * Aktiviere oder deaktiviere den Hack für die Paritätsprüfung.
+     *
+     * @param parityHack <code>true</code> um Paritätsprüfung abzuschalten,
+     * <code>false</code> sonst
+     */
+    public static void setParityHack(boolean parityHack) {
+        OPS.parityHack = parityHack;
+    }
+
+    /**
+     * Gibt an, ob der Parität-Prüfen--Hack aktiv ist
+     *
+     * @return <code>true</code>wenn Hack aktiv ist, <code>false</code> sonst
+     */
+    public static boolean isParityCheckHack() {
+        return OPS.parityHack;
+    }
+
 }

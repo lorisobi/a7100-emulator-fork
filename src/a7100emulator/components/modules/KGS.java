@@ -245,7 +245,7 @@ public final class KGS implements IOModule, ClockModule {
                 break;
             case PORT_KGS_DATA:
                 result = dataOut;
-                System.out.println("Lese Byte von KGS: " + String.format("%02X", dataOut) + " " + Integer.toBinaryString(dataOut));
+                //System.out.println("Lese Byte von KGS: " + String.format("%02X", dataOut) + " " + Integer.toBinaryString(dataOut));
                 clearBit(OBF_BIT);
                 clearBit(INT_BIT);
                 break;
@@ -335,14 +335,14 @@ public final class KGS implements IOModule, ClockModule {
                 break;
             case LOCAL_PORT_SIO_DATA_A:
                 sio.writeData(0, data);
-                System.out.println("Schreibe Kanal A:" + String.format("%02X", data));
+                //System.out.println("Schreibe Kanal A:" + String.format("%02X", data));
                 break;
             case LOCAL_PORT_SIO_CONTROL_A:
                 sio.writeControl(0, data);
                 break;
             case LOCAL_PORT_SIO_DATA_B:
                 sio.writeData(1, data);
-                System.out.println("Schreibe Kanal B:" + String.format("%02X", data));
+                //System.out.println("Schreibe Kanal B:" + String.format("%02X", data));
                 break;
             case LOCAL_PORT_SIO_CONTROL_B:
                 sio.writeControl(1, data);
@@ -406,13 +406,7 @@ public final class KGS implements IOModule, ClockModule {
     public void writeMemoryByte(int address, int data) {
         // Zugriffe auf lokalen KGS-Ram
         if (address <= 0x7FFF || msel == 0) {
-//            if (address == 0x3617) {
-//                System.out.println("Überschreibe Adresse 0x3617");
-//
-//                //System.exit(0);
-//            }
             ram.writeByte(address, data);
-
         } else {
             abg.writeByte(msel, ~address & 0x7FFF, data);
         }

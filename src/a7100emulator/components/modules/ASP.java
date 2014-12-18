@@ -19,7 +19,7 @@ import java.io.IOException;
 /**
  * Klasse zur Abbildung der ASP (Anschlußsteuerung seriell/parallel)
  * <p>
- * TODO: Diese Klasse ist noch nicht vollständig implementiert
+ * TODO: Diese Klasse ist noch nicht vollständig implementiert.
  *
  * @author Dirk Bräuer
  */

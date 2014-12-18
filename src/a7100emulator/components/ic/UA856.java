@@ -62,7 +62,7 @@ public class UA856 implements IC {
     public int readControl(int channel) {
         // TODO: Implementierung unvollständig
         int result = channels[channel].readControl();
-        System.out.println("Lese SIO:" + result);
+        //System.out.println("Lese SIO:" + result);
         return result;
     }
 

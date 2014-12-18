@@ -38,12 +38,14 @@ public class UA857 {
      */
     private int interruptVector;
     /**
-     * Zeiger auf KGS TODO: Referenz ersetzen oder verallgemeinern
+     * Zeiger auf KGS.
+     * <p>
+     * TODO: Referenz ersetzen oder verallgemeinern
      */
     private KGS kgs;
 
     /**
-     * Erzeugt einen neuen CTC
+     * Erzeugt einen neuen CTC.
      *
      * @param kgs Referenz zur KGS
      */
@@ -55,7 +57,7 @@ public class UA857 {
     }
 
     /**
-     * Gibt ein Byte auf einem Kanal aus
+     * Gibt ein Byte auf einem Kanal aus.
      *
      * @param channel Kanal
      * @param data Daten
@@ -92,8 +94,6 @@ public class UA857 {
 
     /**
      * Speichert den Zustand des CTC in einer Datei
-     * <p>
-     * TODO: noch nicht implementiert
      *
      * @param dos Stream zur Datei
      * @throws IOException Wenn Schreiben nicht erfolgreich war
@@ -107,8 +107,6 @@ public class UA857 {
 
     /**
      * Liest den Zustand des CTC aus einer Datei
-     * <p>
-     * TODO: Noch nicht implementiert
      *
      * @param dis Stream zur Datei
      * @throws IOException Wenn Lesen nicht erfolgreich war
@@ -190,8 +188,9 @@ public class UA857 {
 //                System.out.print(",Time Trigger: "+(BitTest.getBit(controlWord, 3)?"Pulse":"Time Constant"));
 //                System.out.print(",TimeConstant follows: "+BitTest.getBit(controlWord, 2));
 //                System.out.println(",Reset: "+BitTest.getBit(controlWord, 1));
-                if (BitTest.getBit(controlWord, 1))
-                    running=false;
+                if (BitTest.getBit(controlWord, 1)) {
+                    running = false;
+                }
                 if (BitTest.getBit(controlWord, 2)) {
                     timeConstantFollowing = true;
                 }
@@ -208,7 +207,7 @@ public class UA857 {
         }
 
         /**
-         * Aktualisiert die Zähler auf Basis des Taktgebers
+         * Aktualisiert die Zähler auf Basis des Taktgebers.
          *
          * @param amount Anzahl der Ticks
          */

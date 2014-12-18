@@ -248,7 +248,7 @@ public final class ABG implements Module {
      */
     public void clockUpdate(int amount) {
         localClock += amount;
-        if (localClock > 80000) {
+        if (localClock > 160000) {
             localClock = 0;
             updateScreen();
             kgs.requestNMI();
@@ -306,9 +306,7 @@ public final class ABG implements Module {
     }
 
     /**
-     * Schreibt ein Byte in den Bildiwederholspeicher
-     * <p>
-     * TODO: Diese Funktion ist noch nicht implementiert
+     * Schreibt ein Byte in den Bildwederholspeicher.
      *
      * @param msel Memory-Select Register
      * @param address Adresse
@@ -349,9 +347,7 @@ public final class ABG implements Module {
     }
 
     /**
-     * Liest ein Wort aus dem Bildiwederholspeicher
-     * <p>
-     * TODO: Diese Funktion ist noch nicht implementiert
+     * Liest ein Wort aus dem Bildwederholspeicher.
      *
      * @param msel Memory-Select Register
      * @param address Adresse
@@ -379,7 +375,7 @@ public final class ABG implements Module {
     }
 
     /**
-     * Liest ein Byte aus dem Bildiwederholspeicher
+     * Liest ein Byte aus dem Bildiwederholspeicher.
      *
      * @param msel Memory-Select Register
      * @param address Adresse
@@ -516,6 +512,8 @@ public final class ABG implements Module {
 
     /**
      * Aktualisiert den Alphanumerikbildschirm für eine Speicherzelle
+     * <p>
+     * TODO: Beschleunigen durch ersetzen von setRGB
      *
      * @param address Speicherzelle
      * @param column Spalte auf Bildschirm
@@ -650,6 +648,7 @@ public final class ABG implements Module {
 
     /**
      * Zeigt den Inhalt des ABG-Speichers
+     *
      * @param page Speicherebene
      */
     public void showMemory(int page) {

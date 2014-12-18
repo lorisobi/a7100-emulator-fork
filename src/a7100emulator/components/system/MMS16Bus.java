@@ -27,11 +27,7 @@ import java.util.logging.Logger;
 
 /**
  * Klasse zur Abbildung des MMS 16 Systembusses und zur Verwaltung der dort
- * vorhandenen Signale
- * <p>
- * TODO: Diese Klasse ist noch nicht vollständig implementiert sie soll die
- * Singeltons InterruptSystem, SystemClock, SystemMemory und SystemPorts
- * vereinen
+ * vorhandenen Signale.
  *
  * @author Dirk Bräuer
  */
