@@ -2,7 +2,7 @@
  * MainView.java
  * 
  * Diese Datei gehört zum Projekt A7100 Emulator 
- * (c) 2011-2014 Dirk Bräuer
+ * (c) 2011-2015 Dirk Bräuer
  * 
  * Letzte Änderungen:
  *   05.04.2014 - Kommentare vervollständigt
@@ -15,18 +15,20 @@
  *   14.12.2014 - Zeigen/Speichern ABG Speicher
  *   17.12.2014 - Hacks hinzugefügt
  *   19.12.2014 - Datum für Screenshots auf 24h Anzeige umgestellt
+ *   03.01.2015 - Menü Parity Hack entfernt
+ *   06.01.2015 - Menü Globaler Debugger und KGS Debugger hinzugefügt
  */
 package a7100emulator;
 
 import a7100emulator.Apps.SCPDiskViewer.SCPDiskModel;
 import a7100emulator.Apps.SCPDiskViewer.SCPDiskViewer;
+import a7100emulator.Debug.Debugger;
 import a7100emulator.Debug.Decoder;
 import a7100emulator.Debug.MemoryAnalyzer;
 import a7100emulator.Debug.OpcodeStatistic;
 import a7100emulator.components.A7100;
 import a7100emulator.Tools.FloppyImageType;
 import a7100emulator.components.ic.KR580WM51A;
-import a7100emulator.components.modules.OPS;
 import a7100emulator.components.system.Keyboard;
 import a7100emulator.components.system.MMS16Bus;
 import a7100emulator.components.system.Screen;
@@ -141,29 +143,29 @@ public class MainView extends JFrame {
      */
     private final JCheckBoxMenuItem menuDevicesDrive1WriteProtect = new JCheckBoxMenuItem("Schreibschutz");
     /**
-     * Untermenü Debug -> System
+     * Untermenü Debug - System
      */
     private final JMenu menuDebugSystem = new JMenu("System");
     /**
-     * Untermenü Debug -> ZVE
+     * Untermenü Debug - ZVE
      */
     private final JMenu menuDebugZVE = new JMenu("ZVE");
     /**
-     * Untermenü Debug -> KGS
+     * Untermenü Debug - KGS
      */
     private final JMenu menuDebugKGS = new JMenu("KGS");
     /**
-     * Untermenü Debug -> KES
+     * Untermenü Debug - KES
      */
     private final JMenu menuDebugKES = new JMenu("KES");
     /**
-     * Untermenü Debug -> ABG
+     * Untermenü Debug - ABG
      */
     private final JMenu menuDebugABG = new JMenu("ABG");
     /**
-     * Menüeintrag Debugger aktivieren
+     * Menüeintrag Globaler Debugger
      */
-    private final JCheckBoxMenuItem menuDebugZVEDebuggerSwitch = new JCheckBoxMenuItem("Debugger");
+    private final JCheckBoxMenuItem menuDebugGlobalDebuggerSwitch = new JCheckBoxMenuItem("Globaler Debugger");
     /**
      * Menüeintrag Speicher anzeigen
      */
@@ -173,6 +175,10 @@ public class MainView extends JFrame {
      */
     private final JMenuItem menuDebugSystemMemoryDump = new JMenuItem("Dump Systemspeicher");
     /**
+     * Menüeintrag Debugger aktivieren
+     */
+    private final JCheckBoxMenuItem menuDebugZVEDebuggerSwitch = new JCheckBoxMenuItem("Debugger");
+    /**
      * Menüeintrag Zeige KGS Speicher
      */
     private final JMenuItem menuDebugKGSMemoryShow = new JMenuItem("Zeige KGS Speicher");
@@ -180,6 +186,10 @@ public class MainView extends JFrame {
      * Menüeintrag Speicher in Datei Schreiben
      */
     private final JMenuItem menuDebugKGSMemoryDump = new JMenuItem("Dump KGS Speicher");
+    /**
+     * Menüeintrag Debugger aktivieren
+     */
+    private final JCheckBoxMenuItem menuDebugKGSDebuggerSwitch = new JCheckBoxMenuItem("Debugger");
     /**
      * Menüeintrag Decoder anzeigen
      */
@@ -253,14 +263,10 @@ public class MainView extends JFrame {
      */
     private final JMenu menuHacks = new JMenu("Hacks");
     /**
-     * Menüeintrag Emulator Hacks -> Deaktiviere Tastatur Reset TODO: Hacks wenn
+     * Menüeintrag Emulator Hacks - Deaktiviere Tastatur Reset TODO: Hacks wenn
      * möglich entfernen
      */
     private final JCheckBoxMenuItem menuHacksKeyboardReset = new JCheckBoxMenuItem("KR580WM51A Tastaturreset deaktivieren", false);
-    /**
-     * Menüeintrag Emulator Einzelschritt TODO: Hacks Wenn möglich entfernen
-     */
-    private final JCheckBoxMenuItem menuHacksParityCheck = new JCheckBoxMenuItem("OPS Paritätsprüfung deaktivieren", false);
     /**
      * Menüeintrag Über
      */
@@ -285,11 +291,11 @@ public class MainView extends JFrame {
      */
     public MainView(A7100 a7100) {
         super("A7100 Emulator");
-
+        
         this.a7100 = a7100;
         JMenuBar menubar = new JMenuBar();
         menubar.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke("F10"), "none");
-
+        
         menubar.add(menuEmulator);
         menuEmulator.add(menuEmulatorReset);
         menuEmulator.add(menuEmulatorPause);
@@ -299,16 +305,16 @@ public class MainView extends JFrame {
         menuEmulator.add(menuEmulatorLoad);
         menuEmulator.addSeparator();
         menuEmulator.add(menuEmulatorExit);
-
+        
         menuEmulatorReset.addActionListener(controller);
         menuEmulatorPause.addActionListener(controller);
         menuEmulatorSingle.addActionListener(controller);
         menuEmulatorSave.addActionListener(controller);
         menuEmulatorLoad.addActionListener(controller);
         menuEmulatorExit.addActionListener(controller);
-
+        
         menuEmulatorSingle.setEnabled(false);
-
+        
         menubar.add(menuDevices);
         menuDevices.add(menuDevicesDrive0);
         menuDevicesDrive0.add(menuDevicesDrive0Load);
@@ -322,7 +328,7 @@ public class MainView extends JFrame {
         menuDevicesDrive1.add(menuDevicesDrive1Eject);
         menuDevicesDrive1.add(menuDevicesDrive1Empty);
         menuDevicesDrive1.add(menuDevicesDrive1WriteProtect);
-
+        
         menuDevicesDrive0Load.addActionListener(controller);
         menuDevicesDrive0Save.addActionListener(controller);
         menuDevicesDrive0Eject.addActionListener(controller);
@@ -333,9 +339,10 @@ public class MainView extends JFrame {
         menuDevicesDrive1Eject.addActionListener(controller);
         menuDevicesDrive1Empty.addActionListener(controller);
         menuDevicesDrive1WriteProtect.addActionListener(controller);
-
+        
         menubar.add(menuDebug);
         menuDebug.add(menuDebugSystem);
+        menuDebugSystem.add(menuDebugGlobalDebuggerSwitch);
         menuDebugSystem.add(menuDebugSystemMemoryShow);
         menuDebugSystem.add(menuDebugSystemMemoryDump);
         menuDebug.add(menuDebugZVE);
@@ -344,6 +351,7 @@ public class MainView extends JFrame {
         menuDebugZVE.add(menuDebugZVEDecoderDump);
         menuDebugZVE.add(menuDebugZVEOpcodeStatistic);
         menuDebug.add(menuDebugKGS);
+        menuDebugKGS.add(menuDebugKGSDebuggerSwitch);
         menuDebugKGS.add(menuDebugKGSMemoryShow);
         menuDebugKGS.add(menuDebugKGSMemoryDump);
         menuDebugKGS.add(menuDebugKGSCharacters);
@@ -359,13 +367,15 @@ public class MainView extends JFrame {
         menuDebugABG.add(menuDebugABGDumpAlphanumericsPage2);
         menuDebugABG.add(menuDebugABGDumpGraphicsPage1);
         menuDebugABG.add(menuDebugABGDumpGraphicsPage2);
-
+        
+        menuDebugGlobalDebuggerSwitch.addActionListener(controller);
         menuDebugSystemMemoryShow.addActionListener(controller);
         menuDebugSystemMemoryDump.addActionListener(controller);
         menuDebugZVEDebuggerSwitch.addActionListener(controller);
         menuDebugZVEDecoderShow.addActionListener(controller);
         menuDebugZVEDecoderDump.addActionListener(controller);
         menuDebugZVEOpcodeStatistic.addActionListener(controller);
+        menuDebugKGSDebuggerSwitch.addActionListener(controller);
         menuDebugKGSMemoryShow.addActionListener(controller);
         menuDebugKGSMemoryDump.addActionListener(controller);
         menuDebugKGSCharacters.addActionListener(controller);
@@ -379,26 +389,24 @@ public class MainView extends JFrame {
         menuDebugABGDumpAlphanumericsPage2.addActionListener(controller);
         menuDebugABGDumpGraphicsPage1.addActionListener(controller);
         menuDebugABGDumpGraphicsPage2.addActionListener(controller);
-
+        
         menubar.add(menuTools);
         menuTools.add(menuToolsSCPDiskTool);
         menuTools.add(menuToolsScreenshot);
-
+        
         menuToolsSCPDiskTool.addActionListener(controller);
         menuToolsScreenshot.addActionListener(controller);
-
+        
         menubar.add(menuHacks);
         menuHacks.add(menuHacksKeyboardReset);
-        menuHacks.add(menuHacksParityCheck);
-
+        
         menuHacksKeyboardReset.addActionListener(controller);
-        menuHacksParityCheck.addActionListener(controller);
-
+        
         menubar.add(menuHelp);
         menuHelp.add(menuHelpAbout);
-
+        
         menuHelpAbout.addActionListener(controller);
-
+        
         this.setJMenuBar(menubar);
         this.add(Screen.getInstance(), BorderLayout.CENTER);
         //this.add(statusBar,BorderLayout.SOUTH);
@@ -441,9 +449,10 @@ public class MainView extends JFrame {
             } else if (e.getSource().equals(menuEmulatorLoad)) {
                 a7100.loadState();
                 menuHacksKeyboardReset.setSelected(KR580WM51A.isKeyboardResetHack());
-                menuHacksParityCheck.setSelected(OPS.isParityCheckHack());
             } else if (e.getSource() == menuEmulatorExit) {
                 System.exit(0);
+            } else if (e.getSource().equals(menuDebugGlobalDebuggerSwitch)) {
+                Debugger.getGlobalInstance().setDebug(menuDebugGlobalDebuggerSwitch.isSelected());
             } else if (e.getSource().equals(menuDebugSystemMemoryShow)) {
                 (new MemoryAnalyzer()).show();
             } else if (e.getSource() == menuDebugZVEDecoderShow) {
@@ -454,12 +463,13 @@ public class MainView extends JFrame {
                 a7100.getKGS().showMemory();
             } else if (e.getSource() == menuDebugKGSMemoryDump) {
                 a7100.getKGS().dumpMemory("./debug/kgs_user_dump.hex");
+            } else if (e.getSource().equals(menuDebugKGSDebuggerSwitch)) {
+                a7100.getKGS().setDebug(menuDebugKGSDebuggerSwitch.isSelected());
             } else if (e.getSource() == menuDebugZVEDecoderDump) {
                 Decoder.getInstance().save();
             } else if (e.getSource() == menuDebugZVEDebuggerSwitch) {
                 boolean debug = menuDebugZVEDebuggerSwitch.isSelected();
-                a7100.getZVE().setDebug(debug);
-                a7100.getKGS().setDebug(debug);
+                a7100.getZVE().setDebug(menuDebugZVEDebuggerSwitch.isSelected());
                 if (debug) {
                     Decoder.getInstance().clear();
                 }
@@ -536,8 +546,6 @@ public class MainView extends JFrame {
                 }
             } else if (e.getSource() == menuHacksKeyboardReset) {
                 KR580WM51A.setKeyboardResetHack(menuHacksKeyboardReset.isSelected());
-            } else if (e.getSource() == menuHacksParityCheck) {
-                OPS.setParityHack(menuHacksParityCheck.isSelected());
             } else if (e.getSource() == menuHelpAbout) {
                 JPanel pan_about = new JPanel();
                 pan_about.setLayout(new BorderLayout());
@@ -546,7 +554,7 @@ public class MainView extends JFrame {
                 pan_desc.setBorder(BorderFactory.createEmptyBorder(0, 50, 0, 10));
                 pan_desc.setLayout(new GridLayout(2, 1));
                 pan_desc.add(new JLabel("A7100 - Emulator v0.7.90"));
-                pan_desc.add(new JLabel("2011-2014 Dirk Bräuer"));
+                pan_desc.add(new JLabel("2011-2015 Dirk Bräuer"));
                 pan_about.add(pan_desc, BorderLayout.CENTER);
                 JTextArea licenseText = new JTextArea();
                 licenseText.setText("Lizenzinformationen:\n\n"
@@ -591,7 +599,7 @@ public class MainView extends JFrame {
                         spLicenseText.getVerticalScrollBar().setValue(0);
                     }
                 });
-
+                
                 JOptionPane.showMessageDialog(MainView.this, pan_about, "Über", JOptionPane.PLAIN_MESSAGE);
             }
         }
@@ -649,10 +657,10 @@ public class MainView extends JFrame {
                         int bytesPerSectorTrack0 = Integer.parseInt(editBytesPerSectorTrack0.getText());
                         a7100.getKES().getAFS().getFloppy(drive).loadDiskFromFile(image, cylinder, heads, sectorsPerTrack, bytesPerSector, sectorsInTrack0, bytesPerSectorTrack0);
                     }
-
+                    
                 }
             }
-
+            
         }
     }
 }

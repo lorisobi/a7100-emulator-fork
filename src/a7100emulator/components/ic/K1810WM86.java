@@ -2,7 +2,7 @@
  * K1810WM86.java
  * 
  * Diese Datei gehört zum Projekt A7100 Emulator 
- * (c) 2011-2014 Dirk Bräuer
+ * (c) 2011-2015 Dirk Bräuer
  * 
  * Letzte Änderungen:
  *   04.04.2014 - Kommentare begonnen
@@ -17,6 +17,8 @@
  *   18.11.2014 - getBit durch BitTest ersetzt
  *              - Kommentare ergänzt
  *              - Interface IC implementiert
+ *   06.01.2015 - Fehler in DAA und DAS behoben
+ *   07.01.2015 - Fehler in AAA behoben
  */
 package a7100emulator.components.ic;
 
@@ -577,7 +579,7 @@ public class K1810WM86 implements Runnable, IC {
     /**
      * Zeiger auf Debugger Instanz
      */
-    private final Debugger debugger = new Debugger("K1810WM86", true);
+    private final Debugger debugger = new Debugger("K1810WM86", true, "ZVE");
     /**
      * Zeiger auf Debugger Informationen
      */
@@ -1910,6 +1912,7 @@ public class K1810WM86 implements Runnable, IC {
                 } else {
                     clearFlag(AUXILIARY_CARRY_FLAG);
                 }
+                al = getReg8(REG_AL_AX);
                 if (getFlag(CARRY_FLAG) || (al > 0x9F)) {
                     setReg8(REG_AL_AX, al + 0x60);
                     setFlag(CARRY_FLAG);
@@ -1934,6 +1937,7 @@ public class K1810WM86 implements Runnable, IC {
                 } else {
                     clearFlag(AUXILIARY_CARRY_FLAG);
                 }
+                al = getReg8(REG_AL_AX);
                 if (getFlag(CARRY_FLAG) || (al > 0x9F)) {
                     setReg8(REG_AL_AX, al - 0x60);
                     setFlag(CARRY_FLAG);
@@ -1954,7 +1958,9 @@ public class K1810WM86 implements Runnable, IC {
                 int al = getReg8(REG_AL_AX);
                 if (getFlag(AUXILIARY_CARRY_FLAG) || ((al & 0xF) > 9)) {
                     setReg8(REG_AL_AX, (al + 6) & 0xF);
-                    setReg8(REG_AH_SP, (getReg8(REG_AH_SP) + 1) & 0xF);
+                    setReg8(REG_AH_SP, getReg8(REG_AH_SP) + 1);
+                    //TODO: Ggf. wieder ersetzen
+                    //setReg8(REG_AH_SP, (getReg8(REG_AH_SP) + 1) & 0xF);
                     setFlag(CARRY_FLAG);
                     setFlag(AUXILIARY_CARRY_FLAG);
                 } else {
@@ -4988,7 +4994,9 @@ public class K1810WM86 implements Runnable, IC {
         if (debug) {
             if (debugInfo.getCode() != null) {
                 decoder.addItem(debugInfo);
-                debugger.addLine(debugInfo);
+                if (cs != 0x0104) {
+                    debugger.addLine(debugInfo);
+                }
                 try {
                     Thread.sleep(debugger.getSlowdown());
                 } catch (InterruptedException ex) {

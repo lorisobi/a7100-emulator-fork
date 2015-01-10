@@ -150,7 +150,7 @@ public class KR580WW55A implements IC {
     /**
      * Gibt ein Zeichen auf Port A aus
      *
-     * @param data
+     * @param data Daten
      */
     public void writePortA(int data) {
     }
@@ -175,7 +175,7 @@ public class KR580WW55A implements IC {
     /**
      * Liest ein Zeichen vom Port A
      *
-     * @return
+     * @return Daten
      */
     public int readPortA() {
         return 0xC0;
@@ -184,7 +184,7 @@ public class KR580WW55A implements IC {
     /**
      * Liest ein Zeichen vom Port B
      *
-     * @return
+     * @return Daten
      */
     public int readPortB() {
         return dataB;
@@ -193,7 +193,7 @@ public class KR580WW55A implements IC {
     /**
      * Liest ein Zeichen vom Port C
      *
-     * @return
+     * @return Daten
      */
     public int readPortC() {
         return 0;

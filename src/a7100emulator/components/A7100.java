@@ -229,6 +229,7 @@ public class A7100 {
         OPS.ops_count = 0;
         KES.kes_count = 0;
         ASP.asp_count = 0;
+        ZPS.zps_count = 0;
 
         zve = new ZVE();
         zps = null;

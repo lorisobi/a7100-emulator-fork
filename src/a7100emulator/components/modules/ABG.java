@@ -2,7 +2,7 @@
  * ABG.java
  * 
  * Diese Datei gehört zum Projekt A7100 Emulator 
- * (c) 2011-2014 Dirk Bräuer
+ * (c) 2011-2015 Dirk Bräuer
  * 
  * Letzte Änderungen:
  *   09.08.2014 - Erstellt aus ABG.java
@@ -10,7 +10,10 @@
  *              - Kommentare vervollständigt
  *              - Darstellung Funktionstüchtig
  *              - Laden und Speichern implemetiert
- *   14.12.2014 - Anzeigen und Speichern der Bildwiederholspeicher implementiert           
+ *   14.12.2014 - Anzeigen und Speichern der Bildwiederholspeicher implementiert   
+ *   02.01.2015 - setRGB durch Zugriff auf Bildpuffer ersetzt
+ *   03.01.2015 - Blinken bei nicht Cursor ergänzt
+ *              - enum CursorMode entfernt
  */
 package a7100emulator.components.modules;
 
@@ -22,6 +25,7 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.image.BufferedImage;
+import java.awt.image.DataBufferInt;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.FileOutputStream;
@@ -37,29 +41,6 @@ import javax.swing.JFrame;
  * @author Dirk Bräuer
  */
 public final class ABG implements Module {
-
-    /**
-     * Enum zur Abbildung der möglichen Cursordarstellungen
-     */
-    public enum CursorMode {
-
-        /**
-         * Unsichtbarer Cursor
-         */
-        CURSOR_INVISIBLE,
-        /**
-         * Blinkender Unterstrich
-         */
-        CURSOR_BLINK_LINE,
-        /**
-         * Blinkender Block
-         */
-        CURSOR_BLINK_BLOCK,
-        /**
-         * Permanenter Block
-         */
-        CURSOR_STATIC_BLOCK;
-    }
 
     /**
      * Port Funktionsregister
@@ -182,10 +163,6 @@ public final class ABG implements Module {
      */
     private int localClock = 0;
     /**
-     * Aktueller Cursor
-     */
-    private CursorMode cursorMode = CursorMode.CURSOR_BLINK_LINE;
-    /**
      * Grafischer Bildwiederholspeicher
      */
     private final Memory[] graphicMemory = new Memory[2];
@@ -213,6 +190,11 @@ public final class ABG implements Module {
      * Verweis auf KGS
      */
     private final KGS kgs;
+    /**
+     * Gibt an, ob die Fortsetzung der Darstellung an der Splitgrenze erfolgen
+     * soll
+     */
+    private boolean continueSplit = false;
 
     /**
      * Erstellt eine neue ABG und initialisiert diese.
@@ -251,17 +233,8 @@ public final class ABG implements Module {
         if (localClock > 160000) {
             localClock = 0;
             updateScreen();
-            kgs.requestNMI();
+            //kgs.requestNMI();
         }
-    }
-
-    /**
-     * Setzt den aktuellen Cursor-Modus
-     *
-     * @param cursorMode the cursorMode to set
-     */
-    void setCursorMode(CursorMode cursorMode) {
-        this.cursorMode = cursorMode;
     }
 
     /**
@@ -458,7 +431,7 @@ public final class ABG implements Module {
                 break;
             case LOCAL_PORT_ADDRESS_COUNTER_LOW:
                 address_counter = (address_counter & 0x00FF) | ((data & 0xFF) << 8);
-                //System.out.println("address_counter: " + String.format("%04X", address_counter));
+//                System.out.println("address_counter: " + String.format("%04X", address_counter));
                 break;
             case LOCAL_PORT_ADDRESS_COUNTER_HIGH:
                 address_counter = (address_counter & 0xFF00) | (data & 0xFF);
@@ -485,63 +458,100 @@ public final class ABG implements Module {
     }
 
     /**
-     * Aktualisiert die Bildschirmanzeige
+     * Aktualisiert die Bildschirmanzeige TODO: NMIs richtig implementieren
+     * (warten auf KGS)
      */
     private void updateScreen() {
-        int address_an = ~address_counter & 0x7FFF;
-        int address_gr = 0x7FFF;
+        // Adresszähler
+        int address = ~address_counter & 0x7FFF;
+        //int address_gr = ~address_counter & 0x7FFF;
 
-        int splitline = (split_register == 0xFF) ? 0 : ((split_register == 0xFE) ? 400 : (split_register * 2 - 1));
-
-        for (int line = 0; line < 400; line++) {
-            for (int column = 0; column < 640; column += 8) {
-                if (line < splitline) {
-                    updateGraphicsScreen(address_gr, column, line, screenImage);
-                    address_gr = (address_gr - 1) & 0x7FFF;
-                } else {
-                    if (line == splitline) {
-                        kgs.requestNMI();
-                    }
-                    updateAlphanumericScreen(address_an, column, line, screenImage);
-                    address_an = (address_an - 1) & 0x7FFF;
+        if (split_register == 0xFF) {
+            //Wenn Splitregister=0xFF: Volles Alphanumerikbild
+            for (int line = 0; line < 400; line++) {
+                for (int column = 0; column < 640; column += 8) {
+                    updateAlphanumericScreen(address, column, line, screenImage);
+                    address = (address - 1) & 0x7FFF;
                 }
             }
+        } else if (split_register == 0xFE) {
+            //Wenn Splitregister=0xFF: Volles Grafikbild
+            for (int line = 0; line < 400; line++) {
+                for (int column = 0; column < 640; column += 8) {
+                    updateGraphicsScreen(address, column, line, screenImage);
+                    address = (address - 1) & 0x7FFF;
+                }
+            }
+        } else {
+            // Gemischte Darstellung
+
+            // Splitgrenze berechnen
+            int splitline = split_register * 2 - 1;
+
+            if (!continueSplit) {
+                // Darstellung Grafikbereich
+//                System.out.println("Grafikbereich Adresse:" + String.format("%04X", address));
+
+                for (int line = 0; line < splitline - 1; line++) {
+                    for (int column = 0; column < 640; column += 8) {
+                        updateGraphicsScreen(address, column, line, screenImage);
+                        address = (address - 1) & 0x7FFF;
+                    }
+                }
+                darkLine(splitline - 1, screenImage);
+            } else {
+                // Darstellung Alphanumerikbereich
+//                System.out.println("Alphanumerikbereich Adresse:" + String.format("%04X", address));
+                
+                darkLine(splitline, screenImage);
+                for (int line = splitline + 1; line < 400; line++) {
+                    for (int column = 0; column < 640; column += 8) {
+                        updateAlphanumericScreen(address, column, line, screenImage);
+                        address = (address - 1) & 0x7FFF;
+                    }
+                }
+            }
+            continueSplit = !continueSplit;
         }
+
+        kgs.requestNMI();
         Screen.getInstance().repaint();
     }
 
     /**
      * Aktualisiert den Alphanumerikbildschirm für eine Speicherzelle
-     * <p>
-     * TODO: Beschleunigen durch ersetzen von setRGB
      *
      * @param address Speicherzelle
      * @param column Spalte auf Bildschirm
      * @param line Zeile auf Bildschirm
      */
     private void updateAlphanumericScreen(int address, int column, int line, BufferedImage image) {
+        int[] imageData = ((DataBufferInt) image.getRaster().getDataBuffer()).getData();
+
         int data = alphanumericMemory[0].readByte(address);
+
         int attribute = alphanumericMemory[1].readByte(address);
         boolean intense = (attribute & ATTRIBUTE_INTENSE) != 0;
         boolean inverse = (attribute & ATTRIBUTE_INVERSE) != 0;
         boolean blink = ((attribute & ATTRIBUTE_BLINK) != 0);
+        boolean cursor = (attribute & ATTRIBUTE_CURSOR) != 0;
+
         boolean blink_fnct = BitTest.getBit(function_register, 3);
 
-        boolean cursor = (attribute & ATTRIBUTE_CURSOR) != 0;
         for (int pixel = 0; pixel < 8; pixel++) {
-            boolean b1 = BitTest.getBit(data, pixel);
+            boolean set = BitTest.getBit(data, pixel);
             if (cursor) {
-                // TODO: Attribut Blinken implementieren
+                // TODO: Attribut Blinken implementieren, Cursorblinken aus implementieren
                 if (blink_fnct) {
-                    image.setRGB(column + 7 - pixel, line, intense ? INTENSE_GREEN : GREEN);
+                    imageData[column + 7 - pixel + line * 640] = intense ? INTENSE_GREEN : GREEN;
                 } else {
-                    image.setRGB(column + 7 - pixel, line, BLACK);
+                    imageData[column + 7 - pixel + line * 640] = BLACK;
                 }
             } else {
-                if (b1 ^ inverse) {
-                    image.setRGB(column + 7 - pixel, line, intense ? INTENSE_GREEN : GREEN);
+                if ((set ^ inverse) && (!blink || (blink && blink_fnct))) {
+                    imageData[column + 7 - pixel + line * 640] = intense ? INTENSE_GREEN : GREEN;
                 } else {
-                    image.setRGB(column + 7 - pixel, line, BLACK);
+                    imageData[column + 7 - pixel + line * 640] = BLACK;
                 }
             }
         }
@@ -555,20 +565,35 @@ public final class ABG implements Module {
      * @param line Zeile auf Bildschirm
      */
     private void updateGraphicsScreen(int address, int column, int line, BufferedImage image) {
+        int[] imageData = ((DataBufferInt) image.getRaster().getDataBuffer()).getData();
+
         int data1 = graphicMemory[0].readByte(address);
         int data2 = graphicMemory[1].readByte(address);
         for (int pixel = 0; pixel < 8; pixel++) {
             boolean b1 = BitTest.getBit(data1, pixel);
             boolean b2 = BitTest.getBit(data2, pixel);
             if (b1 && !b2) {
-                image.setRGB(column + 7 - pixel, line, DARK_GREEN);
+                imageData[column + 7 - pixel + line * 640] = DARK_GREEN;
             } else if (!b1 && b2) {
-                image.setRGB(column + 7 - pixel, line, GREEN);
+                imageData[column + 7 - pixel + line * 640] = GREEN;
             } else if (b1 && b2) {
-                image.setRGB(column + 7 - pixel, line, INTENSE_GREEN);
+                imageData[column + 7 - pixel + line * 640] = INTENSE_GREEN;
             } else {
-                image.setRGB(column + 7 - pixel, line, BLACK);
+                imageData[column + 7 - pixel + line * 640] = BLACK;
             }
+        }
+    }
+
+    /**
+     * Tastet eine Linie dunkel
+     *
+     *
+     */
+    private void darkLine(int line, BufferedImage image) {
+        int[] imageData = ((DataBufferInt) image.getRaster().getDataBuffer()).getData();
+
+        for (int pixel = 0; pixel < 640; pixel++) {
+            imageData[pixel + line * 640] = BLACK;
         }
     }
 
@@ -707,7 +732,6 @@ public final class ABG implements Module {
     @Override
     public void saveState(DataOutputStream dos) throws IOException {
         dos.writeInt(localClock);
-        dos.writeUTF(cursorMode.name());
         for (int i = 0; i < 2; i++) {
             graphicMemory[i].saveMemory(dos);
             alphanumericMemory[i].saveMemory(dos);
@@ -729,7 +753,6 @@ public final class ABG implements Module {
     @Override
     public void loadState(DataInputStream dis) throws IOException {
         localClock = dis.readInt();
-        cursorMode = CursorMode.valueOf(dis.readUTF());
         for (int i = 0; i < 2; i++) {
             graphicMemory[i].loadMemory(dis);
             alphanumericMemory[i].loadMemory(dis);

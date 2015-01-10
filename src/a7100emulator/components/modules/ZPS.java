@@ -2,11 +2,11 @@
  * ZPS.java
  * 
  * Diese Datei gehört zum Projekt A7100 Emulator 
- * (c) 2011-2014 Dirk Bräuer
+ * (c) 2011-2015 Dirk Bräuer
  * 
  * Letzte Änderungen:
- *   02.04.2014 Kommentare vervollständigt
- *   09.08.2014 Zugriff auf SystemMemory durch MMS16 Bus ersetzt
+ *   02.04.2014 - Kommentare vervollständigt
+ *   09.08.2014 - Zugriff auf SystemMemory durch MMS16 Bus ersetzt
  *
  */
 package a7100emulator.components.modules;
@@ -19,7 +19,8 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 
 /**
- * Klasse zur Abbildung der ZPS (Zweiportspeicher)
+ * Klasse zur Abbildung der ZPS (Zweiportspeicher).
+ * <p> TODO: Einbindung verursacht Fehler im ACT
  *
  * @author Dirk Bräuer
  */

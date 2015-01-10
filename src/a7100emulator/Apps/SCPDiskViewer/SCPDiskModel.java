@@ -2,11 +2,12 @@
  * SCPFileModel.java
  * 
  * Diese Datei gehört zum Projekt A7100 Emulator 
- * (c) 2011-2014 Dirk Bräuer
+ * (c) 2011-2015 Dirk Bräuer
  * 
  * Letzte Änderungen:
  *   05.04.2014 - Kommentare vervollständigt
  *   16.12.2014 - Hinzufügen von Datein implementiert
+ *   01.01.2015 - Datenbank implementiert
  */
 package a7100emulator.Apps.SCPDiskViewer;
 
@@ -17,6 +18,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JOptionPane;
@@ -68,6 +70,10 @@ public class SCPDiskModel {
      * Liste Freier FCBs
      */
     private boolean[] usedFCB = new boolean[128];
+    /**
+     * Verweis auf Datenbank
+     */
+    FileDatabaseManager databaseManager = new FileDatabaseManager();
 
     /**
      * Gibt die Liste der SCP-Dateien zurück
@@ -105,6 +111,54 @@ public class SCPDiskModel {
         } catch (IOException ex) {
             Logger.getLogger(SCPDiskModel.class.getName()).log(Level.SEVERE, null, ex);
         }
+    }
+
+    void readFolder(File folder) {
+        diskData = new byte[0x9F800];
+        files.clear();
+        usedBlocks = 0;
+        usedBlock = new boolean[310];
+        usedFCB = new boolean[128];
+
+        Arrays.fill(diskData, 0, diskData.length - 1, (byte) 0xE5);
+
+        imageName = "Verzeichnis:" + folder.getAbsolutePath();
+
+        files.clear();
+        File[] inputFiles = folder.listFiles();
+
+        try {
+            for (File file : inputFiles) {
+                if (file.isFile()) {
+                    int startExtension = file.getName().lastIndexOf('.');
+                    String extension = (startExtension == -1 ? "" : file.getName().substring(startExtension + 1)).toUpperCase();
+                    if (extension.length() > 3) {
+                        extension = extension.substring(0, 3);
+                    }
+                    String filename = (startExtension == -1 ? file.getName() : file.getName().substring(0, startExtension)).toUpperCase();
+                    if (filename.length() > 8) {
+                        filename = filename.substring(0, 8);
+                    }
+                    //SCPFile scpFile = new SCPFile(filename, extension, false, false, false, 0);
+
+                    byte[] data = new byte[(int) file.length()];
+                    InputStream in = new FileInputStream(file);
+                    in.read(data);
+                    in.close();
+
+                    //scpFile.setData(data);
+                    insertFile(filename, extension, false, false, false, 0, data);
+                    //files.add(scpFile);
+                } else {
+                    System.out.println("Verzeichnis " + file.getName() + " wird übersprungen!");
+                }
+            }
+        } catch (Exception ex) {
+            Logger.getLogger(SCPDiskModel.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        //diskLoaded=true;
+        // parseImage();
+        view.updateView();
     }
 
     /**
@@ -459,5 +513,66 @@ public class SCPDiskModel {
                 Logger.getLogger(SCPDiskModel.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
+    }
+
+    /**
+     * Liefert die in der Datenabnk vorhandenen Dateitypen zurück.
+     *
+     * @return Array mit Dateitypen
+     */
+    String[] getFileTypes() {
+        return databaseManager.getFileTypes();
+    }
+
+    /**
+     * Liefert die in der Datenbank gespeicherten Software-Pakete zurück.
+     *
+     * @return Array mit Software-Paketen
+     */
+    String[] getSoftwarePackages() {
+        return databaseManager.getSoftwarePackages();
+    }
+
+    /**
+     * Liefrt den Datenbankeintrag zu einem SCP-File zurück.
+     *
+     * @param file SCP-Datei
+     * @return Datenbankeintrag oder <code>null</code> wenn kein entsprechender
+     * Eintrag vorhanden ist.
+     */
+    FileInfo getFileInfo(SCPFile file) {
+        return databaseManager.getFileInfo(file.getMD5());
+    }
+
+    /**
+     * Aktualisiert Informationen in der Datenbank.
+     *
+     * @param md5 MD5 Hash
+     * @param info Aktualisierte Datenbankinformationen
+     */
+    void updateDBInfo(String md5, FileInfo info) {
+        databaseManager.updateFileInfo(md5, info);
+        databaseManager.saveDatabase();
+    }
+
+    /**
+     * Entfernt Informationen aus der Datenbank.
+     *
+     * @param md5 MD5 Hash
+     */
+    void removeDBInfo(String md5) {
+        databaseManager.removeFileInfo(md5);
+        databaseManager.saveDatabase();
+    }
+
+    /**
+     * Startfunktion bein Einzelanwendung.
+     *
+     * @param args Kommandozeilenparameter
+     */
+    public static void main(String args[]) {
+        SCPDiskModel model = new SCPDiskModel();
+        SCPDiskViewer view = new SCPDiskViewer(model);
+        model.setView(view);
     }
 }

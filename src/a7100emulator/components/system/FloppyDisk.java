@@ -92,7 +92,7 @@ public class FloppyDisk implements StateSavable {
     }
 
     /**
-     * Liest eine binäre Imagedatei unter Verwendung der angegebenen Geometrie
+     * Liest eine binäre Imagedatei unter Verwendung der angegebenen Geometrie.
      *
      * @param file Image Datei
      * @param cylinders Anzahl der Zylinder

@@ -7,12 +7,16 @@
  * Letzte Änderungen:
  *   05.04.2014 - Kommentare vervollständigt
  *   27.09.2014 - MD5 Summen ergänzt
- *   16.12.2014 - Hinzufügen von Datein ermöglicht
+ *   16.12.2014 - Hinzufügen von Dateien ermöglicht
  *              - Ansicht angepasst
+ *   01.01.2015 - Datenbankinformationen ergänzt
  */
 package a7100emulator.Apps.SCPDiskViewer;
 
+import a7100emulator.Debug.MemoryAnalyzer;
 import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.GridBagConstraints;
@@ -25,21 +29,34 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.text.NumberFormat;
-import java.text.ParseException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.swing.BorderFactory;
+import javax.swing.DefaultComboBoxModel;
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
+import javax.swing.JComboBox;
 import javax.swing.JFileChooser;
 import javax.swing.JFormattedTextField;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JMenu;
+import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
+import javax.swing.JTextArea;
+import javax.swing.JTextField;
 import javax.swing.SwingConstants;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
 import javax.swing.table.AbstractTableModel;
+import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.TableModel;
+import javax.swing.table.TableRowSorter;
 import javax.swing.text.MaskFormatter;
 
 /**
@@ -62,9 +79,57 @@ public class SCPDiskViewer extends JFrame {
      */
     private final SCPDiskModel diskModel;
     /**
-     * Button - Disketten Image öffnen
+     * Menü Datei
      */
-    private final JButton buttonOpenDisk = new JButton("Disketten Image öffnen");
+    private final JMenu menuFile = new JMenu("Datei");
+    /**
+     * Menü Image
+     */
+    private final JMenu menuImage = new JMenu("Image");
+    /**
+     * Menü Datenbank
+     */
+    private final JMenu menuDatabase = new JMenu("Datenbank");
+    /**
+     * Menü Image öffen
+     */
+    private final JMenuItem menuOpenDisk = new JMenuItem("Image öffnen...");
+    /**
+     * Menü Verzeichnis importieren
+     */
+    private final JMenuItem menuImportFolder = new JMenuItem("Verzeichnis importieren...");
+    /**
+     * Menü Image speichern
+     */
+    private final JMenuItem menuSaveImage = new JMenuItem("Image speichern...");
+    /**
+     * Menü Beenden
+     */
+    private final JMenuItem menuExit = new JMenuItem("Beenden");
+    /**
+     * Menü Datei extrahieren
+     */
+    private final JMenuItem menuExtractSingleFile = new JMenuItem("Datei extrahieren");
+    /**
+     * Menü alle Dateien extrahieren
+     */
+    private final JMenuItem menuExtractAllFiles = new JMenuItem("Alle Dateien extrahieren.");
+    /**
+     * Menü Datei hinzufügen
+     */
+    private final JMenuItem menuInsertFile = new JMenuItem("Datei hinzufügen");
+    /**
+     * Menü Datei anzeigen
+     */
+    private final JMenuItem menuShowFile = new JMenuItem("Datei anzeigen");
+    /**
+     * Menü Bootloader extrahieren
+     */
+    private final JMenuItem menuExtractBootloader = new JMenuItem("Bootloader speichern");
+    /**
+     * Button - Datei anzeigen
+     */
+    private final JButton buttonShowFile = new JButton("Datei anzeigen");
     /**
      * Button - Datei extrahieren
      */
@@ -82,14 +147,6 @@ public class SCPDiskViewer extends JFrame {
      */
     private final JButton buttonAddFile = new JButton("Datei hinzufügen");
     /**
-     * Button Image speichern
-     */
-    private final JButton buttonSaveImage = new JButton("Disketten Image speichern");
-    /**
-     * Button - Beenden
-     */
-    private final JButton buttonExit = new JButton("Beenden");
-    /**
      * Anzeige - Dateiinformationen
      */
     private final JLabel labelFileInfo = new JLabel(" ");
@@ -97,6 +154,38 @@ public class SCPDiskViewer extends JFrame {
      * Anzeige Disketteninformationen
      */
     private final JLabel labelDiskInfo = new JLabel(" ");
+    /**
+     * DB-Info Normaler Name
+     */
+    private final JTextField textDBInfoName = new JTextField(15);
+    /**
+     * DB-Info Programmpaket
+     */
+    private final JComboBox comboDBInfoPackage = new JComboBox();
+    /**
+     * DB-Info Programmpaket
+     */
+    private final JTextField textDBInfoVersion = new JTextField();
+    /**
+     * DB-Info Dateityp
+     */
+    private final JComboBox comboDBInfoType = new JComboBox();
+    /**
+     * DB-Info Beschreibung
+     */
+    private final JTextArea textDBInfoDescription = new JTextArea();
+    /**
+     * DB-Info Benutzer
+     */
+    private final JCheckBox checkDBInfoUser = new JCheckBox();
+    /**
+     * DB-Info hinzufügen
+     */
+    private final JButton buttonDBInfoAdd = new JButton("Eintrag hinzufügen");
+    /**
+     * DB-Info löschen
+     */
+    private final JButton buttonDBInfoDel = new JButton("Eintrag löschen");
 
     /**
      * Erstellt eine neue Ansicht
@@ -113,8 +202,44 @@ public class SCPDiskViewer extends JFrame {
      * Initialisiert die Ansicht
      */
     private void initialize() {
-        this.setPreferredSize(new Dimension(1200, 600));
-        this.getContentPane().setLayout(new BorderLayout());
+        setPreferredSize(new Dimension(1200, 700));
+        setMinimumSize(new Dimension(1200, 700));
+        getContentPane().setLayout(new BorderLayout());
+
+        // Menü
+        JMenuBar menubar = new JMenuBar();
+        menubar.add(menuImage);
+        menuImage.add(menuOpenDisk);
+        menuImage.add(menuImportFolder);
+        menuImage.add(menuSaveImage);
+        menuImage.addSeparator();
+        menuImage.add(menuExit);
+
+        menubar.add(menuFile);
+        menuFile.add(menuExtractSingleFile);
+        menuFile.add(menuExtractAllFiles);
+        menuFile.add(menuInsertFile);
+        menuFile.addSeparator();
+        menuFile.add(menuShowFile);
+        menuFile.addSeparator();
+        menuFile.add(menuExtractBootloader);
+
+        menubar.add(menuDatabase);
+
+        menuOpenDisk.addActionListener(controller);
+        menuImportFolder.addActionListener(controller);
+        menuSaveImage.addActionListener(controller);
+        menuExit.addActionListener(controller);
+        menuShowFile.addActionListener(controller);
+        menuExtractSingleFile.addActionListener(controller);
+        menuExtractAllFiles.addActionListener(controller);
+        menuExtractBootloader.addActionListener(controller);
+        menuInsertFile.addActionListener(controller);
+
+        setJMenuBar(menubar);
+
+        // Tabelle
+        fileTable.setRowSorter(new TableRowSorter<TableModel>(fileTable.getModel()));
 
         fileTable.getColumn("RO").setPreferredWidth(2);
         fileTable.getColumn("SYS").setPreferredWidth(2);
@@ -122,70 +247,142 @@ public class SCPDiskViewer extends JFrame {
         fileTable.getColumn("User").setPreferredWidth(2);
         fileTable.getColumn("MD5").setPreferredWidth(200);
 
-        fileTable.setFont(new Font("Monospaced", Font.PLAIN, 14));
-        this.getContentPane().add(new JScrollPane(fileTable), BorderLayout.CENTER);
+        fileTable.setDefaultRenderer(String.class, new SCPDiskTableRenderer());
+        fileTable.setDefaultRenderer(Boolean.class, new SCPDiskTableRenderer());
+        fileTable.setDefaultRenderer(Integer.class, new SCPDiskTableRenderer());
 
+        fileTable.setFont(new Font("Monospaced", Font.PLAIN, 14));
+
+        getContentPane().add(new JScrollPane(fileTable), BorderLayout.CENTER);
+
+        // Datenbankinformationen
+        JScrollPane scrollPaneDescription = new JScrollPane(textDBInfoDescription);
+        scrollPaneDescription.setMinimumSize(new Dimension(400, 300));
+        textDBInfoDescription.setLineWrap(true);
+        textDBInfoDescription.setWrapStyleWord(true);
+        comboDBInfoType.setModel(new DefaultComboBoxModel(diskModel.getFileTypes()));
+        comboDBInfoType.setEditable(true);
+        comboDBInfoType.setSelectedItem("");
+        comboDBInfoPackage.setModel(new DefaultComboBoxModel(diskModel.getSoftwarePackages()));
+        comboDBInfoPackage.setEditable(true);
+        comboDBInfoPackage.setSelectedItem("");
+
+        textDBInfoName.setEnabled(false);
+        comboDBInfoType.setEnabled(false);
+        comboDBInfoPackage.setEnabled(false);
+        textDBInfoVersion.setEnabled(false);
+        textDBInfoDescription.setEnabled(false);
+        checkDBInfoUser.setEnabled(false);
+
+        JPanel panelDBInfo = new JPanel(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.anchor = GridBagConstraints.NORTH;
+        gbc.gridx = gbc.gridy = 0;
+        gbc.insets = new Insets(5, 5, 5, 5);
+        panelDBInfo.add(new JLabel("Normaler Name:"), gbc);
+        gbc.gridx++;
+        panelDBInfo.add(textDBInfoName, gbc);
+        gbc.gridx = 0;
+        gbc.gridy++;
+        panelDBInfo.add(new JLabel("Dateityp:"), gbc);
+        gbc.gridx++;
+        panelDBInfo.add(comboDBInfoType, gbc);
+        gbc.gridx = 0;
+        gbc.gridy++;
+        panelDBInfo.add(new JLabel("Programmpaket:"), gbc);
+        gbc.gridx++;
+        panelDBInfo.add(comboDBInfoPackage, gbc);
+        gbc.gridx = 0;
+        gbc.gridy++;
+        panelDBInfo.add(new JLabel("Version:"), gbc);
+        gbc.gridx++;
+        panelDBInfo.add(textDBInfoVersion, gbc);
+        gbc.gridx = 0;
+        gbc.gridy++;
+        panelDBInfo.add(new JLabel("Beschreibung:"), gbc);
+        gbc.gridx++;
+        gbc.weighty = 1;
+        gbc.fill = GridBagConstraints.BOTH;
+        panelDBInfo.add(scrollPaneDescription, gbc);
+        gbc.gridx = 0;
+        gbc.gridy++;
+        gbc.weighty = 0;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        panelDBInfo.add(new JLabel("Benutzereintrag:"), gbc);
+        gbc.gridx++;
+        panelDBInfo.add(checkDBInfoUser, gbc);
+        gbc.gridy++;
+        panelDBInfo.add(buttonDBInfoAdd, gbc);
+        gbc.gridy++;
+        panelDBInfo.add(buttonDBInfoDel, gbc);
+        panelDBInfo.setBorder(BorderFactory.createTitledBorder("Datenbank-Informationen"));
+
+        // Buttons und DB Info
         JPanel panelButtons = new JPanel(new GridBagLayout());
 
-        GridBagConstraints gbc = new GridBagConstraints();
+        gbc = new GridBagConstraints();
         gbc.fill = GridBagConstraints.BOTH;
         gbc.gridx = gbc.gridy = 0;
         gbc.insets = new Insets(5, 5, 5, 5);
-        panelButtons.add(buttonOpenDisk, gbc);
+        panelButtons.add(buttonShowFile, gbc);
         gbc.gridy++;
         panelButtons.add(buttonExtractSingleFile, gbc);
         gbc.gridy++;
         panelButtons.add(buttonExtractAllFiles, gbc);
         gbc.gridy++;
-        panelButtons.add(buttonExtractBootloader, gbc);
-        gbc.gridy++;
         panelButtons.add(buttonAddFile, gbc);
         gbc.gridy++;
-        panelButtons.add(buttonSaveImage, gbc);
-        gbc.gridy++;
-        gbc.anchor = GridBagConstraints.SOUTH;
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.gridheight = GridBagConstraints.REMAINDER;
         gbc.weighty = 1;
-        panelButtons.add(buttonExit, gbc);
+        panelButtons.add(panelDBInfo, gbc);
 
-        this.getContentPane().add(panelButtons, BorderLayout.EAST);
+        getContentPane().add(panelButtons, BorderLayout.EAST);
 
+        // Statusleiste
         JPanel panelLabels = new JPanel(new GridLayout(1, 2));
         labelDiskInfo.setHorizontalAlignment(SwingConstants.RIGHT);
         panelLabels.add(labelFileInfo);
         panelLabels.add(labelDiskInfo);
-        this.getContentPane().add(panelLabels, BorderLayout.SOUTH);
+        getContentPane().add(panelLabels, BorderLayout.SOUTH);
 
-        this.pack();
-        this.setVisible(true);
+        pack();
+        setVisible(true);
+        setLocationRelativeTo(null);
 
-        this.setLocationRelativeTo(null);
-
-        buttonExit.addActionListener(controller);
-        buttonOpenDisk.addActionListener(controller);
+        // Listener hinzufügen
+        buttonShowFile.addActionListener(controller);
         buttonExtractSingleFile.addActionListener(controller);
         buttonExtractAllFiles.addActionListener(controller);
         buttonExtractBootloader.addActionListener(controller);
         buttonAddFile.addActionListener(controller);
-        buttonSaveImage.addActionListener(controller);
+        buttonDBInfoAdd.addActionListener(controller);
+        buttonDBInfoDel.addActionListener(controller);
 
-        this.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        fileTable.getSelectionModel().addListSelectionListener(controller);
+
+        this.setIconImage((new ImageIcon(this.getClass().getClassLoader().getResource("Images/SCPDisk.png"))).getImage());
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
     }
 
     /**
-     * Aktualisiert die Ansicht
+     * Aktualisiert die Ansicht.
      */
     void updateView() {
         ((SCPDiskTableModel) fileTable.getModel()).fireTableDataChanged();
         labelFileInfo.setText(diskModel.getImageName());
         labelDiskInfo.setText(diskModel.getDiskInfo());
         boolean diskLoaded = diskModel.diskLoaded();
+        buttonShowFile.setEnabled(diskLoaded);
+        menuShowFile.setEnabled(diskLoaded);
         buttonExtractSingleFile.setEnabled(diskLoaded);
+        menuExtractSingleFile.setEnabled(diskLoaded);
         buttonExtractAllFiles.setEnabled(diskLoaded);
-        buttonExtractBootloader.setEnabled(diskLoaded);
+        menuExtractAllFiles.setEnabled(diskLoaded);
+        menuExtractBootloader.setEnabled(diskLoaded);
         buttonAddFile.setEnabled(diskLoaded);
-        buttonSaveImage.setEnabled(diskLoaded);
+        menuSaveImage.setEnabled(diskLoaded);
+        buttonDBInfoAdd.setEnabled(diskLoaded && fileTable.getSelectedRow() != -1);
+        buttonDBInfoDel.setEnabled(diskLoaded && fileTable.getSelectedRow() != -1);
     }
 
     /**
@@ -193,7 +390,7 @@ public class SCPDiskViewer extends JFrame {
      *
      * @author Dirk Bräuer
      */
-    private class SCPDiskController implements ActionListener {
+    private class SCPDiskController implements ActionListener, ListSelectionListener {
 
         /**
          * Verarbeitet ein Action-Event
@@ -202,35 +399,50 @@ public class SCPDiskViewer extends JFrame {
          */
         @Override
         public void actionPerformed(ActionEvent e) {
-            if (e.getSource() == buttonOpenDisk) {
+            if (e.getSource() == menuOpenDisk) {
                 JFileChooser loadDialog = new JFileChooser("./disks/");
                 if (loadDialog.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
                     File image = loadDialog.getSelectedFile();
                     diskModel.readImage(image);
                 }
-            } else if (e.getSource() == buttonExtractSingleFile) {
-                int selectedRow = fileTable.getSelectedRow();
-                if (selectedRow != -1) {
-                    SCPFile file = diskModel.getFiles().get(selectedRow);
+            } else if (e.getSource() == menuImportFolder) {
+                JFileChooser loadDialog = new JFileChooser("./disks/");
+                loadDialog.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+                if (loadDialog.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
+                    File folder = loadDialog.getSelectedFile();
+                    diskModel.readFolder(folder);
+                }
+            } else if (e.getSource() == buttonShowFile || e.getSource() == menuShowFile) {
+                int selectedRowView = fileTable.getSelectedRow();
+                if (selectedRowView != -1) {
+                    int selectedRowModel = fileTable.convertRowIndexToModel(selectedRowView);
+                    SCPFile file = diskModel.getFiles().get(selectedRowModel);
+                    (new MemoryAnalyzer(file.getData(), file.getFullName())).show();
+                }
+            } else if (e.getSource() == buttonExtractSingleFile || e.getSource() == menuExtractSingleFile) {
+                int selectedRowView = fileTable.getSelectedRow();
+                if (selectedRowView != -1) {
+                    int selectedRowModel = fileTable.convertRowIndexToModel(selectedRowView);
+                    SCPFile file = diskModel.getFiles().get(selectedRowModel);
                     JFileChooser saveDialog = new JFileChooser("./disks/");
                     saveDialog.setSelectedFile(new File(file.getFullName()));
                     if (saveDialog.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
-                        diskModel.saveFile(selectedRow, saveDialog.getSelectedFile());
+                        diskModel.saveFile(selectedRowModel, saveDialog.getSelectedFile());
                     }
                 }
-            } else if (e.getSource() == buttonExtractAllFiles) {
+            } else if (e.getSource() == buttonExtractAllFiles || e.getSource() == menuExtractAllFiles) {
                 JFileChooser saveDialog = new JFileChooser("./disks/");
                 saveDialog.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
                 if (saveDialog.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
                     diskModel.saveAllFiles(saveDialog.getSelectedFile());
                 }
-            } else if (e.getSource() == buttonExtractBootloader) {
+            } else if (e.getSource() == menuExtractBootloader) {
                 JFileChooser saveDialog = new JFileChooser("./disks/");
                 saveDialog.setSelectedFile(new File("bootloader.img"));
                 if (saveDialog.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
                     diskModel.saveBootloader(saveDialog.getSelectedFile());
                 }
-            } else if (e.getSource() == buttonAddFile) {
+            } else if (e.getSource() == buttonAddFile || e.getSource() == menuInsertFile) {
                 JFileChooser loadDialog = new JFileChooser(".");
                 loadDialog.setFileSelectionMode(JFileChooser.FILES_ONLY);
                 if (loadDialog.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
@@ -290,7 +502,7 @@ public class SCPDiskViewer extends JFrame {
                         Logger.getLogger(SCPDiskViewer.class.getName()).log(Level.SEVERE, null, ex);
                     }
                 }
-            } else if (e.getSource() == buttonSaveImage) {
+            } else if (e.getSource() == menuSaveImage) {
                 JFileChooser saveDialog = new JFileChooser("./disks/");
                 saveDialog.setFileSelectionMode(JFileChooser.FILES_ONLY);
                 if (saveDialog.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
@@ -301,8 +513,60 @@ public class SCPDiskViewer extends JFrame {
                         diskModel.saveImage(saveFile);
                     }
                 }
-            } else if (e.getSource() == buttonExit) {
+            } else if (e.getSource() == buttonDBInfoAdd) {
+                int selectedRowView = fileTable.getSelectedRow();
+                if (selectedRowView != -1) {
+                    int selectedRowModel = fileTable.convertRowIndexToModel(selectedRowView);
+                    String md5 = diskModel.getFiles().get(selectedRowModel).getMD5();
+                    FileInfo info = new FileInfo(textDBInfoName.getText(), comboDBInfoType.getSelectedItem().toString(), comboDBInfoPackage.getSelectedItem().toString(), textDBInfoVersion.getText(), textDBInfoDescription.getText(), checkDBInfoUser.isSelected());
+                    diskModel.updateDBInfo(md5, info);
+
+                    comboDBInfoType.setModel(new DefaultComboBoxModel(diskModel.getFileTypes()));
+                    comboDBInfoPackage.setModel(new DefaultComboBoxModel(diskModel.getSoftwarePackages()));
+
+                    comboDBInfoType.setSelectedItem(info.getFileType());
+                    comboDBInfoPackage.setSelectedItem(info.getSoftwarePackage());
+                }
+            } else if (e.getSource() == buttonDBInfoDel) {
+                int selectedRowView = fileTable.getSelectedRow();
+                if (selectedRowView != -1) {
+                    int selectedRowModel = fileTable.convertRowIndexToModel(selectedRowView);
+                    String md5 = diskModel.getFiles().get(selectedRowModel).getMD5();
+                    diskModel.removeDBInfo(md5);
+                }
+            } else if (e.getSource() == menuExit) {
                 SCPDiskViewer.this.dispose();
+            }
+        }
+
+        @Override
+        public void valueChanged(ListSelectionEvent e) {
+            if (e.getSource() == fileTable.getSelectionModel()) {
+                int selectedRowView = fileTable.getSelectedRow();
+
+                textDBInfoName.setEnabled(selectedRowView != -1);
+                comboDBInfoType.setEnabled(selectedRowView != -1);
+                comboDBInfoPackage.setEnabled(selectedRowView != -1);
+                textDBInfoVersion.setEnabled(selectedRowView != -1);
+                textDBInfoDescription.setEnabled(selectedRowView != -1);
+                checkDBInfoUser.setEnabled(selectedRowView != -1);
+                buttonDBInfoAdd.setEnabled(selectedRowView != -1);
+                buttonDBInfoDel.setEnabled(selectedRowView != -1);
+
+                if (selectedRowView != -1) {
+                    int selectedRowModel = fileTable.convertRowIndexToModel(selectedRowView);
+                    SCPFile scpFile = diskModel.getFiles().get(selectedRowModel);
+                    FileInfo fileInfo = diskModel.getFileInfo(scpFile);
+
+                    textDBInfoName.setText(fileInfo != null ? fileInfo.getName() : scpFile.getFullName());
+                    comboDBInfoType.setSelectedItem(fileInfo != null ? fileInfo.getFileType() : "");
+                    comboDBInfoPackage.setSelectedItem(fileInfo != null ? fileInfo.getSoftwarePackage() : "");
+                    textDBInfoVersion.setText(fileInfo != null ? fileInfo.getVersion() : "");
+                    textDBInfoDescription.setText(fileInfo != null ? fileInfo.getDescription() : "");
+                    checkDBInfoUser.setSelected(fileInfo != null ? fileInfo.isUser() : false);
+
+                    buttonDBInfoDel.setEnabled(fileInfo != null);
+                }
             }
         }
     }
@@ -438,6 +702,67 @@ public class SCPDiskViewer extends JFrame {
          */
         @Override
         public void setValueAt(Object value, int row, int column) {
+        }
+    }
+
+    /**
+     * Renderer für Tabelle mit SCP-Dateien. Färbt die Zeilen entsprechend den
+     * Einträgen in der Datenbank ein.
+     */
+    private class SCPDiskTableRenderer extends DefaultTableCellRenderer {
+
+        /**
+         * Farbe Hellblau
+         */
+        private final Color LIGHT_BLUE = new Color(220, 220, 255);
+        /**
+         * Farbe helles Rot
+         */
+        private final Color LIGHT_RED = new Color(255, 220, 220);
+        /**
+         * Farbe helles Gelb
+         */
+        private final Color LIGHT_YELLOW = new Color(255, 255, 220);
+
+        /**
+         * Gibt den Renderer für die entsprechende Zelle zurück.
+         *
+         * @param table Tabelle
+         * @param value Wert
+         * @param isSelected <code>true</code> wenn Zelle ausgewählt ist
+         * @param hasFocus <code>true</code> wenn Zelle den Fokus besitzt
+         * @param row Zeile
+         * @param column Spalte
+         * @return Anzeigekomponente
+         */
+        @Override
+        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+            Component component = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+            SCPFile file = diskModel.getFiles().get(table.convertRowIndexToModel(row));
+            FileInfo fileInfo = diskModel.getFileInfo(file);
+
+            if (value instanceof Integer) {
+                ((JLabel) component).setHorizontalAlignment(JLabel.RIGHT);
+            } else if (value instanceof Boolean) {
+                component = new JCheckBox();
+                ((JCheckBox) component).setHorizontalAlignment(JLabel.CENTER);
+                ((JCheckBox) component).setSelected(value != null && ((Boolean) value).booleanValue());
+            }
+
+            if (table.getSelectedRow() == row) {
+                component.setBackground(Color.GRAY);
+            } else if (fileInfo == null) {
+                component.setBackground(Color.WHITE);
+            } else {
+                if (file.getData().length == 0) {
+                    component.setBackground(LIGHT_YELLOW);
+                } else if (fileInfo.isUser()) {
+                    component.setBackground(LIGHT_RED);
+                } else {
+                    component.setBackground(LIGHT_BLUE);
+                }
+            }
+            return component;
         }
     }
 }

@@ -64,7 +64,7 @@ public class GlobalClock implements StateSavable {
     /**
      * Registriert ein Modul für die Änderungen an der Systemzeit.
      *
-     * @param module
+     * @param module Zu registrierendes Modul
      */
     public void registerModule(ClockModule module) {
         modules.add(module);

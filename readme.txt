@@ -124,6 +124,8 @@ BOS                ???
 
 Grafikprogramme
 Gedit M/16  2.0    *    P    Unregelmäßiger Start, Darstellungsfehler
+*Gedit M/16  2.0    *        Unregelmäßiger Start, Darstellungsfehler
+*Gedit M/16  1.51  !!!
 Grafik/M16  1.0    **        Darstellungsfehler Tortengrafik
 
 Textverarbeitung
@@ -141,7 +143,9 @@ Dbase              ***       Startet in Kommandozeile
 
 Programmierung
 Basic 1700  1.03   ***
+*Basic 1700  1.03   **       Darstellungsfehler in Listings
 Pascal      3.01   **        Darstellungsfehler im Compiler
+Pascal      3.01   ***
 Fortran            ???
 
 Spiele
@@ -163,6 +167,7 @@ Graphics           ***
 
 Sonstiges
 Messe              ***
+*Meteor             ***
 
 --------------------------------------------------------------------------------
 4. Hinweise zur Bedienung	

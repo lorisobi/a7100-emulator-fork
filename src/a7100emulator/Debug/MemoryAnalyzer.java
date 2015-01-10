@@ -2,12 +2,13 @@
  * MemoryAnalyzer.java
  * 
  * Diese Datei gehört zum Projekt A7100 Emulator 
- * (c) 2011-2014 Dirk Bräuer
+ * (c) 2011-2015 Dirk Bräuer
  * 
  * Letzte Änderungen:
  *   05.04.2014 - Kommentare vervollständigt
  *   12.12.2014 - Übergabe Speicher in Konstruktor
  *   14.12.2014 - Fehler bei ASCII Darstellung behoben
+ *   01.01.2015 - Speicheranzeige mit Byte-Array hinzugefügt
  */
 package a7100emulator.Debug;
 
@@ -25,7 +26,7 @@ import javax.swing.JTable;
 import javax.swing.table.AbstractTableModel;
 
 /**
- * Klasse zum Anzeigen des Speicherinhalts
+ * Klasse zum Anzeigen eines Speicherinhalts.
  *
  * @author Dirk Bräuer
  */
@@ -41,10 +42,10 @@ public class MemoryAnalyzer {
     private final String title;
 
     /**
-     * Erstellt eine neue Speicheranzeige für den systemspeicher
+     * Erstellt eine neue Speicheranzeige für den Systemspeicher
      */
     public MemoryAnalyzer() {
-        this(null, "Systemspeicher");
+        this((Memory) null, "Systemspeicher");
     }
 
     /**
@@ -56,6 +57,17 @@ public class MemoryAnalyzer {
      */
     public MemoryAnalyzer(Memory memory, String title) {
         this.memory = memory;
+        this.title = title;
+    }
+
+    /**
+     * Erstellt eine neue Speicheranzeige
+     *
+     * @param data Speicherinhalt
+     * @param title Fenstertitel
+     */
+    public MemoryAnalyzer(byte[] data, String title) {
+        this.memory = new Memory(data);
         this.title = title;
     }
 
@@ -79,10 +91,11 @@ public class MemoryAnalyzer {
         } catch (InterruptedException ex) {
             Logger.getLogger(MemoryAnalyzer.class.getName()).log(Level.SEVERE, null, ex);
         }
+        frame.setLocationRelativeTo(null);
     }
 
     /**
-     * Tabellenmodell zum anzeigen von Speicherinformationen
+     * Tabellenmodell zum Anzeigen von Speicherinformationen.
      *
      * @author Dirk Bräuer
      */

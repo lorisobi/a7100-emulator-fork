@@ -633,7 +633,7 @@ public class UA880 implements IC {
     /**
      * Zeiger auf Debugger Instanz
      */
-    private final Debugger debugger = new Debugger("UA880_KGS", false);
+    private final Debugger debugger = new Debugger("UA880_KGS", false, "KGS");
     /**
      * Zeiger auf Debugger Informationen
      */
@@ -668,6 +668,10 @@ public class UA880 implements IC {
      * Lokaler Taktzähler
      */
     private double ticks;
+    /**
+     * NMI in Bearbeitung
+     */
+    private boolean nmiInProgress = false;
 
     /**
      * Erstellt einen neuen Prozessor.
@@ -4424,8 +4428,7 @@ public class UA880 implements IC {
      * Aktualisiert die Uhrzeit und lässt die entsprechende Menge an Befehlen
      * ablaufen
      * <p>
-     * TODO: HALT Befehl implementieren
-     * Prüfen ob Berechnung ok ist
+     * TODO: HALT Befehl implementieren Prüfen ob Berechnung ok ist
      *
      * @param amount Anzahl der Zyklen
      */
@@ -4452,6 +4455,12 @@ public class UA880 implements IC {
         if (debugger.isDebug()) {
             debugger.addComment("Verarbeite NMI");
         }
+//        if (BitTest.getBit(kgs.readMemoryByte(0x2803), 4)) {
+//            System.out.println("KGS: Splitgrenzen NMI");
+//        } else {
+//            System.out.println("KGS: Bildende NMI");
+//        }
+
         push(pc);
         iff2 = iff1;
         iff1 = 0;
@@ -4604,6 +4613,16 @@ public class UA880 implements IC {
             interruptsWaiting.add(dis.readInt());
         }
         ticks = dis.readDouble();
+    }
+
+    /**
+     * Gibt an, ob noch ein NMI ansteht bzw. gerade ein NMI bearbeitet wird.
+     *
+     * @return <code>true</code> wenn ein NMI in Bearbeitung ist oder ansteht,
+     * <code>false</code> sonst
+     */
+    public boolean isNmiInProgress() {
+        return nmiInProgress;
     }
 
 }

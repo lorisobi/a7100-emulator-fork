@@ -5,16 +5,16 @@
  * (c) 2011-2014 Dirk Bräuer
  * 
  * Letzte Änderungen:
- *   05.04.2014 Kommentare vervollständigt
- *   31.08.2014 Singleton entfernt
- *   17.11.2014 Kommentare ergänzt
- *
+ *   05.04.2014 - Kommentare vervollständigt
+ *   31.08.2014 - Singleton entfernt
+ *   17.11.2014 - Kommentare ergänzt
+ *   06.01.2015 - Globalen Debugger ergänzt
+ *              - Bezeichner hinzugefügt
  */
 package a7100emulator.Debug;
 
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.PrintStream;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -26,9 +26,13 @@ import java.util.logging.Logger;
 public class Debugger {
 
     /**
+     * Globaler Debugger
+     */
+    private static final Debugger globalDebugger = new Debugger("a7100", false, "");
+    /**
      * Ausgabedatei
      */
-    private PrintStream debugFile = null;
+    private FileWriter debugFile = null;
     /**
      * Gibt an ob der Debugger aktiviert ist
      */
@@ -49,16 +53,23 @@ public class Debugger {
      * Gibt an ob Code-Segmente verwendet werden
      */
     private final boolean useCS;
+    /**
+     * Bezeichnung des Debuggers zur eindeutingen Identifizierung in globaler
+     * Datei.
+     */
+    private final String ident;
 
     /**
      * Erstellt einen neuen Debugger
      *
      * @param filename Dateiname für LOG-File
      * @param useCS Gibt an, ob Codesegmente verwendet werden
+     * @param ident Bezeichner des Debuggers (bspw. Modulname)
      */
-    public Debugger(String filename, boolean useCS) {
+    public Debugger(String filename, boolean useCS, String ident) {
         this.filename = filename;
         this.useCS = useCS;
+        this.ident = ident;
     }
 
     /**
@@ -78,8 +89,8 @@ public class Debugger {
     public void setDebug(boolean debug) {
         if (debug) {
             try {
-                debugFile = new PrintStream(new FileOutputStream("./debug/" + filename + ".log"));
-            } catch (FileNotFoundException ex) {
+                debugFile = new FileWriter("./debug/" + filename + ".log");
+            } catch (IOException ex) {
                 Logger.getLogger(Debugger.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
@@ -93,27 +104,40 @@ public class Debugger {
      * @param debugInfo Debug-Informationen
      */
     public void addLine(DebuggerInfo debugInfo) {
-        String debugString;
-        if (useCS) {
-            debugString = String.format("%04X:%04X [%02X] ", debugInfo.getCs(), debugInfo.getIp(), debugInfo.getOpcode()) + debugInfo.getCode();
-        } else {
-            debugString = String.format("%04X [%02X] ", debugInfo.getIp(), debugInfo.getOpcode()) + debugInfo.getCode();
+        try {
+            String debugString;
+            if (useCS) {
+                debugString = String.format("%04X:%04X [%02X] ", debugInfo.getCs(), debugInfo.getIp(), debugInfo.getOpcode()) + debugInfo.getCode();
+            } else {
+                debugString = String.format("%04X [%02X] ", debugInfo.getIp(), debugInfo.getOpcode()) + debugInfo.getCode();
+            }
+            if (debugInfo.getOperands() != null) {
+                debugString += " (" + debugInfo.getOperands() + ")";
+            }
+            if (globalDebugger.isDebug()) {
+                globalDebugger.debugFile.write(ident + ": " + debugString + "\n");
+                globalDebugger.debugFile.flush();
+            } else {
+                debugFile.write(debugString + "\n");
+                debugFile.flush();
+            }
+        } catch (IOException ex) {
+            Logger.getLogger(Debugger.class.getName()).log(Level.SEVERE, null, ex);
         }
-        if (debugInfo.getOperands() != null) {
-            debugString += " (" + debugInfo.getOperands() + ")";
-        }
-        debugFile.println(debugString);
-        debugFile.flush();
     }
 
     /**
      * Fügt einen Kommentar zur Debug-Ausgabe hinzu
      *
-     * @param comment
+     * @param comment Kommentar
      */
     public void addComment(String comment) {
-        debugFile.println(comment);
-        debugFile.flush();
+        try {
+            debugFile.write(comment + "\n");
+            debugFile.flush();
+        } catch (IOException ex) {
+            Logger.getLogger(Debugger.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }
 
     /**
@@ -141,5 +165,14 @@ public class Debugger {
      */
     public int getDebugStart() {
         return debugStart;
+    }
+
+    /**
+     * Gibt die globale DebuggerInstanz zurück
+     *
+     * @return globale Debugger Instanz
+     */
+    public static Debugger getGlobalInstance() {
+        return globalDebugger;
     }
 }

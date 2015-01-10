@@ -650,9 +650,20 @@ public final class KGS implements IOModule, ClockModule {
 
     /**
      * Gibt die Referenz auf die ABG zurück.
+     *
      * @return ABG
      */
     public ABG getABG() {
         return abg;
+    }
+
+    /**
+     * Gibt an, ob noch ein NMI ansteht bzw. gerade ein NMI bearbeitet wird.
+     *
+     * @return <code>true</code> wenn ein NMI in Bearbeitung ist oder ansteht,
+     * <code>false</code> sonst
+     */
+    boolean isNMIInProgress() {
+        return cpu.isNmiInProgress();
     }
 }

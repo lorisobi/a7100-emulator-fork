@@ -2,14 +2,13 @@
  * Memory.java
  * 
  * Diese Datei gehört zum Projekt A7100 Emulator 
- * (c) 2011-2014 Dirk Bräuer
+ * (c) 2011-2015 Dirk Bräuer
  * 
  * Letzte Änderungen:
- *   05.04.2014 Kommentare vervollständigt
- *
+ *   05.04.2014 - Kommentare vervollständigt
+ *   01.01.2015 - Konstruktor mit Byte Array hinzugefügt
  */
 package a7100emulator.Tools;
-
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -66,12 +65,22 @@ public class Memory {
     private final byte[] memory;
 
     /**
-     * Erstellt einen neuen Speicher
+     * Erstellt einen neuen Speicher.
      *
      * @param size Größe in Byte
      */
     public Memory(int size) {
         memory = new byte[size];
+    }
+
+    /**
+     * Erstellt einen neuen Speicher basierend auf einem Byte Array.
+     *
+     * @param data Speicherinhalt
+     */
+    public Memory(byte[] data) {
+        memory = new byte[data.length];
+        System.arraycopy(data, 0, memory, 0, data.length);
     }
 
     /**
@@ -153,11 +162,12 @@ public class Memory {
         result = ((hb << 8) | (lb & 0xFF));
         return result & 0xFFFF;
     }
-    
+
     /**
      * Gibt die Größe des Speichers in bytes zurück
+     *
      * @return Speichergröße
-     */ 
+     */
     public int getSize() {
         return memory.length;
     }
