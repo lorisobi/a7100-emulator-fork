@@ -2,11 +2,10 @@
  * SCPFileModel.java
  * 
  * Diese Datei gehört zum Projekt A7100 Emulator 
- * (c) 2011-2014 Dirk Bräuer
+ * (c) 2011-2015 Dirk Bräuer
  * 
  * Letzte Änderungen:
- *   30.09.2014 Erstellt
- *
+ *   30.09.2014 - Erstellt
  */
 package a7100emulator.Tools;
 

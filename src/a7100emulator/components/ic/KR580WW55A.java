@@ -2,13 +2,12 @@
  * KR580WW55A.java
  * 
  * Diese Datei gehört zum Projekt A7100 Emulator 
- * (c) 2011-2014 Dirk Bräuer
+ * (c) 2011-2015 Dirk Bräuer
  * 
  * Letzte Änderungen:
  *   03.04.2014 - Kommentare vervollständigt
  *   18.11.2014 - getBit durch BitTest.getBit ersetzt
  *              - Interface IC implementiert
- *
  */
 package a7100emulator.components.ic;
 

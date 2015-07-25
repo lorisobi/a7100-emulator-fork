@@ -23,7 +23,7 @@ verbreitet werden, solange die folgenden Bedingungen erfüllt sind:
   4. Alle Programmteile müssen für die Weitergabe unverändert bleiben. 
      Insbesondere dürfen weder Programmname, Name des Autors noch die 
      vorliegenden Lizenzinformationen verändert werden.
-  5. Die Software darf ohne Einwilligung des Autors nicht Disassembliert
+  5. Die Software darf ohne Einwilligung des Autors nicht disassembliert
      werden.
   6. Die für den Emulator benötigten EPROM- und Diskettenabbilder unterliegen
      ggf. weiteren Lizenzbestimmungen. Der Anwender verpflichtet sich diese bei
@@ -39,6 +39,28 @@ verbreitet werden, solange die folgenden Bedingungen erfüllt sind:
 --------------------------------------------------------------------------------
 2. Letzte Änderungen
 
+  v0.8.40 - 24.07.2015
+  Neue Features
+    - Direktes Schreiben in Grafikpuffer für deutlich schnellere Ausgabe
+    - Blinken implementiert
+    - Splitscreen überarbeitet
+    - Debugger KGS und ZVE zusammengefasst
+    - ALT und weitere Tasten implementiert
+    - Tasten für Grafikarbeit vervollständigt
+  Neuerungen im SCP-Disketten-Tool:
+    - MD5-Datenbank für offizielle und benutzerdefinierte Dateien
+    - Einlesen von Verzeichnissen
+    - Anzeigen von Dateien
+  Änderungen/Bugfixes:
+    - OPS Paritätsprüfung überarbeitet
+    - CMPS Befehl korrigiert
+    - Fehler in DAA,AAA und AAS behoben
+    - Falsche Tastatursteuerfolgen korrigiert
+  Softwarekompatibilität:
+    - Läuft mit kleinen Einschränkungen -> Läuft : BASIC 1700 1.03, Pascal 3.01
+    - Nicht getestet -> Läuft nicht: Gedit 1.51
+    - Nicht getestet -> Läuft: Meteor
+  ----------------------------------------
   v0.7.90 - 19.12.2014
   Neue Features
     - KGS/ABG neu implementiert mit Emulation des UA880 Subsystems
@@ -109,8 +131,7 @@ Status:  *** - Funktioniert soweit getestet
          !!! - Startet nicht
          !!  - Absturz nach Titel          
          ??? - Nicht getestet    
-Hacks :  P - Paritätsprüfung OPS abschalten
-         K - Tastaturreset abschalten
+Hacks :  K - Tastaturreset abschalten
                           
 Programm Version Status Hack Anmerkungen
 
@@ -123,9 +144,9 @@ MUTOS              !!        Hängt in HLT Befehl / Trap
 BOS                ???
 
 Grafikprogramme
-Gedit M/16  2.0    *    P    Unregelmäßiger Start, Darstellungsfehler
-*Gedit M/16  2.0    *        Unregelmäßiger Start, Darstellungsfehler
-*Gedit M/16  1.51  !!!
+Gedit M/16  2.0    *         Unregelmäßiger Start, Darstellungsfehler
+Gedit M/16  1.51   !!!
+Gedit M/16  1.02   ???
 Grafik/M16  1.0    **        Darstellungsfehler Tortengrafik
 
 Textverarbeitung
@@ -143,8 +164,6 @@ Dbase              ***       Startet in Kommandozeile
 
 Programmierung
 Basic 1700  1.03   ***
-*Basic 1700  1.03   **       Darstellungsfehler in Listings
-Pascal      3.01   **        Darstellungsfehler im Compiler
 Pascal      3.01   ***
 Fortran            ???
 
@@ -167,7 +186,7 @@ Graphics           ***
 
 Sonstiges
 Messe              ***
-*Meteor             ***
+Meteor             ***
 
 --------------------------------------------------------------------------------
 4. Hinweise zur Bedienung	
@@ -184,7 +203,7 @@ abgelegt werden:
     
 Andere als die angegebenen Versionen wurden bisher nicht getestet.
 
-4.2 Arbeit mit Disketten
+4.2 Arbeiten mit Disketten
 4.2.1 Diskettenabbilder
 Seit v0.6.20 werden beliebige RAW-Abbilder unterstützt. Dabei müssen durch den
 Benutzer beim Laden des Images die Formatparameter festgelegt werden. Als
@@ -195,10 +214,21 @@ Teledisk- (TD0), Imagedisk- (IMD) und Catweasel- (DMK) Abbilder unterstützt.
 Veränderte Disketten werden nicht automatisch in der Binärdatei geändert. Das
 Speichern muss über Geräte->Laufwerk X->Speicher Image erfolgen.
 
-4.2.3 SCP-Disk Betrachter
+4.2.3 SCP-Disk Tool
 Der Diskbetrachter ermöglicht das Lesen von SCP-Disketten sowie das extrahieren
 der darauf enthaltenen Dateien. Seit Version v0.7.90 können auch Dateien dem 
 Image hinzugefügt werden. Auch hier werden nur Binärdateien unterstützt.
+
+Seit Version v0.8.40 verfügt das SCP-Disk Tool über eine Datenbankfunktion. Mit
+deren Hilfe lassen sich Dateien auf Diskettenabbildern mit denen aus einer 
+Datenbank mittels MD5-Prüfsummen abgleichen. Die Datenbank umfasst einen System-
+und einen Benutzerteil, repräsentiert durch die Dateien system.dbd und user.dbd.
+Die Datei system.dbd wird mit dem Emulator ausgeliefert und enthält die von mir
+geprüften Informationen. Sollten sich dabei Fehler eingeschlichen haben so teilt
+mir dies bitte mit.
+Benutzer können ihre eigenen Dateien in user.dbd verwalten. Informationen in
+system.dbd sollten nicht verändert werden, da diese ggf. bei einem neuen Release
+des Emulators überschrieben werden.  
 
 4.3 Konfiguration des A7100
 Im der aktuellen Version ist der A7100 mit folgenden Moduln bestückt:
@@ -212,12 +242,24 @@ Im der aktuellen Version ist der A7100 mit folgenden Moduln bestückt:
  entsprechen weitestgehend denen der PC-Tastatur. Die Sondertasten sind wie
  folgt zugeordnet, wobei noch nicht alle Tasten der K7637 verwendet werden
  können:
-    - F1-F12          ->    PF1-PF12
-    - Pause           ->    Break
-    - Pos1            ->    PA1
-    - Shift+Pos1      ->    PA2
-    - Ende            ->    PA3
-    - Shift+Ende      ->    Pfeil nach links oben
+    - F1-F12           ->    PF1-PF12
+    - Alt              ->    ALT (Funktioniert noch nicht für alle Tasten)
+    - Shift+Einfg      ->    INS LINE
+    - Shift+Entf       ->    DEL LINE
+    - BildAuf          ->    ERASE EOF
+    - Shift+BildAuf    ->    ERASE INP
+    - BildRunter       ->    DUP
+    - Shift+BildRunter ->    FM
+    - Shift+ESC        ->    RESET
+    - Shift+Backspace  ->    CE
+    - Pause            ->    Break
+    - Pos1             ->    PA1
+    - Shift+Pos1       ->    PA2
+    - Ende             ->    PA3
+    - Shift+Ende       ->    Pfeil nach links oben
+    - Druck            ->    Line Feed
+    - Shift+Druck      ->    CLEAR
+    - Shift+Esc        ->    RESET
 
 -------------------------------------------------------------------------------- 
 5. Bekannte Fehler / Nicht unterstützte Funktionen
@@ -231,12 +273,11 @@ neustarten. Außerdem sollten bei Problemen die Tastatureingaben nicht zu schnel
 hintereinander ausgeführt werden.
 
 Hacks:
-Der Tastaturcontroller und die Paritätsprüfung der OPS-Module sind noch nicht
-vollständig bzw. noch nicht korrekt implementiert. Um dennoch gegenwärtig 
-möglichst viel Software zu unterstützen, lässt sich über das Menü Hacks die
-Funktionalität der Komponenten zur Laufzeit ändern. Welche Änderungen für
-welche Software notwendig ist, lässt sich aus der Softwarekompatibilitätsliste
-entnehmen.
+Der Tastaturcontroller ist noch nicht vollständig bzw. noch nicht korrekt 
+implementiert. Um dennoch gegenwärtig möglichst viel Software zu unterstützen, 
+lässt sich über das Menü Hacks die Funktionalität der Komponenten zur Laufzeit 
+ändern. Welche Änderung für welche Software notwendig ist, lässt sich aus der
+Softwarekompatibilitätsliste entnehmen.
 
 KES Simulation:
 Der UA880 auf dem KES wird momentan noch simuliert. Dies stellt jedoch in den
@@ -245,16 +286,6 @@ meisten Fällen kein Problem dar.
 Keine Frontbaugruppe:
 Die Funktionen der Frontbaugruppe "Bereitschaft Ferneinschaltung" sowie der
 Tongeber werden nicht unterstützt. 
-
-Performance:
-Die Emulation der KGS-CPU und das damit verbundene ständige Berechnen der
-Anzeige aus den Bildwiederholspeichern der ABG führt dazu, dass der Emulator
-in Version v0.7.90 deutlich langsamer läuft als in den vorherigen Versionen.
-
-Probleme bei der Darstellung:
-Blinkender Text wird momentan nicht unterstützt. Zusätzlich gibt es Probleme bei
-der Verwendung einer Splitgrenze. Der Alphanumerikteil wird in diesem Fall 
-fehlerhaft dargestellt.
 
 --------------------------------------------------------------------------------
 6. Unterstützung

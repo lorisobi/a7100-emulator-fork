@@ -2,14 +2,13 @@
  * MMS16Bus.java
  * 
  * Diese Datei gehört zum Projekt A7100 Emulator 
- * (c) 2011-2014 Dirk Bräuer
+ * (c) 2011-2015 Dirk Bräuer
  * 
  * Letzte Änderungen:
  *   07.08.2014 - Erstellt
  *   16.11.2014 - Clock-Funktionalität entfernt
  *   18.11.2014 - Speichern und Laden implementiert
  *              - Interface StateSavable implementiert
- *
  */
 package a7100emulator.components.system;
 

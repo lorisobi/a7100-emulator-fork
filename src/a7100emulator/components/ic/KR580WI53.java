@@ -2,7 +2,7 @@
  * KR580WI53.java
  * 
  * Diese Datei gehört zum Projekt A7100 Emulator 
- * (c) 2011-2014 Dirk Bräuer
+ * (c) 2011-2015 Dirk Bräuer
  * 
  * Letzte Änderungen:
  *   03.04.2014 - Kommentare vervollständigt
@@ -10,7 +10,6 @@
  *   27.07.2014 - Puffer für kleine Aktualisierungszeiten hinzugefügt
  *              - Implementierung Mode 0, 2 und 3
  *              - Interface IC implementiert
- *
  */
 package a7100emulator.components.ic;
 

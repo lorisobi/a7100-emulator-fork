@@ -8,6 +8,7 @@
  *   30.12.2014 - Erste Version
  *   01.01.2015 - Funktionsfähige Version
  *   02.01.2014 - Kommentare ergänzt
+ *   24.07.2015 - Datenbank exportieren ergänzt
  */
 package a7100emulator.Apps.SCPDiskViewer;
 
@@ -15,8 +16,10 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -98,7 +101,6 @@ public class FileDatabaseManager {
         } catch (Exception ex) {
             Logger.getLogger(FileDatabaseManager.class.getName()).log(Level.SEVERE, null, ex);
         }
-
     }
 
     /**
@@ -162,7 +164,7 @@ public class FileDatabaseManager {
 
     /**
      * Schreibt einen Datensatz in eine Datenbank.
-     * 
+     *
      * @param dos Ausgabestrom zur Datei
      * @param md5 MD5 Hash
      * @param fileInfo Dateiinformationen
@@ -178,8 +180,9 @@ public class FileDatabaseManager {
     }
 
     /**
-     * Gibt ein sortiertes Array aller in der Datenbank vorhandenen Dateitypen zurück.
-     * 
+     * Gibt ein sortiertes Array aller in der Datenbank vorhandenen Dateitypen
+     * zurück.
+     *
      * @return Array mit Dateitypen
      */
     String[] getFileTypes() {
@@ -191,7 +194,9 @@ public class FileDatabaseManager {
     }
 
     /**
-     * Gibt ein sortiertes Array aller in der Datenbank vorhandenen Software-Pakete zurück.
+     * Gibt ein sortiertes Array aller in der Datenbank vorhandenen
+     * Software-Pakete zurück.
+     *
      * @return Array mit Softwarepaketen
      */
     String[] getSoftwarePackages() {
@@ -204,9 +209,33 @@ public class FileDatabaseManager {
 
     /**
      * Löscht einen Eintrag aus der Datenbank.
+     *
      * @param md5 MD5-Hash
      */
     void removeFileInfo(String md5) {
         fileDatabase.remove(md5);
+    }
+
+    /**
+     * Speichert den Inhalt der Datenbank in ein CSV File.
+     *
+     * @param saveFile Export Datei
+     * @param user <code>true</code> wenn Benutzereinträge exportiert werden
+     * sollen, <code>false</code> für Systemeinträge
+     */
+    void exportDB(File saveFile, boolean user) {
+        PrintStream exportFile;
+        try {
+            exportFile = new PrintStream(new FileOutputStream(saveFile));
+            exportFile.println("MD5;Name;Dateityp;Softwarepaket;Version;Beschreibung");
+            for (Entry<String, FileInfo> dbEntry : fileDatabase.entrySet()) {
+                if ((dbEntry.getValue().isUser() && user) || (!dbEntry.getValue().isUser() && !user)) {
+                    exportFile.println(dbEntry.getKey() + ";" + dbEntry.getValue().getName() + ";" + dbEntry.getValue().getFileType() + ";" + dbEntry.getValue().getSoftwarePackage() + ";" + dbEntry.getValue().getVersion() + ";" + dbEntry.getValue().getDescription());
+                }
+            }
+            exportFile.close();
+        } catch (FileNotFoundException ex) {
+            Logger.getLogger(FileDatabaseManager.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }
 }

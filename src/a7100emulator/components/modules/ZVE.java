@@ -2,13 +2,13 @@
  * ZVE.java
  * 
  * Diese Datei gehört zum Projekt A7100 Emulator 
- * (c) 2011-2014 Dirk Bräuer
+ * (c) 2011-2015 Dirk Bräuer
  * 
  * Letzte Änderungen:
- *   02.04.2014 Kommentare vervollständigt
- *   23.07.2014 Aktualisierung Systemzeit an USART weitergeleitet
- *   09.08.2014 Zugriffe auf SystemMemory, SystemPorts und SystemClock durch MMS16Bus ersetzt
- *
+ *   02.04.2014 - Kommentare vervollständigt
+ *   23.07.2014 - Aktualisierung Systemzeit an USART weitergeleitet
+ *   09.08.2014 - Zugriffe auf SystemMemory, SystemPorts und SystemClock durch
+ *                MMS16Bus ersetzt
  */
 package a7100emulator.components.modules;
 

@@ -8,6 +8,7 @@
  *   05.04.2014 - Kommentare vervollständigt
  *   16.12.2014 - Hinzufügen von Datein implementiert
  *   01.01.2015 - Datenbank implementiert
+ *   24.07.2015 - Datenbank exportieren ergänzt
  */
 package a7100emulator.Apps.SCPDiskViewer;
 
@@ -574,5 +575,16 @@ public class SCPDiskModel {
         SCPDiskModel model = new SCPDiskModel();
         SCPDiskViewer view = new SCPDiskViewer(model);
         model.setView(view);
+    }
+
+    /**
+     * Speichert den Inhalt der Datenbank in ein CSV File.
+     *
+     * @param saveFile Export Datei
+     * @param user <code>true</code> wenn Benutzereinträge exportiert werden
+     * sollen, <code>false</code> für Systemeinträge
+     */
+    void exportDB(File saveFile, boolean user) {
+        databaseManager.exportDB(saveFile, user);
     }
 }

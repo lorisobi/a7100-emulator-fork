@@ -2,7 +2,7 @@
  * Keyboard.java
  * 
  * Diese Datei gehört zum Projekt A7100 Emulator 
- * (c) 2011-2014 Dirk Bräuer
+ * (c) 2011-2015 Dirk Bräuer
  * 
  * Letzte Änderungen:
  *   05.04.2014 - Kommentare vervollständigt
@@ -10,7 +10,13 @@
  *              - Speichern und Laden des Puffers
  *              - Systemzeit implementiert
  *   18.11.2014 - Interface StateSavable implementiert
- *
+ *   22.02.2015 - Grafische Kommandos implementiert
+ *              - Alt implementiert
+ *   27.02.2015 - CE, Pfeil nach unten - implementiert
+ *   15.07.2015 - Fehlendes break ergänzt
+ *   22.07.2015 - ERASE INP, ERASE EOF, FM, DUP, INS LINE, DEL LINE ergänzt
+ *   24.07.2015 - RESET, CLEAR ergänzt
+ *              - Fehler in Steuerfolgen behoben 0 durch O ersetzt
  */
 package a7100emulator.components.system;
 
@@ -26,7 +32,8 @@ import java.util.LinkedList;
 /**
  * Klasse zur Realisierung der A7100 Tastaturen
  * <p>
- * TODO: Tastaturtyp K7672 noch nicht implementiert.
+ * TODO: Tastaturtyp K7672 noch nicht implementiert, wenige Tasten noch nicht
+ * implementiert.
  *
  * @author Dirk Bräuer
  */
@@ -48,21 +55,21 @@ public class Keyboard implements KeyListener, StateSavable {
     }
     // 1:1
     // Alphanumerik: A-Z, a-z, 1-0
-    // Sondertasten: Backspace, ESC, Enter, Tabulator, Caps Lock, DEL, Ctrl, Alt
+    // Sondertasten: Backspace, ESC, Enter, Tabulator, DEL, Ctrl, Alt
     // Navigation  : Pfeile
     // Symbole     : ! " § $ % & / ( ) = < > , ; . : - _ # + * ? ´ `
     // Umsetzungen:
-    // PF1-PF12 --> F1-F12
-    // ^        --> '
-    // ö        --> \
-    // Ö        --> |
-    // ä        --> [
-    // Ä        --> {
-    // ü        --> ]
-    // Ü        --> }
-    // ß        --> Überstrich
-    // Pause    --> Break
-    // Insert   --> INS Mode
+    // ^            --> = (Ziffernblock)
+    // '            --> ^
+    // ö            --> \
+    // Ö            --> |
+    // ä            --> [
+    // Ä            --> {
+    // ü            --> ]
+    // Ü            --> }
+    // ß            --> Überstrich
+    // F1-F12       --> PF1-PF12
+    // Pause        --> Break
     // Shift+Insert --> Insert Line
     // Shift+Delete --> Delete Line
     // Home         --> PA1
@@ -73,6 +80,15 @@ public class Keyboard implements KeyListener, StateSavable {
     // Shift+PageUp --> Erase INP
     // PageDn       --> DUP
     // Shift+PageDn --> FM
+    // Print        --> Line Feed
+    // Shift+Print  --> Clear
+    // Shift+Esc    --> RESET
+    // TODO:
+    // Insert       --> INS Mode
+    // Rollen       --> MOD 2
+    // Steuerzeichen : 1B, 1C, 1D, 1E, 1F
+    // Alternativzeichen : DE, DF, E0
+    // CAPS-LOCK
     /**
      * USART Controller
      */
@@ -171,12 +187,17 @@ public class Keyboard implements KeyListener, StateSavable {
     @Override
     public void keyReleased(KeyEvent e) {
         // TODO: Grafiktasten vollständig implementieren
+        // TODO: MOD 2 implementieren
+        // TODO: INS MOD implementieren
+        // TODO: CAPS implementieren
+        // TODO: ALT als Zustand implementieren
+        // TODO: CTRL+ALT implementieren
         boolean keyShift = e.isShiftDown();
         boolean keyCtrl = e.isControlDown();
         boolean keyAlt = e.isAltDown();
-        boolean keyAltGr = e.isAltGraphDown();
 
-        //System.out.println(Integer.toHexString(code)+" "+e.getKeyChar());
+//        boolean keyAltGr = e.isAltGraphDown();
+//        System.out.println(Integer.toHexString(e.getKeyCode())+" "+e.getKeyChar());
 //        if (e.isAltDown()) {
 //            System.out.println("Alt");
 //        }
@@ -185,112 +206,112 @@ public class Keyboard implements KeyListener, StateSavable {
 //        }
         switch (e.getKeyCode()) {
             case KeyEvent.VK_0:
-                sendByte(keyShift ? 0x3D : 0x30);
+                sendByte(keyCtrl ? 0x8A : keyShift ? 0x3D : 0x30);
                 break;
             case KeyEvent.VK_1:
-                sendByte(keyShift ? 0x21 : 0x31);
+                sendByte(keyCtrl ? 0x97 : keyShift ? 0x21 : 0x31);
                 break;
             case KeyEvent.VK_2:
-                sendByte(keyShift ? 0x22 : 0x32);
+                sendByte(keyCtrl ? 0x96 : keyShift ? 0x22 : 0x32);
                 break;
             case KeyEvent.VK_3:
-                sendByte(keyShift ? 0x40 : 0x33);
+                sendByte(keyShift ? (keyAlt ? 0xC0 : 0x40) : 0x33);
                 break;
             case KeyEvent.VK_4:
-                sendByte(keyShift ? 0x24 : 0x34);
+                sendByte(keyCtrl ? 0x84 : keyShift ? 0x24 : 0x34);
                 break;
             case KeyEvent.VK_5:
-                sendByte(keyShift ? 0x25 : 0x35);
+                sendByte(keyCtrl ? 0x82 : keyShift ? 0x25 : 0x35);
                 break;
             case KeyEvent.VK_6:
-                sendByte(keyShift ? 0x26 : 0x36);
+                sendByte(keyCtrl ? 0x80 : keyShift ? 0x26 : 0x36);
                 break;
             case KeyEvent.VK_7:
-                sendByte(keyShift ? 0x2F : 0x37);
+                sendByte(keyCtrl ? 0x81 : keyShift ? 0x2F : 0x37);
                 break;
             case KeyEvent.VK_8:
-                sendByte((keyAlt && keyCtrl) ? 0x5B : keyShift ? 0x28 : 0x38);
+                sendByte(keyCtrl ? 0x83 : keyShift ? 0x28 : 0x38);
                 break;
             case KeyEvent.VK_9:
-                sendByte((keyAlt && keyCtrl) ? 0x5D : keyShift ? 0x29 : 0x39);
+                sendByte(keyCtrl ? 0x85 : keyShift ? 0x29 : 0x39);
                 break;
             case KeyEvent.VK_A:
-                sendByte(keyCtrl ? 0x01 : keyShift ? 0x41 : 0x61);
+                sendByte(keyCtrl ? 0x01 : keyShift ? (keyAlt ? 0xC1 : 0x41) : (keyAlt ? 0xE1 : 0x61));
                 break;
             case KeyEvent.VK_B:
-                sendByte(keyCtrl ? 0x02 : keyShift ? 0x42 : 0x62);
+                sendByte(keyCtrl ? 0x02 : keyShift ? (keyAlt ? 0xC2 : 0x42) : (keyAlt ? 0xE2 : 0x62));
                 break;
             case KeyEvent.VK_C:
-                sendByte(keyCtrl ? 0x03 : keyShift ? 0x43 : 0x63);
+                sendByte(keyCtrl ? 0x03 : keyShift ? (keyAlt ? 0xC3 : 0x43) : (keyAlt ? 0xE3 : 0x63));
                 break;
             case KeyEvent.VK_D:
-                sendByte(keyCtrl ? 0x04 : keyShift ? 0x44 : 0x64);
+                sendByte(keyCtrl ? 0x04 : keyShift ? (keyAlt ? 0xC4 : 0x44) : (keyAlt ? 0xE4 : 0x64));
                 break;
             case KeyEvent.VK_E:
-                sendByte(keyCtrl ? 0x05 : keyShift ? 0x45 : 0x65);
+                sendByte(keyCtrl ? 0x05 : keyShift ? (keyAlt ? 0xC5 : 0x45) : (keyAlt ? 0xE5 : 0x65));
                 break;
             case KeyEvent.VK_F:
-                sendByte(keyCtrl ? 0x06 : keyShift ? 0x46 : 0x66);
+                sendByte(keyCtrl ? 0x06 : keyShift ? (keyAlt ? 0xC6 : 0x46) : (keyAlt ? 0xE6 : 0x66));
                 break;
             case KeyEvent.VK_G:
-                sendByte(keyCtrl ? 0x07 : keyShift ? 0x47 : 0x67);
+                sendByte(keyCtrl ? 0x07 : keyShift ? (keyAlt ? 0xC7 : 0x47) : (keyAlt ? 0xE7 : 0x67));
                 break;
             case KeyEvent.VK_H:
-                sendByte(keyCtrl ? 0x08 : keyShift ? 0x48 : 0x68);
+                sendByte(keyCtrl ? 0x08 : keyShift ? (keyAlt ? 0xC8 : 0x48) : (keyAlt ? 0xE8 : 0x68));
                 break;
             case KeyEvent.VK_I:
-                sendByte(keyCtrl ? 0x09 : keyShift ? 0x49 : 0x69);
+                sendByte(keyCtrl ? 0x09 : keyShift ? (keyAlt ? 0xC9 : 0x49) : (keyAlt ? 0xE9 : 0x69));
                 break;
             case KeyEvent.VK_J:
-                sendByte(keyCtrl ? 0x0A : keyShift ? 0x4A : 0x6A);
+                sendByte(keyCtrl ? 0x0A : keyShift ? (keyAlt ? 0xCA : 0x4A) : (keyAlt ? 0xEA : 0x6A));
                 break;
             case KeyEvent.VK_K:
-                sendByte(keyCtrl ? 0x0B : keyShift ? 0x4B : 0x6B);
+                sendByte(keyCtrl ? 0x0B : keyShift ? (keyAlt ? 0xCB : 0x4B) : (keyAlt ? 0xEB : 0x6B));
                 break;
             case KeyEvent.VK_L:
-                sendByte(keyCtrl ? 0x0C : keyShift ? 0x4C : 0x6C);
+                sendByte(keyCtrl ? 0x0C : keyShift ? (keyAlt ? 0xCC : 0x4C) : (keyAlt ? 0xEC : 0x6C));
                 break;
             case KeyEvent.VK_M:
-                sendByte(keyCtrl ? 0x0D : keyShift ? 0x4D : 0x6D);
+                sendByte(keyCtrl ? 0x0D : keyShift ? (keyAlt ? 0xCD : 0x4D) : (keyAlt ? 0xED : 0x6D));
                 break;
             case KeyEvent.VK_N:
-                sendByte(keyCtrl ? 0x0E : keyShift ? 0x4E : 0x6E);
+                sendByte(keyCtrl ? 0x0E : keyShift ? (keyAlt ? 0xCE : 0x4E) : (keyAlt ? 0xEE : 0x6E));
                 break;
             case KeyEvent.VK_O:
-                sendByte(keyCtrl ? 0x0F : keyShift ? 0x4F : 0x6F);
+                sendByte(keyCtrl ? 0x0F : keyShift ? (keyAlt ? 0xCF : 0x4F) : (keyAlt ? 0xEF : 0x6F));
                 break;
             case KeyEvent.VK_P:
-                sendByte(keyCtrl ? 0x10 : keyShift ? 0x50 : 0x70);
+                sendByte(keyCtrl ? 0x10 : keyShift ? (keyAlt ? 0xD0 : 0x50) : (keyAlt ? 0xF0 : 0x70));
                 break;
             case KeyEvent.VK_Q:
-                sendByte(keyCtrl ? 0x11 : keyShift ? 0x51 : 0x71);
+                sendByte(keyCtrl ? 0x11 : keyShift ? (keyAlt ? 0xD1 : 0x51) : (keyAlt ? 0xF1 : 0x71));
                 break;
             case KeyEvent.VK_R:
-                sendByte(keyCtrl ? 0x12 : keyShift ? 0x52 : 0x72);
+                sendByte(keyCtrl ? 0x12 : keyShift ? (keyAlt ? 0xD2 : 0x52) : (keyAlt ? 0xF2 : 0x72));
                 break;
             case KeyEvent.VK_S:
-                sendByte(keyCtrl ? 0x13 : keyShift ? 0x53 : 0x73);
+                sendByte(keyCtrl ? 0x13 : keyShift ? (keyAlt ? 0xD3 : 0x53) : (keyAlt ? 0xF3 : 0x73));
                 break;
             case KeyEvent.VK_T:
-                sendByte(keyCtrl ? 0x14 : keyShift ? 0x54 : 0x74);
+                sendByte(keyCtrl ? 0x14 : keyShift ? (keyAlt ? 0xD4 : 0x54) : (keyAlt ? 0xF4 : 0x74));
                 break;
             case KeyEvent.VK_U:
-                sendByte(keyCtrl ? 0x15 : keyShift ? 0x55 : 0x75);
+                sendByte(keyCtrl ? 0x15 : keyShift ? (keyAlt ? 0xD5 : 0x55) : (keyAlt ? 0xF5 : 0x75));
                 break;
             case KeyEvent.VK_V:
-                sendByte(keyCtrl ? 0x16 : keyShift ? 0x56 : 0x76);
+                sendByte(keyCtrl ? 0x16 : keyShift ? (keyAlt ? 0xD6 : 0x56) : (keyAlt ? 0xF6 : 0x76));
                 break;
             case KeyEvent.VK_W:
-                sendByte(keyCtrl ? 0x17 : keyShift ? 0x57 : 0x77);
+                sendByte(keyCtrl ? 0x17 : keyShift ? (keyAlt ? 0xD7 : 0x57) : (keyAlt ? 0xF7 : 0x77));
                 break;
             case KeyEvent.VK_X:
-                sendByte(keyCtrl ? 0x18 : keyShift ? 0x58 : 0x78);
+                sendByte(keyCtrl ? 0x18 : keyShift ? (keyAlt ? 0xD8 : 0x58) : (keyAlt ? 0xF8 : 0x78));
                 break;
             case KeyEvent.VK_Y:
-                sendByte(keyCtrl ? 0x19 : keyShift ? 0x59 : 0x79);
+                sendByte(keyCtrl ? 0x19 : keyShift ? (keyAlt ? 0xD9 : 0x59) : (keyAlt ? 0xF9 : 0x79));
                 break;
             case KeyEvent.VK_Z:
-                sendByte(keyCtrl ? 0x1A : keyShift ? 0x5A : 0x7A);
+                sendByte(keyCtrl ? 0x1A : keyShift ? (keyAlt ? 0xDA : 0x5A) : (keyAlt ? 0xFA : 0x7A));
                 break;
             case KeyEvent.VK_F1:    // PF1
                 sendBytes(new byte[]{0x1B, 0x4F, 0x50});
@@ -329,54 +350,60 @@ public class Keyboard implements KeyListener, StateSavable {
                 sendBytes(new byte[]{0x1B, 0x4F, 0x77});
                 break;
             case KeyEvent.VK_UP:    // Up
-                sendBytes(new byte[]{0x1B, 0x5B, 0x41});
+                sendBytes(keyCtrl ? new byte[]{(byte) 0x9B} : new byte[]{0x1B, 0x5B, 0x41});
                 break;
             case KeyEvent.VK_DOWN:  // Down
-                sendBytes(new byte[]{0x1B, 0x5B, 0x42});
+                sendBytes(keyCtrl ? new byte[]{(byte) 0x9F} : new byte[]{0x1B, 0x5B, 0x42});
                 break;
             case KeyEvent.VK_RIGHT: // Right
-                sendBytes(new byte[]{0x1B, 0x5B, 0x43});
+                sendBytes(keyCtrl ? new byte[]{(byte) 0x9D} : new byte[]{0x1B, 0x5B, 0x43});
                 break;
             case KeyEvent.VK_LEFT:  // Left
-                sendBytes(new byte[]{0x1B, 0x5B, 0x44});
+                sendBytes(keyCtrl ? new byte[]{(byte) 0x8D} : new byte[]{0x1B, 0x5B, 0x44});
                 break;
             case KeyEvent.VK_HOME:
-                if (e.isShiftDown()) {
-                    // PA2
-                    sendBytes(new byte[]{0x1B, 0x30, 0x79});
-                } else {
-                    // PA1
-                    sendBytes(new byte[]{0x1B, 0x30, 0x78});
-                }
+                // PA2 / PA1
+                sendBytes(keyShift ? new byte[]{0x1B, 0x4F, 0x79} : new byte[]{0x1B, 0x4F, 0x78});
                 break;
             case KeyEvent.VK_END:
-                if (e.isShiftDown()) {
-                    // Links Oben
-                    sendBytes(new byte[]{0x1B, 0x5B, 0x48});
-                } else {   
-                    // PA3
-                    sendBytes(new byte[]{0x1B, 0x30, 0x7A});
-                }
+                // Links Oben / PA3
+                sendBytes(keyShift ? new byte[]{0x1B, 0x5B, 0x48} : new byte[]{0x1B, 0x4F, 0x7A});
                 break;
             // Sondertasten
             case KeyEvent.VK_ESCAPE:
-                sendByte(0x1B);
+                sendBytes(keyShift ? new byte[]{0x1B, 0x63} : new byte[]{0x1B});
                 break;
             case KeyEvent.VK_ENTER:
-                sendByte(0x0D);
+                sendBytes(keyCtrl ? new byte[]{0x1B, 0x4F, 0x4D} : new byte[]{0x0D});
                 break;
             case KeyEvent.VK_TAB:
-                sendByte(0x09);
+                sendBytes(keyShift ? new byte[]{0x1B, 0x5B, 0x5A} : new byte[]{0x09});
                 break;
             case KeyEvent.VK_BACK_SPACE:
-                sendByte(0x08);
+                sendByte(keyCtrl ? 0x88 : keyShift ? 0x18 : 0x08);
                 break;
             case KeyEvent.VK_DELETE:
-                sendByte(0x7F);
+                sendBytes(keyShift ? new byte[]{0x1B, 0x5B, 0x4D} : new byte[]{0x7F});
                 break;
             case KeyEvent.VK_PAUSE:
                 System.out.println("Break");
                 MMS16Bus.getInstance().requestInterrupt(1);
+                break;
+            case KeyEvent.VK_PRINTSCREEN:
+                sendBytes(keyCtrl ? new byte[]{(byte) 0x99} : keyShift ? new byte[]{0x1B, 0x5B, 0x32, 0x4A} : new byte[]{0x0A});
+                break;
+            case KeyEvent.VK_PAGE_UP:
+                sendBytes(keyShift ? new byte[]{0x1B, 0x5B, 0x4F} : new byte[]{0x1B, 0x5B, 0x4E});
+                break;
+            case KeyEvent.VK_PAGE_DOWN:
+                sendBytes(keyShift ? new byte[]{0x1B, 0x4F, 0x4F} : new byte[]{0x1B, 0x4F, 0x4E});
+                break;
+            case KeyEvent.VK_INSERT:
+                // TODO: INS MODE
+                sendBytes(keyShift ? new byte[]{0x1B, 0x5B, 0x4C} : new byte[]{});
+                break;
+            case KeyEvent.VK_SCROLL_LOCK:
+                // TODO: MOD 2
                 break;
             // Sonderzeichen
             case KeyEvent.VK_SPACE:
@@ -401,8 +428,12 @@ public class Keyboard implements KeyListener, StateSavable {
                 sendByte(keyShift ? 0x3A : 0x2E);
                 break;
             case KeyEvent.VK_DEAD_ACUTE:
-                sendByte(keyShift ? 0x27 : 0x60);
+                sendByte(keyCtrl ? 0x89 : keyShift ? 0x60 : 0x27);
                 break;
+            case KeyEvent.VK_DEAD_CIRCUMFLEX:
+                sendByte(keyCtrl ? 0x9A : 0x3D);
+                break;
+            // Ziffernblock
             case KeyEvent.VK_NUMPAD0:
                 sendByte(keyCtrl ? 0x8E : 0x30);
                 break;
@@ -433,13 +464,40 @@ public class Keyboard implements KeyListener, StateSavable {
             case KeyEvent.VK_NUMPAD9:
                 sendByte(keyCtrl ? 0x95 : 0x39);
                 break;
+            case KeyEvent.VK_DECIMAL:
+                sendByte(keyCtrl ? 0x86 : 0x2C);
+                break;
+            case KeyEvent.VK_ADD:
+                sendBytes(keyCtrl ? new byte[]{0x1B, 0x5B, 0x69} : new byte[]{0x2B});
+                break;
+            case KeyEvent.VK_DIVIDE:
+                sendByte(keyCtrl ? 0x8B : 0x2F);
+                break;
+            case KeyEvent.VK_MULTIPLY:
+                sendByte(keyCtrl ? 0x8F : 0x2A);
+                break;
+            case KeyEvent.VK_SUBTRACT:
+                sendByte(keyCtrl ? 0x9E : 0x2D);
+                break;
+            // Sonstige
             case 0:
                 switch (e.getKeyChar()) {
                     case 'ß':
-                        sendByte(0x5F);
-                        break;
+                    case '\\':
                     case '?':
-                        sendByte(0x3F);
+                        sendByte(keyCtrl ? 0x98 : keyShift ? 0x3F : keyAlt ? 0xFE : 0x7E);
+                        break;
+                    case 'ä':
+                    case 'Ä':
+                        sendByte(keyShift ? (keyAlt ? 0xDB : 0x7B) : (keyAlt ? 0xFB : 0x5B));
+                        break;
+                    case 'ö':
+                    case 'Ö':
+                        sendByte(keyShift ? (keyAlt ? 0xDC : 0x7C) : (keyAlt ? 0xFC : 0x5C));
+                        break;
+                    case 'ü':
+                    case 'Ü':
+                        sendByte(keyShift ? (keyAlt ? 0xDD : 0x7D) : (keyAlt ? 0xFD : 0x5D));
                         break;
                 }
                 break;
@@ -452,9 +510,12 @@ public class Keyboard implements KeyListener, StateSavable {
      * @param bytes Daten
      */
     public void sendBytes(byte[] bytes) {
+//        System.out.print("Sende Sequenz: ");
         for (byte b : bytes) {
             sendBuffer.offer(b);
+//            System.out.print(String.format("%02X", b));
         }
+//        System.out.println();
     }
 
     /**
@@ -463,6 +524,7 @@ public class Keyboard implements KeyListener, StateSavable {
      * @param b Daten
      */
     private void sendByte(int b) {
+//        System.out.println(String.format("Sende Byte: %02X", b));
         sendBuffer.offer((byte) (b & 0xFF));
     }
 

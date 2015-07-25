@@ -2,13 +2,12 @@
  * IOModule.java
  * 
  * Diese Datei gehört zum Projekt A7100 Emulator 
- * (c) 2011-2014 Dirk Bräuer
+ * (c) 2011-2015 Dirk Bräuer
  * 
  * Letzte Änderungen:
  *   02.04.2014 - Kommentare vervollständigt
  *   09.08.2014 - Umbenannt von Port Module in IOModule
  *   18.11.2014 - Funktionen umbenannt
- *
  */
 package a7100emulator.components.modules;
 

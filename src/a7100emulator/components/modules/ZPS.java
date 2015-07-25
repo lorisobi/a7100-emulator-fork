@@ -6,8 +6,7 @@
  * 
  * Letzte Änderungen:
  *   02.04.2014 - Kommentare vervollständigt
- *   09.08.2014 - Zugriff auf SystemMemory durch MMS16 Bus ersetzt
- *
+ *   09.08.2014 - Zugriff auf SystemMemory durch MMS16Bus ersetzt
  */
 package a7100emulator.components.modules;
 

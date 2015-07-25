@@ -17,6 +17,8 @@
  *   19.12.2014 - Datum für Screenshots auf 24h Anzeige umgestellt
  *   03.01.2015 - Menü Parity Hack entfernt
  *   06.01.2015 - Menü Globaler Debugger und KGS Debugger hinzugefügt
+ *   24.07.2015 - Tabulator für GUI Events entfernt
+ *   25.07.2015 - Untermenü KES ausgeblendet
  */
 package a7100emulator;
 
@@ -157,7 +159,7 @@ public class MainView extends JFrame {
     /**
      * Untermenü Debug - KES
      */
-    private final JMenu menuDebugKES = new JMenu("KES");
+    //private final JMenu menuDebugKES = new JMenu("KES");
     /**
      * Untermenü Debug - ABG
      */
@@ -278,7 +280,7 @@ public class MainView extends JFrame {
     /**
      * Statusanzeige
      */
-    private final JLabel statusBar = new JLabel("Status");
+    //private final JLabel statusBar = new JLabel("Status");
     /**
      * Referenz auf A7100
      */
@@ -291,11 +293,11 @@ public class MainView extends JFrame {
      */
     public MainView(A7100 a7100) {
         super("A7100 Emulator");
-        
+
         this.a7100 = a7100;
         JMenuBar menubar = new JMenuBar();
         menubar.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke("F10"), "none");
-        
+
         menubar.add(menuEmulator);
         menuEmulator.add(menuEmulatorReset);
         menuEmulator.add(menuEmulatorPause);
@@ -305,16 +307,16 @@ public class MainView extends JFrame {
         menuEmulator.add(menuEmulatorLoad);
         menuEmulator.addSeparator();
         menuEmulator.add(menuEmulatorExit);
-        
+
         menuEmulatorReset.addActionListener(controller);
         menuEmulatorPause.addActionListener(controller);
         menuEmulatorSingle.addActionListener(controller);
         menuEmulatorSave.addActionListener(controller);
         menuEmulatorLoad.addActionListener(controller);
         menuEmulatorExit.addActionListener(controller);
-        
+
         menuEmulatorSingle.setEnabled(false);
-        
+
         menubar.add(menuDevices);
         menuDevices.add(menuDevicesDrive0);
         menuDevicesDrive0.add(menuDevicesDrive0Load);
@@ -328,7 +330,7 @@ public class MainView extends JFrame {
         menuDevicesDrive1.add(menuDevicesDrive1Eject);
         menuDevicesDrive1.add(menuDevicesDrive1Empty);
         menuDevicesDrive1.add(menuDevicesDrive1WriteProtect);
-        
+
         menuDevicesDrive0Load.addActionListener(controller);
         menuDevicesDrive0Save.addActionListener(controller);
         menuDevicesDrive0Eject.addActionListener(controller);
@@ -339,7 +341,7 @@ public class MainView extends JFrame {
         menuDevicesDrive1Eject.addActionListener(controller);
         menuDevicesDrive1Empty.addActionListener(controller);
         menuDevicesDrive1WriteProtect.addActionListener(controller);
-        
+
         menubar.add(menuDebug);
         menuDebug.add(menuDebugSystem);
         menuDebugSystem.add(menuDebugGlobalDebuggerSwitch);
@@ -355,7 +357,7 @@ public class MainView extends JFrame {
         menuDebugKGS.add(menuDebugKGSMemoryShow);
         menuDebugKGS.add(menuDebugKGSMemoryDump);
         menuDebugKGS.add(menuDebugKGSCharacters);
-        menuDebug.add(menuDebugKES);
+        //menuDebug.add(menuDebugKES);
         menuDebug.add(menuDebugABG);
         menuDebugABG.add(menuDebugABGAlphanumerics);
         menuDebugABG.add(menuDebugABGGraphics);
@@ -367,7 +369,7 @@ public class MainView extends JFrame {
         menuDebugABG.add(menuDebugABGDumpAlphanumericsPage2);
         menuDebugABG.add(menuDebugABGDumpGraphicsPage1);
         menuDebugABG.add(menuDebugABGDumpGraphicsPage2);
-        
+
         menuDebugGlobalDebuggerSwitch.addActionListener(controller);
         menuDebugSystemMemoryShow.addActionListener(controller);
         menuDebugSystemMemoryDump.addActionListener(controller);
@@ -389,27 +391,28 @@ public class MainView extends JFrame {
         menuDebugABGDumpAlphanumericsPage2.addActionListener(controller);
         menuDebugABGDumpGraphicsPage1.addActionListener(controller);
         menuDebugABGDumpGraphicsPage2.addActionListener(controller);
-        
+
         menubar.add(menuTools);
         menuTools.add(menuToolsSCPDiskTool);
         menuTools.add(menuToolsScreenshot);
-        
+
         menuToolsSCPDiskTool.addActionListener(controller);
         menuToolsScreenshot.addActionListener(controller);
-        
+
         menubar.add(menuHacks);
         menuHacks.add(menuHacksKeyboardReset);
-        
+
         menuHacksKeyboardReset.addActionListener(controller);
-        
+
         menubar.add(menuHelp);
         menuHelp.add(menuHelpAbout);
-        
+
         menuHelpAbout.addActionListener(controller);
-        
+
         this.setJMenuBar(menubar);
         this.add(Screen.getInstance(), BorderLayout.CENTER);
         //this.add(statusBar,BorderLayout.SOUTH);
+        this.setFocusTraversalKeysEnabled(false);
         this.addKeyListener(Keyboard.getInstance());
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         this.setIconImage((new ImageIcon(this.getClass().getClassLoader().getResource("Images/Icon.png"))).getImage());
@@ -553,7 +556,7 @@ public class MainView extends JFrame {
                 JPanel pan_desc = new JPanel();
                 pan_desc.setBorder(BorderFactory.createEmptyBorder(0, 50, 0, 10));
                 pan_desc.setLayout(new GridLayout(2, 1));
-                pan_desc.add(new JLabel("A7100 - Emulator v0.7.90"));
+                pan_desc.add(new JLabel("A7100 - Emulator v0.8.40"));
                 pan_desc.add(new JLabel("2011-2015 Dirk Bräuer"));
                 pan_about.add(pan_desc, BorderLayout.CENTER);
                 JTextArea licenseText = new JTextArea();
@@ -599,7 +602,7 @@ public class MainView extends JFrame {
                         spLicenseText.getVerticalScrollBar().setValue(0);
                     }
                 });
-                
+
                 JOptionPane.showMessageDialog(MainView.this, pan_about, "Über", JOptionPane.PLAIN_MESSAGE);
             }
         }
@@ -657,10 +660,10 @@ public class MainView extends JFrame {
                         int bytesPerSectorTrack0 = Integer.parseInt(editBytesPerSectorTrack0.getText());
                         a7100.getKES().getAFS().getFloppy(drive).loadDiskFromFile(image, cylinder, heads, sectorsPerTrack, bytesPerSector, sectorsInTrack0, bytesPerSectorTrack0);
                     }
-                    
+
                 }
             }
-            
+
         }
     }
 }

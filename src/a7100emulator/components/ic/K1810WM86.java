@@ -19,6 +19,12 @@
  *              - Interface IC implementiert
  *   06.01.2015 - Fehler in DAA und DAS behoben
  *   07.01.2015 - Fehler in AAA behoben
+ *   01.06.2015 - Debuginformationen MUL korrigiert
+ *   03.06.2015 - RCR Overflow-Bit korrigiert
+ *   04.06.2015 - Debugstring bei MOD/RM angeglichen
+ *   14.07.2015 - Fehler in CMPSW behoben (Quelle und Ziel getauscht)
+ *              - Debugausgaben CMPS korrigiert
+ *   25.07.2015 - Slowdown und Automatischen Debuggerstart deaktiviert
  */
 package a7100emulator.components.ic;
 
@@ -2893,8 +2899,8 @@ public class K1810WM86 implements Runnable, IC {
                 int segment = getSegment(ds);
                 int count = 1;
                 if (string_prefix == NO_PREFIX) {
-                    int op1 = mms16.readMemoryByte((getSReg(SREG_ES) << 4) + getReg16(REG_BH_DI));
-                    int op2 = mms16.readMemoryByte((segment << 4) + getReg16(REG_DH_SI));
+                    int op1 = mms16.readMemoryByte((segment << 4) + getReg16(REG_DH_SI));
+                    int op2 = mms16.readMemoryByte((getSReg(SREG_ES) << 4) + getReg16(REG_BH_DI));
                     sub8(op1, op2, false);
                     if (getFlag(DIRECTION_FLAG)) {
                         setReg16(REG_BH_DI, getReg16(REG_BH_DI) - 1);
@@ -2909,8 +2915,8 @@ public class K1810WM86 implements Runnable, IC {
                     count = getReg16(REG_CL_CX);
                     while (getReg16(REG_CL_CX) != 0) {
                         updateTicks(17);
-                        int op1 = mms16.readMemoryByte((getSReg(SREG_ES) << 4) + getReg16(REG_BH_DI));
-                        int op2 = mms16.readMemoryByte((segment << 4) + getReg16(REG_DH_SI));
+                        int op1 = mms16.readMemoryByte((segment << 4) + getReg16(REG_DH_SI));
+                        int op2 = mms16.readMemoryByte((getSReg(SREG_ES) << 4) + getReg16(REG_BH_DI));
                         sub8(op1, op2, false);
                         if (getFlag(DIRECTION_FLAG)) {
                             setReg16(REG_BH_DI, getReg16(REG_BH_DI) - 1);
@@ -2936,11 +2942,11 @@ public class K1810WM86 implements Runnable, IC {
                         int ch1;
                         int ch2;
                         if (getFlag(DIRECTION_FLAG)) {
-                            ch1 = mms16.readMemoryWord((getSReg(SREG_ES) << 4) + getReg16(REG_BH_DI) + (count - i));
-                            ch2 = mms16.readMemoryWord((segment << 4) + getReg16(REG_DH_SI) + (count - i));
+                            ch1 = mms16.readMemoryWord((segment << 4) + getReg16(REG_DH_SI) + (count - i));
+                            ch2 = mms16.readMemoryWord((getSReg(SREG_ES) << 4) + getReg16(REG_BH_DI) + (count - i));
                         } else {
-                            ch1 = mms16.readMemoryWord((getSReg(SREG_ES) << 4) + getReg16(REG_BH_DI) - (count + i));
-                            ch2 = mms16.readMemoryWord((segment << 4) + getReg16(REG_DH_SI) + (count + i));
+                            ch1 = mms16.readMemoryWord((segment << 4) + getReg16(REG_DH_SI) + (count + i));
+                            ch2 = mms16.readMemoryWord((getSReg(SREG_ES) << 4) + getReg16(REG_BH_DI) - (count + i));
                         }
                         operand1 += String.format("%02Xh ", ch1);
                         ascii1 += (char) (ch1);
@@ -2955,8 +2961,8 @@ public class K1810WM86 implements Runnable, IC {
                 int segment = getSegment(ds);
                 int count = 1;
                 if (string_prefix == NO_PREFIX) {
-                    int op1 = mms16.readMemoryWord((getSReg(SREG_ES) << 4) + getReg16(REG_BH_DI));
-                    int op2 = mms16.readMemoryWord((segment << 4) + getReg16(REG_DH_SI));
+                    int op1 = mms16.readMemoryWord((segment << 4) + getReg16(REG_DH_SI));
+                    int op2 = mms16.readMemoryWord((getSReg(SREG_ES) << 4) + getReg16(REG_BH_DI));
                     sub16(op1, op2, false);
                     if (getFlag(DIRECTION_FLAG)) {
                         setReg16(REG_BH_DI, getReg16(REG_BH_DI) - 2);
@@ -2971,8 +2977,8 @@ public class K1810WM86 implements Runnable, IC {
                     count = getReg16(REG_CL_CX);
                     while (getReg16(REG_CL_CX) != 0) {
                         updateTicks(17);
-                        int op1 = mms16.readMemoryWord((getSReg(SREG_ES) << 4) + getReg16(REG_BH_DI));
-                        int op2 = mms16.readMemoryWord((segment << 4) + getReg16(REG_DH_SI));
+                        int op1 = mms16.readMemoryWord((segment << 4) + getReg16(REG_DH_SI));
+                        int op2 = mms16.readMemoryWord((getSReg(SREG_ES) << 4) + getReg16(REG_BH_DI));
                         sub16(op1, op2, false);
                         if (getFlag(DIRECTION_FLAG)) {
                             setReg16(REG_BH_DI, getReg16(REG_BH_DI) - 2);
@@ -2999,16 +3005,16 @@ public class K1810WM86 implements Runnable, IC {
                         int ch1;
                         int ch2;
                         if (getFlag(DIRECTION_FLAG)) {
-                            ch1 = mms16.readMemoryWord((getSReg(SREG_ES) << 4) + getReg16(REG_BH_DI) + (count - i) * 2);
-                            ch2 = mms16.readMemoryWord((segment << 4) + getReg16(REG_DH_SI) + (count - i) * 2);
+                            ch1 = mms16.readMemoryWord((segment << 4) + getReg16(REG_DH_SI) + (count - i) * 2);
+                            ch2 = mms16.readMemoryWord((getSReg(SREG_ES) << 4) + getReg16(REG_BH_DI) + (count - i) * 2);
                         } else {
-                            ch1 = mms16.readMemoryWord((getSReg(SREG_ES) << 4) + getReg16(REG_BH_DI) - (count + i) * 2);
-                            ch2 = mms16.readMemoryWord((segment << 4) + getReg16(REG_DH_SI) - (count + i) * 2);
+                            ch1 = mms16.readMemoryWord((segment << 4) + getReg16(REG_DH_SI) - (count + i) * 2);
+                            ch2 = mms16.readMemoryWord((getSReg(SREG_ES) << 4) + getReg16(REG_BH_DI) - (count + i) * 2);
                         }
                         operand1 += String.format("%04Xh ", ch1);
-                        ascii1 += (char) (ch1 & 0xFF) + (char) ((ch1 & 0xFF00) >> 8);
+                        ascii1 += (char) ((ch1 & 0xFF00) >> 8) + "" + (char) (ch1 & 0xFF);
                         operand2 += String.format("%04Xh ", ch2);
-                        ascii2 += (char) (ch2 & 0xFF) + (char) ((ch2 & 0xFF00) >> 8);
+                        ascii2 += (char) ((ch2 & 0xFF00) >> 8) + "" + (char) (ch2 & 0xFF);
                     }
                     debugInfo.setOperands(operand1 + " (" + ascii1 + ")," + operand2 + "(" + ascii2 + ")");
                 }
@@ -4030,7 +4036,7 @@ public class K1810WM86 implements Runnable, IC {
                             clearFlag(CARRY_FLAG);
                         }
                         setMODRM8(opcode2 & TEST_MOD, opcode2 & TEST_RM, res, true);
-                        if (BitTest.getBit(res, 6) != BitTest.getBit(res, 7)) {
+                        if (BitTest.getBit(op1, 6) != BitTest.getBit(op1, 7)) {
                             setFlag(OVERFLOW_FLAG);
                         } else {
                             clearFlag(OVERFLOW_FLAG);
@@ -4167,7 +4173,7 @@ public class K1810WM86 implements Runnable, IC {
                         int op1 = getMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM, false);
                         int res = ((op1 << 1) & 0xFFFF);
                         if (getFlag(CARRY_FLAG)) {
-                            res |= 0x01;
+                            res |= 0x0001;
                         }
                         if (BitTest.getBit(op1, 15)) {
                             setFlag(CARRY_FLAG);
@@ -4199,7 +4205,7 @@ public class K1810WM86 implements Runnable, IC {
                             clearFlag(CARRY_FLAG);
                         }
                         setMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM, res, true);
-                        if (BitTest.getBit(res, 15) != BitTest.getBit(res, 14)) {
+                        if (BitTest.getBit(op1, 15) != BitTest.getBit(op1, 14)) {
                             setFlag(OVERFLOW_FLAG);
                         } else {
                             clearFlag(OVERFLOW_FLAG);
@@ -4670,18 +4676,19 @@ public class K1810WM86 implements Runnable, IC {
                     case _F6_MUL_MODRM_8: {
                         int op1 = getMODRM8(opcode2 & TEST_MOD, opcode2 & TEST_RM, true);
                         int op2 = getReg8(REG_AL_AX);
-                        if (op1 * op2 > 0xFF) {
+                        int res = op1 * op2;
+                        if (res > 0xFF) {
                             setFlag(CARRY_FLAG);
                             setFlag(OVERFLOW_FLAG);
                         } else {
                             clearFlag(CARRY_FLAG);
                             clearFlag(OVERFLOW_FLAG);
                         }
-                        setReg16(REG_AL_AX, (op2 * op1) & 0xFFFF);
+                        setReg16(REG_AL_AX, res & 0xFFFF);
                         updateTicks(((opcode2 & TEST_MOD) == MOD_REG) ? 77 : 83 + getOpcodeCyclesEA(opcode2 & TEST_MOD, opcode2 & TEST_RM));
                         if (debug) {
                             debugInfo.setCode("MUL " + getMODRM8DebugString(opcode2 & TEST_MOD, opcode2 & TEST_RM, 0));
-                            debugInfo.setOperands(String.format("%02Xh*%02Xh->%02Xh", op1, op1, getReg16(REG_AL_AX)));
+                            debugInfo.setOperands(String.format("%02Xh*%02Xh->%02Xh", op1, op2, getReg16(REG_AL_AX)));
                         }
                     }
                     break;
@@ -4994,20 +5001,24 @@ public class K1810WM86 implements Runnable, IC {
         if (debug) {
             if (debugInfo.getCode() != null) {
                 decoder.addItem(debugInfo);
-                if (cs != 0x0104) {
-                    debugger.addLine(debugInfo);
-                }
-                try {
-                    Thread.sleep(debugger.getSlowdown());
-                } catch (InterruptedException ex) {
-                    Logger.getLogger(K1810WM86.class.getName()).log(Level.SEVERE, null, ex);
-                }
+                // Auskommentieren der SCP-Befehle
+//                if (cs != 0x0104) {
+//                    debugger.addLine(debugInfo);
+//                }
+                // TODO: Slowdown gegenwärtig deaktiviert
+//                try {
+//                    Thread.sleep(debugger.getSlowdown());
+//                } catch (InterruptedException ex) {
+//                    Logger.getLogger(K1810WM86.class.getName()).log(Level.SEVERE, null, ex);
+//                }
             }
-        } else {
-            if ((cs << 4) + ip == debugger.getDebugStart()) {
-                debugger.setDebug(true);
-            }
-        }
+        } 
+        // TODO: Debuggerstart bei bestimmter Adresse
+//        else {
+//            if ((cs << 4) + ip == debugger.getDebugStart()) {
+//                debugger.setDebug(true);
+//            }
+//        }
 
         if (prefix != NO_PREFIX && opcode1 != PREFIX_CS && opcode1 != PREFIX_SS && opcode1 != PREFIX_DS && opcode1 != PREFIX_ES) {
             prefix = NO_PREFIX;
@@ -5170,7 +5181,7 @@ public class K1810WM86 implements Runnable, IC {
     }
 
     /**
-     * Verringert den Angegebenen 8Bit Operanden um 1 und setzt die
+     * Verringert den angegebenen 8Bit Operanden um 1 und setzt die
      * entsprechenden Flags
      *
      * @param op Operand
@@ -5187,7 +5198,7 @@ public class K1810WM86 implements Runnable, IC {
     }
 
     /**
-     * Verringert den Angegebenen 16Bit Operanden um 1 und setzt die
+     * Verringert den angegebenen 16Bit Operanden um 1 und setzt die
      * entsprechenden Flags
      *
      * @param op Operand
@@ -5474,7 +5485,7 @@ public class K1810WM86 implements Runnable, IC {
                 break;
             case RM_DIRECT_BP:
                 if (MOD == MOD_MEM_NO_DISPL) {
-                    offset = Integer.toHexString(mms16.readMemoryWord((cs << 4) + ip - 2 - ipOffset)) + "h";
+                    offset = String.format("%04Xh", mms16.readMemoryWord((cs << 4) + ip - 2 - ipOffset));
                 } else {
                     offset = "[BP]";
                 }

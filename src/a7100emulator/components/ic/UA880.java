@@ -2,7 +2,7 @@
  * UA880.java
  * 
  * Diese Datei gehört zum Projekt A7100 Emulator 
- * (c) 2011-2014 Dirk Bräuer
+ * (c) 2011-2015 Dirk Bräuer
  * 
  * Letzte Änderungen:
  *   24.04.2014 - Alle 1-Byte Opcodes ergänzt
@@ -28,7 +28,7 @@
  *   08.12.2014 - Fehler Debugausgabe INC, DEC behoben
  *   12.12.2014 - CTC Hack entfernt
  *   14.12.2014 - checkSignFlag für 16 Bit implementiert
- *
+ *   25.07.2015 - Slowdown deaktiviert
  */
 package a7100emulator.components.ic;
 
@@ -40,8 +40,6 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.LinkedList;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * Klasse zur Realisierung eines UA880 Prozessors für A7100 Subsysteme.
@@ -689,6 +687,93 @@ public class UA880 implements IC {
     private void executeNextInstruction() {
         boolean debug = debugger.isDebug();
 
+//        if (pc == 0x3057) {
+//            int cmdAddr =getRegisterPairHLSP(REGP_HL);
+//            switch (kgs.readMemoryByte(cmdAddr)) {
+//                case 1:
+//                    System.out.println("Setze Funktionskennzeichen: FK:" + String.format("%02X", kgs.readMemoryByte(cmdAddr + 1)));
+//                    break;
+//                case 2:
+//                    System.out.println("Setze Register grafischer Cursor: X:" + kgs.readMemoryWord(cmdAddr + 1) + " Y:" + kgs.readMemoryWord(cmdAddr + 3));
+//                    break;
+//                case 4:
+//                    System.out.println("Setze Splitgrenze: Z:" + kgs.readMemoryByte(cmdAddr + 1));
+//                    break;
+//                case 7:
+//                    System.out.println("Initialisiere Speicher: IM:" + kgs.readMemoryByte(cmdAddr + 1) + " S:" + kgs.readMemoryByte(cmdAddr + 2));
+//                    break;
+//                case 8:
+//                    System.out.println("Initialisiere Speicherabschnitt: IM:" + kgs.readMemoryByte(cmdAddr + 1) + " S:" + kgs.readMemoryByte(cmdAddr + 2) + " YA:" + kgs.readMemoryWord(cmdAddr + 3) + " YE:" + kgs.readMemoryWord(cmdAddr + 5));
+//                    break;
+//                case 9:
+//                    System.out.println("Initialisiere Speicherausschnitt: IM:" + kgs.readMemoryByte(cmdAddr + 1) + " S:" + kgs.readMemoryByte(cmdAddr + 2) + " XA:" + kgs.readMemoryWord(cmdAddr + 3) + " YA:" + kgs.readMemoryWord(cmdAddr + 5) + " XE:" + kgs.readMemoryWord(cmdAddr + 7) + " YE:" + kgs.readMemoryWord(cmdAddr + 9));
+//                    break;
+//                case 10:
+//                    System.out.println("Übernehme Palettenregisterbelegung: VI:" + kgs.readMemoryByte(cmdAddr + 1) + " E1:" + kgs.readMemoryByte(cmdAddr + 2) + " E2:" + kgs.readMemoryByte(cmdAddr + 3) + " E3:" + kgs.readMemoryByte(cmdAddr + 4) + " E4:" + kgs.readMemoryByte(cmdAddr + 5));
+//                    break;
+//                case 11:
+//                    System.out.println("Aktiviere Palettenregisterbelegung: VI:" + kgs.readMemoryByte(cmdAddr + 1));
+//                    break;
+//                case 13:
+//                    System.out.println("Übernehme Musterbox: PFX:" + kgs.readMemoryByte(cmdAddr + 2) + " PFY:" + kgs.readMemoryByte(cmdAddr + 3) + " NZ:" + kgs.readMemoryByte(cmdAddr + 4) + " NS:" + kgs.readMemoryByte(cmdAddr + 5));
+//                    break;
+//                case 14:
+//                    System.out.println("Setze Window: X1:" + kgs.readMemoryWord(cmdAddr + 1) + " Y1:" + kgs.readMemoryWord(cmdAddr + 3) + " X2:" + kgs.readMemoryWord(cmdAddr + 5) + " Y2:" + kgs.readMemoryWord(cmdAddr + 7));
+//                    break;
+//                case 15:
+//                    System.out.println("Windowdarstellung: S:" + kgs.readMemoryByte(cmdAddr + 1));
+//                    break;
+//                case 16:
+//                    System.out.println("Setze Startpunkt für Liniengenerierung: LI:" + kgs.readMemoryWord(cmdAddr + 1) + " X:" + kgs.readMemoryWord(cmdAddr + 2) + " Y:" + kgs.readMemoryWord(cmdAddr + 4));
+//                    break;
+//                case 17:
+//                    System.out.println("Generiere Linie: X:" + kgs.readMemoryWord(cmdAddr + 1) + " Y:" + kgs.readMemoryWord(cmdAddr + 3));
+//                    break;
+//                case 18:
+//                    System.out.println("Setze Marker: X:" + kgs.readMemoryWord(cmdAddr + 1) + " Y:" + kgs.readMemoryWord(cmdAddr + 3));
+//                    break;
+//                case 19:
+//                    System.out.println("Setze Schreibposition: X:" + kgs.readMemoryWord(cmdAddr + 1) + " Y:" + kgs.readMemoryWord(cmdAddr + 3));
+//                    break;
+//                case 20:
+//                    System.out.println("Generiere Text: N:" + kgs.readMemoryByte(cmdAddr + 1));
+//                    break;
+//                case 21:
+//                    System.out.println("Setze Linientyp bzw. Speicherebenenauswahl für Text: LI:" + kgs.readMemoryByte(cmdAddr + 1) + " LT:" + kgs.readMemoryByte(cmdAddr + 2) + " LS:" + kgs.readMemoryByte(cmdAddr + 3) + " S:" + kgs.readMemoryByte(cmdAddr + 4));
+//                    break;
+//                case 22:
+//                    System.out.println("Setze Markertyp: MI:" + kgs.readMemoryByte(cmdAddr + 1) + " MT:" + kgs.readMemoryByte(cmdAddr + 2) + " S:" + kgs.readMemoryByte(cmdAddr + 3));
+//                    break;
+//                case 23:
+//                    System.out.println("Setze Schreibtyp: ST:" + kgs.readMemoryByte(cmdAddr + 1));
+//                    break;
+//                case 24:
+//                    System.out.println("Setze Eckpukt Typ 0 einer zu füllenden Fläche: X:" + kgs.readMemoryWord(cmdAddr + 1) + " Y:" + kgs.readMemoryWord(cmdAddr + 3));
+//                    break;
+//                case 25:
+//                    System.out.println("Setze Eckpukt Typ 1 einer zu füllenden Fläche: X:" + kgs.readMemoryWord(cmdAddr + 1) + " Y:" + kgs.readMemoryWord(cmdAddr + 3));
+//                    break;
+//                case 26:
+//                    System.out.println("Setze Parameter für Fill Area: LS:" + kgs.readMemoryByte(cmdAddr + 1) + " FA:" + kgs.readMemoryByte(cmdAddr + 2));
+//                    break;
+//                case 27:
+//                    System.out.println("Starte Request Modus: RM:" + kgs.readMemoryByte(cmdAddr + 1));
+//                    break;
+//                case 33:
+//                    System.out.println("Setze Anfangswert für Locator: SW:" + kgs.readMemoryByte(cmdAddr + 1));
+//                    break;
+//                case 40:
+//                    System.out.println("Initialisiere GSX: LT:" + kgs.readMemoryByte(cmdAddr + 1) + " S:" + kgs.readMemoryByte(cmdAddr + 2) + " MT:" + kgs.readMemoryByte(cmdAddr + 3) + " S:" + kgs.readMemoryByte(cmdAddr + 4));
+//                    break;
+//                case 41:
+//                    System.out.println("Generiere Kreisbogen: XM:" + kgs.readMemoryWord(cmdAddr + 1) + " YM:" + kgs.readMemoryWord(cmdAddr + 3) + "XA:" + kgs.readMemoryWord(cmdAddr + 5) + " YA:" + kgs.readMemoryWord(cmdAddr + 7) + "XE:" + kgs.readMemoryWord(cmdAddr + 9) + " YE:" + kgs.readMemoryWord(cmdAddr + 11) + "R:" + kgs.readMemoryWord(cmdAddr + 13));
+//                    break;
+//                case 42:
+//                    System.out.println("Setze Textfont: TF:" + kgs.readMemoryByte(cmdAddr + 1));
+//                    break;
+//            }
+//        }
+//
         int opcode = kgs.readMemoryByte(pc++);
         if (debug) {
             debugInfo.setIp(pc - 1);
@@ -3708,11 +3793,12 @@ public class UA880 implements IC {
         if (debug) {
             if (debugInfo.getCode() != null) {
                 debugger.addLine(debugInfo);
-                try {
-                    Thread.sleep(debugger.getSlowdown());
-                } catch (InterruptedException ex) {
-                    Logger.getLogger(K1810WM86.class.getName()).log(Level.SEVERE, null, ex);
-                }
+                // TODO: Slowdown gegenwärtig deaktiviert
+//                try {
+//                    Thread.sleep(debugger.getSlowdown());
+//                } catch (InterruptedException ex) {
+//                    Logger.getLogger(K1810WM86.class.getName()).log(Level.SEVERE, null, ex);
+//                }
             }
         }
 

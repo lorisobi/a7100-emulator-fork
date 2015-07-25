@@ -2,7 +2,7 @@
  * Debugger.java
  * 
  * Diese Datei gehört zum Projekt A7100 Emulator 
- * (c) 2011-2014 Dirk Bräuer
+ * (c) 2011-2015 Dirk Bräuer
  * 
  * Letzte Änderungen:
  *   05.04.2014 - Kommentare vervollständigt
@@ -10,6 +10,7 @@
  *   17.11.2014 - Kommentare ergänzt
  *   06.01.2015 - Globalen Debugger ergänzt
  *              - Bezeichner hinzugefügt
+ *   25.07.2015 - Funktionen für Automatischen Start und Slowdown deaktiviert
  */
 package a7100emulator.Debug;
 
@@ -40,11 +41,13 @@ public class Debugger {
     /**
      * Verzögerung im Debug-Modus in ms
      */
-    private int slowdown = 0;
+    // TODO: Slowdown gegenwärtig deaktiviert
+    //private int slowdown = 0;
     /**
      * Adresse für automatischen Start des Debuggers
      */
-    private final int debugStart = 0;//(0x1000<<4)+0x4E0F;
+    // TODO: Automatischer Start gegenwärtig deaktiviert
+    //private final int debugStart = 0;//(0x1000<<4)+0x4E0F;
     /**
      * Dateiname für Debug-Ausgaben
      */
@@ -145,28 +148,28 @@ public class Debugger {
      *
      * @return Verzögerung
      */
-    public int getSlowdown() {
-        return slowdown;
-    }
-
+    // TODO: Slowdown gegenwärtig deaktiviert
+//    public int getSlowdown() {
+//        return slowdown;
+//    }
     /**
      * Setzt die aktuelle Verzögerung des Debuggers
      *
      * @param slowdown Verzögerung in ma
      */
-    public void setSlowdown(int slowdown) {
-        this.slowdown = slowdown;
-    }
-
+    // TODO: Slowdown gegenwärtig deaktiviert
+//    public void setSlowdown(int slowdown) {
+//        this.slowdown = slowdown;
+//    }
     /**
      * Liefert die Adresse für automatischen Start des Debuggers
      *
      * @return Startadresse
      */
-    public int getDebugStart() {
-        return debugStart;
-    }
-
+    // TODO: Automatischer Start gegenwärtig deaktiviert
+//    public int getDebugStart() {
+//        return debugStart;
+//    }
     /**
      * Gibt die globale DebuggerInstanz zurück
      *

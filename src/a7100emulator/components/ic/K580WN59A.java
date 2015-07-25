@@ -2,7 +2,7 @@
  * KR580WN59A.java
  * 
  * Diese Datei gehört zum Projekt A7100 Emulator 
- * (c) 2011-2014 Dirk Bräuer
+ * (c) 2011-2015 Dirk Bräuer
  * 
  * Letzte Änderungen:
  *   05.04.2014 - Kommentare vervollständigt
@@ -10,7 +10,6 @@
  *              - IRR und OCW1 zurückgesetzt beim Empfang von ICW1
  *   18.11.2014 - getBit durch BitTest.getBit ersetzt
  *              - Interface IC implementiert
- *
  */
 package a7100emulator.components.ic;
 

@@ -2,7 +2,7 @@
  * SCPFileViewer.java
  * 
  * Diese Datei gehört zum Projekt A7100 Emulator 
- * (c) 2011-2014 Dirk Bräuer
+ * (c) 2011-2015 Dirk Bräuer
  * 
  * Letzte Änderungen:
  *   05.04.2014 - Kommentare vervollständigt
@@ -10,6 +10,8 @@
  *   16.12.2014 - Hinzufügen von Dateien ermöglicht
  *              - Ansicht angepasst
  *   01.01.2015 - Datenbankinformationen ergänzt
+ *   17.05.2015 - Punkt im Menüeintrag entfernt
+ *   24.07.2015 - Datenbank exportieren hinzugefügt
  */
 package a7100emulator.Apps.SCPDiskViewer;
 
@@ -113,7 +115,7 @@ public class SCPDiskViewer extends JFrame {
     /**
      * Menü alle Dateien extrahieren
      */
-    private final JMenuItem menuExtractAllFiles = new JMenuItem("Alle Dateien extrahieren.");
+    private final JMenuItem menuExtractAllFiles = new JMenuItem("Alle Dateien extrahieren");
     /**
      * Menü Datei hinzufügen
      */
@@ -126,6 +128,14 @@ public class SCPDiskViewer extends JFrame {
      * Menü Bootloader extrahieren
      */
     private final JMenuItem menuExtractBootloader = new JMenuItem("Bootloader speichern");
+    /**
+     * Menü Systemdatenbank exportieren
+     */
+    private final JMenuItem menuExportSystemDB = new JMenuItem("Systemdaten exportieren");
+    /**
+     * Menü Benutzerdatenabnk exportieren
+     */
+    private final JMenuItem menuExportUserDB = new JMenuItem("Benutzerdaten exportieren");
     /**
      * Button - Datei anzeigen
      */
@@ -225,6 +235,8 @@ public class SCPDiskViewer extends JFrame {
         menuFile.add(menuExtractBootloader);
 
         menubar.add(menuDatabase);
+        menuDatabase.add(menuExportSystemDB);
+        menuDatabase.add(menuExportUserDB);
 
         menuOpenDisk.addActionListener(controller);
         menuImportFolder.addActionListener(controller);
@@ -235,6 +247,8 @@ public class SCPDiskViewer extends JFrame {
         menuExtractAllFiles.addActionListener(controller);
         menuExtractBootloader.addActionListener(controller);
         menuInsertFile.addActionListener(controller);
+        menuExportSystemDB.addActionListener(controller);
+        menuExportUserDB.addActionListener(controller);
 
         setJMenuBar(menubar);
 
@@ -360,7 +374,7 @@ public class SCPDiskViewer extends JFrame {
 
         fileTable.getSelectionModel().addListSelectionListener(controller);
 
-        this.setIconImage((new ImageIcon(this.getClass().getClassLoader().getResource("Images/SCPDisk.png"))).getImage());
+        this.setIconImage((new ImageIcon(this.getClass().getClassLoader().getResource("Images/Disk.png"))).getImage());
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
     }
 
@@ -513,6 +527,22 @@ public class SCPDiskViewer extends JFrame {
                         diskModel.saveImage(saveFile);
                     }
                 }
+            } else if (e.getSource() == menuExportSystemDB) {
+                JFileChooser saveDialog = new JFileChooser(".");
+                saveDialog.setFileSelectionMode(JFileChooser.FILES_ONLY);
+                saveDialog.setSelectedFile(new File("system.csv"));
+                if (saveDialog.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
+                    File saveFile = saveDialog.getSelectedFile();
+                    diskModel.exportDB(saveFile, false);
+                }
+            } else if (e.getSource() == menuExportUserDB) {
+                JFileChooser saveDialog = new JFileChooser(".");
+                saveDialog.setFileSelectionMode(JFileChooser.FILES_ONLY);
+                saveDialog.setSelectedFile(new File("user.csv"));
+                if (saveDialog.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
+                    File saveFile = saveDialog.getSelectedFile();
+                    diskModel.exportDB(saveFile, true);
+                }
             } else if (e.getSource() == buttonDBInfoAdd) {
                 int selectedRowView = fileTable.getSelectedRow();
                 if (selectedRowView != -1) {
@@ -563,7 +593,7 @@ public class SCPDiskViewer extends JFrame {
                     comboDBInfoPackage.setSelectedItem(fileInfo != null ? fileInfo.getSoftwarePackage() : "");
                     textDBInfoVersion.setText(fileInfo != null ? fileInfo.getVersion() : "");
                     textDBInfoDescription.setText(fileInfo != null ? fileInfo.getDescription() : "");
-                    checkDBInfoUser.setSelected(fileInfo != null ? fileInfo.isUser() : false);
+                    checkDBInfoUser.setSelected(fileInfo != null ? fileInfo.isUser() : true);
 
                     buttonDBInfoDel.setEnabled(fileInfo != null);
                 }
