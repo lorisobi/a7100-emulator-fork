@@ -2,7 +2,20 @@
  * MMS16Bus.java
  * 
  * Diese Datei gehört zum Projekt A7100 Emulator 
- * (c) 2011-2015 Dirk Bräuer
+ * Copyright (c) 2011-2015 Dirk Bräuer
+ *
+ * Der A7100 Emulator ist Freie Software: Sie können ihn unter den Bedingungen
+ * der GNU General Public License, wie von der Free Software Foundation,
+ * Version 3 der Lizenz oder jeder späteren veröffentlichten Version, 
+ * weiterverbreiten und/oder modifizieren.
+ *
+ * Der A7100 Emulator wird in der Hoffnung, dass er nützlich sein wird, aber
+ * OHNE JEDE GEWÄHRLEISTUNG, bereitgestellt; sogar ohne die implizite
+ * Gewährleistung der MARKTFÄHIGKEIT oder EIGNUNG FÜR EINEN BESTIMMTEN ZWECK.
+ * Siehe die GNU General Public License für weitere Details.
+ *
+ * Sie sollten eine Kopie der GNU General Public License zusammen mit diesem
+ * Programm erhalten haben. Wenn nicht, siehe <http://www.gnu.org/licenses/>.
  * 
  * Letzte Änderungen:
  *   07.08.2014 - Erstellt
@@ -106,6 +119,10 @@ public class MMS16Bus implements StateSavable {
 
     /**
      * Liefert ein Modul für den angegebenen Speicherbereich
+     * <p>
+     * TODO: Prüfen ob ein Wort genau zwischen zwei Modulen gelesen oder 
+     * geschrieben werden soll. Ggf. Umstellung auf Byteweisen Zugriff.
+     * Test EDIT.CMD
      *
      * @param address Adresse
      * @return Modul oder null, wenn kein Modul für diesen Speicherbereich
@@ -182,7 +199,7 @@ public class MMS16Bus implements StateSavable {
     }
 
     /**
-     * Schreibt den Inhalt des Speichers in eine Datei
+     * Schreibt den Inhalt des Speichers in eine Datei.
      *
      * @param filename Dateiname
      */
@@ -306,5 +323,4 @@ public class MMS16Bus implements StateSavable {
     public void clearTimeout() {
         timeout = false;
     }
-
 }

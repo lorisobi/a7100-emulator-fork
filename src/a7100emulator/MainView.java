@@ -2,12 +2,25 @@
  * MainView.java
  * 
  * Diese Datei gehört zum Projekt A7100 Emulator 
- * (c) 2011-2015 Dirk Bräuer
+ * Copyright (c) 2011-2015 Dirk Bräuer
+ *
+ * Der A7100 Emulator ist Freie Software: Sie können ihn unter den Bedingungen
+ * der GNU General Public License, wie von der Free Software Foundation,
+ * Version 3 der Lizenz oder jeder späteren veröffentlichten Version, 
+ * weiterverbreiten und/oder modifizieren.
+ *
+ * Der A7100 Emulator wird in der Hoffnung, dass er nützlich sein wird, aber
+ * OHNE JEDE GEWÄHRLEISTUNG, bereitgestellt; sogar ohne die implizite
+ * Gewährleistung der MARKTFÄHIGKEIT oder EIGNUNG FÜR EINEN BESTIMMTEN ZWECK.
+ * Siehe die GNU General Public License für weitere Details.
+ *
+ * Sie sollten eine Kopie der GNU General Public License zusammen mit diesem
+ * Programm erhalten haben. Wenn nicht, siehe <http://www.gnu.org/licenses/>.
  * 
  * Letzte Änderungen:
  *   05.04.2014 - Kommentare vervollständigt
  *   12.04.2014 - Laden von verschiedenen Image-Typen implementiert
- *   31.08.2014 - Debugger deaktiviert, da Singleton Instranz entfernt
+ *   31.08.2014 - Debugger deaktiviert, da Singleton Instanz entfernt
  *   04.12.2014 - Dump KGS Speicher hinzugefügt
  *              - Menüeinträge umbenannt
  *   12.12.2014 - Menü Debug neu strukturiert
@@ -19,6 +32,7 @@
  *   06.01.2015 - Menü Globaler Debugger und KGS Debugger hinzugefügt
  *   24.07.2015 - Tabulator für GUI Events entfernt
  *   25.07.2015 - Untermenü KES ausgeblendet
+ *   26.07.2015 - Lizenzinformationen überarbeitet
  */
 package a7100emulator;
 
@@ -557,42 +571,31 @@ public class MainView extends JFrame {
                 pan_desc.setBorder(BorderFactory.createEmptyBorder(0, 50, 0, 10));
                 pan_desc.setLayout(new GridLayout(2, 1));
                 pan_desc.add(new JLabel("A7100 - Emulator v0.8.40"));
-                pan_desc.add(new JLabel("2011-2015 Dirk Bräuer"));
+                pan_desc.add(new JLabel("Copyright (c) 2011-2015 Dirk Bräuer"));
                 pan_about.add(pan_desc, BorderLayout.CENTER);
                 JTextArea licenseText = new JTextArea();
                 licenseText.setText("Lizenzinformationen:\n\n"
-                        + "Diese Software ist Freeware und darf uneingeschränkt\n"
-                        + "genutzt, kopiert und verbreitet werden, solange die\n"
-                        + "folgenden Bedingungen erfüllt sind:\n"
-                        + "  1. Die Software, oder ihre Bestandteile, dürfen nicht\n"
-                        + "     verkauft oder ohne Genehmigung des Autors mit\n"
-                        + "     anderen Programmen gebündelt werden.\n"
-                        + "  2. Die Software darf kostenlos zum Download\n"
-                        + "     bereitgestellt werden.\n"
-                        + "  3. Der Autor bleibt auch bei Weitergabe Eigentümer der\n"
-                        + "     Software.\n"
-                        + "  4. Alle Programmteile müssen für die Weitergabe\n"
-                        + "     unverändert bleiben. Insbesondere dürfen weder\n"
-                        + "     Programmname, Name des Autors noch die vorliegenden\n"
-                        + "     Lizenzinformationen verändert werden.\n"
-                        + "  5. Die Software darf ohne Einwilligung des Autors\n"
-                        + "     nicht Disassembliert werden.\n"
-                        + "  6. Die für den Emulator benötigten EPROM- und\n"
-                        + "     Diskettenabbilder unterliegen ggf. weiteren\n"
-                        + "     Lizenzbestimmungen. Der Anwender verpflichtet sich\n"
-                        + "     diese bei der Verwendung der Software einzuhalten.\n"
-                        + "  7. Das Programm wird bereitgestellt \"WIE-ES-IST\" und\n"
-                        + "     die Nutzung erfolgt ausschließlich auf eigenes\n"
-                        + "     Risiko. Der Autor übernimmt keine Garantie das die\n"
-                        + "     Software frei von Fehlern ist, ohne Unterbrechung\n"
-                        + "     arbeitet oder den jeweils gestellten Anforderungen\n"
-                        + "     entspricht. Für Sachschäden oder finanzielle\n"
-                        + "     Schäden, welche aus der Verwendung des Programms\n"
-                        + "     resultieren, bspw. Verlust von Daten, Verlust von\n"
-                        + "     Gewinn, Betriebsunterbrechung, übernimmt der Autor\n"
-                        + "     keinerlei Haftung."
+                        + "Der A7100 Emulator ist Freie Software: Sie können ihn "
+                        + "unter den Bedingungen der GNU General Public License, "
+                        + "wie von der Free Software Foundation, Version 3 "
+                        + "der Lizenz oder jeder späteren veröffentlichten Version, "
+                        + "weiterverbreiten und/oder modifizieren.\n\n"
+                        + "Der A7100 Emulator wird in der Hoffnung, dass er nützlich "
+                        + "sein wird, aber OHNE JEDE GEWÄHRLEISTUNG,bereitgestellt; "
+                        + "sogar ohne die implizite Gewährleistung der MARKTFÄHIGKEIT "
+                        + "oder EIGNUNG FÜR EINEN BESTIMMTEN ZWECK. Siehe die "
+                        + "GNU General Public License für weitere Details\n\n"
+                        + "Sie sollten eine Kopie der GNU General Public License "
+                        + "zusammen mit diesem Programm erhalten haben. Wenn nicht, "
+                        + "siehe <http://www.gnu.org/licenses/>.\n\n"
+                        + "Hinweis: Die für den Emulator benötigten EPROM- und "
+                        + "Diskettenabbilder unterliegen ggf. weiteren "
+                        + "Lizenzbestimmungen. Der Anwender verpflichtet sich "
+                        + "diese bei der Verwendung der Software einzuhalten."
                 );
                 licenseText.setEditable(false);
+                licenseText.setLineWrap(true);
+                licenseText.setWrapStyleWord(true);
                 final JScrollPane spLicenseText = new JScrollPane(licenseText);
                 spLicenseText.setPreferredSize(new Dimension(350, 150));
                 pan_about.add(spLicenseText, BorderLayout.SOUTH);

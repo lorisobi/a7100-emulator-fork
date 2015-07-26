@@ -1,4 +1,4 @@
-A7100 Emulator - Readme v0.7.90
+A7100 Emulator - Readme v0.8.40
 ===============================
 
 Inhaltsverzeichnis:
@@ -14,33 +14,33 @@ Inhaltsverzeichnis:
 --------------------------------------------------------------------------------
 1. Lizenzinformationen:
 
-Diese Software ist Freeware und darf uneingeschränkt genutzt, kopiert und
-verbreitet werden, solange die folgenden Bedingungen erfüllt sind:
-  1. Die Software, oder ihre Bestandteile, dürfen nicht verkauft oder ohne 
-     Genehmigung des Autors mit anderen Programmen gebündelt werden.
-  2. Die Software darf kostenlos zum Download bereitgestellt werden.
-  3. Der Autor bleibt auch bei Weitergabe Eigentümer der Software.
-  4. Alle Programmteile müssen für die Weitergabe unverändert bleiben. 
-     Insbesondere dürfen weder Programmname, Name des Autors noch die 
-     vorliegenden Lizenzinformationen verändert werden.
-  5. Die Software darf ohne Einwilligung des Autors nicht disassembliert
-     werden.
-  6. Die für den Emulator benötigten EPROM- und Diskettenabbilder unterliegen
-     ggf. weiteren Lizenzbestimmungen. Der Anwender verpflichtet sich diese bei
-     der Verwendung der Software einzuhalten.   
-  7. Das Programm wird bereitgestellt "WIE-ES-IST" und die Nutzung erfolgt 
-     ausschließlich auf eigenes Risiko. Der Autor übernimmt keine Garantie das
-     die Software frei von Fehlern ist, ohne Unterbrechung arbeitet oder den 
-     jeweils gestellten Anforderungen entspricht. Für Sachschäden oder 
-     finanzielle Schäden, welche aus der Verwendung des Programms resultieren, 
-     bspw. Verlust von Daten, Verlust von Gewinn, Betriebsunterbrechung,
-     übernimmt der Autor keinerlei Haftung. 
+ A7100 Emulator
+ Copyright (c) 2011-2015 Dirk Bräuer
+
+ Der A7100 Emulator ist Freie Software: Sie können ihn unter den Bedingungen
+ der GNU General Public License, wie von der Free Software Foundation,
+ Version 3 der Lizenz oder jeder späteren veröffentlichten Version, 
+ weiterverbreiten und/oder modifizieren.
+
+ Der A7100 Emulator wird in der Hoffnung, dass er nützlich sein wird, aber
+ OHNE JEDE GEWÄHRLEISTUNG, bereitgestellt; sogar ohne die implizite
+ Gewährleistung der MARKTFÄHIGKEIT oder EIGNUNG FÜR EINEN BESTIMMTEN ZWECK.
+ Siehe die GNU General Public License für weitere Details.
+
+ Sie sollten eine Kopie der GNU General Public License zusammen mit diesem
+ Programm erhalten haben. Wenn nicht, siehe <http://www.gnu.org/licenses/>.
+
+ Hinweis:  
+ Die für den Emulator benötigten EPROM- und Diskettenabbilder unterliegen
+ ggf. weiteren Lizenzbestimmungen. Der Anwender verpflichtet sich diese bei
+ der Verwendung der Software einzuhalten.   
 
 --------------------------------------------------------------------------------
 2. Letzte Änderungen
 
-  v0.8.40 - 24.07.2015
-  Neue Features
+  v0.8.40 - 26.07.2015
+  Neue Features:
+    - Erste Version unter GNU General Public License Version 3
     - Direktes Schreiben in Grafikpuffer für deutlich schnellere Ausgabe
     - Blinken implementiert
     - Splitscreen überarbeitet
@@ -56,13 +56,15 @@ verbreitet werden, solange die folgenden Bedingungen erfüllt sind:
     - CMPS Befehl korrigiert
     - Fehler in DAA,AAA und AAS behoben
     - Falsche Tastatursteuerfolgen korrigiert
+    - Lesen von DMK Abbildern korrigiert
   Softwarekompatibilität:
     - Läuft mit kleinen Einschränkungen -> Läuft : BASIC 1700 1.03, Pascal 3.01
     - Nicht getestet -> Läuft nicht: Gedit 1.51
+    - Nicht getestet -> Funktioniert in Teilen: Gedit M/16 1.02
     - Nicht getestet -> Läuft: Meteor
   ----------------------------------------
   v0.7.90 - 19.12.2014
-  Neue Features
+  Neue Features:
     - KGS/ABG neu implementiert mit Emulation des UA880 Subsystems
     - Grafikkommandos sind ausführbar
     - Debugger-System neu implementiert (Debuggen des UA880, Ausgabe Speicher 
@@ -146,13 +148,13 @@ BOS                ???
 Grafikprogramme
 Gedit M/16  2.0    *         Unregelmäßiger Start, Darstellungsfehler
 Gedit M/16  1.51   !!!
-Gedit M/16  1.02   ???
+Gedit M/16  1.02   *         Unregelmäßiger Start, Darstellungsfehler
 Grafik/M16  1.0    **        Darstellungsfehler Tortengrafik
 
 Textverarbeitung
 Text 40     4.0    **   K    Format A4BREIT (und andere?) funktioniert nicht
-Wordstar           ***  
-Edit               ***
+Wordstar    3.24   ***  
+Edit        2.0    ***
 
 Tabellenkalkulation
 Tabcalc M16 3.0    ***  K
@@ -231,7 +233,7 @@ system.dbd sollten nicht verändert werden, da diese ggf. bei einem neuen Releas
 des Emulators überschrieben werden.  
 
 4.3 Konfiguration des A7100
-Im der aktuellen Version ist der A7100 mit folgenden Moduln bestückt:
+In der aktuellen Version ist der A7100 mit folgenden Moduln bestückt:
     - ZVE
     - KGS + ABG
     - KES + AFS
@@ -311,7 +313,8 @@ melden. Ebenso wäre es sehr hilfreich, wenn weitere Programme auf ihre
 Kompatibilität geprüft werden. Wer entsprechende Software zum Testen hat kann
 mir diese auch zukommen lassen.
 
-Man erreicht mich am besten im Forum auf www.robotrontechnik.de 
-unter dem Namen Madir.
+Man erreicht mich am besten im Forum auf www.robotrontechnik.de unter dem Namen
+Madir oder über das Kontaktformular auf der A7100 Emulator Homepage:
+http://a7100emulation.npage.de/kontakt.html .
 
 ================================================================================                       

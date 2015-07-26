@@ -2,7 +2,20 @@
  * FloppyDisk.java
  * 
  * Diese Datei gehört zum Projekt A7100 Emulator 
- * (c) 2011-2015 Dirk Bräuer
+ * Copyright (c) 2011-2015 Dirk Bräuer
+ *
+ * Der A7100 Emulator ist Freie Software: Sie können ihn unter den Bedingungen
+ * der GNU General Public License, wie von der Free Software Foundation,
+ * Version 3 der Lizenz oder jeder späteren veröffentlichten Version, 
+ * weiterverbreiten und/oder modifizieren.
+ *
+ * Der A7100 Emulator wird in der Hoffnung, dass er nützlich sein wird, aber
+ * OHNE JEDE GEWÄHRLEISTUNG, bereitgestellt; sogar ohne die implizite
+ * Gewährleistung der MARKTFÄHIGKEIT oder EIGNUNG FÜR EINEN BESTIMMTEN ZWECK.
+ * Siehe die GNU General Public License für weitere Details.
+ *
+ * Sie sollten eine Kopie der GNU General Public License zusammen mit diesem
+ * Programm erhalten haben. Wenn nicht, siehe <http://www.gnu.org/licenses/>.
  * 
  * Letzte Änderungen:
  *   02.04.2014 - Kommentare vervollständigt
@@ -12,6 +25,7 @@
  *              - Interface StateSavable implementiert
  *              - Fehler beim Laden des Zustands behoben
  *   18.12.2014 - Fehler beim Wechsel von Kopf behoben
+ *   25.07.2015 - Fehler DMK-Images behoben
  */
 package a7100emulator.components.system;
 
@@ -385,55 +399,81 @@ public class FloppyDisk implements StateSavable {
     }
 
     /**
-     * Liest ein DMK Image
+     * Liest ein DMK Image.
      *
      * @param buffer Image Daten
      */
     private void readDMKFile(byte[] buffer) {
         int pos = 0;
+
+        // Lese Header ab Byte 00
+        // Byte 00: Schreibschutz (FF bei Schreibschutz, 00 sonst)
         int writeProtectImage = (int) (buffer[pos++] & 0xFF);
         setWriteProtect(writeProtectImage == 0xFF);
+        // Byte 01: Anzahl der Tracks
         int trackCount = (int) (buffer[pos++] & 0xFF);
+        // Byte02,03 : Länge eines Tracks
         int trackSize = (buffer[pos] & 0xFF) | ((int) buffer[pos + 1] & 0xFF) << 8;
+        // Byte 4: Flags
         int flags = buffer[pos++];
+        // Bit 4: 1 - Single Side / 0 - Double Side
         boolean singleSide = BitTest.getBit(flags, 4);
+        // Bit 6: 1 - Single Density / 0 - Double Density
         boolean singleDensity = BitTest.getBit(flags, 6);
 
-        int HEADER_SIZE = 0x10;
+        // Gesamtgröße des Headers
+        final int HEADER_SIZE = 0x10;
+        // Anzahl der Seiten
         int sides = (singleSide) ? 1 : 2;
 
         int diskSize = 0;
+        // Für alle Tracks
         for (int t = 0; t < trackCount; t++) {
             // Neuer Track
+            // Für alle Seiten
             for (int s = 0; s < sides; s++) {
+                // Platz für alle IDAM Pointer (2 Bytes)
                 int[] idam = new int[64];
                 // Lese IDAMS
                 int sectorCount = 0;
                 do {
+                    // Lese Zeiger auf IDAM
                     idam[sectorCount] = (buffer[HEADER_SIZE + sides * t * trackSize + s * trackSize + sectorCount * 2] & 0xFF) | ((int) buffer[HEADER_SIZE + sides * t * trackSize + s * trackSize + sectorCount * 2 + 1] & 0xFF) << 8;
                     sectorCount++;
                 } while (idam[sectorCount - 1] != 0);
                 sectorCount--;
 
+                // Für alle gelesenen IDAMS
                 for (int sec = 0; sec < sectorCount; sec++) {
+                    // Prüfe auf Double Density (Bit 15 in IDAM)
                     boolean doubleDensity = BitTest.getBit(idam[sec], 15);
-                    idam[sec] ^= 0x8000;
+                    // Lösche Bit 14/15
+                    idam[sec] &= ~0xC000;
+                    // Berechne Position des Datenblocks (Letztes FE)
+                    // Header + Beginn IDAM Feld
                     int blockPos = HEADER_SIZE + sides * t * trackSize + s * trackSize + idam[sec] + 1;
+                    blockPos += doubleDensity ? 0 : 1;
                     int cylinder = buffer[blockPos++];
+                    blockPos += doubleDensity ? 0 : 1;
                     int head = buffer[blockPos++];
+                    blockPos += doubleDensity ? 0 : 1;
                     int sector = buffer[blockPos++];
+                    blockPos += doubleDensity ? 0 : 1;
                     int sectorSize = (int) Math.pow(2, 7 + buffer[blockPos++]);
 
                     checkAndAddDiskGeometry(cylinder, head, sector);
-                    diskData[t][s][sec] = new byte[sectorSize];
-                    // crc
-                    blockPos++;
-                    blockPos++;
+                    diskData[t][s][sector-1] = new byte[sectorSize];
+                    
+                    // CRC überspringen
+                    blockPos+=doubleDensity?2:4;
+
+                    // Lese solange Bytes bis Ende Data AM erreicht ist
                     byte data_am;
                     do {
                         data_am = buffer[blockPos++];
                     } while ((data_am != ((byte) 0xFB)) && (data_am != ((byte) 0xF8)));
-                    System.arraycopy(buffer, blockPos, diskData[t][s][sec], 0, sectorSize);
+                    blockPos += doubleDensity ? 0 : 1;
+                    System.arraycopy(buffer, blockPos, diskData[t][s][sector-1], 0, sectorSize);
                     diskSize += sectorSize;
                 }
             }
@@ -462,7 +502,7 @@ public class FloppyDisk implements StateSavable {
                 if (diskData[cylinder].length == (head + 1)) {
                     // Wenn Letzter Kopf
                     head = 0;
-                    if (diskData.length == (cylinder+1)) {
+                    if (diskData.length == (cylinder + 1)) {
                         // Letzter Zylinder
                         throw new IllegalStateException("End of Disk");
                     } else {
@@ -501,10 +541,10 @@ public class FloppyDisk implements StateSavable {
             if (diskData[cylinder][head].length == sector) {
                 // Wenn letzter Sektor
                 sector = 1;
-                if (diskData[cylinder].length == (head+1)) {
+                if (diskData[cylinder].length == (head + 1)) {
                     // Wenn letzter Kopf
                     head = 0;
-                    if (diskData.length == (cylinder+1)) {
+                    if (diskData.length == (cylinder + 1)) {
                         // Wenn letzter Zylinder
                         throw new IllegalStateException("End of Disk");
                     } else {

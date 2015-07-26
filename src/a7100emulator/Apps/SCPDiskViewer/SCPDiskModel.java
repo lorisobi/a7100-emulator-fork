@@ -2,13 +2,27 @@
  * SCPFileModel.java
  * 
  * Diese Datei gehört zum Projekt A7100 Emulator 
- * (c) 2011-2015 Dirk Bräuer
+ * Copyright (c) 2011-2015 Dirk Bräuer
+ *
+ * Der A7100 Emulator ist Freie Software: Sie können ihn unter den Bedingungen
+ * der GNU General Public License, wie von der Free Software Foundation,
+ * Version 3 der Lizenz oder jeder späteren veröffentlichten Version, 
+ * weiterverbreiten und/oder modifizieren.
+ *
+ * Der A7100 Emulator wird in der Hoffnung, dass er nützlich sein wird, aber
+ * OHNE JEDE GEWÄHRLEISTUNG, bereitgestellt; sogar ohne die implizite
+ * Gewährleistung der MARKTFÄHIGKEIT oder EIGNUNG FÜR EINEN BESTIMMTEN ZWECK.
+ * Siehe die GNU General Public License für weitere Details.
+ *
+ * Sie sollten eine Kopie der GNU General Public License zusammen mit diesem
+ * Programm erhalten haben. Wenn nicht, siehe <http://www.gnu.org/licenses/>.
  * 
  * Letzte Änderungen:
  *   05.04.2014 - Kommentare vervollständigt
  *   16.12.2014 - Hinzufügen von Datein implementiert
  *   01.01.2015 - Datenbank implementiert
  *   24.07.2015 - Datenbank exportieren ergänzt
+ *   26.07.2015 - Kommentare ergänzt
  */
 package a7100emulator.Apps.SCPDiskViewer;
 
@@ -114,6 +128,11 @@ public class SCPDiskModel {
         }
     }
 
+    /**
+     * Liest ein Verzeichnis als neue Diskette ein.
+     * 
+     * @param folder Verzeichnis
+     */
     void readFolder(File folder) {
         diskData = new byte[0x9F800];
         files.clear();

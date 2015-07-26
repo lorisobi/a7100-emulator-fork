@@ -2,7 +2,20 @@
  * KES.java
  * 
  * Diese Datei gehört zum Projekt A7100 Emulator 
- * (c) 2011-2015 Dirk Bräuer
+ * Copyright (c) 2011-2015 Dirk Bräuer
+ *
+ * Der A7100 Emulator ist Freie Software: Sie können ihn unter den Bedingungen
+ * der GNU General Public License, wie von der Free Software Foundation,
+ * Version 3 der Lizenz oder jeder späteren veröffentlichten Version, 
+ * weiterverbreiten und/oder modifizieren.
+ *
+ * Der A7100 Emulator wird in der Hoffnung, dass er nützlich sein wird, aber
+ * OHNE JEDE GEWÄHRLEISTUNG, bereitgestellt; sogar ohne die implizite
+ * Gewährleistung der MARKTFÄHIGKEIT oder EIGNUNG FÜR EINEN BESTIMMTEN ZWECK.
+ * Siehe die GNU General Public License für weitere Details.
+ *
+ * Sie sollten eine Kopie der GNU General Public License zusammen mit diesem
+ * Programm erhalten haben. Wenn nicht, siehe <http://www.gnu.org/licenses/>.
  * 
  * Letzte Änderungen:
  *   02.04.2014 - Kommentare vervollständigt
@@ -21,7 +34,9 @@ import java.io.IOException;
 
 /**
  * Klasse zur Abbildung der KES (Kontroller für Externspeicher)
- *
+ * <p>TODO:
+ * Lesen von einseitigen Disketten funktioniert nicht.
+ * 
  * @author Dirk Bräuer
  */
 public final class KES implements IOModule, ClockModule {
