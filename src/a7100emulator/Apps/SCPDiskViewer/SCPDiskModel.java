@@ -23,6 +23,7 @@
  *   01.01.2015 - Datenbank implementiert
  *   24.07.2015 - Datenbank exportieren ergänzt
  *   26.07.2015 - Kommentare ergänzt
+ *   09.08.2015 - Javadoc korrigiert
  */
 package a7100emulator.Apps.SCPDiskViewer;
 
@@ -183,8 +184,6 @@ public class SCPDiskModel {
 
     /**
      * Liest ein Diskettenabbild ein.
-     *
-     * @param image Abbild
      */
     private void parseImage() {
         files.clear();
@@ -505,7 +504,7 @@ public class SCPDiskModel {
     /**
      * Liefert zurück, ob eine Diskette geladen ist
      *
-     * @return <code>true</code - Wenn Diskette geladen ist, <code>false</code>
+     * @return <code>true</code> - Wenn Diskette geladen ist, <code>false</code>
      * sonst
      */
     boolean diskLoaded() {

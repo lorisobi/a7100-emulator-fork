@@ -27,6 +27,7 @@
  *   02.01.2015 - setRGB durch Zugriff auf Bildpuffer ersetzt
  *   03.01.2015 - Blinken bei nicht Cursor ergänzt
  *              - enum CursorMode entfernt
+ *   09.08.2015 - Javadoc korrigiert
  */
 package a7100emulator.components.modules;
 
@@ -466,6 +467,7 @@ public final class ABG implements Module {
             case LOCAL_PORT_PALETTE_E:
             case LOCAL_PORT_PALETTE_F:
                 palette_register[port - 0x30] = data & 0xFF;
+                System.out.println("Palettenregister noch ohne Funktion!");
                 break;
         }
     }
@@ -497,14 +499,11 @@ public final class ABG implements Module {
             }
         } else {
             // Gemischte Darstellung
-
             // Splitgrenze berechnen
             int splitline = split_register * 2 - 1;
 
             if (!continueSplit) {
                 // Darstellung Grafikbereich
-//                System.out.println("Grafikbereich Adresse:" + String.format("%04X", address));
-
                 for (int line = 0; line < splitline - 1; line++) {
                     for (int column = 0; column < 640; column += 8) {
                         updateGraphicsScreen(address, column, line, screenImage);
@@ -514,8 +513,6 @@ public final class ABG implements Module {
                 darkLine(splitline - 1, screenImage);
             } else {
                 // Darstellung Alphanumerikbereich
-//                System.out.println("Alphanumerikbereich Adresse:" + String.format("%04X", address));
-                
                 darkLine(splitline, screenImage);
                 for (int line = splitline + 1; line < 400; line++) {
                     for (int column = 0; column < 640; column += 8) {
@@ -537,6 +534,7 @@ public final class ABG implements Module {
      * @param address Speicherzelle
      * @param column Spalte auf Bildschirm
      * @param line Zeile auf Bildschirm
+     * @param image Zeiger auf Bild
      */
     private void updateAlphanumericScreen(int address, int column, int line, BufferedImage image) {
         int[] imageData = ((DataBufferInt) image.getRaster().getDataBuffer()).getData();
@@ -554,7 +552,6 @@ public final class ABG implements Module {
         for (int pixel = 0; pixel < 8; pixel++) {
             boolean set = BitTest.getBit(data, pixel);
             if (cursor) {
-                // TODO: Attribut Blinken implementieren, Cursorblinken aus implementieren
                 if (blink_fnct) {
                     imageData[column + 7 - pixel + line * 640] = intense ? INTENSE_GREEN : GREEN;
                 } else {
@@ -576,6 +573,7 @@ public final class ABG implements Module {
      * @param address Speicherzelle
      * @param column Spalte auf Bildschirm
      * @param line Zeile auf Bildschirm
+     * @param image Zeiger auf Bild
      */
     private void updateGraphicsScreen(int address, int column, int line, BufferedImage image) {
         int[] imageData = ((DataBufferInt) image.getRaster().getDataBuffer()).getData();
@@ -600,7 +598,8 @@ public final class ABG implements Module {
     /**
      * Tastet eine Linie dunkel
      *
-     *
+     * @param line Zeile auf Bildschirm
+     * @param image Zeiger auf Bild
      */
     private void darkLine(int line, BufferedImage image) {
         int[] imageData = ((DataBufferInt) image.getRaster().getDataBuffer()).getData();

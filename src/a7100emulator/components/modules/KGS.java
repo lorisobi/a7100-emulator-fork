@@ -210,14 +210,13 @@ public final class KGS implements IOModule, ClockModule {
     }
 
     /**
-     * Gibt ein Byte auf einem Systemport aus
+     * Gibt ein Byte auf einem Systemport aus.
      *
      * @param port Port
      * @param data Daten
      */
     @Override
     public void writePortByte(int port, int data) {
-        //System.out.println("OUT Byte " + Integer.toHexString(data) + "(" + Integer.toBinaryString(data) + ","+((data>=0x20)?(char)data:"-")+")" + " to port " + Integer.toHexString(port));
         switch (port) {
             case PORT_KGS_STATE:
                 clearBit(INT_BIT);
@@ -226,7 +225,6 @@ public final class KGS implements IOModule, ClockModule {
             case PORT_KGS_DATA:
                 dataIn = data;
                 setBit(IBF_BIT);
-                //System.out.println("Ausgabe " + String.format("%02X", data) + " (" + ((data > 0x20) ? (char) data : " ") + ") Speicher:" + String.format("%04X", ram.readWord(0x2805)));
                 break;
         }
     }
@@ -257,12 +255,10 @@ public final class KGS implements IOModule, ClockModule {
                 break;
             case PORT_KGS_DATA:
                 result = dataOut;
-                //System.out.println("Lese Byte von KGS: " + String.format("%02X", dataOut) + " " + Integer.toBinaryString(dataOut));
                 clearBit(OBF_BIT);
                 clearBit(INT_BIT);
                 break;
         }
-        //System.out.println("IN Byte from port " + Integer.toHexString(port)+": "+Integer.toHexString(result));
         return result;
     }
 
@@ -307,7 +303,6 @@ public final class KGS implements IOModule, ClockModule {
             case LOCAL_PORT_OUTPUT:
                 throw new IllegalArgumentException("Lesen von OUTPUT Port nicht erlaubt");
             case LOCAL_PORT_STATE:
-                //System.out.println("Lese Status lokal "+Integer.toBinaryString(state));
                 return state;
             case LOCAL_PORT_INT_FLAG:
                 System.out.println("Lesen von INT-Flag noch nicht implementiert");
@@ -574,7 +569,7 @@ public final class KGS implements IOModule, ClockModule {
         try {
             Thread.sleep(100);
         } catch (InterruptedException ex) {
-            Logger.getLogger(BitmapGenerator.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(KGS.class.getName()).log(Level.SEVERE, null, ex);
         }
         frame.setVisible(true);
         frame.pack();

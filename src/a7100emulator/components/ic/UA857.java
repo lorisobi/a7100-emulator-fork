@@ -22,6 +22,7 @@
  *   18.11.2014 - Speichern und Laden implementiert
  *              - Interface IC implementiert
  *   12.12.2014 - Reset implementiert
+ *   09.08.2015 - Javadoc korrigiert
  */
 package a7100emulator.components.ic;
 
@@ -171,6 +172,8 @@ public class UA857 {
 
         /**
          * Erzeugt einen neuen Counter
+         * 
+         * @param id ID des Counters
          */
         public Counter(int id) {
             this.id = id;

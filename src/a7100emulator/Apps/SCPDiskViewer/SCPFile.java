@@ -20,6 +20,7 @@
  * Letzte Änderungen:
  *   05.04.2014 - Kommentare vervollständigt
  *   27.09.2014 - MD5 Summen ergänzt
+ *   09.08.2015 - Javadoc korrigiert
  */
 package a7100emulator.Apps.SCPDiskViewer;
 
@@ -248,7 +249,7 @@ public class SCPFile {
     /**
      * Setzt die MD5 Prüfsumme
      *
-     * @param MD5 MD5 Prüfsumme
+     * @param md5 MD5 Prüfsumme
      */
     void setMD5(String md5) {
         this.md5 = md5;

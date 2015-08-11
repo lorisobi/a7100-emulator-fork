@@ -38,6 +38,10 @@
  *   14.07.2015 - Fehler in CMPSW behoben (Quelle und Ziel getauscht)
  *              - Debugausgaben CMPS korrigiert
  *   25.07.2015 - Slowdown und Automatischen Debuggerstart deaktiviert
+ *   28.07.2015 - Debugger addLine() wieder aktiviert
+ *   05.08.2015 - Debugausgabe MOVS korrigiert
+ *   09.08.2015 - Javadoc korrigiert
+ *   11.08.2015 - Segment-Präfixe separat behandelt
  */
 package a7100emulator.components.ic;
 
@@ -636,6 +640,42 @@ public class K1810WM86 implements Runnable, IC {
      */
     private void executeNextInstruction() {
         int opcode1 = mms16.readMemoryByte((cs << 4) + ip++);
+
+        // Aktualisiere Zeit für Laden des Befehls
+        updateTicks(3);
+
+        // Prüfe auf Segment Präfix
+        prefix = NO_PREFIX;
+        switch (opcode1) {
+            /*
+             * Präfix
+             */
+            case PREFIX_ES:
+                debugInfo.setCode(null);
+                prefix = PREFIX_ES;
+                updateTicks(2);
+                opcode1 = mms16.readMemoryByte((cs << 4) + ip++);
+                break;
+            case PREFIX_CS:
+                debugInfo.setCode(null);
+                prefix = PREFIX_CS;
+                updateTicks(2);
+                opcode1 = mms16.readMemoryByte((cs << 4) + ip++);
+                break;
+            case PREFIX_SS:
+                debugInfo.setCode(null);
+                prefix = PREFIX_SS;
+                updateTicks(2);
+                opcode1 = mms16.readMemoryByte((cs << 4) + ip++);
+                break;
+            case PREFIX_DS:
+                debugInfo.setCode(null);
+                prefix = PREFIX_DS;
+                updateTicks(2);
+                opcode1 = mms16.readMemoryByte((cs << 4) + ip++);
+                break;
+        }
+
         boolean debug = debugger.isDebug();
 
         if (debug && (opcode1 != PREFIX_CS && opcode1 != PREFIX_SS && opcode1 != PREFIX_DS && opcode1 != PREFIX_ES)) {
@@ -652,9 +692,6 @@ public class K1810WM86 implements Runnable, IC {
             flags |= INTERRUPT_ENABLE_FLAG;
             stiWaiting = false;
         }
-
-        // Aktualisiere Zeit für Laden des Befehls
-        updateTicks(3);
 
         switch (opcode1) {
             /*
@@ -2897,11 +2934,11 @@ public class K1810WM86 implements Runnable, IC {
                         if (getFlag(DIRECTION_FLAG)) {
                             int ch = mms16.readMemoryWord((getSReg(SREG_ES) << 4) + getReg16(REG_BH_DI) + (count - i) * 2);
                             operand += String.format("%04Xh ", ch);
-                            ascii += (char) (ch & 0xFF) + (char) ((ch & 0xFF00) >> 8);
+                            ascii += (char) (ch & 0xFF) + "" + (char) ((ch & 0xFF00) >> 8);
                         } else {
                             int ch = mms16.readMemoryWord((getSReg(SREG_ES) << 4) + getReg16(REG_BH_DI) - (count + i) * 2);
                             operand += String.format("%04Xh ", ch);
-                            ascii += (char) (ch & 0xFF) + (char) ((ch & 0xFF00) >> 8);
+                            ascii += (char) (ch & 0xFF) + "" + (char) ((ch & 0xFF00) >> 8);
                         }
                     }
                     debugInfo.setOperands(operand + " (" + ascii + ")");
@@ -3276,31 +3313,6 @@ public class K1810WM86 implements Runnable, IC {
                 }
             }
             break;
-
-
-            /*
-             * Prefix
-             */
-            case PREFIX_ES:
-                debugInfo.setCode(null);
-                prefix = PREFIX_ES;
-                updateTicks(2);
-                break;
-            case PREFIX_CS:
-                debugInfo.setCode(null);
-                prefix = PREFIX_CS;
-                updateTicks(2);
-                break;
-            case PREFIX_SS:
-                debugInfo.setCode(null);
-                prefix = PREFIX_SS;
-                updateTicks(2);
-                break;
-            case PREFIX_DS:
-                debugInfo.setCode(null);
-                prefix = PREFIX_DS;
-                updateTicks(2);
-                break;
 
             /**
              * Prozessorsteuerung
@@ -5016,7 +5028,7 @@ public class K1810WM86 implements Runnable, IC {
                 decoder.addItem(debugInfo);
                 // Auskommentieren der SCP-Befehle
 //                if (cs != 0x0104) {
-//                    debugger.addLine(debugInfo);
+                debugger.addLine(debugInfo);
 //                }
                 // TODO: Slowdown gegenwärtig deaktiviert
 //                try {
@@ -5025,7 +5037,7 @@ public class K1810WM86 implements Runnable, IC {
 //                    Logger.getLogger(K1810WM86.class.getName()).log(Level.SEVERE, null, ex);
 //                }
             }
-        } 
+        }
         // TODO: Debuggerstart bei bestimmter Adresse
 //        else {
 //            if ((cs << 4) + ip == debugger.getDebugStart()) {
@@ -5033,9 +5045,9 @@ public class K1810WM86 implements Runnable, IC {
 //            }
 //        }
 
-        if (prefix != NO_PREFIX && opcode1 != PREFIX_CS && opcode1 != PREFIX_SS && opcode1 != PREFIX_DS && opcode1 != PREFIX_ES) {
-            prefix = NO_PREFIX;
-        }
+//        if (prefix != NO_PREFIX && opcode1 != PREFIX_CS && opcode1 != PREFIX_SS && opcode1 != PREFIX_DS && opcode1 != PREFIX_ES) {
+//            prefix = NO_PREFIX;
+//        }
     }
 
     /**
@@ -5383,7 +5395,7 @@ public class K1810WM86 implements Runnable, IC {
 
     /**
      * Gibt den Inhalt eines Segmentregisters basierend auf dem aktuell
-     * gesetzten Präfix zurück
+     * gesetzten Präfix zurück.
      *
      * @param default_segment Standardsegment, wenn kein Präfix definiert ist
      * @return Segmentregister
@@ -5407,7 +5419,7 @@ public class K1810WM86 implements Runnable, IC {
 
     /**
      * Gibt den Registernamen eines Segmentregisters entsprechend des gesetzten
-     * Präfix an
+     * Präfix an.
      *
      * @param default_segment Standardsegment, wenn kein Präfix vorhanden ist
      * @return Registername
@@ -6253,6 +6265,7 @@ public class K1810WM86 implements Runnable, IC {
      *
      * @param op1 Erster Operand
      * @param op2 Zweiter Operand
+     * @param res Ergebnis der Operation
      */
     private void checkOverflowFlagAdd8(int op1, int op2, int res) {
         if (((op1 & 0x80) == 0x80 && (op2 & 0x80) == 0x80 && (res & 0x80) == 0x00) | ((op1 & 0x80) == 0x00 && (op2 & 0x80) == 0x00 && (res & 0x80) == 0x80)) {
@@ -6268,6 +6281,7 @@ public class K1810WM86 implements Runnable, IC {
      *
      * @param op1 Erster Operand
      * @param op2 Zweiter Operand
+     * @param res Ergebnis der Operation
      */
     private void checkOverflowFlagAdd16(int op1, int op2, int res) {
         if (((op1 & 0x8000) == 0x8000 && (op2 & 0x8000) == 0x8000 && (res & 0x8000) == 0x0000) | ((op1 & 0x8000) == 0x0000 && (op2 & 0x8000) == 0x0000 && (res & 0x8000) == 0x8000)) {
@@ -6283,6 +6297,7 @@ public class K1810WM86 implements Runnable, IC {
      *
      * @param op1 Erster Operand
      * @param op2 Zweiter Operand
+     * @param res Ergebnis der Operation
      */
     private void checkOverflowFlagSub8(int op1, int op2, int res) {
         if (((op1 & 0x80) == 0x80 && (op2 & 0x80) == 0x00 && (res & 0x80) == 0x00) | ((op1 & 0x80) == 0x00 && (op2 & 0x80) == 0x80 && (res & 0x80) == 0x80)) {
@@ -6298,6 +6313,7 @@ public class K1810WM86 implements Runnable, IC {
      *
      * @param op1 Erster Operand
      * @param op2 Zweiter Operand
+     * @param res Ergebnis der Operation
      */
     private void checkOverflowFlagSub16(int op1, int op2, int res) {
         if (((op1 & 0x8000) == 0x8000 && (op2 & 0x8000) == 0x0000 && (res & 0x8000) == 0x0000) | ((op1 & 0x8000) == 0x0000 && (op2 & 0x8000) == 0x8000 && (res & 0x8000) == 0x8000)) {
@@ -6358,7 +6374,7 @@ public class K1810WM86 implements Runnable, IC {
      */
     private void interrupt(int interruptID) {
 //        if (interruptID == 224 && cx == 0x0473) {
-//            System.out.println("SCP-GX Aufruf:");
+//            System.out.println(String.format("\nSCP-GX Aufruf bei %04X:%04X :", cs, ip));
 //            int pbaddr = (ds << 4) + dx;
 //            System.out.println(String.format("PB-Adresse: %05X", pbaddr));
 //            int pbctrladdr = (mms16.readMemoryWord(pbaddr + 2) << 4) + mms16.readMemoryWord(pbaddr);
@@ -6369,9 +6385,12 @@ public class K1810WM86 implements Runnable, IC {
 //            //System.out.println(String.format("PB-Ctrl-Adresse: %05X", pbctrladdr));
 //            int ctrlcode1 = mms16.readMemoryByte(pbctrladdr);
 //            int ctrlcode2 = mms16.readMemoryByte(pbctrladdr + 2);
-//            int ctrlcode4 = mms16.readMemoryByte(pbctrladdr + 4);
+//            int ctrlcode4 = mms16.readMemoryByte(pbctrladdr + 6);
 //
 //            System.out.println("Operationscode: " + ctrlcode1 + ", Anzahl der Punkte: " + ctrlcode2 + ", Anzahl Int-Parameter: " + ctrlcode4);
+//            if (debugger.isDebug()) {
+//                debugger.addComment("Operationscode: " + ctrlcode1 + ", Anzahl der Punkte: " + ctrlcode2 + ", Anzahl Int-Parameter: " + ctrlcode4);
+//            }
 //            if (ctrlcode2 > 0) {
 //                System.out.print("Punkte: ");
 //                for (int i = 0; i < ctrlcode2; i++) {

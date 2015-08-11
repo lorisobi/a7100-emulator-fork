@@ -22,6 +22,8 @@
  *   12.04.2014 - Verarbeitung der Init Parameter
  *   09.08.2014 - Zugriffe auf SystemMemory, SystemPorts und SystemClock durch
  *                MMS16Bus ersetzt
+ *   30.07.2015 - Spurpositionierung und Lesen Sektor Identifikationsfeld
+ *                implementiert
  */
 package a7100emulator.components.modules;
 
@@ -34,9 +36,9 @@ import java.io.IOException;
 
 /**
  * Klasse zur Abbildung der KES (Kontroller für Externspeicher)
- * <p>TODO:
- * Lesen von einseitigen Disketten funktioniert nicht.
- * 
+ * <p>
+ * TODO: Lesen von einseitigen Disketten funktioniert nicht.
+ *
  * @author Dirk Bräuer
  */
 public final class KES implements IOModule, ClockModule {
@@ -248,7 +250,9 @@ public final class KES implements IOModule, ClockModule {
 
     /**
      * Führt die Operationen entsprechend den Daten des I/O Parameter Blocks
-     * durch
+     * durch.
+     * <p>
+     * TODO: Modifizierung ergänzen, fehlende Funktionen implementieren
      */
     private void checkIOPB() {
         // TODO: Festplatten Laufwerke überall prüfen
@@ -383,10 +387,35 @@ public final class KES implements IOModule, ClockModule {
                 mms16.writeMemoryByte(ccbAddress + 0x11, 0x01);
             }
             break;
-            case 0x03:
+            case 0x03: {
                 // Lesen des Sektor-ID-Feldes
-                System.out.println("Lesen Sektor-ID-Feld noch nicht implementiert");
-                break;
+                int driveNr = mms16.readMemoryByte(ccbAddress + 0x2A);
+                int deviceCode = mms16.readMemoryByte(ccbAddress + 0x28);
+                int mod = mms16.readMemoryByte(ccbAddress + 0x2C);
+                int memSeg = mms16.readMemoryWord(ccbAddress + 0x34);
+                int memOff = mms16.readMemoryWord(ccbAddress + 0x32);
+                int memAddr = (memSeg << 4) + memOff;
+                int status = 0;
+
+                switch (deviceCode) {
+                    case 0x00:
+                    case 0x02:
+                        status = 0x01;
+                        status |= 0xC0;
+                        break;
+                    case 0x03:
+                        FloppyDrive drive = afs.getFloppy(driveNr & 0x03);
+                        byte[] sectorID = drive.readSectorID();
+                        for (int i = 0; i < sectorID.length; i++) {
+                            mms16.writeMemoryWord(memAddr + i, sectorID[i]);
+                        }
+                        status = 0x01;
+                        break;
+                }
+                mms16.writeMemoryByte(ccbAddress + 0x13, 0xFF);
+                mms16.writeMemoryByte(ccbAddress + 0x11, status);
+            }
+            break;
             case 0x04: {
                 // Daten lesen
                 int deviceCode = mms16.readMemoryByte(ccbAddress + 0x28);
@@ -456,10 +485,33 @@ public final class KES implements IOModule, ClockModule {
                 // Daten aus KES-Puffer Schreiben
                 System.out.println("Daten von KES-Puffer noch nicht implementiert");
                 break;
-            case 0x08:
+            case 0x08: {
                 // Spurpositionierung einschalten
-                System.out.println("Spurpositionierung noch nicht implementiert");
-                break;
+                int driveNr = mms16.readMemoryByte(ccbAddress + 0x2A);
+                int deviceCode = mms16.readMemoryByte(ccbAddress + 0x28);
+                int mod = mms16.readMemoryByte(ccbAddress + 0x2C);
+                int cylinder = mms16.readMemoryWord(ccbAddress + 0x2E);
+                int head = mms16.readMemoryByte(ccbAddress + 0x30);
+                int status = 0;
+
+                switch (deviceCode) {
+                    case 0x00:
+                    case 0x02:
+                        status = 0x01;
+                        status |= 0xC0;
+                        break;
+                    case 0x03:
+                        FloppyDrive drive = afs.getFloppy(driveNr & 0x03);
+                        drive.setTrackPosition(cylinder, head);
+                        // Status für erfolgreiches Positionieren
+                        // TODO: Implementieren, dass erst Operation beendet und dann Positionierung beendet gemeldet wird
+                        status = 0x02;
+                        break;
+                }
+                mms16.writeMemoryByte(ccbAddress + 0x13, 0xFF);
+                mms16.writeMemoryByte(ccbAddress + 0x11, status);
+            }
+            break;
             case 0x0C:
                 // Start UA880-Programm
                 System.out.println("UA880 noch nicht implementiert");

@@ -33,6 +33,7 @@
  *   24.07.2015 - Tabulator für GUI Events entfernt
  *   25.07.2015 - Untermenü KES ausgeblendet
  *   26.07.2015 - Lizenzinformationen überarbeitet
+ *   29.07.2015 - Formatierte Textfelder bei RAW Image richtig auslesen
  */
 package a7100emulator;
 
@@ -570,7 +571,7 @@ public class MainView extends JFrame {
                 JPanel pan_desc = new JPanel();
                 pan_desc.setBorder(BorderFactory.createEmptyBorder(0, 50, 0, 10));
                 pan_desc.setLayout(new GridLayout(2, 1));
-                pan_desc.add(new JLabel("A7100 - Emulator v0.8.40"));
+                pan_desc.add(new JLabel("A7100 - Emulator v0.8.45"));
                 pan_desc.add(new JLabel("Copyright (c) 2011-2015 Dirk Bräuer"));
                 pan_about.add(pan_desc, BorderLayout.CENTER);
                 JTextArea licenseText = new JTextArea();
@@ -629,6 +630,8 @@ public class MainView extends JFrame {
                     a7100.getKES().getAFS().getFloppy(drive).loadDiskFromFile(image, FloppyImageType.DMK);
                 } else {
                     // Binär
+                    NumberFormat integerFormat=NumberFormat.getIntegerInstance();
+                    integerFormat.setGroupingUsed(false);
                     JFormattedTextField editCylinder = new JFormattedTextField(NumberFormat.getIntegerInstance());
                     JFormattedTextField editHeads = new JFormattedTextField(NumberFormat.getIntegerInstance());
                     JFormattedTextField editSectorsPerTrack = new JFormattedTextField(NumberFormat.getIntegerInstance());
@@ -655,12 +658,12 @@ public class MainView extends JFrame {
                     panelEdit.add(new JLabel("Bytes pro Sektor Spur 0:"));
                     panelEdit.add(editBytesPerSectorTrack0);
                     if (JOptionPane.showConfirmDialog(null, panelEdit, "Image laden", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE) == JOptionPane.OK_OPTION) {
-                        int cylinder = Integer.parseInt(editCylinder.getText());
-                        int heads = Integer.parseInt(editHeads.getText());
-                        int sectorsPerTrack = Integer.parseInt(editSectorsPerTrack.getText());
-                        int bytesPerSector = Integer.parseInt(editBytesPerSector.getText());
-                        int sectorsInTrack0 = Integer.parseInt(editSectorsInTrack0.getText());
-                        int bytesPerSectorTrack0 = Integer.parseInt(editBytesPerSectorTrack0.getText());
+                        int cylinder = ((Number)editCylinder.getValue()).intValue();
+                        int heads = ((Number)editHeads.getValue()).intValue();
+                        int sectorsPerTrack = ((Number)editSectorsPerTrack.getValue()).intValue();
+                        int bytesPerSector = ((Number)editBytesPerSector.getValue()).intValue();
+                        int sectorsInTrack0 = ((Number)editSectorsInTrack0.getValue()).intValue();
+                        int bytesPerSectorTrack0 = ((Number)editBytesPerSectorTrack0.getValue()).intValue();
                         a7100.getKES().getAFS().getFloppy(drive).loadDiskFromFile(image, cylinder, heads, sectorsPerTrack, bytesPerSector, sectorsInTrack0, bytesPerSectorTrack0);
                     }
 

@@ -26,6 +26,8 @@
  *              - Fehler beim Laden des Zustands behoben
  *   18.12.2014 - Fehler beim Wechsel von Kopf behoben
  *   25.07.2015 - Fehler DMK-Images behoben
+ *   30.07.2015 - Sektorformat lesen implementiert
+ *   09.08.2015 - Javadoc korrigiert
  */
 package a7100emulator.components.system;
 
@@ -208,6 +210,8 @@ public class FloppyDisk implements StateSavable {
      * @param mod Modifizierung
      * @param formatData Datenbytes
      * @param interleave Interleave-Faktor
+     * @param sectorsPerTrack Anzahl der Sektoren pro Zylinder
+     * @param bytesPerSector Anzahl der Bytes pro Sektor 
      */
     void format(int cylinder, int head, int mod, int[] formatData, int interleave, int sectorsPerTrack, int bytesPerSector) {
         for (int sector = 0; sector < sectorsPerTrack; sector++) {
@@ -329,7 +333,7 @@ public class FloppyDisk implements StateSavable {
             sectorCount = buffer[pos++];
             if (sectorCount != -1) {
                 int cylinder = buffer[pos++];
-                int head = buffer[pos++] & 0x1;
+                int head = buffer[pos++] & 0x01;
                 int trackCRC = buffer[pos++];
 
                 for (int i = 0; i < sectorCount; i++) {
@@ -462,10 +466,10 @@ public class FloppyDisk implements StateSavable {
                     int sectorSize = (int) Math.pow(2, 7 + buffer[blockPos++]);
 
                     checkAndAddDiskGeometry(cylinder, head, sector);
-                    diskData[t][s][sector-1] = new byte[sectorSize];
-                    
+                    diskData[t][s][sector - 1] = new byte[sectorSize];
+
                     // CRC überspringen
-                    blockPos+=doubleDensity?2:4;
+                    blockPos += doubleDensity ? 2 : 4;
 
                     // Lese solange Bytes bis Ende Data AM erreicht ist
                     byte data_am;
@@ -473,7 +477,7 @@ public class FloppyDisk implements StateSavable {
                         data_am = buffer[blockPos++];
                     } while ((data_am != ((byte) 0xFB)) && (data_am != ((byte) 0xF8)));
                     blockPos += doubleDensity ? 0 : 1;
-                    System.arraycopy(buffer, blockPos, diskData[t][s][sector-1], 0, sectorSize);
+                    System.arraycopy(buffer, blockPos, diskData[t][s][sector - 1], 0, sectorSize);
                     diskSize += sectorSize;
                 }
             }
@@ -620,6 +624,30 @@ public class FloppyDisk implements StateSavable {
     }
 
     /**
+     * Gibt das Sektorformat der ausgewählten Spur zurück.
+     * 
+     * @param cylinder Zylindernummer
+     * @param head Kopfnummer
+     * @param sector Sektornummer
+     * @return Sektorformat 00 - 128 Bytes, 01 - 256 Bytes, 10 - 512 Bytes, 11 -
+     * 1024 Bytes
+     */
+    int getSectorFormat(int cylinder, int head, int sector) {
+        switch (diskData[cylinder][head][sector-1].length) {
+            case 128:
+                return 0;
+            case 256:
+                return 1;
+            case 512:
+                return 2;
+            case 1024:
+                return 3;
+            default:
+                return -1;
+        }
+    }
+
+    /**
      * Speichert die Diskette in eine Datei
      *
      * @param dos Stream zur Datei
@@ -665,5 +693,4 @@ public class FloppyDisk implements StateSavable {
         }
         writeProtect = dis.readBoolean();
     }
-
 }

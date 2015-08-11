@@ -1,4 +1,4 @@
-A7100 Emulator - Readme v0.8.40
+A7100 Emulator - Readme v0.8.45
 ===============================
 
 Inhaltsverzeichnis:
@@ -38,6 +38,21 @@ Inhaltsverzeichnis:
 --------------------------------------------------------------------------------
 2. Letzte Änderungen
 
+  v0.8.45 - 11.08.2015
+  Neue Features:
+    - KES verarbeitet Spurpositionierung und Lesen Sektor-ID Feld
+  Änderungen/Bugfixes:
+    - Fehler Dialog RAW Images behoben
+    - Segment-Präfixe in K1810WM86 separat von Opcodes bearbeitet
+    - Zero Flag bei SBC, ADC in UA880 richtig gesetzt 
+    - Lesen von Wörtern zwischen Modulgrenzen ermöglicht
+    - Debugausgabe wieder aktiviert
+  Softwarekompatibilität:
+    - Nicht getestet -> Läuft: CP/K 86 V2.2
+    - Läuft in Teilen -> Läuft: Gedit M/16 1.02, Gedit M/16 2.0
+    - Läuft Nicht -> Läuft: Gedit M/16 1.51
+    - Läuft mit kleinen Einschränkungen -> Läuft: Grafik M/16
+  ----------------------------------------
   v0.8.40 - 26.07.2015
   Neue Features:
     - Erste Version unter GNU General Public License Version 3
@@ -58,9 +73,9 @@ Inhaltsverzeichnis:
     - Falsche Tastatursteuerfolgen korrigiert
     - Lesen von DMK Abbildern korrigiert
   Softwarekompatibilität:
-    - Läuft mit kleinen Einschränkungen -> Läuft : BASIC 1700 1.03, Pascal 3.01
+    - Läuft mit kleinen Einschränkungen -> Läuft: BASIC 1700 1.03, Pascal 3.01
     - Nicht getestet -> Läuft nicht: Gedit 1.51
-    - Nicht getestet -> Funktioniert in Teilen: Gedit M/16 1.02
+    - Nicht getestet -> Läuft nur in Teilen: Gedit M/16 1.02
     - Nicht getestet -> Läuft: Meteor
   ----------------------------------------
   v0.7.90 - 19.12.2014
@@ -74,7 +89,7 @@ Inhaltsverzeichnis:
   Änderungen/Bugfixes:
     - Tastaturpuffer neu implementiert
   Softwarekompatibilität:
-    - Läuft mit kleinen Einschränkungen -> Läuft : SCP 2.2, SCP 3.0
+    - Läuft mit kleinen Einschränkungen -> Läuft: SCP 2.2, SCP 3.0
     - Läuft Nicht -> Läuft: L
     - Läuft Nicht -> Läuft mit kleinen Einschränkungen: Grafik M/16
     - Läuft Nicht -> Funktioniert in Teilen: Gedit M/16
@@ -105,7 +120,7 @@ Inhaltsverzeichnis:
     - Zugriff auf Festplatten korrekt abgewiesen
   Softwarekompatibilität:
     - Läuft Nicht -> Läuft: SCP 3.1, SCP 3.2
-    - Läuft Nicht -> Läuft mit kleinen Einschränkungen : SCP 3.0
+    - Läuft Nicht -> Läuft mit kleinen Einschränkungen: SCP 3.0
   ----------------------------------------
   v0.5.23 - 28.02.2014
   Änderungen/Bugfixes:
@@ -144,12 +159,13 @@ SCP         3.1    ***
 SCP         3.2    ***
 MUTOS              !!        Hängt in HLT Befehl / Trap
 BOS                ???
+CP/K        2.2    ***
 
 Grafikprogramme
-Gedit M/16  2.0    *         Unregelmäßiger Start, Darstellungsfehler
-Gedit M/16  1.51   !!!
-Gedit M/16  1.02   *         Unregelmäßiger Start, Darstellungsfehler
-Grafik/M16  1.0    **        Darstellungsfehler Tortengrafik
+Gedit M/16  2.0    ***
+Gedit M/16  1.51   ***
+Gedit M/16  1.02   ***
+Grafik/M16  1.0    ***
 
 Textverarbeitung
 Text 40     4.0    **   K    Format A4BREIT (und andere?) funktioniert nicht
@@ -265,14 +281,6 @@ In der aktuellen Version ist der A7100 mit folgenden Moduln bestückt:
 
 -------------------------------------------------------------------------------- 
 5. Bekannte Fehler / Nicht unterstützte Funktionen
-
-KGS/ABG Synchronisation:
-Die mit Version v0.7.90 erfolgte Neuimplementierung von KGS/ABG läuft noch nicht
-vollständig stabil. So kann es bei der Synchronisation zwischen der ZVE und den
-Subsystemen zu Deadlocks kommen. Dies ist teilweise auch von Nutzeraktivitäten
-abhängig. Für manche Programme (bspw. Gedit) hilft hier nur mehrfaches
-neustarten. Außerdem sollten bei Problemen die Tastatureingaben nicht zu schnell
-hintereinander ausgeführt werden.
 
 Hacks:
 Der Tastaturcontroller ist noch nicht vollständig bzw. noch nicht korrekt 

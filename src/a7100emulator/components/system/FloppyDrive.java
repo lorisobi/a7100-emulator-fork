@@ -23,6 +23,8 @@
  *              - Formatierung überarbeitet
  *   18.11.2014 - getBit durch BitTest.getBit ersetzt
  *              - Interface StateSavable implementiert
+ *   30.07.2015 - Spurpositionierung und Lesen Sektor Identifikationsfeld
+ *                implementiert
  */
 package a7100emulator.components.system;
 
@@ -39,7 +41,7 @@ import java.io.IOException;
  *
  * @author Dirk Bräuer
  */
-public class FloppyDrive implements StateSavable  {
+public class FloppyDrive implements StateSavable {
 
     /**
      * Laufwerkstyp
@@ -111,6 +113,14 @@ public class FloppyDrive implements StateSavable  {
      * Kopfladezeit
      */
     private int headTime;
+    /**
+     * Zylindernummer der letzten Spurpositionierung
+     */
+    private int positionCylinder = 0;
+    /**
+     * Kopfnummer der letzten Spurpositionierung
+     */
+    private int positionHead = 0;
 
     /**
      * Erstellt ein neues Diskettenlaufwerk
@@ -454,6 +464,34 @@ public class FloppyDrive implements StateSavable  {
     }
 
     /**
+     * Leitet die Spurpositionierung ein
+     *
+     * @param cylinder Zylinder
+     * @param head Kopfnummer
+     */
+    public void setTrackPosition(int cylinder, int head) {
+        this.positionCylinder = cylinder;
+        this.positionHead = head;
+    }
+
+    /**
+     * Liest das Sektor-Identifikationsfeld nach vorheriger Spurpositionierung
+     * <p>
+     * TODO: Positionierung auch beim Schreiben und Lesen verändern?
+     *
+     * @return Sektor-Identifikationsfeld
+     */
+    public byte[] readSectorID() {
+        byte[] result = new byte[5];
+        result[0] = (byte) (positionCylinder & 0xFF);
+        result[1] = (byte) ((positionCylinder >> 8) & 0xFF);
+        result[2] = (byte) (positionHead);
+        result[3] = 1;
+        result[4] = (byte) ((disk.getSectorFormat(positionCylinder, positionHead, 1)) << 4);
+        return result;
+    }
+
+    /**
      * Speichert den Zustand des Laufwerks in einer Datei
      *
      * @param dos Stream zur Datei
@@ -462,6 +500,9 @@ public class FloppyDrive implements StateSavable  {
     @Override
     public void saveState(final DataOutputStream dos) throws IOException {
         dos.writeUTF(driveType.name());
+        dos.writeInt(positionCylinder);
+        dos.writeInt(positionHead);
+        
         if (disk == null) {
             dos.writeBoolean(false);
         } else {
@@ -479,6 +520,9 @@ public class FloppyDrive implements StateSavable  {
     @Override
     public void loadState(final DataInputStream dis) throws IOException {
         driveType = DriveType.valueOf(dis.readUTF());
+        positionCylinder = dis.readInt();
+        positionHead = dis.readInt();
+
         boolean diskInserted = dis.readBoolean();
         if (diskInserted) {
             disk = new FloppyDisk();

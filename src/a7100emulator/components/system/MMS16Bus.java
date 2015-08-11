@@ -22,6 +22,7 @@
  *   16.11.2014 - Clock-Funktionalität entfernt
  *   18.11.2014 - Speichern und Laden implementiert
  *              - Interface StateSavable implementiert
+ *   28.07.2015 - Lesen von Wörtern zwischen Modulgrenzen ermöglicht
  */
 package a7100emulator.components.system;
 
@@ -119,18 +120,16 @@ public class MMS16Bus implements StateSavable {
 
     /**
      * Liefert ein Modul für den angegebenen Speicherbereich
-     * <p>
-     * TODO: Prüfen ob ein Wort genau zwischen zwei Modulen gelesen oder 
-     * geschrieben werden soll. Ggf. Umstellung auf Byteweisen Zugriff.
-     * Test EDIT.CMD
      *
      * @param address Adresse
-     * @return Modul oder null, wenn kein Modul für diesen Speicherbereich
+     * @param word <code>true</code> für Wortzugriff, <code>false</code> für
+     * Bytezugriff
+     * @return Modul oder null, wenn kein Modul für den gesamten Speicherbereich
      * vorhanden ist
      */
-    private MemoryModule getModuleForAddress(int address) {
+    private MemoryModule getModuleForAddress(int address, boolean word) {
         for (AddressSpace addressSpace : memoryModules.keySet()) {
-            if (address >= addressSpace.getLowerAddress() && address <= addressSpace.getHigherAddress()) {
+            if (address >= addressSpace.getLowerAddress() && (address + (word ? 1 : 0)) <= addressSpace.getHigherAddress()) {
                 return memoryModules.get(addressSpace);
             }
         }
@@ -145,7 +144,7 @@ public class MMS16Bus implements StateSavable {
      * @param data Daten
      */
     public void writeMemoryByte(int address, int data) {
-        MemoryModule module = getModuleForAddress(address);
+        MemoryModule module = getModuleForAddress(address, false);
         if (module == null) {
             //System.out.println("Zugriff auf nicht vorhandenen Speicher");            
             return;
@@ -160,9 +159,27 @@ public class MMS16Bus implements StateSavable {
      * @param data Daten
      */
     public void writeMemoryWord(int address, int data) {
-        MemoryModule module = getModuleForAddress(address);
+        MemoryModule module = getModuleForAddress(address, true);
         if (module == null) {
-            //System.out.println("Zugriff auf nicht vorhandenen Speicher");
+            // Ggf. Wort zwischen Modulgrenzen
+            // Modul für zweites Byte holen
+            module = getModuleForAddress(address + 1, false);
+            if (module == null) {
+                //System.out.println("Zugriff auf nicht vorhandenen Speicher");
+                return;
+            }
+            module.writeByte(address + 1, data >> 8);
+
+            // Modul für erstes Byte holen
+            module = getModuleForAddress(address, false);
+            if (module == null) {
+                //System.out.println("Zugriff auf nicht vorhandenen Speicher");
+                return;
+            }
+            module.writeByte(address, data);
+
+            // timeout zurücksetzen, da Speicher vorhanden und nur zwischen 2 Modulen
+            timeout = false;
             return;
         }
         module.writeWord(address, data);
@@ -175,7 +192,7 @@ public class MMS16Bus implements StateSavable {
      * @return Daten
      */
     public int readMemoryByte(int address) {
-        MemoryModule module = getModuleForAddress(address);
+        MemoryModule module = getModuleForAddress(address, false);
         if (module == null) {
             //System.out.println("Zugriff auf nicht vorhandenen Speicher");
             return 0;
@@ -190,10 +207,29 @@ public class MMS16Bus implements StateSavable {
      * @return Daten
      */
     public int readMemoryWord(int address) {
-        MemoryModule module = getModuleForAddress(address);
+        MemoryModule module = getModuleForAddress(address, true);
         if (module == null) {
-            //System.out.println("Zugriff auf nicht vorhandenen Speicher");
-            return 0;
+            // Ggf. Wort zwischen Modulgrenzen
+            // Modul für erstes Byte holen
+            module = getModuleForAddress(address, false);
+            if (module == null) {
+                //System.out.println("Zugriff auf nicht vorhandenen Speicher");
+                return 0;
+            }
+            int lb = module.readByte(address);
+
+            // Modul für zweites Byte holen
+            module = getModuleForAddress(address + 1, false);
+            if (module == null) {
+                //System.out.println("Zugriff auf nicht vorhandenen Speicher");
+                return 0;
+            }
+            int hb = module.readByte(address + 1);
+
+            // timeout zurücksetzen, da Speicher vorhanden und nur zwischen 2 Modulen
+            timeout = false;
+
+            return ((hb << 8) | (lb & 0xFF));
         }
         return module.readWord(address);
     }
