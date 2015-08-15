@@ -28,6 +28,7 @@
  *   25.07.2015 - Fehler DMK-Images behoben
  *   30.07.2015 - Sektorformat lesen implementiert
  *   09.08.2015 - Javadoc korrigiert
+ *   14.08.2015 - Lesen von CopyQM Images implementiert
  */
 package a7100emulator.components.system;
 
@@ -92,6 +93,9 @@ public class FloppyDisk implements StateSavable {
                     break;
                 case DMK:
                     readDMKFile(buffer);
+                    break;
+                case COPYQM:
+                    readCopyQMFile(buffer);
                     break;
             }
         } catch (IOException ex) {
@@ -211,7 +215,7 @@ public class FloppyDisk implements StateSavable {
      * @param formatData Datenbytes
      * @param interleave Interleave-Faktor
      * @param sectorsPerTrack Anzahl der Sektoren pro Zylinder
-     * @param bytesPerSector Anzahl der Bytes pro Sektor 
+     * @param bytesPerSector Anzahl der Bytes pro Sektor
      */
     void format(int cylinder, int head, int mod, int[] formatData, int interleave, int sectorsPerTrack, int bytesPerSector) {
         for (int sector = 0; sector < sectorsPerTrack; sector++) {
@@ -485,6 +489,72 @@ public class FloppyDisk implements StateSavable {
     }
 
     /**
+     * Liest ein CopyQM Image.
+     *
+     * @param buffer Image Daten
+     */
+    private void readCopyQMFile(byte[] buffer) {
+        int pos = 0;
+
+        // Lese Header ab Byte 00
+        // Lese Signatur CQ
+        String signature = "" + (char) buffer[pos++] + (char) buffer[pos++];
+        // Byte 02: ??
+        pos++;
+        // Byte 03-04: Lese Sektorgröße
+        int sectorSize = (buffer[pos++] & 0xFF) | ((int) buffer[pos++] & 0xFF) << 8;
+        // Byte 05-0F: ???
+        pos = 0x10;
+        // Byte 10-11: Anzahl der Sektoren pro Track
+        int sectorsPerTrack = (buffer[pos++] & 0xFF) | ((int) buffer[pos++] & 0xFF) << 8;
+        // Byte 12-13: Anzahl der Köpfe
+        int heads = (buffer[pos++] & 0xFF) | ((int) buffer[pos++] & 0xFF) << 8;
+        // Byte 14-59 : ??? Kommentar + ???
+        pos = 0x5A;
+        // Byte 5A: Anzahl benutzter Zylinder
+        int tracksUsed = buffer[pos++];
+        // Byte 5B: Anzahl Zylinder
+        int tracksTotal = buffer[pos++];
+        // Byte 5C-84: ???
+        pos = 0x85;
+
+        byte[] raw = new byte[tracksTotal * heads * sectorsPerTrack * sectorSize];
+        int rawpos = 0;
+
+        // Lese Datenblöcke
+        while (pos < buffer.length) {
+            int length = (short) ((buffer[pos++] & 0xFF) | ((int) buffer[pos++] & 0xFF) << 8);
+
+            if (length < 0) {
+                // Ein Byte (-length) mal wiederholt
+                byte fillByte = buffer[pos++];
+                Arrays.fill(raw, rawpos, rawpos - length, fillByte);
+                rawpos -= length;
+            } else {
+                // length Bytes
+                System.arraycopy(buffer, pos, raw, rawpos, length);
+                pos += length;
+                rawpos += length;
+            }
+        }
+
+        rawpos = 0;
+        // Für alle Tracks
+        for (int t = 0; t < tracksUsed; t++) {
+            // Für alle Seiten
+            for (int h = 0; h < heads; h++) {
+                // Für alle Sektoren
+                for (int s = 0; s < sectorsPerTrack; s++) {
+                    checkAndAddDiskGeometry(t, h, s+1);
+                    diskData[t][h][s] = new byte[sectorSize];
+                    System.arraycopy(raw, rawpos, diskData[t][h][s], 0, sectorSize);
+                    rawpos += sectorSize;
+                }
+            }
+        }
+    }
+
+    /**
      * Liest Daten an der angegebenen Position von der Diskette.
      *
      * @param cylinder Zylindernummer
@@ -625,7 +695,7 @@ public class FloppyDisk implements StateSavable {
 
     /**
      * Gibt das Sektorformat der ausgewählten Spur zurück.
-     * 
+     *
      * @param cylinder Zylindernummer
      * @param head Kopfnummer
      * @param sector Sektornummer
@@ -633,7 +703,7 @@ public class FloppyDisk implements StateSavable {
      * 1024 Bytes
      */
     int getSectorFormat(int cylinder, int head, int sector) {
-        switch (diskData[cylinder][head][sector-1].length) {
+        switch (diskData[cylinder][head][sector - 1].length) {
             case 128:
                 return 0;
             case 256:

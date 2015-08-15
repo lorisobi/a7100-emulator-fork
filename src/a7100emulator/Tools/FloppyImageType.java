@@ -19,6 +19,7 @@
  * 
  * Letzte Änderungen:
  *   15.07.2014 - Erste Version ausgelagert aus FloppyDisk
+ *   14.08.2015 - CopyQM hinzugefügt
  */
 package a7100emulator.Tools;
 
@@ -40,8 +41,11 @@ public enum FloppyImageType {
      */
     TELEDISK,
     /**
-     * DMK Image
+     * DMK (Catweasel) Image
      */
-    DMK
-
+    DMK,
+    /**
+     * CopyQM Image
+     */
+    COPYQM
 }

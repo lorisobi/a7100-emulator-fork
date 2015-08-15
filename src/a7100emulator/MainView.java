@@ -34,6 +34,7 @@
  *   25.07.2015 - Untermenü KES ausgeblendet
  *   26.07.2015 - Lizenzinformationen überarbeitet
  *   29.07.2015 - Formatierte Textfelder bei RAW Image richtig auslesen
+ *   14.08.2015 - Lesen von CopyQM Images ergänzt
  */
 package a7100emulator;
 
@@ -628,6 +629,8 @@ public class MainView extends JFrame {
                     a7100.getKES().getAFS().getFloppy(drive).loadDiskFromFile(image, FloppyImageType.TELEDISK);
                 } else if (extension.equals("dmk")) {
                     a7100.getKES().getAFS().getFloppy(drive).loadDiskFromFile(image, FloppyImageType.DMK);
+                } else if (extension.equals("cqm")) {
+                    a7100.getKES().getAFS().getFloppy(drive).loadDiskFromFile(image, FloppyImageType.COPYQM);
                 } else {
                     // Binär
                     NumberFormat integerFormat=NumberFormat.getIntegerInstance();

@@ -38,6 +38,13 @@ Inhaltsverzeichnis:
 --------------------------------------------------------------------------------
 2. Letzte Änderungen
 
+  vx.x.xx - xx.xx.xxxx
+  Neue Features:
+    - Lesen von CopyQM Images
+  Neuerungen im SCP-Disketten-Tool:
+  Änderungen/Bugfixes:
+  Softwarekompatibilität:
+  ----------------------------------------
   v0.8.45 - 11.08.2015
   Neue Features:
     - KES verarbeitet Spurpositionierung und Lesen Sektor-ID Feld
