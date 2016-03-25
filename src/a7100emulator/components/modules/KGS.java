@@ -26,6 +26,8 @@
  *              - Darstellung funktionstüchtig
  *   19.11.2014 - Trennung Systemtakt / CPU-Takt
  *   04.12.2014 - Dump RAM implementiert
+ *   30.11.2015 - Speicherzugriffsmethoden umbenannt
+ *   01.12.2015 - Kommentare korrigiert
  */
 package a7100emulator.components.modules;
 
@@ -52,14 +54,14 @@ import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 
 /**
- * Klasse zur Abbildung der KGS (Kontroller für grafisches Subsytem)
+ * Klasse zur Abbildung des KGS (Kontroller für grafisches Subsytem)
  *
  * @author Dirk Bräuer
  */
-public final class KGS implements IOModule, ClockModule {
+public final class KGS implements IOModule, ClockModule, SubsystemModule {
 
     /**
-     * Arbeitspeicher der KGS
+     * Arbeitspeicher des KGS
      */
     private final Memory ram = new Memory(0x10000);
 
@@ -136,6 +138,7 @@ public final class KGS implements IOModule, ClockModule {
      * Lokaler Port Select-Byte 1
      */
     private final static int LOCAL_PORT_SELECT_BYTE_1 = 0x17;
+
     /**
      * Error-Bit
      */
@@ -179,7 +182,7 @@ public final class KGS implements IOModule, ClockModule {
     /**
      * UA880 CPU der KGS
      */
-    private final UA880 cpu = new UA880(this);
+    private final UA880 cpu = new UA880(this, "KGS");
     /**
      * UA856 SIO der KGS
      */
@@ -279,6 +282,7 @@ public final class KGS implements IOModule, ClockModule {
      * @param port Port
      * @return gelesenes Byte
      */
+    @Override
     public int readLocalPort(int port) {
         switch (port) {
             case LOCAL_PORT_CTC_CHANNEL_0:
@@ -326,6 +330,7 @@ public final class KGS implements IOModule, ClockModule {
      * @param port Port
      * @param data Daten
      */
+    @Override
     public void writeLocalPort(int port, int data) {
         switch (port) {
             case LOCAL_PORT_CTC_CHANNEL_0:
@@ -393,7 +398,8 @@ public final class KGS implements IOModule, ClockModule {
      * @param address Adresse
      * @param data Daten
      */
-    public void writeMemoryWord(int address, int data) {
+    @Override
+    public void writeLocalWord(int address, int data) {
         // Zugriffe auf lokalen KGS-Ram
         if (address <= 0x7FFF || msel == 0) {
             ram.writeWord(address, data);
@@ -410,7 +416,8 @@ public final class KGS implements IOModule, ClockModule {
      * @param address Adresse
      * @param data Daten
      */
-    public void writeMemoryByte(int address, int data) {
+    @Override
+    public void writeLocalByte(int address, int data) {
         // Zugriffe auf lokalen KGS-Ram
         if (address <= 0x7FFF || msel == 0) {
             ram.writeByte(address, data);
@@ -427,7 +434,8 @@ public final class KGS implements IOModule, ClockModule {
      * @param address Adresse
      * @return gelesenes Wort
      */
-    public int readMemoryWord(int address) {
+    @Override
+    public int readLocalWord(int address) {
         // Zugriffe auf lokalen KGS-Ram
         if (address <= 0x7FFF || msel == 0) {
             return ram.readWord(address);
@@ -442,9 +450,10 @@ public final class KGS implements IOModule, ClockModule {
      * des KGS oder aus dem Bildwiederholspeicher der ABG gelesen.
      *
      * @param address Adresse
-     * @return gelesenes Wort
+     * @return gelesenes Byte
      */
-    public int readMemoryByte(int address) {
+    @Override
+    public int readLocalByte(int address) {
         // Zugriffe auf lokalen KGS-Ram
         if (address <= 0x7FFF || msel == 0) {
             return ram.readByte(address);
@@ -458,7 +467,7 @@ public final class KGS implements IOModule, ClockModule {
      *
      * @param filename Dateiname
      */
-    public void dumpMemory(String filename) {
+    public void dumpLocalMemory(String filename) {
         DataOutputStream dos;
         try {
             dos = new DataOutputStream(new FileOutputStream(filename));
@@ -480,7 +489,7 @@ public final class KGS implements IOModule, ClockModule {
     }
 
     /**
-     * Initialisiert die KGS
+     * Initialisiert den KGS
      */
     @Override
     public void init() {
@@ -622,6 +631,7 @@ public final class KGS implements IOModule, ClockModule {
      *
      * @param i Interruptnummer
      */
+    @Override
     public void requestInterrupt(int i) {
         //System.out.println("Interrupt " + i + " auf KGS!");
         cpu.requestInterrupt(i);
@@ -642,6 +652,7 @@ public final class KGS implements IOModule, ClockModule {
      *
      * @param cycles Anzahl der Takte
      */
+    @Override
     public void localClockUpdate(int cycles) {
         ctc.updateClock(cycles);
         sio.updateClock(cycles);
@@ -672,5 +683,16 @@ public final class KGS implements IOModule, ClockModule {
      */
     boolean isNMIInProgress() {
         return cpu.isNmiInProgress();
+    }
+
+    /**
+     * Leitet einen Bus Request an die CPU weiter
+     *
+     * @param request <code>true</code> wenn eine Anforderung vorlieg,
+     * <code>false</code> sonst
+     */
+    @Override
+    public void requestBus(boolean request) {
+        cpu.requestBus(request);
     }
 }

@@ -2,7 +2,7 @@
  * MMS16Bus.java
  * 
  * Diese Datei gehört zum Projekt A7100 Emulator 
- * Copyright (c) 2011-2015 Dirk Bräuer
+ * Copyright (c) 2011-2016 Dirk Bräuer
  *
  * Der A7100 Emulator ist Freie Software: Sie können ihn unter den Bedingungen
  * der GNU General Public License, wie von der Free Software Foundation,
@@ -314,28 +314,6 @@ public class MMS16Bus implements StateSavable {
     }
 
     /**
-     * Speichert des Systembusses in einer Datei
-     *
-     * @param dos Stream zur Datei
-     * @throws IOException Wenn Schreiben nicht erfolgreich war
-     */
-    @Override
-    public void saveState(final DataOutputStream dos) throws IOException {
-        dos.writeBoolean(timeout);
-    }
-
-    /**
-     * Lädt den Zustand des Systembusses aus einer Datei
-     *
-     * @param dis Stream zur Datei
-     * @throws IOException Wenn Laden nicht erfolgreich war
-     */
-    @Override
-    public void loadState(final DataInputStream dis) throws IOException {
-        timeout = dis.readBoolean();
-    }
-
-    /**
      * Setzt die Komponenten auf dem Systembus zurück
      */
     public void reset() {
@@ -358,5 +336,27 @@ public class MMS16Bus implements StateSavable {
      */
     public void clearTimeout() {
         timeout = false;
+    }
+
+    /**
+     * Speichert den Zustand des Systembusses in einer Datei.
+     *
+     * @param dos Stream zur Datei
+     * @throws IOException Wenn Schreiben nicht erfolgreich war
+     */
+    @Override
+    public void saveState(final DataOutputStream dos) throws IOException {
+        dos.writeBoolean(timeout);
+    }
+
+    /**
+     * Lädt den Zustand des Systembusses aus einer Datei
+     *
+     * @param dis Stream zur Datei
+     * @throws IOException Wenn Laden nicht erfolgreich war
+     */
+    @Override
+    public void loadState(final DataInputStream dis) throws IOException {
+        timeout = dis.readBoolean();
     }
 }

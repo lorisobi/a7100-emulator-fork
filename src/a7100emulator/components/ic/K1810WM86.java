@@ -643,6 +643,17 @@ public class K1810WM86 implements Runnable, IC {
 
         // Aktualisiere Zeit für Laden des Befehls
         updateTicks(3);
+        if (cs == 0xFD0D && (ip - 1) == 0x046D) {
+            System.out.println("Timeout KES");
+        }
+        if (cs == 0xFD0D && (ip - 1) == 0x047D) {
+            
+            System.out.println("Fehlerbyte KES: "+getReg8(REG_AL_AX));
+        }
+               if (cs == 0xFD0D && (ip - 1) == 0x04BD) {
+            
+            System.out.println("Starte Statusabfrage KES");
+        }
 
         // Prüfe auf Segment Präfix
         prefix = NO_PREFIX;

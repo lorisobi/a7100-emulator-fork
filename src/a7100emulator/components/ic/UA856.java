@@ -22,6 +22,7 @@
  *   28.09.2014 - Lesen von Diagnosestatus hinzugefügt
  *   18.11.2014 - Speichern und Laden implementiert
  *              - Interface IC implementiert
+ *   01.12.2015 - Doppelte Typdefinition in LinkedList entfernt
  */
 package a7100emulator.components.ic;
 
@@ -163,7 +164,7 @@ public class UA856 implements IC {
         /**
          * Puffer der empfangenen Bytes
          */
-        private final LinkedList<Integer> receiveData = new LinkedList<Integer>();
+        private final LinkedList<Integer> receiveData = new LinkedList<>();
         /**
          * Datenbyte Transmit
          */

@@ -20,6 +20,7 @@
  * Letzte Änderungen:
  *   01.04.2014 - Kommentare vervollständigt
  *   18.11.2014 - Interface Modul hinzugefügt
+ *   05.12.2015 - Methoden für lesen Eproms hinzugefügt
  */
 package a7100emulator.components.modules;
 
@@ -41,7 +42,7 @@ public class AFP implements Module {
     public void init() {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
-
+    
     @Override
     public void saveState(DataOutputStream dos) throws IOException {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
@@ -49,6 +50,14 @@ public class AFP implements Module {
 
     @Override
     public void loadState(DataInputStream dis) throws IOException {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    int readByte(int address) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    int readWord(int address) {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 

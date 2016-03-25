@@ -67,6 +67,7 @@ public class A7100 {
     /**
      * KES-Modul
      */
+    //private KES_old kes;
     private KES kes;
     /**
      * ASP-Modul
@@ -249,6 +250,7 @@ public class A7100 {
         ops2 = new OPS();
         ops3 = new OPS();
         kgs = new KGS();
+        //kes = new KES_old();
         kes = new KES();
         asp = null;
     }

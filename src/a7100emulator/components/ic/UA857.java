@@ -23,12 +23,14 @@
  *              - Interface IC implementiert
  *   12.12.2014 - Reset implementiert
  *   09.08.2015 - Javadoc korrigiert
+ *   05.12.2015 - Zugriffe auf KGS abstrahiert
+ *   30.12.2015 - Modul final gesetzt
  */
 package a7100emulator.components.ic;
 
 import a7100emulator.Tools.BitTest;
 import a7100emulator.Tools.StateSavable;
-import a7100emulator.components.modules.KGS;
+import a7100emulator.components.modules.SubsystemModule;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -55,15 +57,15 @@ public class UA857 {
      * <p>
      * TODO: Referenz ersetzen oder verallgemeinern
      */
-    private KGS kgs;
+    private final SubsystemModule module;
 
     /**
      * Erzeugt einen neuen CTC.
      *
-     * @param kgs Referenz zur KGS
+     * @param module Referenz zum Modul
      */
-    public UA857(KGS kgs) {
-        this.kgs = kgs;
+    public UA857(SubsystemModule module) {
+        this.module = module;
         for (int i = 0; i < 4; i++) {
             counter[i] = new Counter(i);
         }
@@ -188,7 +190,7 @@ public class UA857 {
             if (timeConstantFollowing) {
                 timeConstant = data;
                 value = data;
-//                System.out.println("Time Constant " + id + ": " + Integer.toBinaryString(data));
+                System.out.println("Time Constant " + id + ": " + Integer.toBinaryString(data));
                 timeConstantFollowing = false;
                 if (!BitTest.getBit(controlWord, 3)) {
                     running = true;
@@ -236,12 +238,13 @@ public class UA857 {
                 if (buffer < 0) {
                     buffer = 0;
                 }
+                //if (id==3&&value>=0) System.out.println("Zähler " + id + " "+value);
                 if (value <= 0) {
                     value = timeConstant;
-                    //System.out.println("Zähler " + id + " 0");
+                    //if (id==3) System.out.println("Zähler " + id + " 0");
                     if (BitTest.getBit(controlWord, 7)) {
                         // Interrupt
-                        kgs.requestInterrupt((interruptVector & 0xF8) | (id << 1));
+                        module.requestInterrupt((interruptVector & 0xF8) | (id << 1));
                         running = false;
                     }
                 }

@@ -2,7 +2,7 @@
  * AFS.java
  * 
  * Diese Datei gehört zum Projekt A7100 Emulator 
- * Copyright (c) 2011-2015 Dirk Bräuer
+ * Copyright (c) 2011-2016 Dirk Bräuer
  *
  * Der A7100 Emulator ist Freie Software: Sie können ihn unter den Bedingungen
  * der GNU General Public License, wie von der Free Software Foundation,
@@ -19,13 +19,22 @@
  * 
  * Letzte Änderungen:
  *   01.04.2014 - Kommentare vervollständigt
+ *   29.11.2015 - Lokale Ports hinzugefügt
+ *   05.12.2015 - Speicher hinzugefügt, SIO hinzugefügt
+ *              - Port-Methoden hinzugefügt
+ *   02.01.2016 - CPT Register implementiert
  */
 package a7100emulator.components.modules;
 
+import a7100emulator.Tools.BitTest;
+import a7100emulator.Tools.Memory;
+import a7100emulator.components.ic.UA856;
 import a7100emulator.components.system.FloppyDrive;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.File;
 import java.io.IOException;
+import javax.swing.JOptionPane;
 
 /**
  * Klasse zur Abbildung der AFS (anschluß für Folienspeicher)
@@ -35,9 +44,88 @@ import java.io.IOException;
 public final class AFS implements Module {
 
     /**
+     * Lokaler Port SIO Daten Kanal A
+     */
+    private final static int LOCAL_PORT_SIO_DATA_A = 0x90;
+    /**
+     * Lokaler Port SIO Control Kanal A
+     */
+    private final static int LOCAL_PORT_SIO_CONTROL_A = 0x91;
+    /**
+     * Lokaler Port SIO Daten Kanal B
+     */
+    private final static int LOCAL_PORT_SIO_DATA_B = 0x92;
+    /**
+     * Lokaler Port SIO Control Kanal B
+     */
+    private final static int LOCAL_PORT_SIO_CONTROL_B = 0x93;
+    /**
+     * Lokaler Port Steuerregister CPT3 0
+     */
+    private final static int LOCAL_PORT_CPT3_0 = 0x94;
+    /**
+     * Lokaler Port Steuerregister CPT3 1
+     */
+    private final static int LOCAL_PORT_CPT3_1 = 0x95;
+    /**
+     * Lokaler Port Steuerregister CPT3 2
+     */
+    private final static int LOCAL_PORT_CPT3_2 = 0x96;
+    /**
+     * Lokaler Port Steuerregister CPT3 3
+     */
+    private final static int LOCAL_PORT_CPT3_3 = 0x97;
+    /**
+     * Lokaler Port Steuerregister CPT1 0
+     */
+    private final static int LOCAL_PORT_CPT1_0 = 0x98;
+    /**
+     * Lokaler Port Steuerregister CPT1 1
+     */
+    private final static int LOCAL_PORT_CPT1_1 = 0x99;
+    /**
+     * Lokaler Port Steuerregister CPT1 2
+     */
+    private final static int LOCAL_PORT_CPT1_2 = 0x9A;
+    /**
+     * Lokaler Port Steuerregister CPT1 3
+     */
+    private final static int LOCAL_PORT_CPT1_3 = 0x9B;
+    /**
+     * Lokaler Port Steuerregister CPT2 0
+     */
+    private final static int LOCAL_PORT_CPT2_0 = 0x9C;
+    /**
+     * Lokaler Port Steuerregister CPT2 1
+     */
+    private final static int LOCAL_PORT_CPT2_1 = 0x9D;
+    /**
+     * Lokaler Port Steuerregister CPT2 2
+     */
+    private final static int LOCAL_PORT_CPT2_2 = 0x9E;
+    /**
+     * Lokaler Port Steuerregister CPT2 3
+     */
+    private final static int LOCAL_PORT_CPT2_3 = 0x9F;
+
+    /**
      * Array der angeschlossenen Laufwerke
      */
     private final FloppyDrive[] drives = new FloppyDrive[4];
+    /**
+     * Aktuell gewähltes Laufwerk
+     */
+    private int selectedDrive = -1;
+
+    /**
+     * Speicher für Eprom-Inhalte
+     */
+    private final Memory eproms = new Memory(0x1000);
+
+    /**
+     * SIO für Kommunikation mit Floppylaufwerken
+     */
+    private final UA856 sio = new UA856();
 
     /**
      * Erzeugt eine neue AFS
@@ -61,10 +149,157 @@ public final class AFS implements Module {
      */
     @Override
     public void init() {
+        final File afsRom1 = new File("./eproms/AFS-K5171-P872.rom");
+        if (!afsRom1.exists()) {
+            JOptionPane.showMessageDialog(null, "Eprom: " + afsRom1.getName() + " nicht gefunden!", "Eprom nicht gefunden", JOptionPane.ERROR_MESSAGE);
+            System.exit(0);
+        }
+        final File afsRom2 = new File("./eproms/AFS-K5171-P873.rom");
+        if (!afsRom2.exists()) {
+            JOptionPane.showMessageDialog(null, "Eprom: " + afsRom2.getName() + " nicht gefunden!", "Eprom nicht gefunden", JOptionPane.ERROR_MESSAGE);
+            System.exit(0);
+        }
+
+        eproms.loadFile(0x0000, afsRom1, Memory.FileLoadMode.LOW_AND_HIGH_BYTE);
+        eproms.loadFile(0x0800, afsRom2, Memory.FileLoadMode.LOW_AND_HIGH_BYTE);
+
         drives[0] = new FloppyDrive(FloppyDrive.DriveType.K5601);
         drives[1] = new FloppyDrive(FloppyDrive.DriveType.K5601);
         drives[2] = new FloppyDrive(FloppyDrive.DriveType.K5600_20);
         drives[3] = new FloppyDrive(FloppyDrive.DriveType.K5600_20);
+    }
+
+    /**
+     * Liest ein Byte aus den Eproms der AFS.
+     *
+     * @param address Adresse
+     * @return Gelesenes Byte
+     */
+    int readByte(int address) {
+        return eproms.readByte(address - 0x4000);
+    }
+
+    /**
+     * Liest ein Wort aus den Eproms der AFS.
+     *
+     * @param address Adresse
+     * @return Gelesenes Wort
+     */
+    int readWord(int address) {
+        return eproms.readWord(address - 0x4000);
+    }
+
+    /**
+     * Gibt Daten auf einem lokalen Port aus.
+     *
+     * @param port Port
+     * @param data Daten
+     */
+    void writeLocalPort(int port, int data) {
+        switch (port) {
+            case LOCAL_PORT_SIO_DATA_A:
+                System.out.println("Schreiben von SIO-Port noch nicht implementiert");
+                break;
+            case LOCAL_PORT_SIO_CONTROL_A:
+                System.out.println("Schreiben von SIO-Port noch nicht implementiert");
+                break;
+            case LOCAL_PORT_SIO_DATA_B:
+                System.out.println("Schreiben von SIO-Port noch nicht implementiert");
+                break;
+            case LOCAL_PORT_SIO_CONTROL_B:
+                System.out.println("Schreiben von SIO-Port noch nicht implementiert");
+                break;
+            case LOCAL_PORT_CPT3_0:
+            case LOCAL_PORT_CPT3_1:
+            case LOCAL_PORT_CPT3_2:
+            case LOCAL_PORT_CPT3_3:
+                throw new IllegalArgumentException("Schreiben von CPT3 Port nicht erlaubt");
+            case LOCAL_PORT_CPT1_0:
+            case LOCAL_PORT_CPT1_1:
+            case LOCAL_PORT_CPT1_2:
+            case LOCAL_PORT_CPT1_3:
+                if (selectedDrive != -1) {
+                    // TODO: Rest
+                    drives[selectedDrive].setStep(BitTest.getBit(data, 3));
+                }
+                break;
+            case LOCAL_PORT_CPT2_0:
+            case LOCAL_PORT_CPT2_1:
+            case LOCAL_PORT_CPT2_2:
+            case LOCAL_PORT_CPT2_3:
+                if (BitTest.getBit(data, 0)) {
+                    selectedDrive = 0;
+                } else if (BitTest.getBit(data, 1)) {
+                    selectedDrive = 1;
+                } else if (BitTest.getBit(data, 1)) {
+                    selectedDrive = 2;
+                } else if (BitTest.getBit(data, 1)) {
+                    selectedDrive = 3;
+                } else {
+                    selectedDrive = -1;
+                }
+                if (selectedDrive != -1) {
+                    drives[selectedDrive].setMotor(BitTest.getBit(data, 4));
+                    drives[selectedDrive].setLock(BitTest.getBit(data, 5));
+                    drives[selectedDrive].setDirection(BitTest.getBit(data, 6));
+                    drives[selectedDrive].setHead(BitTest.getBit(data, 7));
+                }
+                break;
+        }
+    }
+
+    /**
+     * Liest Daten von einem lokalen Port.
+     *
+     * @param port Port
+     * @return Gelesenes Byte
+     */
+    int readLocalPort(int port) {
+        switch (port) {
+            case LOCAL_PORT_SIO_DATA_A:
+                System.out.println("Lesen von SIO-Port noch nicht implementiert");
+                break;
+            case LOCAL_PORT_SIO_CONTROL_A:
+                System.out.println("Lesen von SIO-Port noch nicht implementiert");
+                break;
+            case LOCAL_PORT_SIO_DATA_B:
+                System.out.println("Lesen von SIO-Port noch nicht implementiert");
+                break;
+            case LOCAL_PORT_SIO_CONTROL_B:
+                System.out.println("Lesen von SIO-Port noch nicht implementiert");
+                break;
+            case LOCAL_PORT_CPT3_0:
+            case LOCAL_PORT_CPT3_1:
+            case LOCAL_PORT_CPT3_2:
+            case LOCAL_PORT_CPT3_3:
+                int result = 0;
+                if (selectedDrive != -1) {
+                    result |= (!drives[selectedDrive].isTrack0()) ? 0x01 : 0x00;
+                    result |= (!drives[selectedDrive].isIndex()) ? 0x02 : 0x00;
+                    result |= (!drives[selectedDrive].isWriteProtect()) ? 0x04 : 0x00;
+                    // TODO: ESE
+                    //result |= ()?0x08:0x00;
+                    // TODO: KLE
+                    //result |= ()?0x10:0x00;
+                    // TODO: TS
+                    //result |= ()?0x20:0x00;
+                    result |= (!drives[selectedDrive].isDiskInsert()) ? 0x40 : 0x00;
+                    // TODO: ME
+                    //result |= ()?0x80:0x00;
+                }
+                return result;
+            case LOCAL_PORT_CPT1_0:
+            case LOCAL_PORT_CPT1_1:
+            case LOCAL_PORT_CPT1_2:
+            case LOCAL_PORT_CPT1_3:
+                throw new IllegalArgumentException("Lesen von CPT1 Port nicht erlaubt");
+            case LOCAL_PORT_CPT2_0:
+            case LOCAL_PORT_CPT2_1:
+            case LOCAL_PORT_CPT2_2:
+            case LOCAL_PORT_CPT2_3:
+                throw new IllegalArgumentException("Lesen von CPT2 Port nicht erlaubt");
+        }
+        return 0;
     }
 
     /**
@@ -91,5 +326,14 @@ public final class AFS implements Module {
         for (int i = 0; i < 4; i++) {
             drives[i].loadState(dis);
         }
+    }
+
+    /**
+     * Aktualisiert die Systemzeit der AFS.
+     * 
+     * @param cycles Anzahl der Takte
+     */
+    void updateClock(int cycles) {
+        sio.updateClock(cycles);
     }
 }
