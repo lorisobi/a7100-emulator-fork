@@ -23,6 +23,11 @@
  *   05.12.2015 - Speicher hinzugefügt, SIO hinzugefügt
  *              - Port-Methoden hinzugefügt
  *   02.01.2016 - CPT Register implementiert
+ *   26.03.2016 - Speichern und Laden aktualisiert
+ *              - Reihenfolge der ROMs geändert
+ *   27.03.2016 - Steuerregister CPT1, CPT2 hinzugefügt
+ *   24.04.2016 - Lesen/Schreiben SIO Ports implementiert
+ *              - Signal /ESE in CPT3 implementiert
  */
 package a7100emulator.components.modules;
 
@@ -37,7 +42,7 @@ import java.io.IOException;
 import javax.swing.JOptionPane;
 
 /**
- * Klasse zur Abbildung der AFS (anschluß für Folienspeicher)
+ * Klasse zur Abbildung der AFS (Anschluß für Folienspeicher)
  *
  * @author Dirk Bräuer
  */
@@ -48,13 +53,13 @@ public final class AFS implements Module {
      */
     private final static int LOCAL_PORT_SIO_DATA_A = 0x90;
     /**
-     * Lokaler Port SIO Control Kanal A
-     */
-    private final static int LOCAL_PORT_SIO_CONTROL_A = 0x91;
-    /**
      * Lokaler Port SIO Daten Kanal B
      */
-    private final static int LOCAL_PORT_SIO_DATA_B = 0x92;
+    private final static int LOCAL_PORT_SIO_DATA_B = 0x91;
+    /**
+     * Lokaler Port SIO Control Kanal A
+     */
+    private final static int LOCAL_PORT_SIO_CONTROL_A = 0x92;
     /**
      * Lokaler Port SIO Control Kanal B
      */
@@ -113,19 +118,25 @@ public final class AFS implements Module {
      */
     private final FloppyDrive[] drives = new FloppyDrive[4];
     /**
-     * Aktuell gewähltes Laufwerk
-     */
-    private int selectedDrive = -1;
-
-    /**
      * Speicher für Eprom-Inhalte
      */
     private final Memory eproms = new Memory(0x1000);
-
+    /**
+     * Steuerregister 1
+     */
+    private int cpt1;
+    /**
+     * Steuerregister 2
+     */
+    private int cpt2;
     /**
      * SIO für Kommunikation mit Floppylaufwerken
      */
     private final UA856 sio = new UA856();
+    /**
+     * Zustand Markenerkennung letzter Durchlauf
+     */
+    private boolean me = false;
 
     /**
      * Erzeugt eine neue AFS
@@ -149,12 +160,12 @@ public final class AFS implements Module {
      */
     @Override
     public void init() {
-        final File afsRom1 = new File("./eproms/AFS-K5171-P872.rom");
+        final File afsRom1 = new File("./eproms/AFS-K5171-P873.rom");
         if (!afsRom1.exists()) {
             JOptionPane.showMessageDialog(null, "Eprom: " + afsRom1.getName() + " nicht gefunden!", "Eprom nicht gefunden", JOptionPane.ERROR_MESSAGE);
             System.exit(0);
         }
-        final File afsRom2 = new File("./eproms/AFS-K5171-P873.rom");
+        final File afsRom2 = new File("./eproms/AFS-K5171-P872.rom");
         if (!afsRom2.exists()) {
             JOptionPane.showMessageDialog(null, "Eprom: " + afsRom2.getName() + " nicht gefunden!", "Eprom nicht gefunden", JOptionPane.ERROR_MESSAGE);
             System.exit(0);
@@ -198,16 +209,28 @@ public final class AFS implements Module {
     void writeLocalPort(int port, int data) {
         switch (port) {
             case LOCAL_PORT_SIO_DATA_A:
+                System.out.println(String.format("Schreibe SIO-Port A Data: %02X", (Integer.reverse(data) >> 24) & 0xFF));
                 System.out.println("Schreiben von SIO-Port noch nicht implementiert");
-                break;
-            case LOCAL_PORT_SIO_CONTROL_A:
-                System.out.println("Schreiben von SIO-Port noch nicht implementiert");
+                // Daten für SIO liegen in umgekehrter Reihenfolge an!
+                sio.writeData(0, (Integer.reverse(data) >> 24) & 0xFF);
                 break;
             case LOCAL_PORT_SIO_DATA_B:
+                System.out.println(String.format("Schreibe SIO-Port B Data: %02X", (Integer.reverse(data) >> 24) & 0xFF));
                 System.out.println("Schreiben von SIO-Port noch nicht implementiert");
+                // Daten für SIO liegen in umgekehrter Reihenfolge an!
+                sio.writeData(1, (Integer.reverse(data) >> 24) & 0xFF);
+                break;
+            case LOCAL_PORT_SIO_CONTROL_A:
+                System.out.println(String.format("Schreibe SIO-Port A Control: %02X", (Integer.reverse(data) >> 24) & 0xFF));
+                System.out.println("Schreiben von SIO-Port noch nicht implementiert");
+                // Daten für SIO liegen in umgekehrter Reihenfolge an!
+                sio.writeControl(0, (Integer.reverse(data) >> 24) & 0xFF);
                 break;
             case LOCAL_PORT_SIO_CONTROL_B:
+                System.out.println(String.format("Schreibe SIO-Port B Control: %02X", (Integer.reverse(data) >> 24) & 0xFF));
                 System.out.println("Schreiben von SIO-Port noch nicht implementiert");
+                // Daten für SIO liegen in umgekehrter Reihenfolge an!
+                sio.writeControl(1, (Integer.reverse(data) >> 24) & 0xFF);
                 break;
             case LOCAL_PORT_CPT3_0:
             case LOCAL_PORT_CPT3_1:
@@ -217,34 +240,34 @@ public final class AFS implements Module {
             case LOCAL_PORT_CPT1_0:
             case LOCAL_PORT_CPT1_1:
             case LOCAL_PORT_CPT1_2:
-            case LOCAL_PORT_CPT1_3:
+            case LOCAL_PORT_CPT1_3: {
+                //System.out.println(String.format("Schreibe CPT1: %02X", data));
+                cpt1 = data;
+                int selectedDrive = getSelectedDrive();
                 if (selectedDrive != -1) {
-                    // TODO: Rest
-                    drives[selectedDrive].setStep(BitTest.getBit(data, 3));
+                    drives[selectedDrive].setWriteEnabled(!BitTest.getBit(cpt1, 0));
+                    drives[selectedDrive].setStep(BitTest.getBit(cpt1, 3));
                 }
-                break;
+            }
+            break;
             case LOCAL_PORT_CPT2_0:
             case LOCAL_PORT_CPT2_1:
             case LOCAL_PORT_CPT2_2:
-            case LOCAL_PORT_CPT2_3:
-                if (BitTest.getBit(data, 0)) {
-                    selectedDrive = 0;
-                } else if (BitTest.getBit(data, 1)) {
-                    selectedDrive = 1;
-                } else if (BitTest.getBit(data, 1)) {
-                    selectedDrive = 2;
-                } else if (BitTest.getBit(data, 1)) {
-                    selectedDrive = 3;
-                } else {
-                    selectedDrive = -1;
-                }
+            case LOCAL_PORT_CPT2_3: {
+                //System.out.println(String.format("Schreibe CPT2: %02X", data));
+                cpt2 = data;
+                int selectedDrive = getSelectedDrive();
                 if (selectedDrive != -1) {
-                    drives[selectedDrive].setMotor(BitTest.getBit(data, 4));
-                    drives[selectedDrive].setLock(BitTest.getBit(data, 5));
-                    drives[selectedDrive].setDirection(BitTest.getBit(data, 6));
-                    drives[selectedDrive].setHead(BitTest.getBit(data, 7));
+                    drives[selectedDrive].setLock(BitTest.getBit(cpt2, 5));
+                    drives[selectedDrive].setDirection(BitTest.getBit(cpt2, 6));
+                    drives[selectedDrive].setHead(BitTest.getBit(cpt2, 7));
+                }
+                // Motorbit gilt für alle Laufwerke
+                for (FloppyDrive drive : drives) {
+                    drive.setMotor(BitTest.getBit(cpt2, 4));
                 }
                 break;
+            }
         }
     }
 
@@ -257,36 +280,41 @@ public final class AFS implements Module {
     int readLocalPort(int port) {
         switch (port) {
             case LOCAL_PORT_SIO_DATA_A:
-                System.out.println("Lesen von SIO-Port noch nicht implementiert");
-                break;
-            case LOCAL_PORT_SIO_CONTROL_A:
-                System.out.println("Lesen von SIO-Port noch nicht implementiert");
-                break;
+                System.out.println("Lesen von SIO-Port A Data noch nicht implementiert");
+                return (Integer.reverse(sio.readData(0)) >> 24) & 0xFF;
             case LOCAL_PORT_SIO_DATA_B:
-                System.out.println("Lesen von SIO-Port noch nicht implementiert");
-                break;
+                System.out.println("Lesen von SIO-Port B Data noch nicht implementiert");
+                return (Integer.reverse(sio.readData(1)) >> 24) & 0xFF;
+            case LOCAL_PORT_SIO_CONTROL_A:
+                System.out.println("Lesen von SIO-Port A Control noch nicht implementiert");
+                return (Integer.reverse(sio.readControl(0)) >> 24) & 0xFF;
             case LOCAL_PORT_SIO_CONTROL_B:
-                System.out.println("Lesen von SIO-Port noch nicht implementiert");
-                break;
+                System.out.println("Lesen von SIO-Port B Cotrol noch nicht implementiert");
+                return (Integer.reverse(sio.readControl(0)) >> 24) & 0xFF;
             case LOCAL_PORT_CPT3_0:
             case LOCAL_PORT_CPT3_1:
             case LOCAL_PORT_CPT3_2:
             case LOCAL_PORT_CPT3_3:
                 int result = 0;
+                int selectedDrive = getSelectedDrive();
                 if (selectedDrive != -1) {
                     result |= (!drives[selectedDrive].isTrack0()) ? 0x01 : 0x00;
+                    // TODO: Wie Index sinnvoll implementieren
                     result |= (!drives[selectedDrive].isIndex()) ? 0x02 : 0x00;
                     result |= (!drives[selectedDrive].isWriteProtect()) ? 0x04 : 0x00;
-                    // TODO: ESE
-                    //result |= ()?0x08:0x00;
-                    // TODO: KLE
-                    //result |= ()?0x10:0x00;
                     // TODO: TS
                     //result |= ()?0x20:0x00;
                     result |= (!drives[selectedDrive].isDiskInsert()) ? 0x40 : 0x00;
-                    // TODO: ME
-                    //result |= ()?0x80:0x00;
+//                    System.out.println("Gewähltes Laufwerk: " + selectedDrive);
                 }
+                result |= (!sio.isDTR(1)) ? 0x08 : 0x00;
+                // TODO: KLE konfigurierbar gestalten
+                result |= 0x10;//:0x00;
+                // TODO: ME
+                // Wechselt momentan zwischen den Durchgängen
+                me = !me;
+                result |= (me) ? 0x80 : 0x00;
+                //System.out.println(String.format("Lese CPT3: %02X", result));
                 return result;
             case LOCAL_PORT_CPT1_0:
             case LOCAL_PORT_CPT1_1:
@@ -303,6 +331,15 @@ public final class AFS implements Module {
     }
 
     /**
+     * Aktualisiert die Systemzeit der AFS.
+     *
+     * @param cycles Anzahl der Takte
+     */
+    void updateClock(int cycles) {
+        sio.updateClock(cycles);
+    }
+
+    /**
      * Schreibt den Zustand der AFS in eine Datei
      *
      * @param dos Stream der Datei
@@ -313,6 +350,10 @@ public final class AFS implements Module {
         for (int i = 0; i < 4; i++) {
             drives[i].saveState(dos);
         }
+        eproms.saveMemory(dos);
+        sio.saveState(dos);
+        dos.writeInt(cpt1);
+        dos.writeInt(cpt2);
     }
 
     /**
@@ -326,14 +367,21 @@ public final class AFS implements Module {
         for (int i = 0; i < 4; i++) {
             drives[i].loadState(dis);
         }
+        eproms.loadMemory(dis);
+        sio.loadState(dis);
+        cpt1 = dis.readInt();
+        cpt2 = dis.readInt();
     }
 
     /**
-     * Aktualisiert die Systemzeit der AFS.
-     * 
-     * @param cycles Anzahl der Takte
+     * Liefert das aktuell ausgewählte Laufwerk anhand des CPT2 Registers
+     * zurück.
+     *
+     * @return <code>-1</code> wenn kein Laufwerk gewählt ist, sonst die Nummer
+     * des gewählten Laufwerks <code>0..3</code>
      */
-    void updateClock(int cycles) {
-        sio.updateClock(cycles);
+    private int getSelectedDrive() {
+        int driveBits = cpt2 & 0x0F;
+        return (driveBits == 0x00) ? -1 : ((driveBits == 0x01) ? 0 : ((driveBits == 0x02) ? 1 : ((driveBits == 0x04) ? 2 : 3)));
     }
 }

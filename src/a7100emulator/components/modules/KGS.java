@@ -483,7 +483,7 @@ public final class KGS implements IOModule, ClockModule, SubsystemModule {
      * an die CPU weiter
      */
     void requestNMI() {
-        if (!sio.isDiagnose()) {
+        if (!sio.isRTS(1)) {
             cpu.requestNMI();
         }
     }

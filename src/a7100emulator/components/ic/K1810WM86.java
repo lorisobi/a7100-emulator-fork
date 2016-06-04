@@ -2,7 +2,7 @@
  * K1810WM86.java
  * 
  * Diese Datei gehört zum Projekt A7100 Emulator 
- * Copyright (c) 2011-2015 Dirk Bräuer
+ * Copyright (c) 2011-2016 Dirk Bräuer
  *
  * Der A7100 Emulator ist Freie Software: Sie können ihn unter den Bedingungen
  * der GNU General Public License, wie von der Free Software Foundation,
@@ -42,6 +42,7 @@
  *   05.08.2015 - Debugausgabe MOVS korrigiert
  *   09.08.2015 - Javadoc korrigiert
  *   11.08.2015 - Segment-Präfixe separat behandelt
+ *   25.03.2016 - Ready Signal hinzugefügt
  */
 package a7100emulator.components.ic;
 
@@ -620,6 +621,10 @@ public class K1810WM86 implements Runnable, IC {
      */
     private boolean stiWaiting = false;
     /**
+     * Gibt an, ob der READY Eingan aktiv ist
+     */
+    private boolean ready = true;
+    /**
      * Zählt die Takte der aktuellen Befehlsausführung
      */
     private int ticks = 0;
@@ -642,16 +647,17 @@ public class K1810WM86 implements Runnable, IC {
         int opcode1 = mms16.readMemoryByte((cs << 4) + ip++);
 
         // Aktualisiere Zeit für Laden des Befehls
+        // TODO: Timing nochmals überarbeiten/prüfen
         updateTicks(3);
         if (cs == 0xFD0D && (ip - 1) == 0x046D) {
             System.out.println("Timeout KES");
         }
         if (cs == 0xFD0D && (ip - 1) == 0x047D) {
-            
-            System.out.println("Fehlerbyte KES: "+getReg8(REG_AL_AX));
+
+            System.out.println("Fehlerbyte KES: " + getReg8(REG_AL_AX));
         }
-               if (cs == 0xFD0D && (ip - 1) == 0x04BD) {
-            
+        if (cs == 0xFD0D && (ip - 1) == 0x04BD) {
+
             System.out.println("Starte Statusabfrage KES");
         }
 
@@ -6425,27 +6431,35 @@ public class K1810WM86 implements Runnable, IC {
      * OPCodes sowie das Abfragen eventuell anstehender Interrupts.
      */
     private void executeCPUCycle() {
-        if (!isHalted) {
-            executeNextInstruction();
-            if (mms16.isTimeout()) {
-                // 10 ms Timeout
-                updateTicks(49150);
-                mms16.clearTimeout();
-            }
-        } else {
-            updateTicks(3);
-        }
-        if (interruptSystem.getNMI()) {
-            interrupt(0x02);
-        } else if (getFlag(INTERRUPT_ENABLE_FLAG)) {
-            int irq = InterruptSystem.getInstance().getPIC().getInterrupt();
-            if (irq != -1) {
-                if (debugger.isDebug()) {
-                    debugger.addComment("Verarbeite Interrupt: " + irq);
+//        if (!MMS16Bus.getInstance().isBusInUse()) {
+            // Wenn READY Eingang der CPU gesetzt
+            if (!isHalted) {
+                executeNextInstruction();
+                if (mms16.isTimeout()) {
+                    // 10 ms Timeout
+                    updateTicks(49150);
+                    mms16.clearTimeout();
                 }
-                interrupt(irq);
+            } else {
+                updateTicks(3);
             }
-        }
+
+            if (interruptSystem.getNMI()) {
+                interrupt(0x02);
+            } else if (getFlag(INTERRUPT_ENABLE_FLAG)) {
+                int irq = InterruptSystem.getInstance().getPIC().getInterrupt();
+                if (irq != -1) {
+                    if (debugger.isDebug()) {
+                        debugger.addComment("Verarbeite Interrupt: " + irq);
+                    }
+                    interrupt(irq);
+                }
+            }
+//        } else {
+//            // Führe Warten aus
+//            updateTicks(100000);
+//            System.out.println("WAIT STATE");
+//        }
     }
 
     /**
@@ -6496,6 +6510,15 @@ public class K1810WM86 implements Runnable, IC {
     }
 
     /**
+     * Setzt das READY Signal der CPU.
+     *
+     * @param ready READY Signal
+     */
+    public void setReady(boolean ready) {
+        this.ready = ready;
+    }
+
+    /**
      * Speichert den Zustand der CPU in einer Datei
      *
      * @param dos Stream zur Datei
@@ -6522,6 +6545,7 @@ public class K1810WM86 implements Runnable, IC {
         dos.writeBoolean(isHalted);
         dos.writeBoolean(stiWaiting);
         dos.writeInt(ticks);
+        dos.writeBoolean(ready);
     }
 
     /**
@@ -6551,6 +6575,7 @@ public class K1810WM86 implements Runnable, IC {
         isHalted = dis.readBoolean();
         stiWaiting = dis.readBoolean();
         ticks = dis.readInt();
+        ready = dis.readBoolean();
     }
 
     /**

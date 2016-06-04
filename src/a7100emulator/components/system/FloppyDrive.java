@@ -144,6 +144,10 @@ public class FloppyDrive implements StateSavable {
      * Aktuelles Schrittsignal
      */
     private boolean step;
+    /**
+     * Schreiben erlaubt
+     */
+    private boolean writeEnabled;
 
     /**
      * Erstellt ein neues Diskettenlaufwerk
@@ -549,7 +553,8 @@ public class FloppyDrive implements StateSavable {
      */
     public boolean isIndex() {
         // TODO
-        return false;
+        //return false;
+        return true;
     }
 
     /**
@@ -559,6 +564,16 @@ public class FloppyDrive implements StateSavable {
      */
     public boolean isWriteProtect() {
         return isDiskInsert() && disk.isWriteProtect();
+    }
+
+    /**
+     * Setzt die Schreiberlaubnis für das Laufwerk
+     *
+     * @param we <code>true</code> wenn Schreiben erlaubt, <code>false</code>
+     * sonst
+     */
+    public void setWriteEnabled(boolean we) {
+        this.writeEnabled = we;
     }
 
     /**
@@ -578,6 +593,7 @@ public class FloppyDrive implements StateSavable {
                     positionCylinder--;
                 }
             }
+            System.out.println("Neuer Cylinder: " + positionCylinder);
         }
         // Speichere Signal
         this.step = step;

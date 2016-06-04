@@ -52,6 +52,7 @@
  *   14.03.2016 - Fehler in DD CB - Bitoperationen behoben
  *   23.03.2016 - Fehler Carry Flag in CPI, CPD, CPIR, CPDR behoben
  *              - Debugausgaben ergänzt
+ *   28.03.2016 - Verzögerte Interruptfreigabe implementiert
  */
 package a7100emulator.components.ic;
 
@@ -699,6 +700,11 @@ public class UA880 implements IC {
      * Bus-Request durch anderes Gerät angefordert
      */
     private boolean busRequest;
+    /**
+     * Gibt an, ob ein Freigeben der Interrupts nach dem nächsten Befehl
+     * aussteht.
+     */
+    private boolean eiWaiting = false;
 
     /**
      * Erstellt einen neuen Prozessor.
@@ -710,7 +716,6 @@ public class UA880 implements IC {
         this.module = module;
         debugger = new Debugger("UA880_" + debug_ident, false, debug_ident);
         debugger.setDebug(false);
-
     }
 
     /**
@@ -719,121 +724,71 @@ public class UA880 implements IC {
     private void executeNextInstruction() {
         boolean debug = debugger.isDebug();
 
-        if (pc == 0x0916) {
-            System.out.println(String.format("KES Funktionscode: %02X", getRegister(REG_A)));
-            if (getRegister(REG_A)==0x0F) {
-                System.out.println("DIAGNOSE: ");
-                
+        if (pc == 0x4000) {
+            System.out.println("AFS Funktionsaufruf!");
+            if (!debugger.isDebug()) {
+                this.setDebug(true);
             }
         }
-        if (pc==0x6E&&(module instanceof KES)) {
-            System.out.println("Prüfe auf laufenden NMI:"+!getFlag(ZERO_FLAG));
-        }
-                if (pc==0x88&&(module instanceof KES)) {
-            System.out.println("Ende Behandlung Kanal");
-        }
-        if (pc == 0x0970) {
-            System.out.println(String.format("KES Statusabfrage"));
 
+        if (pc == 0x0916) {
+            System.out.println(String.format("KES Funktionscode: %02X", getRegister(REG_A)));
+            if (getRegister(REG_A) == 0x0F) {
+                System.out.println("DIAGNOSE: ");
+            }
         }
 
-        if (pc == 0x00E0) {
-            System.out.println(String.format("Fehler PROM: %02X", getRegister(REG_A)));
+        if (pc == 0x4025 && (module instanceof KES)) {
+            System.out.print("Initialisiere Laufwerk:" + (module.readLocalByte(0x3B38) & 0x03) + " -");
+            for (int in = 0; in < 8; in++) {
+                System.out.print(String.format(" %02X", module.readLocalByte(ix + in)));
+            }
+            System.out.println();
         }
 
-        if (pc == 0x0316) {
-            System.out.println("Ende DMA Copy 1");
+        if (pc == 0x4025 && (module instanceof KES)) {
+            System.out.println("Fehler 0-2:" + String.format("%02X,%02X,%02X", module.readLocalByte(0x3B22), module.readLocalByte(0x3B23), module.readLocalByte(0x3B24)));
         }
-//        if (pc == 0x3057) {
-//            int cmdAddr = getRegisterPairHLSP(REGP_HL);
-//            switch (kgs.readMemoryByte(cmdAddr)) {
-//                case 1:
-//                    System.out.println("Setze Funktionskennzeichen: FK:" + String.format("%02X", kgs.readMemoryByte(cmdAddr + 1)));
-//                    break;
-//                case 2:
-//                    System.out.println("Setze Register grafischer Cursor: X:" + kgs.readMemoryWord(cmdAddr + 1) + " Y:" + kgs.readMemoryWord(cmdAddr + 3));
-//                    break;
-//                case 4:
-//                    System.out.println("Setze Splitgrenze: Z:" + kgs.readMemoryByte(cmdAddr + 1));
-//                    break;
-//                case 7:
-//                    System.out.println("Initialisiere Speicher: IM:" + kgs.readMemoryByte(cmdAddr + 1) + " S:" + kgs.readMemoryByte(cmdAddr + 2));
-//                    break;
-//                case 8:
-//                    System.out.println("Initialisiere Speicherabschnitt: IM:" + kgs.readMemoryByte(cmdAddr + 1) + " S:" + kgs.readMemoryByte(cmdAddr + 2) + " YA:" + kgs.readMemoryWord(cmdAddr + 3) + " YE:" + kgs.readMemoryWord(cmdAddr + 5));
-//                    break;
-//                case 9:
-//                    System.out.println("Initialisiere Speicherausschnitt: IM:" + kgs.readMemoryByte(cmdAddr + 1) + " S:" + kgs.readMemoryByte(cmdAddr + 2) + " XA:" + kgs.readMemoryWord(cmdAddr + 3) + " YA:" + kgs.readMemoryWord(cmdAddr + 5) + " XE:" + kgs.readMemoryWord(cmdAddr + 7) + " YE:" + kgs.readMemoryWord(cmdAddr + 9));
-//                    break;
-//                case 10:
-//                    System.out.println("Übernehme Palettenregisterbelegung: VI:" + kgs.readMemoryByte(cmdAddr + 1) + " E1:" + kgs.readMemoryByte(cmdAddr + 2) + " E2:" + kgs.readMemoryByte(cmdAddr + 3) + " E3:" + kgs.readMemoryByte(cmdAddr + 4) + " E4:" + kgs.readMemoryByte(cmdAddr + 5));
-//                    break;
-//                case 11:
-//                    System.out.println("Aktiviere Palettenregisterbelegung: VI:" + kgs.readMemoryByte(cmdAddr + 1));
-//                    break;
-//                case 13:
-//                    System.out.println("Übernehme Musterbox: PFX:" + kgs.readMemoryByte(cmdAddr + 2) + " PFY:" + kgs.readMemoryByte(cmdAddr + 3) + " NZ:" + kgs.readMemoryByte(cmdAddr + 4) + " NS:" + kgs.readMemoryByte(cmdAddr + 5));
-//                    break;
-//                case 14:
-//                    System.out.println("Setze Window: X1:" + kgs.readMemoryWord(cmdAddr + 1) + " Y1:" + kgs.readMemoryWord(cmdAddr + 3) + " X2:" + kgs.readMemoryWord(cmdAddr + 5) + " Y2:" + kgs.readMemoryWord(cmdAddr + 7));
-//                    break;
-//                case 15:
-//                    System.out.println("Windowdarstellung: S:" + kgs.readMemoryByte(cmdAddr + 1));
-//                    break;
-//                case 16:
-//                    System.out.println("Setze Startpunkt für Liniengenerierung: LI:" + kgs.readMemoryWord(cmdAddr + 1) + " X:" + kgs.readMemoryWord(cmdAddr + 2) + " Y:" + kgs.readMemoryWord(cmdAddr + 4));
-//                    break;
-//                case 17:
-//                    System.out.println("Generiere Linie: X:" + kgs.readMemoryWord(cmdAddr + 1) + " Y:" + kgs.readMemoryWord(cmdAddr + 3));
-//                    break;
-//                case 18:
-//                    System.out.println("Setze Marker: X:" + kgs.readMemoryWord(cmdAddr + 1) + " Y:" + kgs.readMemoryWord(cmdAddr + 3));
-//                    break;
-//                case 19:
-//                    System.out.println("Setze Schreibposition: X:" + kgs.readMemoryWord(cmdAddr + 1) + " Y:" + kgs.readMemoryWord(cmdAddr + 3));
-//                    break;
-//                case 20:
-//                    System.out.println("Generiere Text: N:" + kgs.readMemoryByte(cmdAddr + 1));
-//                    break;
-//                case 21:
-//                    System.out.println("Setze Linientyp bzw. Speicherebenenauswahl für Text: LI:" + kgs.readMemoryByte(cmdAddr + 1) + " LT:" + kgs.readMemoryByte(cmdAddr + 2) + " LS:" + kgs.readMemoryByte(cmdAddr + 3) + " S:" + kgs.readMemoryByte(cmdAddr + 4));
-//                    break;
-//                case 22:
-//                    System.out.println("Setze Markertyp: MI:" + kgs.readMemoryByte(cmdAddr + 1) + " MT:" + kgs.readMemoryByte(cmdAddr + 2) + " S:" + kgs.readMemoryByte(cmdAddr + 3));
-//                    break;
-//                case 23:
-//                    System.out.println("Setze Schreibtyp: ST:" + kgs.readMemoryByte(cmdAddr + 1));
-//                    break;
-//                case 24:
-//                    System.out.println("Setze Eckpukt Typ 0 einer zu füllenden Fläche: X:" + kgs.readMemoryWord(cmdAddr + 1) + " Y:" + kgs.readMemoryWord(cmdAddr + 3));
-//                    break;
-//                case 25:
-//                    System.out.println("Setze Eckpukt Typ 1 einer zu füllenden Fläche: X:" + kgs.readMemoryWord(cmdAddr + 1) + " Y:" + kgs.readMemoryWord(cmdAddr + 3));
-//                    break;
-//                case 26:
-//                    System.out.println("Setze Parameter für Fill Area: LS:" + kgs.readMemoryByte(cmdAddr + 1) + " FA:" + kgs.readMemoryByte(cmdAddr + 2));
-//                    break;
-//                case 27:
-//                    System.out.println("Starte Request Modus: RM:" + kgs.readMemoryByte(cmdAddr + 1));
-//                    break;
-//                case 33:
-//                    System.out.println("Setze Anfangswert für Locator: SW:" + kgs.readMemoryByte(cmdAddr + 1));
-//                    break;
-//                case 40:
-//                    System.out.println("Initialisiere GSX: LT:" + kgs.readMemoryByte(cmdAddr + 1) + " S:" + kgs.readMemoryByte(cmdAddr + 2) + " MT:" + kgs.readMemoryByte(cmdAddr + 3) + " S:" + kgs.readMemoryByte(cmdAddr + 4));
-//                    break;
-//                case 41:
-//                    System.out.println("Generiere Kreisbogen: XM:" + kgs.readMemoryWord(cmdAddr + 1) + " YM:" + kgs.readMemoryWord(cmdAddr + 3) + "XA:" + kgs.readMemoryWord(cmdAddr + 5) + " YA:" + kgs.readMemoryWord(cmdAddr + 7) + "XE:" + kgs.readMemoryWord(cmdAddr + 9) + " YE:" + kgs.readMemoryWord(cmdAddr + 11) + "R:" + kgs.readMemoryWord(cmdAddr + 13));
-//                    break;
-//                case 42:
-//                    System.out.println("Setze Textfont: TF:" + kgs.readMemoryByte(cmdAddr + 1));
-//                    break;
-//            }
+
+        if (pc == 0x4414 && (module instanceof KES)) {
+            System.out.println("Starte Debugger an Adresse 0x4414");
+            this.debugger.setDebug(true);
+            debug = true;
+        }
+
+//        if (pc == 0x6E && (module instanceof KES)) {
+//            System.out.println("Prüfe auf laufenden NMI:" + !getFlag(ZERO_FLAG));
 //        }
+//        if (pc == 0x88 && (module instanceof KES)) {
+//            System.out.println("Ende Behandlung Kanal");
+//        }
+//        if (pc == 0x0970) {
+//            System.out.println(String.format("KES Statusabfrage"));
+//        }
+//        if (pc == 0x00E0) {
+//            System.out.println(String.format("Fehler PROM: %02X", getRegister(REG_A)));
+//        }
+//        if (pc == 0x0316) {
+//            System.out.println("Ende DMA Copy 1");
+//        }
+        // HACK - HACK - HACK - HACK
+        // TODO: So bald als möglich entfernen
+        // Diese Anweisung täuscht dem ACT einen erfolgreichen DMA Test vor!
+        if ((pc == 0x037B) && module instanceof KES) {
+            a = 0;
+            System.out.println("HACK: Erfolgreicher DMA Test!");
+        }
+
         int opcode = module.readLocalByte(pc++);
         if (debug) {
             debugInfo.setIp(pc - 1);
             debugInfo.setOpcode(opcode);
+        }
+
+        if (eiWaiting) {
+            iff1 = 1;
+            iff2 = 1;
+            eiWaiting = false;
         }
 
         switch (opcode) {
@@ -2238,9 +2193,8 @@ public class UA880 implements IC {
             }
             break;
             case EI: {
-                iff1 = 1;
-                iff2 = 1;
                 //System.out.println("EI");
+                eiWaiting = true;
                 updateTicks(4);
                 if (debug) {
                     debugInfo.setCode("EI");
@@ -4639,7 +4593,9 @@ public class UA880 implements IC {
         //System.out.println("amount: "+amount+" amount*TR:"+amountScaled+ " now:"+(int)amountScaled+" remain:"+((int)(amountScaled/TICK_RATIO-(int)amountScaled)));
         //int ticksNow=amount*TICK_RATIO;
 
+        // Prüfe ob ein Busgesucht vorliegt
         if (!busRequest) {
+            // Führe normale Operation durch
             while (ticks < amountScaled) {
                 executeNextInstruction();
                 if (nmi) {
@@ -4653,9 +4609,9 @@ public class UA880 implements IC {
             }
             ticks -= amountScaled;
         } else {
+            // Aktualisiere nur die anderen Komponenten
             module.localClockUpdate((int) amountScaled);
         }
-
     }
 
     /**
@@ -4851,4 +4807,14 @@ public class UA880 implements IC {
         return nmiInProgress;
     }
 
+    /**
+     * Setzt die CPU zurück und beginnt die Programmabarbeitung neu.
+     */
+    public void reset() {
+
+        interruptMode = 0;
+        pc = 0x0000;
+//        debugger.setDebug(true);
+//        debugger.addComment("CPU Reset");
+    }
 }

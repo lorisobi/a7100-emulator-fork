@@ -21,6 +21,7 @@
  *   01.12.2015 - Erstellt
  *   06.03.2016 - Lesen Register und Zähler ergänzt
  *   14.03.2016 - Implementierung der Übertragung
+ *   25.03.2016 - Speichern und Lesen des Zustands implementiert
  */
 package a7100emulator.components.ic;
 
@@ -103,13 +104,33 @@ public class UA858 implements IC {
      */
     private boolean enableInterrupts = false;
     /**
+     * DMA fordert Bus
+     */
+    private boolean busRequest = false;
+    /**
+     * FORCE READY Bedingung
+     */
+    private boolean forceReady = false;
+    /**
+     * Ready Line
+     */
+    private boolean rdy = false;
+    /**
+     * Bus Acknowledge In - Leitung
+     */
+    private boolean bai = false;
+    /**
+     * Auto-Restart Funktion
+     */
+    private boolean autoRestart = false;
+    /**
      * Verweis auf UA880 Modul
      */
     private final SubsystemModule module;
 
     /**
      * Erzeugt einen neuen UA858 DMA-Controller
-     * 
+     *
      * @param module Modul mit Controllereinsatz
      */
     public UA858(SubsystemModule module) {
@@ -118,13 +139,13 @@ public class UA858 implements IC {
 
     /**
      * Schreibt ein Control-byte in den DMA.
+     * <p>
+     * TODO: Befehle implementieren
      *
      * @param data Control-Byte
      */
     public void writeControl(int data) {
-        //System.out.println(String.format("Ausgabe an DMA: %02X", data));
-
-        // Befehle deaktivieren den DMA
+        // Befehle deaktivieren DMA
         enableDMA = false;
 
         // Nur wenn gerade kein anderes Register erwartet wird
@@ -195,6 +216,7 @@ public class UA858 implements IC {
                 } else if (!BitTest.getBit(data, 0) && BitTest.getBit(data, 1) && !BitTest.getBit(data, 2) && !BitTest.getBit(data, 6)) {
                     // WR5 10xxx010
                     writeRegister[18] = data;
+                    autoRestart = BitTest.getBit(data, 5);
                     System.out.print(String.format("WR5=%02X : ", data));
                     System.out.print(BitTest.getBit(data, 3) ? "RDY AL - " : "RDY AH - ");
                     System.out.print(BitTest.getBit(data, 4) ? "/CE - " : "/CE+/WAIT - ");
@@ -204,17 +226,27 @@ public class UA858 implements IC {
                     switch (data) {
                         case 0xC3:
                             // Reset
-                            System.out.println("DMA Reset");
+                            // System.out.println("DMA Reset");
                             bytecounter = 0;
+                            enableInterrupts = false;
+                            busRequest = false;
+                            forceReady = false;
+                            autoRestart = false;
+                            // TODO:
+                            //  - Reset interrupt latches
+                            //  - Reset Wait Function
+                            //  - Reset Timing
                             break;
                         case 0xC7:
-                            // Reset Port A Timing
+                            // TODO: Reset Port A Timing
                             break;
                         case 0xCB:
-                            // Reset Port B Timing
+                            // TODO: Reset Port B Timing
                             break;
                         case 0xCF:
                             // Load
+                            forceReady = false;
+                            bytecounter = 0;
                             if (BitTest.getBit(writeRegister[0], 2)) {
                                 addressPortA = (writeRegister[2] << 8) | writeRegister[1];
                                 System.out.println(String.format("Lade Port A %04X", addressPortA));
@@ -225,6 +257,7 @@ public class UA858 implements IC {
                             break;
                         case 0xD3:
                             // Continue
+                            bytecounter = 0;
                             break;
                         case 0xAF:
                             // Disable Interrupts
@@ -238,12 +271,15 @@ public class UA858 implements IC {
                             break;
                         case 0xA3:
                             // Reset and Disable Interrupts
+                            forceReady = false;
+                            enableInterrupts = false;
                             break;
                         case 0xB7:
                             // Enable after Reti
                             break;
                         case 0xBF:
                             // Read Status Byte
+                            nextReadRegister.add(0);
                             break;
                         case 0x8B:
                             // Reinitialize Status Byte
@@ -251,9 +287,15 @@ public class UA858 implements IC {
                             break;
                         case 0xA7:
                             // Initiate Read Sequence
+                            for (int i = 0; i < 7; i++) {
+                                if (BitTest.getBit(writeRegister[20], i)) {
+                                    nextReadRegister.add(i);
+                                }
+                            }
                             break;
                         case 0xB3:
                             // Force Ready
+                            forceReady = true;
                             break;
                         case 0x87:
                             // Enable DMA
@@ -324,12 +366,6 @@ public class UA858 implements IC {
                 }
             }
         }
-
-        // TODO: Abfrage RDY Pin
-        if (enableDMA) {
-            module.requestBus(true);
-            System.out.println("Fordere Bus");
-        }
     }
 
     /**
@@ -371,144 +407,240 @@ public class UA858 implements IC {
         // Prüfe ob DMA aktiv ist
         if (enableDMA) {
             // Addiere Anzahl der Takte
-            buffer += cycles * 100;
-//            if (buffer <= 6) {
-//                // Abbruch, wenn kein vollständiger Zyklus möglich ist
-//                return;
-//            }
-//            buffer = buffer;
-            int source;
+            // TODO: Maschinentakte, Takte
+            buffer += cycles * 1000;
 
-            System.out.println("Buffer: " + buffer);
             do {
-                // Inkrement / Decrement nur nach dem ersten Byte ausführen
-                if (bytecounter != 0) {
-                    switch (writeRegister[5] & 0x30) {
-                        case 0x00:
-                            // PortA Decrements
-                            addressPortA--;
-                            break;
-                        case 0x10:
-                            // PortA Increments
-                            addressPortA++;
-                            break;
-                    }
-                }
-
-                if (bytecounter != 0) {
-                    switch (writeRegister[7] & 0x30) {
-                        case 0x00:
-                            // PortB Decrements
-                            addressPortB--;
-                            break;
-                        case 0x10:
-                            // PortB Increments
-                            addressPortB++;
-                            break;
-                    }
-                }
-
-                if (BitTest.getBit(writeRegister[0], 2)) {
-                    // PortA->PortB
-                    if (BitTest.getBit(writeRegister[5], 3)) {
-                        // PortA ist I/O
-                        source = module.readLocalPort(addressPortA);
-//                        System.out.println(String.format("Lese Port A I/O %04X", addressPortA));
-                        buffer -= 4;
-                    } else {
-                        // PortA ist Speicher
-                        source = module.readLocalByte(addressPortA);
-//                        System.out.println(String.format("Lese Port A Speicher %04X", addressPortA));
-                        buffer -= 3;
-                    }
-                    if (BitTest.getBit(writeRegister[7], 3)) {
-                        // PortB ist I/O
-                        module.writeLocalPort(addressPortB, source);
-//                        System.out.println(String.format("Schreibe Port B I/O %04X", addressPortB));
-                        buffer -= 4;
-                    } else {
-                        // PortB ist Speicher
-                        module.writeLocalByte(addressPortB, source);
-//                        System.out.println(String.format("Schreibe Port B Speicher %04X", addressPortB));
-                        buffer -= 3;
-                    }
-                } else {
-                    // PortB->PortA
-                    if (BitTest.getBit(writeRegister[7], 3)) {
-                        // PortB ist I/O
-                        source = module.readLocalPort(addressPortB);
-//                        System.out.println(String.format("Lese Port B I/O %04X", addressPortB));
-                        buffer -= 4;
-                    } else {
-                        // PortB ist Speicher
-                        source = module.readLocalByte(addressPortB);
-//                        System.out.println(String.format("Lese Port B Speicher %04X", addressPortB));
-                        buffer -= 3;
-                    }
-                    if (BitTest.getBit(writeRegister[5], 3)) {
-                        // PortA ist I/O
-                        module.writeLocalPort(addressPortA, source);
-//                        System.out.println(String.format("Schreibe Port A I/O %04X", addressPortA));
-                        buffer -= 4;
-                    } else {
-                        // PortA ist Speicher
-                        module.writeLocalByte(addressPortA, source);
-//                        System.out.println(String.format("Schreibe Port A Speicher %04X", addressPortA));
-                        buffer -= 3;
-                    }
-                }
-
-                bytecounter++;
-
-                switch (writeRegister[12] & 0x60) {
-                    case 0x00:
-                        // Byte
-//                        System.out.println("Mode: Byte");
-                        break;
-                    case 0x20:
-                        // Continous Mode
-//                        System.out.println("Mode: Continous");
-                        break;
-                    case 0x40:
-                        // Burst
-//                        System.out.println("Mode: Burst");
-                        break;
-
-                }
-
-//                System.out.println(bytecounter + " Bytes von " + ((writeRegister[4] << 8) | writeRegister[3]) + "Bytes übertragen");
-                if (bytecounter > ((writeRegister[4] << 8) | writeRegister[3])) {
-                    // End of Block
-
-                    // Freigeben des Buses
-                    module.requestBus(false);
-                    System.out.println("Gebe Bus frei!");
-
-                    if (BitTest.getBit(writeRegister[15], 1)) {
-                        // Interrupt bei EOB
-                        System.out.println("Interrupt: " + (writeRegister[17]));// | 0x04));
-                        module.requestInterrupt(writeRegister[17]);// | 0x04);
-
-                    }
-                    status &= 0x20;
-                    writeRegister[9] &= 0xBF;
-                    enableDMA = false;
-                    // Beende bei End of block
-                    return;
-                }
-
-            //} while (enableDMA);
-            } while (buffer>0);
+                startOperation();
+            } while (buffer > 0 && enableDMA);
         }
     }
 
-    @Override
-    public void saveState(DataOutputStream dos) throws IOException {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    /**
+     * Führt die DMA-Operationen aus.
+     */
+    private void startOperation() {
+        if (rdy || forceReady) {
+            // RDY Line aktiv gesetzt
+            busRequest = true;
+            module.requestBus(true);
+            // Übertrage ein Byte
+            transferOneByte();
+            if (bytecounter > ((writeRegister[4] << 8) | writeRegister[3])) {
+                System.out.println("End of Block");
+                // End of Block
+                // Status Bit 5 löschen
+                status &= 0xDF;
+                if (BitTest.getBit(writeRegister[15], 1)) {
+                    module.requestInterrupt(writeRegister[17]);
+                }
+                if (autoRestart) {
+                    System.out.println("Auto Repeat");
+                    // Lade Register und setze Zähler zurück
+                    bytecounter = 0;
+                    addressPortA = (writeRegister[2] << 8) | writeRegister[1];
+                    addressPortB = (writeRegister[14] << 8) | writeRegister[13];
+                } else {
+                    module.requestBus(false);
+                    enableDMA = false;
+                }
+            } else {
+                // Kein End of Block
+                // Prüfe Übertragungsmodus
+                switch (writeRegister[12] & 0x60) {
+                    case 0x00:
+                        // Byte
+                        busRequest = false;
+                        System.out.println("Mode: Byte");
+                        break;
+                    case 0x20:
+                        // Continous Mode
+                        // TODO: Prüfe Ready
+                        System.out.println("Mode: Continous");
+                        break;
+                    case 0x40:
+                        // Burst
+                        // TODO: Prüfe Ready
+                        // TODO: Release Bus
+                        System.out.println("Mode: Burst");
+                        break;
+                }
+            }
+        }
     }
 
+    /**
+     * Überträgt ein Byte mittels DMA gemäß den aktuellen Einstellungen.
+     */
+    private void transferOneByte() {
+        int source;
+        // Inkrement / Decrement nur nach dem ersten Byte ausführen
+        if (bytecounter != 0) {
+            switch (writeRegister[5] & 0x30) {
+                case 0x00:
+                    // PortA Decrements
+                    addressPortA--;
+                    break;
+                case 0x10:
+                    // PortA Increments
+                    addressPortA++;
+                    break;
+            }
+        }
+        if (bytecounter != 0) {
+            switch (writeRegister[7] & 0x30) {
+                case 0x00:
+                    // PortB Decrements
+                    addressPortB--;
+                    break;
+                case 0x10:
+                    // PortB Increments
+                    addressPortB++;
+                    break;
+            }
+        }
+        if (BitTest.getBit(writeRegister[0], 2)) {
+            // PortA->PortB
+            if (BitTest.getBit(writeRegister[5], 3)) {
+                // PortA ist I/O
+                source = module.readLocalPort(addressPortA);
+                System.out.println(String.format("Lese Port A I/O %04X", addressPortA));
+                buffer -= 4;
+            } else {
+                // PortA ist Speicher
+                source = module.readLocalByte(addressPortA);
+                System.out.println(String.format("Lese Port A Speicher %04X", addressPortA));
+                buffer -= 3;
+            }
+            if (BitTest.getBit(writeRegister[7], 3)) {
+                // PortB ist I/O
+                module.writeLocalPort(addressPortB, source);
+                System.out.println(String.format("Schreibe Port B I/O %04X", addressPortB));
+                buffer -= 4;
+            } else {
+                // PortB ist Speicher
+                module.writeLocalByte(addressPortB, source);
+                System.out.println(String.format("Schreibe Port B Speicher %04X", addressPortB));
+                buffer -= 3;
+            }
+        } else {
+            // PortB->PortA
+            if (BitTest.getBit(writeRegister[7], 3)) {
+                // PortB ist I/O
+                source = module.readLocalPort(addressPortB);
+                System.out.println(String.format("Lese Port B I/O %04X", addressPortB));
+                buffer -= 4;
+            } else {
+                // PortB ist Speicher
+                source = module.readLocalByte(addressPortB);
+                System.out.println(String.format("Lese Port B Speicher %04X", addressPortB));
+                buffer -= 3;
+            }
+            if (BitTest.getBit(writeRegister[5], 3)) {
+                // PortA ist I/O
+                module.writeLocalPort(addressPortA, source);
+                System.out.println(String.format("Schreibe Port A I/O %04X", addressPortA));
+                buffer -= 4;
+            } else {
+                // PortA ist Speicher
+                module.writeLocalByte(addressPortA, source);
+                System.out.println(String.format("Schreibe Port A Speicher %04X", addressPortA));
+                buffer -= 3;
+            }
+        }
+        if (BitTest.getBit(writeRegister[0], 1)) {
+            // Search
+            System.out.println("DMA Search noch nicht implementiert!");
+            if ((source & writeRegister[10]) == (writeRegister[11] & writeRegister[10])) {
+                // Match
+                // Status Bit 4 löschen
+                status &= 0xEF;
+                if (BitTest.getBit(writeRegister[9], 2)) {
+                    // TODO: Stop On Match
+                }
+                if (BitTest.getBit(writeRegister[15], 0)) {
+                    // TODO: Interrupt On Match
+                }
+            }
+        } else {
+            bytecounter++;
+        }
+    }
+
+    /**
+     * Setzt die RDY-Leitung des DMA.
+     *
+     * @param rdy Zustand der RDY-Leitung
+     */
+    public void setRDY(boolean rdy) {
+        this.rdy = rdy;
+    }
+
+    /**
+     * Setzt die BAI-Leitung des DMA.
+     *
+     * @param bai Zusand der BAI Leitung
+     */
+    public void setBAI(boolean bai) {
+        this.bai = bai;
+    }
+
+    /**
+     * Speichert den Zustand des DMA in einer Datei
+     *
+     * @param dos Stream zur Datei
+     * @throws IOException Wenn Schreiben nicht erfolgreich war
+     */
+    @Override
+    public void saveState(DataOutputStream dos) throws IOException {
+        for (int wr : writeRegister) {
+            dos.writeInt(wr);
+        }
+        dos.writeInt(nextWriteRegister.size());
+        for (Integer nwr : nextWriteRegister) {
+            dos.writeInt(nwr);
+        }
+        dos.writeInt(nextReadRegister.size());
+        for (Integer nrr : nextReadRegister) {
+            dos.writeInt(nrr);
+        }
+        dos.writeInt(buffer);
+        dos.writeInt(addressPortA);
+        dos.writeInt(addressPortB);
+        dos.writeInt(bytecounter);
+        dos.writeInt(status);
+        dos.writeBoolean(enableDMA);
+        dos.writeBoolean(enableInterrupts);
+    }
+
+    /**
+     * Lädt den Zustand des DMA aus einer Datei
+     *
+     * @param dis Stream zur Datei
+     * @throws IOException Wenn Lesen nicht erfolgreich war
+     */
     @Override
     public void loadState(DataInputStream dis) throws IOException {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        for (int i = 0; i < writeRegister.length; i++) {
+            writeRegister[i] = dis.readInt();
+        }
+        nextWriteRegister.clear();
+        int size_nwr = dis.readInt();
+        for (int i = 0; i < size_nwr; i++) {
+            nextWriteRegister.add(dis.readInt());
+        }
+        nextReadRegister.clear();
+        int size_nrr = dis.readInt();
+        for (int i = 0; i < size_nrr; i++) {
+            nextReadRegister.add(dis.readInt());
+        }
+        buffer = dis.readInt();
+        addressPortA = dis.readInt();
+        addressPortB = dis.readInt();
+        bytecounter = dis.readInt();
+        buffer = dis.readInt();
+        status = dis.readInt();
+        enableDMA = dis.readBoolean();
+        enableInterrupts = dis.readBoolean();
     }
 }

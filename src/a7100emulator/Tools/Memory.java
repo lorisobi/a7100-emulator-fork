@@ -2,7 +2,7 @@
  * Memory.java
  * 
  * Diese Datei gehört zum Projekt A7100 Emulator 
- * Copyright (c) 2011-2015 Dirk Bräuer
+ * Copyright (c) 2011-2016 Dirk Bräuer
  *
  * Der A7100 Emulator ist Freie Software: Sie können ihn unter den Bedingungen
  * der GNU General Public License, wie von der Free Software Foundation,
@@ -20,6 +20,7 @@
  * Letzte Änderungen:
  *   05.04.2014 - Kommentare vervollständigt
  *   01.01.2015 - Konstruktor mit Byte Array hinzugefügt
+ *   26.03.2016 - Methode clear() ergänzt
  */
 package a7100emulator.Tools;
 
@@ -183,6 +184,15 @@ public class Memory {
      */
     public int getSize() {
         return memory.length;
+    }
+
+    /**
+     * Löscht den Speicher durch setzen von allen Bytes zurück auf 0x00.
+     */
+    public void clear() {
+        for (int i = 0; i < memory.length; i++) {
+            memory[i] = 0x00;
+        }
     }
 
     /**

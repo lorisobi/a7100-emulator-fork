@@ -38,6 +38,7 @@
  *   27.02.2016 - FlipFlop und Interrupt Ports implementiert
  *              - Lesen von Systemspeicher ermöglicht
  *   24.03.2016 - NMI Sperre ergänzt
+ *   26.03.2016 - Speichern und Laden vervollständigt
  */
 package a7100emulator.components.modules;
 
@@ -47,7 +48,8 @@ import a7100emulator.Tools.Memory;
 import a7100emulator.components.ic.UA857;
 import a7100emulator.components.ic.UA858;
 import a7100emulator.components.ic.UA880;
-import a7100emulator.components.system.*;
+import a7100emulator.components.system.GlobalClock;
+import a7100emulator.components.system.MMS16Bus;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
@@ -271,6 +273,8 @@ public final class KES implements IOModule, ClockModule, SubsystemModule {
                     case 0x02:
                         // RESET
                         System.out.println("RESET ON");
+                        cpu.reset();
+                        dnmi_map = 0x80;
                         break;
                     default:
                         throw new IllegalArgumentException("Illegal Command:" + Integer.toHexString(data));
@@ -395,7 +399,7 @@ public final class KES implements IOModule, ClockModule, SubsystemModule {
                 return ctc.readChannel(2);
             case LOCAL_PORT_CTC_CHANNEL_3:
                 int result = ctc.readChannel(3);
-                //System.out.println("Lese von Zähler 3:" + result);
+                System.out.println("Lese von Zähler 3:" + result);
                 return ctc.readChannel(3);
             case LOCAL_PORT_RESETCA1_0:
             case LOCAL_PORT_RESETCA1_1:
@@ -462,18 +466,23 @@ public final class KES implements IOModule, ClockModule, SubsystemModule {
             case LOCAL_PORT_DMA_1:
             case LOCAL_PORT_DMA_2:
             case LOCAL_PORT_DMA_3:
+                System.out.println(String.format("Ausgabe an DMA: %02X",data));
                 dma.writeControl(data);
                 break;
             case LOCAL_PORT_CTC_CHANNEL_0:
+//                System.out.println(String.format("Ausgabe an CTC0: %02X",data));
                 ctc.writeChannel(0, data);
                 break;
             case LOCAL_PORT_CTC_CHANNEL_1:
+//                System.out.println(String.format("Ausgabe an CTC1: %02X",data));
                 ctc.writeChannel(1, data);
                 break;
             case LOCAL_PORT_CTC_CHANNEL_2:
+//                System.out.println(String.format("Ausgabe an CTC2: %02X",data));
                 ctc.writeChannel(2, data);
                 break;
             case LOCAL_PORT_CTC_CHANNEL_3:
+//                System.out.println(String.format("Ausgabe an CTC3: %02X",data));
                 ctc.writeChannel(3, data);
                 break;
             case LOCAL_PORT_RESETCA1_0:
@@ -684,7 +693,7 @@ public final class KES implements IOModule, ClockModule, SubsystemModule {
     /**
      * Gibt die Referenz auf das angeschlossene AFP-Modul zurück
      *
-     * @return AFP-Modul
+     * @return AFP-Modul oder <code>null</code> wenn keine AFP vorhanden ist
      */
     public AFP getAFP() {
         return afp;
@@ -696,7 +705,7 @@ public final class KES implements IOModule, ClockModule, SubsystemModule {
      * TODO: Auch ROM und Systemfensteranzeige implementieren
      */
     public void showMemory() {
-        (new MemoryAnalyzer(sram, "KES SRAM")).show();
+        (new MemoryAnalyzer(this, "KES Speicherbereich")).show();
     }
 
     /**
@@ -719,35 +728,9 @@ public final class KES implements IOModule, ClockModule, SubsystemModule {
     }
 
     /**
-     * Schreibt den Zustand der KES in eine Datei
-     * <p>
-     * TODO: Funktion vervollständigen
-     *
-     * @param dos Stream zur Datei
-     * @throws IOException Wenn Schreiben nicht erfolgreich war
-     */
-    @Override
-    public void saveState(DataOutputStream dos) throws IOException {
-        sram.saveMemory(dos);
-        afs.saveState(dos);
-    }
-
-    /**
-     * Liest den Zustand der KES aus einer Datei
-     * <p>
-     * TODO: Funktion vervollständigen
-     *
-     * @param dis Stream zur Datei
-     * @throws IOException Wenn Lesen nicht erfolgreich war
-     */
-    @Override
-    public void loadState(DataInputStream dis) throws IOException {
-        sram.loadMemory(dis);
-        afs.loadState(dis);
-    }
-
-    /**
      * Leitet einen Bus Request an die CPU weiter
+     * <p>
+     * TODO: Überarbeiten
      *
      * @param request <code>true</code> wenn eine Anforderung vorlieg,
      * <code>false</code> sonst
@@ -755,5 +738,52 @@ public final class KES implements IOModule, ClockModule, SubsystemModule {
     @Override
     public void requestBus(boolean request) {
         cpu.requestBus(request);
+        mms16.setBusRequest(request);
+    }
+
+    /**
+     * Schreibt den Zustand der KES in eine Datei
+     *
+     * @param dos Stream zur Datei
+     * @throws IOException Wenn Schreiben nicht erfolgreich war
+     */
+    @Override
+    public void saveState(DataOutputStream dos) throws IOException {
+        eprom.saveMemory(dos);
+        sram.saveMemory(dos);
+        afs.saveState(dos);
+        if (afp != null) {
+            afp.saveState(dos);
+        }
+        cpu.saveState(dos);
+        ctc.saveState(dos);
+        dma.saveState(dos);
+        dos.writeBoolean(ca1ff);
+        dos.writeBoolean(ca2ff);
+        dos.writeInt(dnmi_map);
+        dos.writeBoolean(nmiRequest);
+    }
+
+    /**
+     * Liest den Zustand der KES aus einer Datei
+     *
+     * @param dis Stream zur Datei
+     * @throws IOException Wenn Lesen nicht erfolgreich war
+     */
+    @Override
+    public void loadState(DataInputStream dis) throws IOException {
+        eprom.loadMemory(dis);
+        sram.loadMemory(dis);
+        afs.loadState(dis);
+        if (afp != null) {
+            afp.loadState(dis);
+        }
+        cpu.loadState(dis);
+        ctc.loadState(dis);
+        dma.loadState(dis);
+        ca1ff = dis.readBoolean();
+        ca2ff = dis.readBoolean();
+        dnmi_map = dis.readInt();
+        nmiRequest = dis.readBoolean();
     }
 }

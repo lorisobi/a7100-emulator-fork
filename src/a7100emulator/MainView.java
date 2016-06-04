@@ -38,6 +38,7 @@
  *   16.08.2015 - Dialog für Floppy Format nach FloppyImageParser ausgelagert
  *   14.02.2016 - Menüpunkte KES hinzugefügt
  *   15.03.2016 - Menüpunkt KES Speicher anzeigen, speichern hinzugefügt 
+ *   26.03.2016 - Schreibfehler korrigiert
  */
 package a7100emulator;
 
@@ -238,7 +239,7 @@ public class MainView extends JFrame {
     /**
      * Menüeintrag KES Speicher in Datei schreiben
      */
-    private final JMenuItem menuDebugKESMemoryDump = new JMenuItem("Sump KES Speicher");
+    private final JMenuItem menuDebugKESMemoryDump = new JMenuItem("Dump KES Speicher");
 
     /**
      * Menüeintrag ABG Zeige Alphanumerik

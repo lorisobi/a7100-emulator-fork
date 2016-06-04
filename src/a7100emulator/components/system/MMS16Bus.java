@@ -63,6 +63,10 @@ public class MMS16Bus implements StateSavable {
      */
     private boolean timeout = false;
     /**
+     * Busbelegung
+     */
+    private boolean busInUse = false;
+    /**
      * Singleton Instanz des Systembusses
      */
     private static MMS16Bus instance;
@@ -339,6 +343,39 @@ public class MMS16Bus implements StateSavable {
     }
 
     /**
+     * Fordert den Bus durch einen Master an oder gibt ihn frei.
+     *
+     * @param request <code>true</code> wenn der Bus angefordert wird,
+     * <code>false</code> wenn er freigegeben wird
+     * @return <code>true</code> wenn die Anforderung erfolgreich war,
+     * <code>false</code> falls der bus bereits belegt ist
+     */
+    public boolean setBusRequest(boolean request) {
+        if (request) {
+            if (busInUse) {
+                return false;
+            } else {
+                System.out.println("Anforderung Bus");
+                busInUse = true;
+                return true;
+            }
+        } else {
+            busInUse = false;
+            return true;
+        }
+    }
+
+    /**
+     * Gibt an, ob der Systembus bereits in Benutzung ist.
+     *
+     * @return <code>true</code> wenn Systembus in Benutzung, <code>false</code>
+     * wenn der Systembus frei ist
+     */
+    public boolean isBusInUse() {
+        return busInUse;
+    }
+
+    /**
      * Speichert den Zustand des Systembusses in einer Datei.
      *
      * @param dos Stream zur Datei
@@ -347,6 +384,7 @@ public class MMS16Bus implements StateSavable {
     @Override
     public void saveState(final DataOutputStream dos) throws IOException {
         dos.writeBoolean(timeout);
+        dos.writeBoolean(busInUse);
     }
 
     /**
@@ -358,5 +396,6 @@ public class MMS16Bus implements StateSavable {
     @Override
     public void loadState(final DataInputStream dis) throws IOException {
         timeout = dis.readBoolean();
+        busInUse = dis.readBoolean();
     }
 }

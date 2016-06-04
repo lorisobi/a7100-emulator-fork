@@ -63,4 +63,12 @@ public class CRCCalculator {
         }
         return crc & 0xFFFF;
     }
+    
+    public static void main(String args[]) {
+        byte[] data=new byte[]{(byte)0xA1,(byte)0xA1,(byte)0xA1,(byte)0xFE,0x00,0x01,0x01,0x01,(byte)0xCD,0x3C};
+        int generator=0x1021;
+        int start=0xFFFF;
+        int crc=CRCCalculator.calculateCRC16(data, generator, start);
+        System.out.println(String.format("%04X",crc));
+    }
 }
