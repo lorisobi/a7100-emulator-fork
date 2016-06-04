@@ -2,7 +2,7 @@
  * MainView.java
  * 
  * Diese Datei gehört zum Projekt A7100 Emulator 
- * Copyright (c) 2011-2015 Dirk Bräuer
+ * Copyright (c) 2011-2016 Dirk Bräuer
  *
  * Der A7100 Emulator ist Freie Software: Sie können ihn unter den Bedingungen
  * der GNU General Public License, wie von der Free Software Foundation,
@@ -35,6 +35,8 @@
  *   26.07.2015 - Lizenzinformationen überarbeitet
  *   29.07.2015 - Formatierte Textfelder bei RAW Image richtig auslesen
  *   14.08.2015 - Lesen von CopyQM Images ergänzt
+ *   16.08.2015 - Dialog für Floppy Format nach FloppyImageParser ausgelagert
+ *   26.03.2016 - Schreibfehler korrigiert
  */
 package a7100emulator;
 
@@ -45,7 +47,6 @@ import a7100emulator.Debug.Decoder;
 import a7100emulator.Debug.MemoryAnalyzer;
 import a7100emulator.Debug.OpcodeStatistic;
 import a7100emulator.components.A7100;
-import a7100emulator.Tools.FloppyImageType;
 import a7100emulator.components.ic.KR580WM51A;
 import a7100emulator.components.system.Keyboard;
 import a7100emulator.components.system.MMS16Bus;
@@ -57,7 +58,6 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
 import java.io.IOException;
-import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.logging.Level;
@@ -481,7 +481,7 @@ public class MainView extends JFrame {
             } else if (e.getSource() == menuDebugKGSMemoryShow) {
                 a7100.getKGS().showMemory();
             } else if (e.getSource() == menuDebugKGSMemoryDump) {
-                a7100.getKGS().dumpMemory("./debug/kgs_user_dump.hex");
+                a7100.getKGS().dumpLocalMemory("./debug/kgs_user_dump.hex");
             } else if (e.getSource().equals(menuDebugKGSDebuggerSwitch)) {
                 a7100.getKGS().setDebug(menuDebugKGSDebuggerSwitch.isSelected());
             } else if (e.getSource() == menuDebugZVEDecoderDump) {
@@ -622,57 +622,8 @@ public class MainView extends JFrame {
             JFileChooser loadDialog = new JFileChooser("./disks/");
             if (loadDialog.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
                 File image = loadDialog.getSelectedFile();
-                String extension = image.getName().substring(image.getName().length() - 3, image.getName().length()).toLowerCase();
-                if (extension.equals("imd")) {
-                    a7100.getKES().getAFS().getFloppy(drive).loadDiskFromFile(image, FloppyImageType.IMAGEDISK);
-                } else if (extension.equals("td0")) {
-                    a7100.getKES().getAFS().getFloppy(drive).loadDiskFromFile(image, FloppyImageType.TELEDISK);
-                } else if (extension.equals("dmk")) {
-                    a7100.getKES().getAFS().getFloppy(drive).loadDiskFromFile(image, FloppyImageType.DMK);
-                } else if (extension.equals("cqm")) {
-                    a7100.getKES().getAFS().getFloppy(drive).loadDiskFromFile(image, FloppyImageType.COPYQM);
-                } else {
-                    // Binär
-                    NumberFormat integerFormat=NumberFormat.getIntegerInstance();
-                    integerFormat.setGroupingUsed(false);
-                    JFormattedTextField editCylinder = new JFormattedTextField(NumberFormat.getIntegerInstance());
-                    JFormattedTextField editHeads = new JFormattedTextField(NumberFormat.getIntegerInstance());
-                    JFormattedTextField editSectorsPerTrack = new JFormattedTextField(NumberFormat.getIntegerInstance());
-                    JFormattedTextField editBytesPerSector = new JFormattedTextField(NumberFormat.getIntegerInstance());
-                    JFormattedTextField editSectorsInTrack0 = new JFormattedTextField(NumberFormat.getIntegerInstance());
-                    JFormattedTextField editBytesPerSectorTrack0 = new JFormattedTextField(NumberFormat.getIntegerInstance());
-                    editCylinder.setValue(80);
-                    editHeads.setValue(2);
-                    editSectorsPerTrack.setValue(16);
-                    editBytesPerSector.setValue(256);
-                    editSectorsInTrack0.setValue(16);
-                    editBytesPerSectorTrack0.setValue(128);
-                    JPanel panelEdit = new JPanel(new GridLayout(6, 2));
-                    panelEdit.add(new JLabel("Anzahl der Zylinder:"));
-                    panelEdit.add(editCylinder);
-                    panelEdit.add(new JLabel("Anzahl der Seiten:"));
-                    panelEdit.add(editHeads);
-                    panelEdit.add(new JLabel("Sektoren pro Spur:"));
-                    panelEdit.add(editSectorsPerTrack);
-                    panelEdit.add(new JLabel("Bytes pro Sektor:"));
-                    panelEdit.add(editBytesPerSector);
-                    panelEdit.add(new JLabel("Sektoren in Spur 0:"));
-                    panelEdit.add(editSectorsInTrack0);
-                    panelEdit.add(new JLabel("Bytes pro Sektor Spur 0:"));
-                    panelEdit.add(editBytesPerSectorTrack0);
-                    if (JOptionPane.showConfirmDialog(null, panelEdit, "Image laden", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE) == JOptionPane.OK_OPTION) {
-                        int cylinder = ((Number)editCylinder.getValue()).intValue();
-                        int heads = ((Number)editHeads.getValue()).intValue();
-                        int sectorsPerTrack = ((Number)editSectorsPerTrack.getValue()).intValue();
-                        int bytesPerSector = ((Number)editBytesPerSector.getValue()).intValue();
-                        int sectorsInTrack0 = ((Number)editSectorsInTrack0.getValue()).intValue();
-                        int bytesPerSectorTrack0 = ((Number)editBytesPerSectorTrack0.getValue()).intValue();
-                        a7100.getKES().getAFS().getFloppy(drive).loadDiskFromFile(image, cylinder, heads, sectorsPerTrack, bytesPerSector, sectorsInTrack0, bytesPerSectorTrack0);
+                a7100.getKES().getAFS().getFloppy(drive).loadDiskFromFile(image);
                     }
-
                 }
             }
-
         }
-    }
-}

@@ -2,7 +2,7 @@
  * MemoryAnalyzer.java
  * 
  * Diese Datei gehört zum Projekt A7100 Emulator 
- * Copyright (c) 2011-2015 Dirk Bräuer
+ * Copyright (c) 2011-2016 Dirk Bräuer
  *
  * Der A7100 Emulator ist Freie Software: Sie können ihn unter den Bedingungen
  * der GNU General Public License, wie von der Free Software Foundation,
@@ -22,11 +22,13 @@
  *   12.12.2014 - Übergabe Speicher in Konstruktor
  *   14.12.2014 - Fehler bei ASCII Darstellung behoben
  *   01.01.2015 - Speicheranzeige mit Byte-Array hinzugefügt
+ *   26.03.2016 - Anzeige von UA880 Subsystemen implementiert
  */
 package a7100emulator.Debug;
 
 import GUITools.RowHeadRenderer;
 import a7100emulator.Tools.Memory;
+import a7100emulator.components.modules.SubsystemModule;
 import a7100emulator.components.system.MMS16Bus;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
@@ -53,6 +55,10 @@ public class MemoryAnalyzer {
      * Fenstertitel
      */
     private final String title;
+    /**
+     * Verweis auf Subsystem
+     */
+    private final SubsystemModule ua880module;
 
     /**
      * Erstellt eine neue Speicheranzeige für den Systemspeicher
@@ -71,6 +77,7 @@ public class MemoryAnalyzer {
     public MemoryAnalyzer(Memory memory, String title) {
         this.memory = memory;
         this.title = title;
+        ua880module = null;
     }
 
     /**
@@ -82,6 +89,19 @@ public class MemoryAnalyzer {
     public MemoryAnalyzer(byte[] data, String title) {
         this.memory = new Memory(data);
         this.title = title;
+        ua880module = null;
+    }
+
+    /**
+     * Erstellt eine neue Speicheranzeige basierend auf einem UA880 Subsystem.
+     *
+     * @param module UA880 Subsystem
+     * @param title Fenstertitel
+     */
+    public MemoryAnalyzer(SubsystemModule module, String title) {
+        this.memory = null;
+        this.title = title;
+        this.ua880module = module;
     }
 
     /**
@@ -121,7 +141,7 @@ public class MemoryAnalyzer {
          */
         @Override
         public int getRowCount() {
-            return (memory == null) ? 65536 : memory.getSize() / 16;
+            return (memory == null) ? ((ua880module == null) ? 65536 : 4096) : memory.getSize() / 16;
         }
 
         /**
@@ -190,7 +210,11 @@ public class MemoryAnalyzer {
                 for (int i = 0; i < 16; i++) {
                     Integer val;
                     if (memory == null) {
-                        val = MMS16Bus.getInstance().readMemoryByte(row * 16 + i);
+                        if (ua880module == null) {
+                            val = MMS16Bus.getInstance().readMemoryByte(row * 16 + i);
+                        } else {
+                            val = ua880module.readLocalByte(row * 16 + i);
+                        }
                     } else {
                         val = memory.readByte(row * 16 + i);
                     }
@@ -203,7 +227,11 @@ public class MemoryAnalyzer {
                 return ascii;
             } else {
                 if (memory == null) {
-                    return String.format("%02X", MMS16Bus.getInstance().readMemoryByte(row * 16 + column - 1));
+                    if (ua880module == null) {
+                        return String.format("%02X", MMS16Bus.getInstance().readMemoryByte(row * 16 + column - 1));
+                    } else {
+                        return String.format("%02X", ua880module.readLocalByte(row * 16 + column - 1));
+                    }
                 } else {
                     return String.format("%02X", memory.readByte(row * 16 + column - 1));
                 }

@@ -2,7 +2,7 @@
  * UA856.java
  * 
  * Diese Datei gehört zum Projekt A7100 Emulator 
- * Copyright (c) 2011-2015 Dirk Bräuer
+ * Copyright (c) 2011-2016 Dirk Bräuer
  *
  * Der A7100 Emulator ist Freie Software: Sie können ihn unter den Bedingungen
  * der GNU General Public License, wie von der Free Software Foundation,
@@ -22,6 +22,8 @@
  *   28.09.2014 - Lesen von Diagnosestatus hinzugefügt
  *   18.11.2014 - Speichern und Laden implementiert
  *              - Interface IC implementiert
+ *   01.12.2015 - Doppelte Typdefinition in LinkedList entfernt
+ *   24.04.2016 - Abfrage von RTS/DTR implementiert
  */
 package a7100emulator.components.ic;
 
@@ -86,7 +88,8 @@ public class UA856 implements IC {
      */
     public void writeData(int channel, int data) {
         // TODO: Versenden
-        if (isDiagnose()) {
+        // TODO: Spezifische KGS Funktion abstrahieren!!!
+        if (isRTS(1)) {
             channels[channel].receiveData(data);
         }
     }
@@ -102,21 +105,27 @@ public class UA856 implements IC {
     }
 
     /**
-     * Gibt an, ob sich der SIO (der KGS) im Diagnosemodus befindet
+     * Gibt an, ob das Signal RTS (Request To Send) gesetzt ist. Das Signal ist
+     * invertiert: High - RTS inaktiv, Low - RTS aktiv.
      *
-     * @return true wenn im Diagnosemodus, false - sonst
+     * @param channel SIO-Kanal
+     * @return <code>true</code> wenn RTS inaktiv, <code>false</code> wenn RTS
+     * aktiv
      */
-    public boolean isDiagnose() {
-        return !BitTest.getBit(channels[1].writeRegister[5], 1);
+    public boolean isRTS(int channel) {
+        return !BitTest.getBit(channels[channel].writeRegister[5], 1);
     }
 
     /**
-     * Gibt an, ob sich der SIO (der KGS) im Lokalen Modus befindet
+     * Gibt an, ob das Signal DTR (Data Terminal Ready) gesetzt ist. Das Signal
+     * ist invertiert: High - DTR inaktiv, Low - DTR aktiv.
      *
-     * @return true wenn im lokalen Modus, false - sonst
+     * @param channel SIO-Kanal
+     * @return <code>true</code> wenn DTR inaktiv, <code>false</code> wenn DTR
+     * aktiv
      */
-    public boolean isLocalROM() {
-        return BitTest.getBit(channels[1].writeRegister[5], 7);
+    public boolean isDTR(int channel) {
+        return !BitTest.getBit(channels[channel].writeRegister[5], 7);
     }
 
     /**
@@ -163,7 +172,7 @@ public class UA856 implements IC {
         /**
          * Puffer der empfangenen Bytes
          */
-        private final LinkedList<Integer> receiveData = new LinkedList<Integer>();
+        private final LinkedList<Integer> receiveData = new LinkedList<>();
         /**
          * Datenbyte Transmit
          */

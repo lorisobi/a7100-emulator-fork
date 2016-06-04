@@ -102,7 +102,7 @@ public class DebuggerInfo {
      *
      * @return Instruction-Pointer
      */
-    int getIp() {
+    public int getIp() {
         return ip;
     }
 

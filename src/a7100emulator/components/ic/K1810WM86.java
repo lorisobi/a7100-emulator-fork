@@ -2,7 +2,7 @@
  * K1810WM86.java
  * 
  * Diese Datei gehört zum Projekt A7100 Emulator 
- * Copyright (c) 2011-2015 Dirk Bräuer
+ * Copyright (c) 2011-2016 Dirk Bräuer
  *
  * Der A7100 Emulator ist Freie Software: Sie können ihn unter den Bedingungen
  * der GNU General Public License, wie von der Free Software Foundation,
@@ -642,6 +642,7 @@ public class K1810WM86 implements Runnable, IC {
         int opcode1 = mms16.readMemoryByte((cs << 4) + ip++);
 
         // Aktualisiere Zeit für Laden des Befehls
+        // TODO: Timing nochmals überarbeiten/prüfen
         updateTicks(3);
 
         // Prüfe auf Segment Präfix
@@ -6424,6 +6425,7 @@ public class K1810WM86 implements Runnable, IC {
         } else {
             updateTicks(3);
         }
+
         if (interruptSystem.getNMI()) {
             interrupt(0x02);
         } else if (getFlag(INTERRUPT_ENABLE_FLAG)) {

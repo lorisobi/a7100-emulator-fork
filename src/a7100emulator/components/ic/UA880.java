@@ -2,7 +2,7 @@
  * UA880.java
  * 
  * Diese Datei gehört zum Projekt A7100 Emulator 
- * Copyright (c) 2011-2015 Dirk Bräuer
+ * Copyright (c) 2011-2016 Dirk Bräuer
  *
  * Der A7100 Emulator ist Freie Software: Sie können ihn unter den Bedingungen
  * der GNU General Public License, wie von der Free Software Foundation,
@@ -45,13 +45,21 @@
  *   09.08.2015 - Debug Operanden LDIR ergänzt
  *              - Zero Flag 16 Bit Überprüfung ergänzt
  *              - Javadoc korrigiert
+ *   30.11.2015 - KGS durch SubsystemModule abstrahiert
+ *   14.02.2016 - kgs in module umbenannt
+ *   28.02.2016 - Debugausgabe bei veränderlichen Register korrigiert
+ *              - Fehler in JP (HL) behoben
+ *   14.03.2016 - Fehler in DD CB - Bitoperationen behoben
+ *   23.03.2016 - Fehler Carry Flag in CPI, CPD, CPIR, CPDR behoben
+ *              - Debugausgaben ergänzt
+ *   28.03.2016 - Verzögerte Interruptfreigabe implementiert
  */
 package a7100emulator.components.ic;
 
 import a7100emulator.Debug.Debugger;
 import a7100emulator.Debug.DebuggerInfo;
 import a7100emulator.Tools.BitTest;
-import a7100emulator.components.modules.KGS;
+import a7100emulator.components.modules.SubsystemModule;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -60,8 +68,8 @@ import java.util.LinkedList;
 /**
  * Klasse zur Realisierung eines UA880 Prozessors für A7100 Subsysteme.
  * <p>
- * TODO: - Prüfen ob 16 Bit checkSignFlag immer verwendet wird
- *       - HalfCarryFlag bei 16 Bit implementieren
+ * TODO: - Prüfen ob 16 Bit checkSignFlag immer verwendet wird - HalfCarryFlag
+ * bei 16 Bit implementieren
  *
  * @author Dirk Bräuer
  */
@@ -648,17 +656,15 @@ public class UA880 implements IC {
     /**
      * Zeiger auf Debugger Instanz
      */
-    private final Debugger debugger = new Debugger("UA880_KGS", false, "KGS");
+    private final Debugger debugger;
     /**
      * Zeiger auf Debugger Informationen
      */
     private final DebuggerInfo debugInfo = new DebuggerInfo();
     /**
-     * Zeiger auf KGS
-     * <p>
-     * TODO: Verweis auf KGS entfernen oder abstrahieren
+     * Zeiger auf Subsystem Modul
      */
-    private final KGS kgs;
+    private final SubsystemModule module;
     /**
      * Gibt an, ob der Thread bereits beendet wurde
      */
@@ -678,23 +684,32 @@ public class UA880 implements IC {
     /**
      * Liste aller anstehendenInterruptanfragen
      */
-    private final LinkedList<Integer> interruptsWaiting = new LinkedList<Integer>();
+    private final LinkedList<Integer> interruptsWaiting = new LinkedList<>();
     /**
      * Lokaler Taktzähler
      */
     private double ticks;
     /**
      * NMI in Bearbeitung
+     * <p>
+     * TODO: Verwendung der Variable prüfen
      */
     private boolean nmiInProgress = false;
+    /**
+     * Gibt an, ob ein Freigeben der Interrupts nach dem nächsten Befehl
+     * aussteht.
+     */
+    private boolean eiWaiting = false;
 
     /**
      * Erstellt einen neuen Prozessor.
      *
-     * @param kgs Referenz auf KGS Modul
+     * @param module Referenz auf KGS Modul
+     * @param debug_ident Kürzel, welches die Debug-Ausgaben beinhalten
      */
-    public UA880(KGS kgs) {
-        this.kgs = kgs;
+    public UA880(SubsystemModule module, String debug_ident) {
+        this.module = module;
+        debugger = new Debugger("UA880_" + debug_ident, false, debug_ident);
         debugger.setDebug(false);
     }
 
@@ -704,97 +719,16 @@ public class UA880 implements IC {
     private void executeNextInstruction() {
         boolean debug = debugger.isDebug();
 
-//        if (pc == 0x3057) {
-//            int cmdAddr = getRegisterPairHLSP(REGP_HL);
-//            switch (kgs.readMemoryByte(cmdAddr)) {
-//                case 1:
-//                    System.out.println("Setze Funktionskennzeichen: FK:" + String.format("%02X", kgs.readMemoryByte(cmdAddr + 1)));
-//                    break;
-//                case 2:
-//                    System.out.println("Setze Register grafischer Cursor: X:" + kgs.readMemoryWord(cmdAddr + 1) + " Y:" + kgs.readMemoryWord(cmdAddr + 3));
-//                    break;
-//                case 4:
-//                    System.out.println("Setze Splitgrenze: Z:" + kgs.readMemoryByte(cmdAddr + 1));
-//                    break;
-//                case 7:
-//                    System.out.println("Initialisiere Speicher: IM:" + kgs.readMemoryByte(cmdAddr + 1) + " S:" + kgs.readMemoryByte(cmdAddr + 2));
-//                    break;
-//                case 8:
-//                    System.out.println("Initialisiere Speicherabschnitt: IM:" + kgs.readMemoryByte(cmdAddr + 1) + " S:" + kgs.readMemoryByte(cmdAddr + 2) + " YA:" + kgs.readMemoryWord(cmdAddr + 3) + " YE:" + kgs.readMemoryWord(cmdAddr + 5));
-//                    break;
-//                case 9:
-//                    System.out.println("Initialisiere Speicherausschnitt: IM:" + kgs.readMemoryByte(cmdAddr + 1) + " S:" + kgs.readMemoryByte(cmdAddr + 2) + " XA:" + kgs.readMemoryWord(cmdAddr + 3) + " YA:" + kgs.readMemoryWord(cmdAddr + 5) + " XE:" + kgs.readMemoryWord(cmdAddr + 7) + " YE:" + kgs.readMemoryWord(cmdAddr + 9));
-//                    break;
-//                case 10:
-//                    System.out.println("Übernehme Palettenregisterbelegung: VI:" + kgs.readMemoryByte(cmdAddr + 1) + " E1:" + kgs.readMemoryByte(cmdAddr + 2) + " E2:" + kgs.readMemoryByte(cmdAddr + 3) + " E3:" + kgs.readMemoryByte(cmdAddr + 4) + " E4:" + kgs.readMemoryByte(cmdAddr + 5));
-//                    break;
-//                case 11:
-//                    System.out.println("Aktiviere Palettenregisterbelegung: VI:" + kgs.readMemoryByte(cmdAddr + 1));
-//                    break;
-//                case 13:
-//                    System.out.println("Übernehme Musterbox: PFX:" + kgs.readMemoryByte(cmdAddr + 2) + " PFY:" + kgs.readMemoryByte(cmdAddr + 3) + " NZ:" + kgs.readMemoryByte(cmdAddr + 4) + " NS:" + kgs.readMemoryByte(cmdAddr + 5));
-//                    break;
-//                case 14:
-//                    System.out.println("Setze Window: X1:" + kgs.readMemoryWord(cmdAddr + 1) + " Y1:" + kgs.readMemoryWord(cmdAddr + 3) + " X2:" + kgs.readMemoryWord(cmdAddr + 5) + " Y2:" + kgs.readMemoryWord(cmdAddr + 7));
-//                    break;
-//                case 15:
-//                    System.out.println("Windowdarstellung: S:" + kgs.readMemoryByte(cmdAddr + 1));
-//                    break;
-//                case 16:
-//                    System.out.println("Setze Startpunkt für Liniengenerierung: LI:" + kgs.readMemoryWord(cmdAddr + 1) + " X:" + kgs.readMemoryWord(cmdAddr + 2) + " Y:" + kgs.readMemoryWord(cmdAddr + 4));
-//                    break;
-//                case 17:
-//                    System.out.println("Generiere Linie: X:" + kgs.readMemoryWord(cmdAddr + 1) + " Y:" + kgs.readMemoryWord(cmdAddr + 3));
-//                    break;
-//                case 18:
-//                    System.out.println("Setze Marker: X:" + kgs.readMemoryWord(cmdAddr + 1) + " Y:" + kgs.readMemoryWord(cmdAddr + 3));
-//                    break;
-//                case 19:
-//                    System.out.println("Setze Schreibposition: X:" + kgs.readMemoryWord(cmdAddr + 1) + " Y:" + kgs.readMemoryWord(cmdAddr + 3));
-//                    break;
-//                case 20:
-//                    System.out.println("Generiere Text: N:" + kgs.readMemoryByte(cmdAddr + 1));
-//                    break;
-//                case 21:
-//                    System.out.println("Setze Linientyp bzw. Speicherebenenauswahl für Text: LI:" + kgs.readMemoryByte(cmdAddr + 1) + " LT:" + kgs.readMemoryByte(cmdAddr + 2) + " LS:" + kgs.readMemoryByte(cmdAddr + 3) + " S:" + kgs.readMemoryByte(cmdAddr + 4));
-//                    break;
-//                case 22:
-//                    System.out.println("Setze Markertyp: MI:" + kgs.readMemoryByte(cmdAddr + 1) + " MT:" + kgs.readMemoryByte(cmdAddr + 2) + " S:" + kgs.readMemoryByte(cmdAddr + 3));
-//                    break;
-//                case 23:
-//                    System.out.println("Setze Schreibtyp: ST:" + kgs.readMemoryByte(cmdAddr + 1));
-//                    break;
-//                case 24:
-//                    System.out.println("Setze Eckpukt Typ 0 einer zu füllenden Fläche: X:" + kgs.readMemoryWord(cmdAddr + 1) + " Y:" + kgs.readMemoryWord(cmdAddr + 3));
-//                    break;
-//                case 25:
-//                    System.out.println("Setze Eckpukt Typ 1 einer zu füllenden Fläche: X:" + kgs.readMemoryWord(cmdAddr + 1) + " Y:" + kgs.readMemoryWord(cmdAddr + 3));
-//                    break;
-//                case 26:
-//                    System.out.println("Setze Parameter für Fill Area: LS:" + kgs.readMemoryByte(cmdAddr + 1) + " FA:" + kgs.readMemoryByte(cmdAddr + 2));
-//                    break;
-//                case 27:
-//                    System.out.println("Starte Request Modus: RM:" + kgs.readMemoryByte(cmdAddr + 1));
-//                    break;
-//                case 33:
-//                    System.out.println("Setze Anfangswert für Locator: SW:" + kgs.readMemoryByte(cmdAddr + 1));
-//                    break;
-//                case 40:
-//                    System.out.println("Initialisiere GSX: LT:" + kgs.readMemoryByte(cmdAddr + 1) + " S:" + kgs.readMemoryByte(cmdAddr + 2) + " MT:" + kgs.readMemoryByte(cmdAddr + 3) + " S:" + kgs.readMemoryByte(cmdAddr + 4));
-//                    break;
-//                case 41:
-//                    System.out.println("Generiere Kreisbogen: XM:" + kgs.readMemoryWord(cmdAddr + 1) + " YM:" + kgs.readMemoryWord(cmdAddr + 3) + "XA:" + kgs.readMemoryWord(cmdAddr + 5) + " YA:" + kgs.readMemoryWord(cmdAddr + 7) + "XE:" + kgs.readMemoryWord(cmdAddr + 9) + " YE:" + kgs.readMemoryWord(cmdAddr + 11) + "R:" + kgs.readMemoryWord(cmdAddr + 13));
-//                    break;
-//                case 42:
-//                    System.out.println("Setze Textfont: TF:" + kgs.readMemoryByte(cmdAddr + 1));
-//                    break;
-//            }
-//        }
-
-        int opcode = kgs.readMemoryByte(pc++);
+        int opcode = module.readLocalByte(pc++);
         if (debug) {
             debugInfo.setIp(pc - 1);
             debugInfo.setOpcode(opcode);
+        }
+
+        if (eiWaiting) {
+            iff1 = 1;
+            iff2 = 1;
+            eiWaiting = false;
         }
 
         switch (opcode) {
@@ -873,17 +807,17 @@ public class UA880 implements IC {
             case LD_IMM_A:
             case LD_IMM_H: {
                 // Kopieren von direktem Operanden in 8 Bit Register
-                setRegister((opcode >> 3) & 0x07, kgs.readMemoryByte(pc++));
+                setRegister((opcode >> 3) & 0x07, module.readLocalByte(pc++));
                 updateTicks(7);
                 if (debug) {
-                    debugInfo.setCode("LD " + getRegisterString((opcode >> 3) & 0x07) + "," + String.format("%02Xh", kgs.readMemoryByte(pc - 1)));
+                    debugInfo.setCode("LD " + getRegisterString((opcode >> 3) & 0x07) + "," + String.format("%02Xh", module.readLocalByte(pc - 1)));
                     debugInfo.setOperands(null);
                 }
             }
             break;
             case LD_A_MEM_BC: {
                 // Kopieren von A in Speicher an Adresse (BC)
-                kgs.writeMemoryByte(getRegisterPairHLSP(REGP_BC), getRegister(REG_A));
+                module.writeLocalByte(getRegisterPairHLSP(REGP_BC), getRegister(REG_A));
                 updateTicks(7);
                 if (debug) {
                     debugInfo.setCode("LD (BC),A");
@@ -893,7 +827,7 @@ public class UA880 implements IC {
             break;
             case LD_A_MEM_DE: {
                 // Kopieren von A in Speicher an Adresse (BC)
-                kgs.writeMemoryByte(getRegisterPairHLSP(REGP_DE), getRegister(REG_A));
+                module.writeLocalByte(getRegisterPairHLSP(REGP_DE), getRegister(REG_A));
                 updateTicks(7);
                 if (debug) {
                     debugInfo.setCode("LD (DE),A");
@@ -903,9 +837,9 @@ public class UA880 implements IC {
             break;
             case LD_A_MEM: {
                 // Kopieren von A in Speicher an direkt angegebene Adresse
-                int address = kgs.readMemoryWord(pc++);
+                int address = module.readLocalWord(pc++);
                 pc++;
-                kgs.writeMemoryByte(address, getRegister(REG_A));
+                module.writeLocalByte(address, getRegister(REG_A));
                 updateTicks(13);
                 if (debug) {
                     debugInfo.setCode("LD " + String.format("%04Xh", address) + ",A");
@@ -915,33 +849,33 @@ public class UA880 implements IC {
             break;
             case LD_MEM_BC_A: {
                 // Kopieren von Speicher aus Adresse (BC) nach A
-                setRegister(REG_A, kgs.readMemoryByte(getRegisterPairHLSP(REGP_BC)));
+                setRegister(REG_A, module.readLocalByte(getRegisterPairHLSP(REGP_BC)));
                 updateTicks(7);
                 if (debug) {
                     debugInfo.setCode("LD A,(BC)");
-                    debugInfo.setOperands(String.format("%02Xh", kgs.readMemoryByte(getRegisterPairHLSP(REGP_BC))));
+                    debugInfo.setOperands(String.format("%02Xh", module.readLocalByte(getRegisterPairHLSP(REGP_BC))));
                 }
             }
             break;
             case LD_MEM_DE_A: {
                 // Kopieren von Speicher aus Adresse (DE) nach A
-                setRegister(REG_A, kgs.readMemoryByte(getRegisterPairHLSP(REGP_DE)));
+                setRegister(REG_A, module.readLocalByte(getRegisterPairHLSP(REGP_DE)));
                 updateTicks(7);
                 if (debug) {
                     debugInfo.setCode("LD A,(DE)");
-                    debugInfo.setOperands(String.format("%02Xh", kgs.readMemoryByte(getRegisterPairHLSP(REGP_DE))));
+                    debugInfo.setOperands(String.format("%02Xh", module.readLocalByte(getRegisterPairHLSP(REGP_DE))));
                 }
             }
             break;
             case LD_MEM_A: {
                 // Kopieren von Speicher aus direkt angegebener Adresse nach A
-                int address = kgs.readMemoryWord(pc++);
+                int address = module.readLocalWord(pc++);
                 pc++;
-                setRegister(REG_A, kgs.readMemoryByte(address));
+                setRegister(REG_A, module.readLocalByte(address));
                 updateTicks(13);
                 if (debug) {
                     debugInfo.setCode("LD A,(" + String.format("%04Xh", address) + ")");
-                    debugInfo.setOperands(String.format("%02Xh", kgs.readMemoryByte(address)));
+                    debugInfo.setOperands(String.format("%02Xh", module.readLocalByte(address)));
                 }
             }
             break;
@@ -953,11 +887,12 @@ public class UA880 implements IC {
             case LD_MEM_HL_L:
             case LD_MEM_HL_A: {
                 // Kopieren von Speicher aus Adresse (HL) nach 8 Bit Register
-                setRegister((opcode >> 3) & 0x07, kgs.readMemoryByte(getRegisterPairHLSP(REGP_HL)));
+                int op1 = module.readLocalByte(getRegisterPairHLSP(REGP_HL));
+                setRegister((opcode >> 3) & 0x07, op1);
                 updateTicks(7);
                 if (debug) {
                     debugInfo.setCode("LD " + getRegisterString((opcode >> 3) & 0x07) + ",(HL)");
-                    debugInfo.setOperands(String.format("%02Xh", kgs.readMemoryByte(getRegisterPairHLSP(REGP_HL))));
+                    debugInfo.setOperands(String.format("%02Xh", op1));
                 }
             }
             break;
@@ -969,11 +904,12 @@ public class UA880 implements IC {
             case LD_L_MEM_HL:
             case LD_A_MEM_HL: {
                 // Kopieren von 8 Bit Register nach Speicher an Adresse (HL)
-                kgs.writeMemoryByte(getRegisterPairHLSP(REGP_HL), getRegister(opcode & 0x07));
+                int op1 = getRegister(opcode & 0x07);
+                module.writeLocalByte(getRegisterPairHLSP(REGP_HL), op1);
                 updateTicks(7);
                 if (debug) {
                     debugInfo.setCode("LD (HL)," + getRegisterString(opcode & 0x07));
-                    debugInfo.setOperands(String.format("%02Xh", getRegister(opcode & 0x07)));
+                    debugInfo.setOperands(String.format("%02Xh", op1));
                 }
             }
             break;
@@ -986,7 +922,7 @@ public class UA880 implements IC {
             case LD_IMM_HL:
             case LD_IMM_SP: {
                 // Kopieren von direktem Operanden in 16 Bit Register
-                int op1 = kgs.readMemoryWord(pc++);
+                int op1 = module.readLocalWord(pc++);
                 pc++;
                 setRegisterPairHLSP((opcode >> 4) & 0x03, op1);
                 updateTicks(10);
@@ -999,9 +935,9 @@ public class UA880 implements IC {
             case LD_HL_MEM: {
                 // Kopieren von HL in Speicher an direkt angegebene Adresse
                 int op1 = getRegisterPairHLSP(REGP_HL);
-                int address = kgs.readMemoryWord(pc++);
+                int address = module.readLocalWord(pc++);
                 pc++;
-                kgs.writeMemoryWord(address, op1);
+                module.writeLocalWord(address, op1);
                 updateTicks(16);
                 if (debug) {
                     debugInfo.setCode("LD (" + String.format("%04Xh", address) + "),HL");
@@ -1011,9 +947,9 @@ public class UA880 implements IC {
             break;
             case LD_MEM_HL: {
                 // Kopieren von Speicher an direkt angegebener Adresser nach HL
-                int address = kgs.readMemoryWord(pc++);
+                int address = module.readLocalWord(pc++);
                 pc++;
-                int op1 = kgs.readMemoryWord(address);
+                int op1 = module.readLocalWord(address);
                 setRegisterPairHLSP(REGP_HL, op1);
                 updateTicks(16);
                 if (debug) {
@@ -1024,8 +960,8 @@ public class UA880 implements IC {
             break;
             case LD_IMM_MEM_HL: {
                 // Kopieren von direktem Operanden in Speicher an Adresse (HL)
-                int op1 = kgs.readMemoryByte(pc++);
-                kgs.writeMemoryByte(getRegisterPairHLSP(REGP_HL), op1);
+                int op1 = module.readLocalByte(pc++);
+                module.writeLocalByte(getRegisterPairHLSP(REGP_HL), op1);
                 updateTicks(10);
                 if (debug) {
                     debugInfo.setCode("LD (HL)," + String.format("%04Xh", op1) + ")");
@@ -1073,8 +1009,8 @@ public class UA880 implements IC {
              * Ein- und Ausgabebefehle
              */
             case OUT_A_IMM: {
-                int port = kgs.readMemoryByte(pc++);
-                kgs.writeLocalPort(port, getRegister(REG_A));
+                int port = module.readLocalByte(pc++);
+                module.writeLocalPort(port, getRegister(REG_A));
                 updateTicks(11);
                 if (debug) {
                     debugInfo.setCode("OUT (" + String.format("%02Xh", port) + "),A");
@@ -1083,8 +1019,8 @@ public class UA880 implements IC {
             }
             break;
             case IN_IMM_A: {
-                int port = kgs.readMemoryByte(pc++);
-                setRegister(REG_A, kgs.readLocalPort(port));
+                int port = module.readLocalByte(pc++);
+                setRegister(REG_A, module.readLocalPort(port));
                 updateTicks(11);
                 if (debug) {
                     debugInfo.setCode("IN A,(" + String.format("%02Xh", port) + ")");
@@ -1138,12 +1074,12 @@ public class UA880 implements IC {
             break;
             case EX_HL_MEM_SP: {
                 int exOp = getRegisterPairHLSP(REGP_HL);
-                setRegisterPairHLSP(REGP_HL, kgs.readMemoryWord(sp));
-                kgs.writeMemoryWord(sp, exOp);
+                setRegisterPairHLSP(REGP_HL, module.readLocalWord(sp));
+                module.writeLocalWord(sp, exOp);
                 updateTicks(19);
                 if (debug) {
                     debugInfo.setCode("EX (SP),HL");
-                    debugInfo.setOperands(String.format("%04Xh,%04Xh", getRegisterPairHLSP(REGP_HL), kgs.readMemoryWord(sp)));
+                    debugInfo.setOperands(String.format("%04Xh,%04Xh", getRegisterPairHLSP(REGP_HL), module.readLocalWord(sp)));
                 }
             }
             break;
@@ -1182,7 +1118,7 @@ public class UA880 implements IC {
             break;
             case ADD_MEM_HL_A: {
                 int op1 = getRegister(REG_A);
-                int op2 = kgs.readMemoryByte(getRegisterPairHLSP(REGP_HL));
+                int op2 = module.readLocalByte(getRegisterPairHLSP(REGP_HL));
                 int res = add8(op1, op2, false);
                 setRegister(REG_A, res);
                 updateTicks(7);
@@ -1194,7 +1130,7 @@ public class UA880 implements IC {
             break;
             case ADD_IMM_A: {
                 int op1 = getRegister(REG_A);
-                int op2 = kgs.readMemoryByte(pc++);
+                int op2 = module.readLocalByte(pc++);
                 int res = add8(op1, op2, false);
                 setRegister(REG_A, res);
                 updateTicks(7);
@@ -1224,7 +1160,7 @@ public class UA880 implements IC {
             break;
             case ADC_MEM_HL_A: {
                 int op1 = getRegister(REG_A);
-                int op2 = kgs.readMemoryByte(getRegisterPairHLSP(REGP_HL));
+                int op2 = module.readLocalByte(getRegisterPairHLSP(REGP_HL));
                 int res = add8(op1, op2, true);
                 setRegister(REG_A, res);
                 updateTicks(7);
@@ -1236,7 +1172,7 @@ public class UA880 implements IC {
             break;
             case ADC_IMM_A: {
                 int op1 = getRegister(REG_A);
-                int op2 = kgs.readMemoryByte(pc++);
+                int op2 = module.readLocalByte(pc++);
                 int res = add8(op1, op2, true);
                 setRegister(REG_A, res);
                 updateTicks(7);
@@ -1266,7 +1202,7 @@ public class UA880 implements IC {
             break;
             case SUB_MEM_HL_A: {
                 int op1 = getRegister(REG_A);
-                int op2 = kgs.readMemoryByte(getRegisterPairHLSP(REGP_HL));
+                int op2 = module.readLocalByte(getRegisterPairHLSP(REGP_HL));
                 int res = sub8(op1, op2, false);
                 setRegister(REG_A, res);
                 updateTicks(7);
@@ -1278,7 +1214,7 @@ public class UA880 implements IC {
             break;
             case SUB_IMM_A: {
                 int op1 = getRegister(REG_A);
-                int op2 = kgs.readMemoryByte(pc++);
+                int op2 = module.readLocalByte(pc++);
                 int res = sub8(op1, op2, false);
                 setRegister(REG_A, res);
                 updateTicks(7);
@@ -1308,7 +1244,7 @@ public class UA880 implements IC {
             break;
             case SBC_MEM_HL_A: {
                 int op1 = getRegister(REG_A);
-                int op2 = kgs.readMemoryByte(getRegisterPairHLSP(REGP_HL));
+                int op2 = module.readLocalByte(getRegisterPairHLSP(REGP_HL));
                 int res = sub8(op1, op2, true);
                 setRegister(REG_A, res);
                 updateTicks(7);
@@ -1320,7 +1256,7 @@ public class UA880 implements IC {
             break;
             case SBC_IMM_A: {
                 int op1 = getRegister(REG_A);
-                int op2 = kgs.readMemoryByte(pc++);
+                int op2 = module.readLocalByte(pc++);
                 int res = sub8(op1, op2, true);
                 setRegister(REG_A, res);
                 updateTicks(7);
@@ -1348,9 +1284,9 @@ public class UA880 implements IC {
             }
             break;
             case INC_MEM_HL: {
-                int op = kgs.readMemoryByte(getRegisterPairHLSP(REGP_HL));
+                int op = module.readLocalByte(getRegisterPairHLSP(REGP_HL));
                 int res = inc(op);
-                kgs.writeMemoryByte(getRegisterPairHLSP(REGP_HL), res);
+                module.writeLocalByte(getRegisterPairHLSP(REGP_HL), res);
                 updateTicks(11);
                 if (debug) {
                     debugInfo.setCode("INC (HL)");
@@ -1376,9 +1312,9 @@ public class UA880 implements IC {
             }
             break;
             case DEC_MEM_HL: {
-                int op = kgs.readMemoryByte(getRegisterPairHLSP(REGP_HL));
+                int op = module.readLocalByte(getRegisterPairHLSP(REGP_HL));
                 int res = dec(op);
-                kgs.writeMemoryByte(getRegisterPairHLSP(REGP_HL), res);
+                module.writeLocalByte(getRegisterPairHLSP(REGP_HL), res);
                 updateTicks(11);
                 if (debug) {
                     debugInfo.setCode("DEC (HL)");
@@ -1501,7 +1437,7 @@ public class UA880 implements IC {
             break;
             case AND_MEM_HL: {
                 int op1 = getRegister(REG_A);
-                int op2 = kgs.readMemoryByte(getRegisterPairHLSP(REGP_HL));
+                int op2 = module.readLocalByte(getRegisterPairHLSP(REGP_HL));
                 int res = and(op1, op2);
                 setRegister(REG_A, res);
                 updateTicks(7);
@@ -1513,7 +1449,7 @@ public class UA880 implements IC {
             break;
             case AND_IMM: {
                 int op1 = getRegister(REG_A);
-                int op2 = kgs.readMemoryByte(pc++);
+                int op2 = module.readLocalByte(pc++);
                 int res = and(op1, op2);
                 setRegister(REG_A, res);
                 updateTicks(7);
@@ -1543,7 +1479,7 @@ public class UA880 implements IC {
             break;
             case XOR_MEM_HL: {
                 int op1 = getRegister(REG_A);
-                int op2 = kgs.readMemoryByte(getRegisterPairHLSP(REGP_HL));
+                int op2 = module.readLocalByte(getRegisterPairHLSP(REGP_HL));
                 int res = xor(op1, op2);
                 setRegister(REG_A, res);
                 updateTicks(7);
@@ -1555,7 +1491,7 @@ public class UA880 implements IC {
             break;
             case XOR_IMM: {
                 int op1 = getRegister(REG_A);
-                int op2 = kgs.readMemoryByte(pc++);
+                int op2 = module.readLocalByte(pc++);
                 int res = xor(op1, op2);
                 setRegister(REG_A, res);
                 updateTicks(7);
@@ -1586,7 +1522,7 @@ public class UA880 implements IC {
             break;
             case OR_MEM_HL: {
                 int op1 = getRegister(REG_A);
-                int op2 = kgs.readMemoryByte(getRegisterPairHLSP(REGP_HL));
+                int op2 = module.readLocalByte(getRegisterPairHLSP(REGP_HL));
                 int res = or(op1, op2);
                 setRegister(REG_A, res);
                 updateTicks(7);
@@ -1598,7 +1534,7 @@ public class UA880 implements IC {
             break;
             case OR_IMM: {
                 int op1 = getRegister(REG_A);
-                int op2 = kgs.readMemoryByte(pc++);
+                int op2 = module.readLocalByte(pc++);
                 int res = or(op1, op2);
                 setRegister(REG_A, res);
                 updateTicks(7);
@@ -1627,7 +1563,7 @@ public class UA880 implements IC {
             break;
             case CP_MEM_HL: {
                 int op1 = getRegister(REG_A);
-                int op2 = kgs.readMemoryByte(getRegisterPairHLSP(REGP_HL));
+                int op2 = module.readLocalByte(getRegisterPairHLSP(REGP_HL));
                 sub8(op1, op2, false);
                 updateTicks(7);
                 if (debug) {
@@ -1638,7 +1574,7 @@ public class UA880 implements IC {
             break;
             case CP_IMM: {
                 int op1 = getRegister(REG_A);
-                int op2 = kgs.readMemoryByte(pc++);
+                int op2 = module.readLocalByte(pc++);
                 sub8(op1, op2, false);
                 updateTicks(7);
                 if (debug) {
@@ -1652,7 +1588,7 @@ public class UA880 implements IC {
              * Sprungbefehle
              */
             case JP_IMM: {
-                pc = kgs.readMemoryWord(pc);
+                pc = module.readLocalWord(pc);
                 updateTicks(10);
                 if (debug) {
                     debugInfo.setCode("JP " + String.format("%04Xh", pc));
@@ -1661,7 +1597,7 @@ public class UA880 implements IC {
             }
             break;
             case JP_MEM_HL: {
-                pc = kgs.readMemoryWord(getRegisterPairHLSP(REGP_HL));
+                pc = getRegisterPairHLSP(REGP_HL);
                 updateTicks(4);
                 if (debug) {
                     debugInfo.setCode("JP (HL)");
@@ -1670,7 +1606,7 @@ public class UA880 implements IC {
             }
             break;
             case JP_NZ_IMM: {
-                int address = kgs.readMemoryWord(pc++);
+                int address = module.readLocalWord(pc++);
                 pc++;
                 if (!getFlag(ZERO_FLAG)) {
                     pc = address;
@@ -1683,7 +1619,7 @@ public class UA880 implements IC {
             }
             break;
             case JP_Z_IMM: {
-                int address = kgs.readMemoryWord(pc++);
+                int address = module.readLocalWord(pc++);
                 pc++;
                 if (getFlag(ZERO_FLAG)) {
                     pc = address;
@@ -1696,7 +1632,7 @@ public class UA880 implements IC {
             }
             break;
             case JP_NC_IMM: {
-                int address = kgs.readMemoryWord(pc++);
+                int address = module.readLocalWord(pc++);
                 pc++;
                 if (!getFlag(CARRY_FLAG)) {
                     pc = address;
@@ -1709,7 +1645,7 @@ public class UA880 implements IC {
             }
             break;
             case JP_C_IMM: {
-                int address = kgs.readMemoryWord(pc++);
+                int address = module.readLocalWord(pc++);
                 pc++;
                 if (getFlag(CARRY_FLAG)) {
                     pc = address;
@@ -1722,7 +1658,7 @@ public class UA880 implements IC {
             }
             break;
             case JP_PO_IMM: {
-                int address = kgs.readMemoryWord(pc++);
+                int address = module.readLocalWord(pc++);
                 pc++;
                 if (!getFlag(PARITY_OVERFLOW_FLAG)) {
                     pc = address;
@@ -1735,7 +1671,7 @@ public class UA880 implements IC {
             }
             break;
             case JP_PE_IMM: {
-                int address = kgs.readMemoryWord(pc++);
+                int address = module.readLocalWord(pc++);
                 pc++;
                 if (getFlag(PARITY_OVERFLOW_FLAG)) {
                     pc = address;
@@ -1748,7 +1684,7 @@ public class UA880 implements IC {
             }
             break;
             case JP_P_IMM: {
-                int address = kgs.readMemoryWord(pc++);
+                int address = module.readLocalWord(pc++);
                 pc++;
                 if (!getFlag(SIGN_FLAG)) {
                     pc = address;
@@ -1761,7 +1697,7 @@ public class UA880 implements IC {
             }
             break;
             case JP_M_IMM: {
-                int address = kgs.readMemoryWord(pc++);
+                int address = module.readLocalWord(pc++);
                 pc++;
                 if (getFlag(SIGN_FLAG)) {
                     pc = address;
@@ -1774,7 +1710,7 @@ public class UA880 implements IC {
             }
             break;
             case JR_IMM: {
-                int offset = (byte) kgs.readMemoryByte(pc++);
+                int offset = (byte) module.readLocalByte(pc++);
                 pc += offset;
                 updateTicks(12);
                 if (debug) {
@@ -1784,7 +1720,7 @@ public class UA880 implements IC {
             }
             break;
             case JR_NZ_IMM: {
-                int offset = (byte) kgs.readMemoryByte(pc++);
+                int offset = (byte) module.readLocalByte(pc++);
                 if (!getFlag(ZERO_FLAG)) {
                     pc += offset;
                     updateTicks(12);
@@ -1798,7 +1734,7 @@ public class UA880 implements IC {
             }
             break;
             case JR_Z_IMM: {
-                int offset = (byte) kgs.readMemoryByte(pc++);
+                int offset = (byte) module.readLocalByte(pc++);
                 if (getFlag(ZERO_FLAG)) {
                     pc += offset;
                     updateTicks(12);
@@ -1812,7 +1748,7 @@ public class UA880 implements IC {
             }
             break;
             case JR_NC_IMM: {
-                int offset = (byte) kgs.readMemoryByte(pc++);
+                int offset = (byte) module.readLocalByte(pc++);
                 if (!getFlag(CARRY_FLAG)) {
                     pc += offset;
                     updateTicks(12);
@@ -1826,7 +1762,7 @@ public class UA880 implements IC {
             }
             break;
             case JR_C_IMM: {
-                int offset = (byte) kgs.readMemoryByte(pc++);
+                int offset = (byte) module.readLocalByte(pc++);
                 if (getFlag(CARRY_FLAG)) {
                     pc += offset;
                     updateTicks(12);
@@ -1840,7 +1776,7 @@ public class UA880 implements IC {
             }
             break;
             case DJNZ_IMM: {
-                int offset = (byte) kgs.readMemoryByte(pc++);
+                int offset = (byte) module.readLocalByte(pc++);
                 int op = getRegister(REG_B);
                 op = (op - 1) & 0xFF;
                 setRegister(REG_B, op);
@@ -1861,7 +1797,7 @@ public class UA880 implements IC {
              * Rufbefehle
              */
             case CALL_IMM: {
-                int address = kgs.readMemoryWord(pc++);
+                int address = module.readLocalWord(pc++);
                 pc++;
                 push(pc);
                 pc = address;
@@ -1873,7 +1809,7 @@ public class UA880 implements IC {
             }
             break;
             case CALL_NZ_IMM: {
-                int address = kgs.readMemoryWord(pc++);
+                int address = module.readLocalWord(pc++);
                 pc++;
                 if (!getFlag(ZERO_FLAG)) {
                     push(pc);
@@ -1889,7 +1825,7 @@ public class UA880 implements IC {
             }
             break;
             case CALL_Z_IMM: {
-                int address = kgs.readMemoryWord(pc++);
+                int address = module.readLocalWord(pc++);
                 pc++;
                 if (getFlag(ZERO_FLAG)) {
                     push(pc);
@@ -1905,7 +1841,7 @@ public class UA880 implements IC {
             }
             break;
             case CALL_NC_IMM: {
-                int address = kgs.readMemoryWord(pc++);
+                int address = module.readLocalWord(pc++);
                 pc++;
                 if (!getFlag(CARRY_FLAG)) {
                     push(pc);
@@ -1921,7 +1857,7 @@ public class UA880 implements IC {
             }
             break;
             case CALL_C_IMM: {
-                int address = kgs.readMemoryWord(pc++);
+                int address = module.readLocalWord(pc++);
                 pc++;
                 if (getFlag(CARRY_FLAG)) {
                     push(pc);
@@ -1937,7 +1873,7 @@ public class UA880 implements IC {
             }
             break;
             case CALL_PO_IMM: {
-                int address = kgs.readMemoryWord(pc++);
+                int address = module.readLocalWord(pc++);
                 pc++;
                 if (!getFlag(PARITY_OVERFLOW_FLAG)) {
                     push(pc);
@@ -1953,7 +1889,7 @@ public class UA880 implements IC {
             }
             break;
             case CALL_PE_IMM: {
-                int address = kgs.readMemoryWord(pc++);
+                int address = module.readLocalWord(pc++);
                 pc++;
                 if (getFlag(PARITY_OVERFLOW_FLAG)) {
                     push(pc);
@@ -1969,7 +1905,7 @@ public class UA880 implements IC {
             }
             break;
             case CALL_P_IMM: {
-                int address = kgs.readMemoryWord(pc++);
+                int address = module.readLocalWord(pc++);
                 pc++;
                 if (!getFlag(SIGN_FLAG)) {
                     push(pc);
@@ -1985,7 +1921,7 @@ public class UA880 implements IC {
             }
             break;
             case CALL_M_IMM: {
-                int address = kgs.readMemoryWord(pc++);
+                int address = module.readLocalWord(pc++);
                 pc++;
                 if (getFlag(SIGN_FLAG)) {
                     push(pc);
@@ -2197,9 +2133,8 @@ public class UA880 implements IC {
             }
             break;
             case EI: {
-                iff1 = 1;
-                iff2 = 1;
                 //System.out.println("EI");
+                eiWaiting = true;
                 updateTicks(4);
                 if (debug) {
                     debugInfo.setCode("EI");
@@ -2297,7 +2232,7 @@ public class UA880 implements IC {
 
             //Zweier
             case 0xCB: {
-                int opcode2 = kgs.readMemoryByte(pc++);
+                int opcode2 = module.readLocalByte(pc++);
                 switch (opcode2 & 0xF8) {
                     case _CB_RLC: {
                         int op = getRegister(opcode2 & 0x07);
@@ -2567,7 +2502,7 @@ public class UA880 implements IC {
             case 0xDD:
             case 0xFD: {
                 boolean useIY = opcode == 0xFD;
-                int opcode2 = kgs.readMemoryByte(pc++);
+                int opcode2 = module.readLocalByte(pc++);
                 switch (opcode2) {
                     case _DD_FD_ADD_BC_I:
                     case _DD_FD_ADD_DE_I:
@@ -2585,21 +2520,21 @@ public class UA880 implements IC {
                     }
                     break;
                     case _DD_FD_LD_IMM_I: {
-                        setRegisterPairISP(REGP_IX_IY, kgs.readMemoryWord(pc++), useIY);
+                        setRegisterPairISP(REGP_IX_IY, module.readLocalWord(pc++), useIY);
                         pc++;
                         updateTicks(14);
                         if (debug) {
-                            debugInfo.setCode("LD " + ((useIY) ? "IY" : "IX") + "," + String.format("%04Xh", kgs.readMemoryWord(pc - 2)));
+                            debugInfo.setCode("LD " + ((useIY) ? "IY" : "IX") + "," + String.format("%04Xh", module.readLocalWord(pc - 2)));
                             debugInfo.setOperands(null);
                         }
                     }
                     break;
                     case _DD_FD_LD_I_MEM: {
-                        kgs.writeMemoryWord(kgs.readMemoryWord(pc++), getRegisterPairISP(REGP_IX_IY, useIY));
+                        module.writeLocalWord(module.readLocalWord(pc++), getRegisterPairISP(REGP_IX_IY, useIY));
                         pc++;
                         updateTicks(20);
                         if (debug) {
-                            debugInfo.setCode("LD " + String.format("%04Xh", kgs.readMemoryWord(pc - 2)) + "," + ((useIY) ? "IY" : "IX"));
+                            debugInfo.setCode("LD " + String.format("%04Xh", module.readLocalWord(pc - 2)) + "," + ((useIY) ? "IY" : "IX"));
                             debugInfo.setOperands(String.format("%04Xh", getRegisterPairISP(REGP_IX_IY, useIY)));
                         }
                     }
@@ -2627,12 +2562,12 @@ public class UA880 implements IC {
                     }
                     break;
                     case _DD_FD_LD_MEM_I: {
-                        setRegisterPairISP(REGP_IX_IY, kgs.readMemoryWord(kgs.readMemoryWord(pc++)), useIY);
+                        setRegisterPairISP(REGP_IX_IY, module.readLocalWord(module.readLocalWord(pc++)), useIY);
                         pc++;
                         updateTicks(20);
                         if (debug) {
-                            debugInfo.setCode("LD " + ((useIY) ? "IY" : "IX") + ",(" + String.format("%04Xh", kgs.readMemoryWord(pc - 2)) + ")");
-                            debugInfo.setOperands(String.format("%04Xh", kgs.readMemoryWord(kgs.readMemoryWord(pc - 2))));
+                            debugInfo.setCode("LD " + ((useIY) ? "IY" : "IX") + ",(" + String.format("%04Xh", module.readLocalWord(pc - 2)) + ")");
+                            debugInfo.setOperands(String.format("%04Xh", module.readLocalWord(module.readLocalWord(pc - 2))));
                         }
                     }
                     break;
@@ -2659,10 +2594,10 @@ public class UA880 implements IC {
                     }
                     break;
                     case _DD_FD_INC_I_0: {
-                        int offset = (byte) kgs.readMemoryByte(pc++);
-                        int op = kgs.readMemoryByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset);
+                        int offset = (byte) module.readLocalByte(pc++);
+                        int op = module.readLocalByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset);
                         int res = inc(op);
-                        kgs.writeMemoryByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset, res);
+                        module.writeLocalByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset, res);
                         updateTicks(23);
                         if (debug) {
                             debugInfo.setCode("INC (" + ((useIY) ? "IY" : "IX") + "+" + String.format("%02Xh", offset));
@@ -2671,10 +2606,10 @@ public class UA880 implements IC {
                     }
                     break;
                     case _DD_FD_DEC_I_0: {
-                        int offset = (byte) kgs.readMemoryByte(pc++);
-                        int op = kgs.readMemoryByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset);
+                        int offset = (byte) module.readLocalByte(pc++);
+                        int op = module.readLocalByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset);
                         int res = dec(op);
-                        kgs.writeMemoryByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset, res);
+                        module.writeLocalByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset, res);
                         updateTicks(23);
                         if (debug) {
                             debugInfo.setCode("DEC (" + ((useIY) ? "IY" : "IX") + "+" + String.format("%02Xh", offset));
@@ -2683,11 +2618,11 @@ public class UA880 implements IC {
                     }
                     break;
                     case _DD_FD_LD_IMM_I_0: {
-                        int offset = (byte) kgs.readMemoryByte(pc++);
-                        kgs.writeMemoryByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset, kgs.readMemoryByte(pc++));
+                        int offset = (byte) module.readLocalByte(pc++);
+                        module.writeLocalByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset, module.readLocalByte(pc++));
                         updateTicks(19);
                         if (debug) {
-                            debugInfo.setCode("LD (" + ((useIY) ? "IY" : "IX") + "+" + String.format("%02Xh", offset) + "," + String.format("%04Xh", kgs.readMemoryByte(pc - 1)));
+                            debugInfo.setCode("LD (" + ((useIY) ? "IY" : "IX") + "+" + String.format("%02Xh", offset) + "," + String.format("%04Xh", module.readLocalByte(pc - 1)));
                             debugInfo.setOperands(null);
                         }
                     }
@@ -2715,12 +2650,12 @@ public class UA880 implements IC {
                     case _DD_FD_LD_I_0_H:
                     case _DD_FD_LD_I_0_L:
                     case _DD_FD_LD_I_0_A: {
-                        int offset = (byte) kgs.readMemoryByte(pc++);
-                        setRegister((opcode2 >> 3) & 0x07, kgs.readMemoryByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset));
+                        int offset = (byte) module.readLocalByte(pc++);
+                        setRegister((opcode2 >> 3) & 0x07, module.readLocalByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset));
                         updateTicks(19);
                         if (debug) {
                             debugInfo.setCode("LD " + getRegisterString((opcode2 >> 3) & 0x07) + ",(" + ((useIY) ? "IY" : "IX") + "+" + String.format("%02Xh", offset) + ")");
-                            debugInfo.setOperands(String.format("%02Xh", kgs.readMemoryByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset)));
+                            debugInfo.setOperands(String.format("%02Xh", module.readLocalByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset)));
                         }
                     }
                     break;
@@ -2763,8 +2698,8 @@ public class UA880 implements IC {
                     case _DD_FD_LD_H_I_0:
                     case _DD_FD_LD_L_I_0:
                     case _DD_FD_LD_A_I_0: {
-                        int offset = (byte) kgs.readMemoryByte(pc++);
-                        kgs.writeMemoryByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset, getRegister(opcode2 & 0x07));
+                        int offset = (byte) module.readLocalByte(pc++);
+                        module.writeLocalByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset, getRegister(opcode2 & 0x07));
                         updateTicks(19);
                         if (debug) {
                             debugInfo.setCode("LD " + ",(" + ((useIY) ? "IY" : "IX") + "+" + String.format("%02Xh", offset) + ")," + getRegisterString(opcode2 & 0x07));
@@ -2781,9 +2716,9 @@ public class UA880 implements IC {
                     }
                     break;
                     case _DD_FD_ADD_I_0_A: {
-                        int offset = (byte) kgs.readMemoryByte(pc++);
+                        int offset = (byte) module.readLocalByte(pc++);
                         int op1 = getRegister(REG_A);
-                        int op2 = kgs.readMemoryByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset);
+                        int op2 = module.readLocalByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset);
                         int res = add8(op1, op2, false);
                         setRegister(REG_A, res);
                         updateTicks(19);
@@ -2802,9 +2737,9 @@ public class UA880 implements IC {
                     }
                     break;
                     case _DD_FD_ADC_I_0_A: {
-                        int offset = (byte) kgs.readMemoryByte(pc++);
+                        int offset = (byte) module.readLocalByte(pc++);
                         int op1 = getRegister(REG_A);
-                        int op2 = kgs.readMemoryByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset);
+                        int op2 = module.readLocalByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset);
                         int res = add8(op1, op2, true);
                         setRegister(REG_A, res);
                         updateTicks(19);
@@ -2823,9 +2758,9 @@ public class UA880 implements IC {
                     }
                     break;
                     case _DD_FD_SUB_I_0_A: {
-                        int offset = (byte) kgs.readMemoryByte(pc++);
+                        int offset = (byte) module.readLocalByte(pc++);
                         int op1 = getRegister(REG_A);
-                        int op2 = kgs.readMemoryByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset);
+                        int op2 = module.readLocalByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset);
                         int res = sub8(op1, op2, false);
                         setRegister(REG_A, res);
                         updateTicks(19);
@@ -2844,9 +2779,9 @@ public class UA880 implements IC {
                     }
                     break;
                     case _DD_FD_SBC_I_0_A: {
-                        int offset = (byte) kgs.readMemoryByte(pc++);
+                        int offset = (byte) module.readLocalByte(pc++);
                         int op1 = getRegister(REG_A);
-                        int op2 = kgs.readMemoryByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset);
+                        int op2 = module.readLocalByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset);
                         int res = sub8(op1, op2, true);
                         setRegister(REG_A, res);
                         updateTicks(19);
@@ -2865,9 +2800,9 @@ public class UA880 implements IC {
                     }
                     break;
                     case _DD_FD_AND_I_0: {
-                        int offset = (byte) kgs.readMemoryByte(pc++);
+                        int offset = (byte) module.readLocalByte(pc++);
                         int op1 = getRegister(REG_A);
-                        int op2 = kgs.readMemoryByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset);
+                        int op2 = module.readLocalByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset);
                         int res = and(op1, op2);
                         setRegister(REG_A, res);
                         updateTicks(19);
@@ -2886,9 +2821,9 @@ public class UA880 implements IC {
                     }
                     break;
                     case _DD_FD_XOR_I_0: {
-                        int offset = (byte) kgs.readMemoryByte(pc++);
+                        int offset = (byte) module.readLocalByte(pc++);
                         int op1 = getRegister(REG_A);
-                        int op2 = kgs.readMemoryByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset);
+                        int op2 = module.readLocalByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset);
                         int res = xor(op1, op2);
                         setRegister(REG_A, res);
                         updateTicks(19);
@@ -2907,9 +2842,9 @@ public class UA880 implements IC {
                     }
                     break;
                     case _DD_FD_OR_I_0: {
-                        int offset = (byte) kgs.readMemoryByte(pc++);
+                        int offset = (byte) module.readLocalByte(pc++);
                         int op1 = getRegister(REG_A);
-                        int op2 = kgs.readMemoryByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset);
+                        int op2 = module.readLocalByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset);
                         int res = or(op1, op2);
                         setRegister(REG_A, res);
                         updateTicks(19);
@@ -2928,9 +2863,9 @@ public class UA880 implements IC {
                     }
                     break;
                     case _DD_FD_CP_I_0: {
-                        int offset = (byte) kgs.readMemoryByte(pc++);
+                        int offset = (byte) module.readLocalByte(pc++);
                         int op1 = getRegister(REG_A);
-                        int op2 = kgs.readMemoryByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset);
+                        int op2 = module.readLocalByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset);
                         sub8(op1, op2, false);
                         updateTicks(19);
                         if (debug) {
@@ -2945,13 +2880,13 @@ public class UA880 implements IC {
                     }
                     break;
                     case _DD_FD_EX_SP_I: {
-                        int exop = kgs.readMemoryWord(getRegisterPairISP(REGP_SP, useIY));
-                        kgs.writeMemoryWord(getRegisterPairISP(REGP_SP, useIY), getRegisterPairISP(REGP_IX_IY, useIY));
+                        int exop = module.readLocalWord(getRegisterPairISP(REGP_SP, useIY));
+                        module.writeLocalWord(getRegisterPairISP(REGP_SP, useIY), getRegisterPairISP(REGP_IX_IY, useIY));
                         setRegisterPairISP(REGP_IX_IY, exop, useIY);
                         updateTicks(23);
                         if (debug) {
                             debugInfo.setCode("EX " + ((useIY) ? "IY" : "IX") + "+(SP)");
-                            debugInfo.setOperands(String.format("%04Xh,%04Xh", kgs.readMemoryWord(getRegisterPairISP(REGP_SP, useIY)), exop));
+                            debugInfo.setOperands(String.format("%04Xh,%04Xh", module.readLocalWord(getRegisterPairISP(REGP_SP, useIY)), exop));
                         }
                     }
                     break;
@@ -2983,12 +2918,12 @@ public class UA880 implements IC {
                     }
                     break;
                     case 0xCB: {
-                        int offset = kgs.readMemoryByte(pc++);
-                        int opcode3 = kgs.readMemoryByte(pc++);
+                        int offset = module.readLocalByte(pc++);
+                        int opcode3 = module.readLocalByte(pc++);
                         switch (opcode3 & 0xF8) {
                             case _CB_RLC: {
                                 if ((opcode3 & 0x07) == 0x06) {
-                                    int op = kgs.readMemoryByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset);
+                                    int op = module.readLocalByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset);
                                     int res = (op << 1) & 0xFF;
                                     if (BitTest.getBit(op, 7)) {
                                         setFlag(CARRY_FLAG);
@@ -2996,7 +2931,7 @@ public class UA880 implements IC {
                                     } else {
                                         clearFlag(CARRY_FLAG);
                                     }
-                                    kgs.writeMemoryByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset, res);
+                                    module.writeLocalByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset, res);
                                     clearFlag(HALF_CARRY_FLAG);
                                     clearFlag(SUBTRACT_FLAG);
                                     checkSignFlag8(res);
@@ -3014,7 +2949,7 @@ public class UA880 implements IC {
                             break;
                             case _CB_RRC: {
                                 if ((opcode3 & 0x07) == 0x06) {
-                                    int op = kgs.readMemoryByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset);
+                                    int op = module.readLocalByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset);
                                     int res = (op >> 1) & 0xFF;
                                     if (BitTest.getBit(op, 0)) {
                                         setFlag(CARRY_FLAG);
@@ -3022,7 +2957,7 @@ public class UA880 implements IC {
                                     } else {
                                         clearFlag(CARRY_FLAG);
                                     }
-                                    kgs.writeMemoryByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset, res);
+                                    module.writeLocalByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset, res);
                                     clearFlag(HALF_CARRY_FLAG);
                                     clearFlag(SUBTRACT_FLAG);
                                     checkSignFlag8(res);
@@ -3040,7 +2975,7 @@ public class UA880 implements IC {
                             break;
                             case _CB_RL: {
                                 if ((opcode3 & 0x07) == 0x06) {
-                                    int op = kgs.readMemoryByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset);
+                                    int op = module.readLocalByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset);
                                     int res = (op << 1) & 0xFF;
                                     if (getFlag(CARRY_FLAG)) {
                                         res |= 0x01;
@@ -3050,7 +2985,7 @@ public class UA880 implements IC {
                                     } else {
                                         clearFlag(CARRY_FLAG);
                                     }
-                                    kgs.writeMemoryByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset, res);
+                                    module.writeLocalByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset, res);
                                     clearFlag(HALF_CARRY_FLAG);
                                     clearFlag(SUBTRACT_FLAG);
                                     checkSignFlag8(res);
@@ -3068,7 +3003,7 @@ public class UA880 implements IC {
                             break;
                             case _CB_RR: {
                                 if ((opcode3 & 0x07) == 0x06) {
-                                    int op = kgs.readMemoryByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset);
+                                    int op = module.readLocalByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset);
                                     int res = (op >> 1) & 0xFF;
                                     if (getFlag(CARRY_FLAG)) {
                                         res |= 0x80;
@@ -3078,7 +3013,7 @@ public class UA880 implements IC {
                                     } else {
                                         clearFlag(CARRY_FLAG);
                                     }
-                                    kgs.writeMemoryByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset, res);
+                                    module.writeLocalByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset, res);
                                     clearFlag(HALF_CARRY_FLAG);
                                     clearFlag(SUBTRACT_FLAG);
                                     checkSignFlag8(res);
@@ -3096,14 +3031,14 @@ public class UA880 implements IC {
                             break;
                             case _CB_SLA: {
                                 if ((opcode3 & 0x07) == 0x06) {
-                                    int op = kgs.readMemoryByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset);
+                                    int op = module.readLocalByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset);
                                     int res = (op << 1) & 0xFF;
                                     if (BitTest.getBit(op, 7)) {
                                         setFlag(CARRY_FLAG);
                                     } else {
                                         clearFlag(CARRY_FLAG);
                                     }
-                                    kgs.writeMemoryByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset, res);
+                                    module.writeLocalByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset, res);
                                     clearFlag(HALF_CARRY_FLAG);
                                     clearFlag(SUBTRACT_FLAG);
                                     checkSignFlag8(res);
@@ -3121,7 +3056,7 @@ public class UA880 implements IC {
                             break;
                             case _CB_SRA: {
                                 if ((opcode3 & 0x07) == 0x06) {
-                                    int op = kgs.readMemoryByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset);
+                                    int op = module.readLocalByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset);
                                     int res = (op >> 1) & 0xFF;
                                     if (BitTest.getBit(op, 7)) {
                                         res |= 0x80;
@@ -3131,7 +3066,7 @@ public class UA880 implements IC {
                                     } else {
                                         clearFlag(CARRY_FLAG);
                                     }
-                                    kgs.writeMemoryByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset, res);
+                                    module.writeLocalByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset, res);
                                     clearFlag(HALF_CARRY_FLAG);
                                     clearFlag(SUBTRACT_FLAG);
                                     checkSignFlag8(res);
@@ -3153,14 +3088,14 @@ public class UA880 implements IC {
                             break;
                             case _CB_SRL: {
                                 if ((opcode3 & 0x07) == 0x06) {
-                                    int op = kgs.readMemoryByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset);
+                                    int op = module.readLocalByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset);
                                     int res = (op >> 1) & 0xFF;
                                     if (BitTest.getBit(op, 0)) {
                                         setFlag(CARRY_FLAG);
                                     } else {
                                         clearFlag(CARRY_FLAG);
                                     }
-                                    kgs.writeMemoryByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset, res);
+                                    module.writeLocalByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset, res);
                                     clearFlag(HALF_CARRY_FLAG);
                                     clearFlag(SUBTRACT_FLAG);
                                     checkSignFlag8(res);
@@ -3185,8 +3120,8 @@ public class UA880 implements IC {
                             case _CB_BIT6:
                             case _CB_BIT7: {
                                 if ((opcode3 & 0x07) == 0x06) {
-                                    int bit = (opcode2 >> 3) & 0x07;
-                                    int op = kgs.readMemoryByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset);
+                                    int bit = (opcode3 >> 3) & 0x07;
+                                    int op = module.readLocalByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset);
                                     if (BitTest.getBit(op, bit)) {
                                         clearFlag(ZERO_FLAG);
                                     } else {
@@ -3213,9 +3148,9 @@ public class UA880 implements IC {
                             case _CB_RES6:
                             case _CB_RES7: {
                                 if ((opcode3 & 0x07) == 0x06) {
-                                    int bit = (opcode2 >> 3) & 0x07;
-                                    int op = kgs.readMemoryByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset);
-                                    kgs.writeMemoryByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset, op & (~(0x01 << bit)));
+                                    int bit = (opcode3 >> 3) & 0x07;
+                                    int op = module.readLocalByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset);
+                                    module.writeLocalByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset, op & (~(0x01 << bit)));
                                     updateTicks(23);
                                     if (debug) {
                                         debugInfo.setCode("RES " + bit + ",(" + ((useIY) ? "IY" : "IX") + "+" + String.format("%02Xh", offset) + ")");
@@ -3236,9 +3171,9 @@ public class UA880 implements IC {
                             case _CB_SET6:
                             case _CB_SET7: {
                                 if ((opcode3 & 0x07) == 0x06) {
-                                    int bit = (opcode2 >> 3) & 0x07;
-                                    int op = kgs.readMemoryByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset);
-                                    kgs.writeMemoryByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset, op | (0x01 << bit));
+                                    int bit = (opcode3 >> 3) & 0x07;
+                                    int op = module.readLocalByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset);
+                                    module.writeLocalByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset, op | (0x01 << bit));
                                     updateTicks(20);
                                     if (debug) {
                                         debugInfo.setCode("SET " + bit + ",(" + ((useIY) ? "IY" : "IX") + "+" + String.format("%02Xh", offset) + ")");
@@ -3260,7 +3195,7 @@ public class UA880 implements IC {
             }
             break;
             case 0xED: {
-                int opcode2 = kgs.readMemoryByte(pc++);
+                int opcode2 = module.readLocalByte(pc++);
                 switch (opcode2) {
                     case _ED_IN_C_B:
                     case _ED_IN_C_C:
@@ -3270,7 +3205,7 @@ public class UA880 implements IC {
                     case _ED_IN_C_L:
                     case _ED_IN_C_A: {
                         int port = getRegister(REG_C);
-                        setRegister((opcode2 >> 3) & 0x07, kgs.readLocalPort(port));
+                        setRegister((opcode2 >> 3) & 0x07, module.readLocalPort(port));
                         updateTicks(12);
                         if (debug) {
                             debugInfo.setCode("IN " + getRegisterString((opcode2 >> 3) & 0x07) + ",(C)");
@@ -3286,7 +3221,7 @@ public class UA880 implements IC {
                     case _ED_OUT_L_C:
                     case _ED_OUT_A_C: {
                         int port = getRegister(REG_C);
-                        kgs.writeLocalPort(port, getRegister((opcode2 >> 3) & 0x07));
+                        module.writeLocalPort(port, getRegister((opcode2 >> 3) & 0x07));
                         updateTicks(12);
                         if (debug) {
                             debugInfo.setCode("OUT (C)," + getRegisterString((opcode2 >> 3) & 0x07));
@@ -3313,9 +3248,9 @@ public class UA880 implements IC {
                     case _ED_LD_DE_MEM:
                     case _ED_LD_HL_MEM:
                     case _ED_LD_SP_MEM: {
-                        int address = kgs.readMemoryWord(pc++);
+                        int address = module.readLocalWord(pc++);
                         pc++;
-                        kgs.writeMemoryWord(address, getRegisterPairHLSP((opcode2 >> 4) & 0x03));
+                        module.writeLocalWord(address, getRegisterPairHLSP((opcode2 >> 4) & 0x03));
                         updateTicks(20);
                         if (debug) {
                             debugInfo.setCode("LD (" + String.format("%04Xh", address) + ")," + getRegisterPairHLSPString((opcode2 >> 4) & 0x03));
@@ -3395,13 +3330,13 @@ public class UA880 implements IC {
                     case _ED_LD_MEM_DE:
                     case _ED_LD_MEM_HL:
                     case _ED_LD_MEM_SP: {
-                        int address = kgs.readMemoryWord(pc++);
+                        int address = module.readLocalWord(pc++);
                         pc++;
-                        setRegisterPairHLSP((opcode2 >> 4) & 0x03, kgs.readMemoryWord(address));
+                        setRegisterPairHLSP((opcode2 >> 4) & 0x03, module.readLocalWord(address));
                         updateTicks(20);
                         if (debug) {
                             debugInfo.setCode("LD " + getRegisterPairHLSPString((opcode2 >> 4) & 0x03) + ",(" + String.format("%04Xh", address) + ")");
-                            debugInfo.setOperands(String.format("%04Xh", kgs.readMemoryWord(address)));
+                            debugInfo.setOperands(String.format("%04Xh", module.readLocalWord(address)));
                         }
                     }
                     break;
@@ -3460,11 +3395,11 @@ public class UA880 implements IC {
                     }
                     break;
                     case _ED_RRD: {
-                        int op1 = kgs.readMemoryByte(getRegisterPairHLSP(REGP_HL));
+                        int op1 = module.readLocalByte(getRegisterPairHLSP(REGP_HL));
                         int op2 = getRegister(REG_A);
                         int res1 = (op2 & 0xF0) | (op1 & 0x0F);
                         setRegister(REG_A, res1);
-                        kgs.writeMemoryByte(getRegisterPairHLSP(REGP_HL), (op1 >> 4) | (op2 << 4));
+                        module.writeLocalByte(getRegisterPairHLSP(REGP_HL), (op1 >> 4) | (op2 << 4));
                         checkSignFlag8(res1);
                         checkZeroFlag8(res1);
                         clearFlag(HALF_CARRY_FLAG);
@@ -3478,11 +3413,11 @@ public class UA880 implements IC {
                     }
                     break;
                     case _ED_RLD: {
-                        int op1 = kgs.readMemoryByte(getRegisterPairHLSP(REGP_HL));
+                        int op1 = module.readLocalByte(getRegisterPairHLSP(REGP_HL));
                         int op2 = getRegister(REG_A);
                         int res1 = (op2 & 0xF0) | (op1 >> 4);
                         setRegister(REG_A, res1);
-                        kgs.writeMemoryByte(getRegisterPairHLSP(REGP_HL), (op1 << 4) | (op2 & 0x0F));
+                        module.writeLocalByte(getRegisterPairHLSP(REGP_HL), (op1 << 4) | (op2 & 0x0F));
                         checkSignFlag8(res1);
                         checkZeroFlag8(res1);
                         clearFlag(HALF_CARRY_FLAG);
@@ -3504,7 +3439,7 @@ public class UA880 implements IC {
                     }
                     break;
                     case _ED_LDI: {
-                        kgs.writeMemoryByte(getRegisterPairHLSP(REGP_DE), kgs.readMemoryByte(getRegisterPairHLSP(REGP_HL)));
+                        module.writeLocalByte(getRegisterPairHLSP(REGP_DE), module.readLocalByte(getRegisterPairHLSP(REGP_HL)));
                         setRegisterPairHLSP(REGP_DE, getRegisterPairHLSP(REGP_DE) + 1);
                         setRegisterPairHLSP(REGP_HL, getRegisterPairHLSP(REGP_HL) + 1);
                         setRegisterPairHLSP(REGP_BC, getRegisterPairHLSP(REGP_BC) - 1);
@@ -3524,8 +3459,8 @@ public class UA880 implements IC {
                     break;
                     case _ED_CPI: {
                         int op1 = getRegister(REG_A);
-                        int op2 = kgs.readMemoryByte(getRegisterPairHLSP(REGP_HL));
-                        sub8(op1, op2, false);
+                        int op2 = module.readLocalByte(getRegisterPairHLSP(REGP_HL));
+                        int res = op1 - op2;
                         setRegisterPairHLSP(REGP_HL, getRegisterPairHLSP(REGP_HL) + 1);
                         setRegisterPairHLSP(REGP_BC, getRegisterPairHLSP(REGP_BC) - 1);
                         if (getRegisterPairHLSP(REGP_BC) == 0) {
@@ -3533,16 +3468,20 @@ public class UA880 implements IC {
                         } else {
                             setFlag(PARITY_OVERFLOW_FLAG);
                         }
+                        setFlag(SUBTRACT_FLAG);
+                        checkZeroFlag8(res);
+                        checkSignFlag8(res);
+                        checkHalfCarryFlagSub(op1, op2);
                         updateTicks(16);
                         if (debug) {
                             debugInfo.setCode("CPI");
-                            debugInfo.setOperands(null);
+                            debugInfo.setOperands(String.format("%02X,%02X", op1, op2));
                         }
                     }
                     break;
                     case _ED_INI: {
                         int port = getRegister(REG_C);
-                        kgs.writeMemoryByte(getRegisterPairHLSP(REGP_HL), kgs.readLocalPort(port));
+                        module.writeLocalByte(getRegisterPairHLSP(REGP_HL), module.readLocalPort(port));
                         setRegisterPairHLSP(REGP_HL, getRegisterPairHLSP(REGP_HL) + 1);
                         setRegister(REG_B, getRegister(REG_B) - 1);
                         setFlag(SUBTRACT_FLAG);
@@ -3560,7 +3499,7 @@ public class UA880 implements IC {
                     break;
                     case _ED_OUTI: {
                         int port = getRegister(REG_C);
-                        kgs.writeLocalPort(port, kgs.readMemoryByte(getRegisterPairHLSP(REGP_HL)));
+                        module.writeLocalPort(port, module.readLocalByte(getRegisterPairHLSP(REGP_HL)));
                         setRegisterPairHLSP(REGP_HL, getRegisterPairHLSP(REGP_HL) + 1);
                         setRegister(REG_B, getRegister(REG_B) - 1);
                         setFlag(SUBTRACT_FLAG);
@@ -3577,7 +3516,7 @@ public class UA880 implements IC {
                     }
                     break;
                     case _ED_LDD: {
-                        kgs.writeMemoryByte(getRegisterPairHLSP(REGP_DE), kgs.readMemoryByte(getRegisterPairHLSP(REGP_HL)));
+                        module.writeLocalByte(getRegisterPairHLSP(REGP_DE), module.readLocalByte(getRegisterPairHLSP(REGP_HL)));
                         setRegisterPairHLSP(REGP_DE, getRegisterPairHLSP(REGP_DE) - 1);
                         setRegisterPairHLSP(REGP_HL, getRegisterPairHLSP(REGP_HL) - 1);
                         setRegisterPairHLSP(REGP_BC, getRegisterPairHLSP(REGP_BC) - 1);
@@ -3597,8 +3536,8 @@ public class UA880 implements IC {
                     break;
                     case _ED_CPD: {
                         int op1 = getRegister(REG_A);
-                        int op2 = kgs.readMemoryByte(getRegisterPairHLSP(REGP_HL));
-                        sub8(op1, op2, false);
+                        int op2 = module.readLocalByte(getRegisterPairHLSP(REGP_HL));
+                        int res = op1 - op2;
                         setRegisterPairHLSP(REGP_HL, getRegisterPairHLSP(REGP_HL) - 1);
                         setRegisterPairHLSP(REGP_BC, getRegisterPairHLSP(REGP_BC) - 1);
                         if (getRegisterPairHLSP(REGP_BC) == 0) {
@@ -3606,16 +3545,20 @@ public class UA880 implements IC {
                         } else {
                             setFlag(PARITY_OVERFLOW_FLAG);
                         }
+                        setFlag(SUBTRACT_FLAG);
+                        checkZeroFlag8(res);
+                        checkSignFlag8(res);
+                        checkHalfCarryFlagSub(op1, op2);
                         updateTicks(16);
                         if (debug) {
                             debugInfo.setCode("CPD");
-                            debugInfo.setOperands(null);
+                            debugInfo.setOperands(String.format("%02X,%02X", op1, op2));
                         }
                     }
                     break;
                     case _ED_IND: {
                         int port = getRegister(REG_C);
-                        kgs.writeMemoryByte(getRegisterPairHLSP(REGP_HL), kgs.readLocalPort(port));
+                        module.writeLocalByte(getRegisterPairHLSP(REGP_HL), module.readLocalPort(port));
                         setRegisterPairHLSP(REGP_HL, getRegisterPairHLSP(REGP_HL) - 1);
                         setRegister(REG_B, getRegister(REG_B) - 1);
                         setFlag(SUBTRACT_FLAG);
@@ -3633,7 +3576,7 @@ public class UA880 implements IC {
                     break;
                     case _ED_OUTD: {
                         int port = getRegister(REG_C);
-                        kgs.writeLocalPort(port, kgs.readMemoryByte(getRegisterPairHLSP(REGP_HL)));
+                        module.writeLocalPort(port, module.readLocalByte(getRegisterPairHLSP(REGP_HL)));
                         setRegisterPairHLSP(REGP_HL, getRegisterPairHLSP(REGP_HL) - 1);
                         setRegister(REG_B, getRegister(REG_B) - 1);
                         setFlag(SUBTRACT_FLAG);
@@ -3650,7 +3593,7 @@ public class UA880 implements IC {
                     }
                     break;
                     case _ED_LDIR: {
-                        kgs.writeMemoryByte(getRegisterPairHLSP(REGP_DE), kgs.readMemoryByte(getRegisterPairHLSP(REGP_HL)));
+                        module.writeLocalByte(getRegisterPairHLSP(REGP_DE), module.readLocalByte(getRegisterPairHLSP(REGP_HL)));
                         setRegisterPairHLSP(REGP_DE, getRegisterPairHLSP(REGP_DE) + 1);
                         setRegisterPairHLSP(REGP_HL, getRegisterPairHLSP(REGP_HL) + 1);
                         setRegisterPairHLSP(REGP_BC, getRegisterPairHLSP(REGP_BC) - 1);
@@ -3665,14 +3608,14 @@ public class UA880 implements IC {
                         clearFlag(SUBTRACT_FLAG);
                         if (debug) {
                             debugInfo.setCode("LDIR");
-                            debugInfo.setOperands(String.format("%02X", kgs.readMemoryByte(getRegisterPairHLSP(REGP_HL) - 1)));
+                            debugInfo.setOperands(String.format("%02X", module.readLocalByte(getRegisterPairHLSP(REGP_HL) - 1)));
                         }
                     }
                     break;
                     case _ED_CPIR: {
                         int op1 = getRegister(REG_A);
-                        int op2 = kgs.readMemoryByte(getRegisterPairHLSP(REGP_HL));
-                        sub8(op1, op2, false);
+                        int op2 = module.readLocalByte(getRegisterPairHLSP(REGP_HL));
+                        int res = op1 - op2;
                         setRegisterPairHLSP(REGP_HL, getRegisterPairHLSP(REGP_HL) - 1);
                         setRegisterPairHLSP(REGP_BC, getRegisterPairHLSP(REGP_BC) - 1);
                         if ((getRegisterPairHLSP(REGP_BC) != 0) && (op1 != op2)) {
@@ -3686,15 +3629,19 @@ public class UA880 implements IC {
                         } else {
                             setFlag(PARITY_OVERFLOW_FLAG);
                         }
+                        setFlag(SUBTRACT_FLAG);
+                        checkZeroFlag8(res);
+                        checkSignFlag8(res);
+                        checkHalfCarryFlagSub(op1, op2);
                         if (debug) {
                             debugInfo.setCode("CPIR");
-                            debugInfo.setOperands(null);
+                            debugInfo.setOperands(String.format("%02X,%02X", op1, op2));
                         }
                     }
                     break;
                     case _ED_INIR: {
                         int port = getRegister(REG_C);
-                        kgs.writeMemoryByte(getRegisterPairHLSP(REGP_HL), kgs.readLocalPort(port));
+                        module.writeLocalByte(getRegisterPairHLSP(REGP_HL), module.readLocalPort(port));
                         setRegisterPairHLSP(REGP_HL, getRegisterPairHLSP(REGP_HL) + 1);
                         setRegister(REG_B, getRegister(REG_B) - 1);
                         setFlag(SUBTRACT_FLAG);
@@ -3713,7 +3660,7 @@ public class UA880 implements IC {
                     break;
                     case _ED_OTIR: {
                         int port = getRegister(REG_C);
-                        kgs.writeLocalPort(port, kgs.readMemoryByte(getRegisterPairHLSP(REGP_HL)));
+                        module.writeLocalPort(port, module.readLocalByte(getRegisterPairHLSP(REGP_HL)));
                         setRegisterPairHLSP(REGP_HL, getRegisterPairHLSP(REGP_HL) + 1);
                         setRegister(REG_B, getRegister(REG_B) - 1);
                         setFlag(SUBTRACT_FLAG);
@@ -3731,7 +3678,7 @@ public class UA880 implements IC {
                     }
                     break;
                     case _ED_LDDR: {
-                        kgs.writeMemoryByte(getRegisterPairHLSP(REGP_DE), kgs.readMemoryByte(getRegisterPairHLSP(REGP_HL)));
+                        module.writeLocalByte(getRegisterPairHLSP(REGP_DE), module.readLocalByte(getRegisterPairHLSP(REGP_HL)));
                         setRegisterPairHLSP(REGP_DE, getRegisterPairHLSP(REGP_DE) - 1);
                         setRegisterPairHLSP(REGP_HL, getRegisterPairHLSP(REGP_HL) - 1);
                         setRegisterPairHLSP(REGP_BC, getRegisterPairHLSP(REGP_BC) - 1);
@@ -3752,8 +3699,8 @@ public class UA880 implements IC {
                     break;
                     case _ED_CPDR: {
                         int op1 = getRegister(REG_A);
-                        int op2 = kgs.readMemoryByte(getRegisterPairHLSP(REGP_HL));
-                        sub8(op1, op2, false);
+                        int op2 = module.readLocalByte(getRegisterPairHLSP(REGP_HL));
+                        int res = op1 - op2;
                         setRegisterPairHLSP(REGP_HL, getRegisterPairHLSP(REGP_HL) - 1);
                         setRegisterPairHLSP(REGP_BC, getRegisterPairHLSP(REGP_BC) - 1);
                         if ((getRegisterPairHLSP(REGP_BC) != 0) && (op1 != op2)) {
@@ -3767,15 +3714,19 @@ public class UA880 implements IC {
                         } else {
                             setFlag(PARITY_OVERFLOW_FLAG);
                         }
+                        setFlag(SUBTRACT_FLAG);
+                        checkZeroFlag8(res);
+                        checkSignFlag8(res);
+                        checkHalfCarryFlagSub(op1, op2);
                         if (debug) {
                             debugInfo.setCode("CPDR");
-                            debugInfo.setOperands(null);
+                            debugInfo.setOperands(String.format("%02X,%02X", op1, op2));
                         }
                     }
                     break;
                     case _ED_INDR: {
                         int port = getRegister(REG_C);
-                        kgs.writeMemoryByte(getRegisterPairHLSP(REGP_HL), kgs.readLocalPort(port));
+                        module.writeLocalByte(getRegisterPairHLSP(REGP_HL), module.readLocalPort(port));
                         setRegisterPairHLSP(REGP_HL, getRegisterPairHLSP(REGP_HL) - 1);
                         setRegister(REG_B, getRegister(REG_B) - 1);
                         setFlag(SUBTRACT_FLAG);
@@ -3794,7 +3745,7 @@ public class UA880 implements IC {
                     break;
                     case _ED_OTDR: {
                         int port = getRegister(REG_C);
-                        kgs.writeLocalPort(port, kgs.readMemoryByte(getRegisterPairHLSP(REGP_HL)));
+                        module.writeLocalPort(port, module.readLocalByte(getRegisterPairHLSP(REGP_HL)));
                         setRegisterPairHLSP(REGP_HL, getRegisterPairHLSP(REGP_HL) - 1);
                         setRegister(REG_B, getRegister(REG_B) - 1);
                         setFlag(SUBTRACT_FLAG);
@@ -3864,7 +3815,7 @@ public class UA880 implements IC {
                 l = value & 0xFF;
                 break;
             case MEM_HL:
-                kgs.writeMemoryByte(getRegisterPairHLSP(REGP_HL), value);
+                module.writeLocalByte(getRegisterPairHLSP(REGP_HL), value);
                 break;
             case REG_A:
                 a = value & 0xFF;
@@ -3895,7 +3846,7 @@ public class UA880 implements IC {
             case REG_L:
                 return l & 0xFF;
             case MEM_HL:
-                return kgs.readMemoryByte(getRegisterPairHLSP(REGP_HL));
+                return module.readLocalByte(getRegisterPairHLSP(REGP_HL));
             case REG_A:
                 return a & 0xFF;
             default:
@@ -4141,7 +4092,7 @@ public class UA880 implements IC {
      * @return Gelesenes Wort
      */
     public int pop() {
-        int result = kgs.readMemoryWord(sp);
+        int result = module.readLocalWord(sp);
         setRegisterPairHLSP(REGP_SP, getRegisterPairHLSP(REGP_SP) + 2);
         return result;
     }
@@ -4153,7 +4104,7 @@ public class UA880 implements IC {
      */
     public void push(int value) {
         setRegisterPairHLSP(REGP_SP, getRegisterPairHLSP(REGP_SP) - 2);
-        kgs.writeMemoryWord(sp, value);
+        module.writeLocalWord(sp, value);
     }
 
     /**
@@ -4563,15 +4514,15 @@ public class UA880 implements IC {
      */
     public void updateTicks(int cycles) {
         ticks += cycles;
-        kgs.localClockUpdate(cycles);
+        module.localClockUpdate(cycles);
     }
 
     /**
      * Aktualisiert die Uhrzeit und lässt die entsprechende Menge an Befehlen
      * ablaufen
      * <p>
-     * TODO: HALT Befehl implementieren Prüfen ob Berechnung ok ist, Umwandlung
-     * auf double ungenau?
+     * TODO: -HALT Befehl implementieren Prüfen ob Berechnung ok ist, Umwandlung
+     * auf double ungenau? - Takt einstellbar machen
      *
      * @param amount Anzahl der Zyklen der Haupt-CPU
      */
@@ -4638,7 +4589,7 @@ public class UA880 implements IC {
                 int isr_address = (i << 8) | irq;
                 push(pc);
 
-                pc = kgs.readMemoryWord(isr_address);
+                pc = module.readLocalWord(isr_address);
                 //System.out.println("Starte Interrupt an: " + String.format("%04X", pc));
                 break;
             default:
@@ -4771,4 +4722,14 @@ public class UA880 implements IC {
         return nmiInProgress;
     }
 
+    /**
+     * Setzt die CPU zurück und beginnt die Programmabarbeitung neu.
+     */
+    public void reset() {
+
+        interruptMode = 0;
+        pc = 0x0000;
+//        debugger.setDebug(true);
+//        debugger.addComment("CPU Reset");
+}
 }

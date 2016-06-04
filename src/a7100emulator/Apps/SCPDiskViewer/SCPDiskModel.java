@@ -24,9 +24,14 @@
  *   24.07.2015 - Datenbank exportieren ergänzt
  *   26.07.2015 - Kommentare ergänzt
  *   09.08.2015 - Javadoc korrigiert
+ *   16.08.2015 - parseImage vereinfacht
+ *              - Lesen über FloppyImageParser realisiert
+ *              - Andere Formate als SCP-Hausvormat möglich
  */
 package a7100emulator.Apps.SCPDiskViewer;
 
+import a7100emulator.Tools.FloppyImageParser;
+import a7100emulator.components.system.FloppyDisk;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -59,17 +64,25 @@ public class SCPDiskModel {
      */
     private SCPDiskViewer view;
     /**
-     * Offset für das Lesen der Verzeichnisinformationen
-     */
-    private final int DIRECTORY_OFFSET = 0x3800;
-    /**
-     * Länge der Verzeichnisinformationen
-     */
-    private final int DIRECTORY_LENGTH = 0x1000;
-    /**
      * Name des geöffneten Images
      */
     private String imageName = "kein Image geöffnet";
+    /**
+     * Offset für das Lesen der Verzeichnisinformationen
+     */
+    private int directoryOffset;
+    /**
+     * Blockgröße
+     */
+    private final int BLOCK_SIZE = 0x800;
+    /**
+     * Größe einer Speichereinheit
+     */
+    private final int UNIT_SIZE = 0x80;
+    /**
+     * Länge der Verzeichnisinformationen
+     */
+    private final int DIRECTORY_LENGTH = 2 * BLOCK_SIZE;
     /**
      * Anzahl der belegten Blöcke
      */
@@ -77,7 +90,7 @@ public class SCPDiskModel {
     /**
      * Inhalt des Bootloaders
      */
-    private final byte[] bootloader = new byte[0x1A00];
+    private byte[] bootloader;
     /**
      * Liste freier Blöcke Blocknummer ist um 2 versetzt gespeichert
      */
@@ -116,32 +129,48 @@ public class SCPDiskModel {
      * @param image Datei
      */
     void readImage(File image) {
-        try {
+        FloppyDisk disk = FloppyImageParser.loadDiskFromImageFile(image);
+        if (disk != null) {
             imageName = image.getAbsolutePath();
-            diskData = new byte[(int) image.length()];
-            InputStream in = new FileInputStream(image);
-            in.read(diskData);
-            in.close();
-
+            // TODO: einseitige Disketten, andere Formatierungen
+            directoryOffset = disk.getSectorSize(0, 0, 1) * disk.getSectors(0, 0) + 3 * disk.getSectorSize(0, 1, 1) * disk.getSectors(0, 1);
+            diskData = disk.getFlatData();
             parseImage();
-        } catch (IOException ex) {
-            Logger.getLogger(SCPDiskModel.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
 
     /**
      * Liest ein Verzeichnis als neue Diskette ein.
-     * 
+     *
      * @param folder Verzeichnis
      */
     void readFolder(File folder) {
-        diskData = new byte[0x9F800];
+        // Daten für SCP-Diskette
+        int diskSize = 0x9F800;
+        diskData = new byte[diskSize];
+        directoryOffset = 0x3800;
+
+        // Anzahl der Blöcke und FCBs
+        int blocks = (diskSize - directoryOffset) / BLOCK_SIZE;
+        int fcbs = DIRECTORY_LENGTH / 32;
+
+        // Lösche alte Dateien
         files.clear();
-        usedBlocks = 0;
-        usedBlock = new boolean[310];
-        usedFCB = new boolean[128];
+
+        // Bereits 2 Blöcke für Verzeichnis verwendet
+        usedBlocks = DIRECTORY_LENGTH / BLOCK_SIZE;
+        usedBlock = new boolean[blocks];
+        usedFCB = new boolean[fcbs];
+        // Markiere Verzeichnis als benutzt
+        for (int b = 0; b < DIRECTORY_LENGTH / BLOCK_SIZE; b++) {
+            usedBlock[b] = true;
+        }
 
         Arrays.fill(diskData, 0, diskData.length - 1, (byte) 0xE5);
+
+        // Kopiere Bootloader
+        bootloader = new byte[directoryOffset];
+        System.arraycopy(diskData, 0, bootloader, 0, bootloader.length);
 
         imageName = "Verzeichnis:" + folder.getAbsolutePath();
 
@@ -160,16 +189,13 @@ public class SCPDiskModel {
                     if (filename.length() > 8) {
                         filename = filename.substring(0, 8);
                     }
-                    //SCPFile scpFile = new SCPFile(filename, extension, false, false, false, 0);
 
                     byte[] data = new byte[(int) file.length()];
                     InputStream in = new FileInputStream(file);
                     in.read(data);
                     in.close();
 
-                    //scpFile.setData(data);
                     insertFile(filename, extension, false, false, false, 0, data);
-                    //files.add(scpFile);
                 } else {
                     System.out.println("Verzeichnis " + file.getName() + " wird übersprungen!");
                 }
@@ -177,8 +203,6 @@ public class SCPDiskModel {
         } catch (Exception ex) {
             Logger.getLogger(SCPDiskModel.class.getName()).log(Level.SEVERE, null, ex);
         }
-        //diskLoaded=true;
-        // parseImage();
         view.updateView();
     }
 
@@ -186,89 +210,116 @@ public class SCPDiskModel {
      * Liest ein Diskettenabbild ein.
      */
     private void parseImage() {
+        // Daten für SCP-Diskette
+        int diskSize = diskData.length;
+
+        // Anzahl der Blöcke und FCBs
+        int blocks = (diskSize - directoryOffset) / BLOCK_SIZE;
+        int fcbs = DIRECTORY_LENGTH / 32;
+
+        // Lösche alte Dateien
         files.clear();
-        usedBlocks = 0;
-        usedBlock = new boolean[310];
-        usedFCB = new boolean[128];
+
+        // Bereits 2 Blöcke für Verzeichnis verwendet
+        usedBlocks = DIRECTORY_LENGTH / BLOCK_SIZE;
+        usedBlock = new boolean[blocks];
+        usedFCB = new boolean[fcbs];
+        // Markiere Verzeichnis als benutzt
+        for (int b = 0; b < DIRECTORY_LENGTH / BLOCK_SIZE; b++) {
+            usedBlock[b] = true;
+        }
 
         // Kopiere Bootloader
+        bootloader = new byte[directoryOffset];
         System.arraycopy(diskData, 0, bootloader, 0, bootloader.length);
 
+        // Struktur für FCB
         byte[] fcb = new byte[32];
 
         // Gehe durch Verzeichnisstruktur
-        for (int index = DIRECTORY_OFFSET; index < DIRECTORY_OFFSET + DIRECTORY_LENGTH; index += 32) {
+        for (int index = directoryOffset; index < directoryOffset + DIRECTORY_LENGTH; index += 32) {
             System.arraycopy(diskData, index, fcb, 0, 32);
 
             // Prüfe ob Laufwerksindex gültig
             if (((int) fcb[0] & 0xFF) <= 16) {
                 // Markiere FCB als benutzt
-                usedFCB[(index - DIRECTORY_OFFSET) / 32] = true;
+                usedFCB[(index - directoryOffset) / 32] = true;
 
                 // Lade Name aus FCB
                 String name = "";
                 for (int i = 1; i < 9; i++) {
                     name += (char) fcb[i];
                 }
+
                 // Lade Erweiterung aus FCB
                 String extension = "";
                 for (int i = 9; i < 12; i++) {
                     extension += (char) (fcb[i] & 0x7F);
                 }
+
                 // Lade Attribute aus FCB
                 boolean readOnly = (fcb[9] & 0x80) == 0x80;
                 boolean system = (fcb[10] & 0x80) == 0x80;
                 boolean extra = (fcb[11] & 0x80) == 0x80;
 
-                SCPFile scpFile = new SCPFile(name, extension, readOnly, system, extra, fcb[0]);
+                // Lade Anzahl der durch den FCB belegten Einheiten
+                int units = (int) fcb[15] & 0xFF;
+                // Lade ex - Aktuelle Bereichsnummer
+                int fcbIndex = fcb[12];
 
-                if (fcb[12] == 0) {
+                // SCP-Datei
+                SCPFile scpFile;
+                // Daten
+                byte[] fileData;
+
+                // Prüfe ex - Aktuelle Bereichsnummer
+                if (fcbIndex == 0) {
                     // Erster Teil einer Datei
-
-                    // Lade Anzahl der Blöcke
-                    int blocks = (int) fcb[15] & 0xFF;
-                    byte[] fileData = new byte[blocks * 0x80];
-                    int remainBlocks = blocks;
-                    for (int i = 16; i < 32 && remainBlocks > 0; i = i + 2) {
-                        int blockNumber = ((int) (fcb[i + 1] & 0xFF) << 8) | ((int) fcb[i] & 0xFF);
-                        int address = blockNumber * 0x800 + 0x3800;
-                        if (address != 0x3800) {
-                            System.arraycopy(diskData, address, fileData, ((i - 16) / 2) * 0x800, remainBlocks > 15 ? 0x800 : remainBlocks * 0x80);
-                            remainBlocks -= 16;
-                            usedBlocks++;
-                            usedBlock[blockNumber - 2] = true;
-                        }
-                    }
-                    scpFile.setData(fileData);
-
+                    scpFile = new SCPFile(name, extension, readOnly, system, extra, fcb[0]);
+                    // Erzeuge Array mit leeren Daten
+                    scpFile.setData(new byte[0]);
+                    // Füge Datei der Liste hinzu
                     files.add(scpFile);
-                } else {
-                    // Nicht erster Teil einer Datei
-                    int blocks = (int) fcb[15] & 0xFF;
-                    int fcbIndex = fcb[12];
-                    for (SCPFile file : files) {
-                        // Suche Datei in bisheriger Liste
-                        if (file.getName().equals(name) && file.getExtension().equals(extension) && file.getUser() == fcb[0]) {
+                }
 
-                            // Kopiere alte Daten
-                            byte[] oldData = new byte[file.getData().length];
-                            System.arraycopy(file.getData(), 0, oldData, 0, file.getData().length);
-                            byte[] fileData = new byte[oldData.length + blocks * 0x80];
-                            System.arraycopy(oldData, 0, fileData, 0, oldData.length);
-                            int remainBlocks = blocks;
+                // Suche Dateieintrag
+                for (SCPFile file : files) {
+                    // Suche Datei in bisheriger Liste
+                    if (file.getName().equals(name) && file.getExtension().equals(extension) && file.getUser() == fcb[0]) {
+                        scpFile = file;
 
-                            for (int i = 16; i < 32 && remainBlocks > 0; i = i + 2) {
-                                int blockNumber = ((int) (fcb[i + 1] & 0xFF) << 8) | ((int) fcb[i] & 0xFF);
-                                int address = blockNumber * 0x800 + 0x3800;
-                                if (address != 0x3800) {
-                                    System.arraycopy(diskData, address, fileData, fcbIndex * 0x800 * 8 + ((i - 16) / 2) * 0x800, remainBlocks > 15 ? 0x800 : remainBlocks * 0x80);
-                                    remainBlocks -= 16;
-                                    usedBlocks++;
-                                    usedBlock[blockNumber - 2] = true;
-                                }
+                        // Kopiere alte Daten
+                        byte[] oldData = new byte[scpFile.getData().length];
+                        System.arraycopy(scpFile.getData(), 0, oldData, 0, scpFile.getData().length);
+
+                        // Erstelle neues Array für gesamte Daten
+                        fileData = new byte[oldData.length + units * UNIT_SIZE];
+                        System.arraycopy(oldData, 0, fileData, 0, oldData.length);
+
+                        int remainUnits = units;
+
+                        for (int i = 16; i < 32 && remainUnits > 0; i = i + 2) {
+                            // Lese 16-Bit Blocknummer aus FCB
+                            int blockNumber = ((int) (fcb[i + 1] & 0xFF) << 8) | ((int) fcb[i] & 0xFF);
+
+                            if (blockNumber != 0) {
+                                // Berechne Adresse für Daten: Offset Systemspuren + BlockNummer * BlockGröße
+                                int address = blockNumber * BLOCK_SIZE + 0x3800;
+
+                                // Kopiere eine kompletten Block, wenn noch mindestens 16 Einheiten fehlen, sonst nur fehlende Einheiten
+                                System.arraycopy(diskData, address, fileData, (fcbIndex * 8 + ((i - 16) / 2)) * BLOCK_SIZE, remainUnits > 15 ? BLOCK_SIZE : remainUnits * UNIT_SIZE);
+                                remainUnits -= 16;
+
+                                // Inkrementiere Anzahl der belegten Blöcke
+                                usedBlocks++;
+                                // Markiere Block als benutzt
+                                usedBlock[blockNumber - 2] = true;
                             }
-                            file.setData(fileData);
                         }
+                        file.setData(fileData);
+
+                        // Beende Suche
+                        break;
                     }
                 }
             }
@@ -288,12 +339,12 @@ public class SCPDiskModel {
      * @param fileData Daten
      */
     void insertFile(String filename, String extension, boolean readOnly, boolean system, boolean extra, int user, byte[] fileData) {
-        int requiredFCBs = fileData.length == 0 ? 1 : ((fileData.length / (8 * 0x800)) + (fileData.length % (8 * 0x800) == 0 ? 0 : 1));
-        int requiredBlocks = (fileData.length / 0x800) + (fileData.length % 0x800 == 0 ? 0 : 1);
-        int requiredSectors = (fileData.length / 0x80) + (fileData.length % 0x80 == 0 ? 0 : 1);
+        int requiredFCBs = fileData.length == 0 ? 1 : ((fileData.length / (8 * BLOCK_SIZE)) + (fileData.length % (8 * BLOCK_SIZE) == 0 ? 0 : 1));
+        int requiredBlocks = (fileData.length / BLOCK_SIZE) + (fileData.length % BLOCK_SIZE == 0 ? 0 : 1);
+        int requiredSectors = (fileData.length / UNIT_SIZE) + (fileData.length % UNIT_SIZE == 0 ? 0 : 1);
 
         // Kopiere Daten um
-        byte[] data = new byte[requiredSectors * 0x80];
+        byte[] data = new byte[requiredSectors * UNIT_SIZE];
         System.arraycopy(fileData, 0, data, 0, fileData.length);
 
         int[] FCBs = new int[requiredFCBs];
@@ -348,12 +399,11 @@ public class SCPDiskModel {
                 fcb[14] = 0x00;
 
                 int remainingSectors = requiredSectors;
-                int remainingBlocks = requiredBlocks;
                 for (int f = 0; f < FCBs.length; f++) {
                     // Setze Dateibereich
                     fcb[12] = (byte) f;
                     // Setze Anzahl der Blöcke
-                    fcb[15] = (byte) (remainingSectors > 0x80 ? 0x80 : remainingSectors);
+                    fcb[15] = (byte) (remainingSectors > UNIT_SIZE ? UNIT_SIZE : remainingSectors);
                     // Lösche Blöcke
                     for (int i = 0; i < 16; i++) {
                         fcb[i + 16] = 0;
@@ -365,14 +415,14 @@ public class SCPDiskModel {
                             fcb[16 + blk * 2] = (byte) (block & 0xFF);
                             fcb[16 + blk * 2 + 1] = (byte) ((block >> 8) & 0xFF);
                             // Berechne Adresse im Image
-                            int address = block * 0x800 + 0x3800;
+                            int address = block * BLOCK_SIZE + directoryOffset;
                             // Hole 2K Datenarray
-                            byte[] blkData = new byte[0x800];
+                            byte[] blkData = new byte[BLOCK_SIZE];
                             int sectorsToCopy = (remainingSectors >= 16) ? 16 : remainingSectors;
-                            int bytesToCopy = sectorsToCopy * 0x80;
-                            System.arraycopy(data, (f * 8 + blk) * 0x800, blkData, 0, bytesToCopy);
+                            int bytesToCopy = sectorsToCopy * UNIT_SIZE;
+                            System.arraycopy(data, (f * 8 + blk) * BLOCK_SIZE, blkData, 0, bytesToCopy);
                             // Schreibe Block in Image
-                            System.arraycopy(blkData, 0, diskData, address, 0x800);
+                            System.arraycopy(blkData, 0, diskData, address, BLOCK_SIZE);
 
                             remainingSectors -= sectorsToCopy;
                         } else {
@@ -381,7 +431,7 @@ public class SCPDiskModel {
                             fcb[16 + blk * 2 + 1] = 0x00;
                         }
                         // Schreibe FCB
-                        System.arraycopy(fcb, 0, diskData, FCBs[f] * 32 + 0x3800, 32);
+                        System.arraycopy(fcb, 0, diskData, FCBs[f] * 32 + directoryOffset, 32);
                     }
                 }
                 parseImage();
@@ -408,7 +458,6 @@ public class SCPDiskModel {
         try {
             SCPFile scpFile = files.get(index);
             OutputStream out;
-
             out = new FileOutputStream(file);
             out.write(scpFile.getData());
             out.close();
@@ -442,7 +491,10 @@ public class SCPDiskModel {
      * @return Disketteninformationen
      */
     String getDiskInfo() {
-        return usedBlocks * 2 + "K belegt," + (620 - usedBlocks * 2) + "K frei";
+        if (diskData == null) {
+            return "";
+        }
+        return usedBlocks * 2 + "K belegt," + getFreeBlocks() + "K frei";
     }
 
     /**
@@ -451,7 +503,7 @@ public class SCPDiskModel {
      * @return Anzahl freier Blöcke
      */
     int getFreeBlocks() {
-        return 620 - usedBlocks * 2;
+        return (diskData.length - directoryOffset) / 1024 - usedBlocks * 2;
     }
 
     /**
@@ -468,7 +520,6 @@ public class SCPDiskModel {
         } catch (IOException ex) {
             Logger.getLogger(SCPDiskModel.class.getName()).log(Level.SEVERE, null, ex);
         }
-
     }
 
     /**

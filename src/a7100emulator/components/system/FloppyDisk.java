@@ -29,19 +29,21 @@
  *   30.07.2015 - Sektorformat lesen implementiert
  *   09.08.2015 - Javadoc korrigiert
  *   14.08.2015 - Lesen von CopyQM Images implementiert
+ *   16.08.2015 - Bereich für Daten in checkAndAddDiskGeometry hinzugefügt
+ *              - writeData, checkAndAddDiskGeometry public
+ *              - Parameterreihenfolge readData und writeData geändert
+ *              - Lesen von Images ausgelagert
+ *              - getFlatContent hinzugefügt
  */
 package a7100emulator.components.system;
 
-import a7100emulator.Tools.BitTest;
-import a7100emulator.Tools.FloppyImageType;
 import a7100emulator.Tools.StateSavable;
+import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -67,103 +69,6 @@ public class FloppyDisk implements StateSavable {
      * Erstellt eine leere Diskette
      */
     public FloppyDisk() {
-    }
-
-    /**
-     * Erstellt eine Diskette basierend auf einer Datei
-     *
-     * @param file Datei zum Laden
-     * @param imageType Imagetyp
-     */
-    public FloppyDisk(File file, FloppyImageType imageType) {
-        InputStream in = null;
-
-        try {
-            byte[] buffer = new byte[(int) file.length()];
-            in = new FileInputStream(file);
-            in.read(buffer);
-            in.close();
-
-            switch (imageType) {
-                case IMAGEDISK:
-                    readImagediskFile(buffer);
-                    break;
-                case TELEDISK:
-                    readTelediskFile(buffer);
-                    break;
-                case DMK:
-                    readDMKFile(buffer);
-                    break;
-                case COPYQM:
-                    readCopyQMFile(buffer);
-                    break;
-            }
-        } catch (IOException ex) {
-            Logger.getLogger(FloppyDrive.class.getName()).log(Level.SEVERE, null, ex);
-        } finally {
-            try {
-                if (in != null) {
-                    in.close();
-                }
-            } catch (IOException ex) {
-                Logger.getLogger(FloppyDrive.class.getName()).log(Level.SEVERE, null, ex);
-            }
-        }
-    }
-
-    /**
-     * Liest eine binäre Imagedatei unter Verwendung der angegebenen Geometrie.
-     *
-     * @param file Image Datei
-     * @param cylinders Anzahl der Zylinder
-     * @param heads Anzahl der Köpfe
-     * @param sectorsPerTrack Anzahl der Sektoren pro Spur
-     * @param bytesPerSector Anzahl der Bytes pro Sektor
-     * @param sectorsInTrack0 Anzahl der Sektoren in Spur 0
-     * @param bytesPerSectorTrack0 Anzahl der Bytes pro Sektor in Spur 0
-     */
-    public FloppyDisk(File file, int cylinders, int heads, int sectorsPerTrack, int bytesPerSector, int sectorsInTrack0, int bytesPerSectorTrack0) {
-        InputStream in = null;
-
-        try {
-            byte[] buffer = new byte[(int) file.length()];
-            in = new FileInputStream(file);
-            in.read(buffer);
-            in.close();
-
-            int pos = 0;
-
-            diskData = new byte[cylinders][heads][][];
-
-            for (int c = 0; c < cylinders; c++) {
-                for (int h = 0; h < heads; h++) {
-                    if (c == 0 && h == 0) {
-                        diskData[c][h] = new byte[sectorsInTrack0][bytesPerSectorTrack0];
-                        for (int s = 0; s < sectorsInTrack0; s++) {
-                            System.arraycopy(buffer, pos, diskData[c][h][s], 0, bytesPerSectorTrack0);
-                            pos += bytesPerSectorTrack0;
-                        }
-                    } else {
-                        diskData[c][h] = new byte[sectorsPerTrack][bytesPerSector];
-                        for (int s = 0; s < sectorsPerTrack; s++) {
-                            System.arraycopy(buffer, pos, diskData[c][h][s], 0, bytesPerSector);
-                            pos += bytesPerSector;
-                        }
-                    }
-                }
-            }
-
-        } catch (IOException ex) {
-            Logger.getLogger(FloppyDrive.class.getName()).log(Level.SEVERE, null, ex);
-        } finally {
-            try {
-                if (in != null) {
-                    in.close();
-                }
-            } catch (IOException ex) {
-                Logger.getLogger(FloppyDrive.class.getName()).log(Level.SEVERE, null, ex);
-            }
-        }
     }
 
     /**
@@ -194,16 +99,33 @@ public class FloppyDisk implements StateSavable {
         FileOutputStream fos;
         try {
             fos = new FileOutputStream(image);
+            fos.write(getFlatData());
+            fos.close();
+        } catch (IOException ex) {
+            Logger.getLogger(FloppyDisk.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+
+    /**
+     * Gibt den Disketteninhalt als eindimensionales Array zurück.
+     *
+     * @return Disketteninhalt als eindimensionales Array
+     */
+    public byte[] getFlatData() {
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        try {
             for (byte[][][] cylinder : diskData) {
                 for (byte[][] head : cylinder) {
                     for (byte[] sector : head) {
-                        fos.write(sector);
+                        bos.write(sector);
                     }
                 }
             }
-            fos.close();
+            return bos.toByteArray();
         } catch (IOException ex) {
+            Logger.getLogger(FloppyDisk.class.getName()).log(Level.SEVERE, null, ex);
         }
+        return null;
     }
 
     /**
@@ -219,338 +141,9 @@ public class FloppyDisk implements StateSavable {
      */
     void format(int cylinder, int head, int mod, int[] formatData, int interleave, int sectorsPerTrack, int bytesPerSector) {
         for (int sector = 0; sector < sectorsPerTrack; sector++) {
-            checkAndAddDiskGeometry(cylinder, head, sector + 1);
-            diskData[cylinder][head][sector] = new byte[bytesPerSector];
+            checkAndAddDiskGeometry(cylinder, head, sector + 1, bytesPerSector);
             diskData[cylinder][head][sector][0] = (byte) formatData[0];
             Arrays.fill(diskData[cylinder][head][sector], 1, bytesPerSector - 1, (byte) formatData[1]);
-        }
-    }
-
-    /**
-     * Liest ein Imagedisk Image.
-     *
-     * @param buffer Image Daten
-     */
-    private void readImagediskFile(byte[] buffer) {
-        int pos = 0;
-
-        // Lese bis Ende des Kommentarfeldes
-        while (buffer[pos] != 0x1A) {
-            pos++;
-        }
-        pos++;
-
-        while (pos < buffer.length) {
-            // MOD-Value
-            int modeValue = buffer[pos++];
-            // Lese Zylindernummer
-            int cylinder = buffer[pos++];
-            // Lese Kopfnummer
-            int head = buffer[pos++];
-            boolean useSectorCylinderMap = BitTest.getBit(head, 7);
-            boolean useSectorHeadMap = BitTest.getBit(head, 6);
-            head = head & 0x01;
-
-            // Lese Anzahl der Sektoren
-            int sectorCount = buffer[pos++];
-
-            // Lese Anzahl der Bytes pro Sektor
-            int sectorSizeBytes = (int) Math.pow(2, buffer[pos++] + 7);
-            int[] sectorNumberingMap = new int[sectorCount];
-            for (int i = 0; i < sectorCount; i++) {
-                sectorNumberingMap[i] = buffer[pos++];
-            }
-            int[] sectorCylinderMap = new int[sectorCount];
-            if (useSectorCylinderMap) {
-                for (int i = 0; i < sectorCount; i++) {
-                    sectorCylinderMap[i] = buffer[pos++];
-                }
-            }
-            int[] sectorHeadMap = new int[sectorCount];
-            if (useSectorHeadMap) {
-                for (int i = 0; i < sectorCount; i++) {
-                    sectorHeadMap[i] = buffer[pos++];
-                }
-            }
-            for (int i = 0; i < sectorCount; i++) {
-                if (useSectorCylinderMap) {
-                    cylinder = sectorCylinderMap[i];
-                }
-                if (useSectorHeadMap) {
-                    head = sectorHeadMap[i];
-                }
-                int sector = sectorNumberingMap[i];
-
-                checkAndAddDiskGeometry(cylinder, head, sector);
-
-                diskData[cylinder][head][sector - 1] = new byte[sectorSizeBytes];
-
-                int sectorDataInfo = buffer[pos++];
-
-                switch (sectorDataInfo) {
-                    case 0x00: {
-                        System.out.println("Sektordaten konnten nicht gelesen werden!");
-                    }
-                    break;
-                    case 0x01:
-                    case 0x03:
-                    case 0x05:
-                    case 0x07: {
-                        System.arraycopy(buffer, pos, diskData[cylinder][head][sector - 1], 0, sectorSizeBytes);
-                        pos += sectorSizeBytes;
-                    }
-                    break;
-                    case 0x02:
-                    case 0x04:
-                    case 0x06:
-                    case 0x08: {
-                        byte repeatData = buffer[pos++];
-                        Arrays.fill(diskData[cylinder][head][sector - 1], repeatData);
-                    }
-                    break;
-                }
-            }
-        }
-    }
-
-    /**
-     * Liest ein Teledisk Image
-     *
-     * @param buffer Image Daten
-     */
-    private void readTelediskFile(byte[] buffer) {
-        int pos = 0;
-
-        String signature = "" + (char) buffer[pos++] + (char) buffer[pos++];
-        int sequence = buffer[pos++];
-        int checksequence = buffer[pos++];
-        int version = buffer[pos++];
-        int datarate = buffer[pos++];
-        int drivetype = buffer[pos++];
-        int stepping = buffer[pos++];
-        int dosallocation = buffer[pos++];
-        int sides = buffer[pos++];
-        int crc = buffer[pos++] | buffer[pos++] << 8;
-
-        int sectorCount;
-        do {
-            sectorCount = buffer[pos++];
-            if (sectorCount != -1) {
-                int cylinder = buffer[pos++];
-                int head = buffer[pos++] & 0x01;
-                int trackCRC = buffer[pos++];
-
-                for (int i = 0; i < sectorCount; i++) {
-                    int cylinderNumber = buffer[pos++];
-                    int headNumber = buffer[pos++] & 0x1;
-                    int sectorNumber = buffer[pos++];
-                    int sectorSize = buffer[pos++];
-                    int sectorSizeBytes = (int) Math.pow(2, sectorSize + 7);
-                    int flags = buffer[pos++];
-                    int sectorCRC = buffer[pos++];
-
-                    checkAndAddDiskGeometry(cylinderNumber, headNumber, sectorNumber);
-                    diskData[cylinder][head][sectorNumber - 1] = new byte[sectorSizeBytes];
-
-                    if (!BitTest.getBit(flags, 5) && !BitTest.getBit(flags, 6)) {
-                        int dataBlockSize = (buffer[pos++] & 0xFF) | ((int) buffer[pos++]) << 8;
-                        int encoding = buffer[pos++];
-                        switch (encoding) {
-                            case 0x00: {
-                                // RAW
-                                System.arraycopy(buffer, pos, diskData[cylinder][head][sectorNumber - 1], 0, sectorSizeBytes);
-                            }
-                            break;
-                            case 0x01: {
-                                // Repeat 2 Bytes
-                                int blockPos = 0;
-                                for (int j = 0; j < dataBlockSize - 1; j = j + 4) {
-                                    int size = (buffer[pos] & 0xFF) | ((int) buffer[pos + 1] & 0xFF) << 8;
-                                    byte pat1 = buffer[pos + 2];
-                                    byte pat2 = buffer[pos + 3];
-                                    for (int k = 0; k < size; k++) {
-                                        diskData[cylinder][head][sectorNumber - 1][blockPos++] = pat1;
-                                        diskData[cylinder][head][sectorNumber - 1][blockPos++] = pat2;
-                                    }
-                                }
-                            }
-                            break;
-                            case 0x02: {
-                                // Run Length Encoding
-                                int blockPos = 0;
-                                for (int j = 0; j < dataBlockSize - 1; j++) {
-                                    int length = (int) (buffer[pos + j] & 0xFF);
-                                    if (length == 00) {
-                                        int l2 = (int) (buffer[pos + j + 1] & 0xFF);
-                                        System.arraycopy(buffer, pos + j + 2, diskData[cylinder][head][sectorNumber - 1], blockPos, l2);
-                                        j += l2 + 1;
-                                        blockPos += l2;
-                                    } else {
-                                        int r = (int) (buffer[pos + j + 1] & 0xFF);
-                                        for (int k = 0; k < r; k++) {
-                                            System.arraycopy(buffer, pos + j + 2, diskData[cylinder][head][sectorNumber - 1], blockPos, length * 2);
-                                            blockPos += length * 2;
-                                        }
-                                        j += 1 + length * 2;
-
-                                    }
-                                }
-                            }
-                            break;
-                        }
-                        pos += dataBlockSize - 1;
-
-                    }
-                }
-            }
-        } while (sectorCount != -1);
-    }
-
-    /**
-     * Liest ein DMK Image.
-     *
-     * @param buffer Image Daten
-     */
-    private void readDMKFile(byte[] buffer) {
-        int pos = 0;
-
-        // Lese Header ab Byte 00
-        // Byte 00: Schreibschutz (FF bei Schreibschutz, 00 sonst)
-        int writeProtectImage = (int) (buffer[pos++] & 0xFF);
-        setWriteProtect(writeProtectImage == 0xFF);
-        // Byte 01: Anzahl der Tracks
-        int trackCount = (int) (buffer[pos++] & 0xFF);
-        // Byte02,03 : Länge eines Tracks
-        int trackSize = (buffer[pos] & 0xFF) | ((int) buffer[pos + 1] & 0xFF) << 8;
-        // Byte 4: Flags
-        int flags = buffer[pos++];
-        // Bit 4: 1 - Single Side / 0 - Double Side
-        boolean singleSide = BitTest.getBit(flags, 4);
-        // Bit 6: 1 - Single Density / 0 - Double Density
-        boolean singleDensity = BitTest.getBit(flags, 6);
-
-        // Gesamtgröße des Headers
-        final int HEADER_SIZE = 0x10;
-        // Anzahl der Seiten
-        int sides = (singleSide) ? 1 : 2;
-
-        int diskSize = 0;
-        // Für alle Tracks
-        for (int t = 0; t < trackCount; t++) {
-            // Neuer Track
-            // Für alle Seiten
-            for (int s = 0; s < sides; s++) {
-                // Platz für alle IDAM Pointer (2 Bytes)
-                int[] idam = new int[64];
-                // Lese IDAMS
-                int sectorCount = 0;
-                do {
-                    // Lese Zeiger auf IDAM
-                    idam[sectorCount] = (buffer[HEADER_SIZE + sides * t * trackSize + s * trackSize + sectorCount * 2] & 0xFF) | ((int) buffer[HEADER_SIZE + sides * t * trackSize + s * trackSize + sectorCount * 2 + 1] & 0xFF) << 8;
-                    sectorCount++;
-                } while (idam[sectorCount - 1] != 0);
-                sectorCount--;
-
-                // Für alle gelesenen IDAMS
-                for (int sec = 0; sec < sectorCount; sec++) {
-                    // Prüfe auf Double Density (Bit 15 in IDAM)
-                    boolean doubleDensity = BitTest.getBit(idam[sec], 15);
-                    // Lösche Bit 14/15
-                    idam[sec] &= ~0xC000;
-                    // Berechne Position des Datenblocks (Letztes FE)
-                    // Header + Beginn IDAM Feld
-                    int blockPos = HEADER_SIZE + sides * t * trackSize + s * trackSize + idam[sec] + 1;
-                    blockPos += doubleDensity ? 0 : 1;
-                    int cylinder = buffer[blockPos++];
-                    blockPos += doubleDensity ? 0 : 1;
-                    int head = buffer[blockPos++];
-                    blockPos += doubleDensity ? 0 : 1;
-                    int sector = buffer[blockPos++];
-                    blockPos += doubleDensity ? 0 : 1;
-                    int sectorSize = (int) Math.pow(2, 7 + buffer[blockPos++]);
-
-                    checkAndAddDiskGeometry(cylinder, head, sector);
-                    diskData[t][s][sector - 1] = new byte[sectorSize];
-
-                    // CRC überspringen
-                    blockPos += doubleDensity ? 2 : 4;
-
-                    // Lese solange Bytes bis Ende Data AM erreicht ist
-                    byte data_am;
-                    do {
-                        data_am = buffer[blockPos++];
-                    } while ((data_am != ((byte) 0xFB)) && (data_am != ((byte) 0xF8)));
-                    blockPos += doubleDensity ? 0 : 1;
-                    System.arraycopy(buffer, blockPos, diskData[t][s][sector - 1], 0, sectorSize);
-                    diskSize += sectorSize;
-                }
-            }
-        }
-    }
-
-    /**
-     * Liest ein CopyQM Image.
-     *
-     * @param buffer Image Daten
-     */
-    private void readCopyQMFile(byte[] buffer) {
-        int pos = 0;
-
-        // Lese Header ab Byte 00
-        // Lese Signatur CQ
-        String signature = "" + (char) buffer[pos++] + (char) buffer[pos++];
-        // Byte 02: ??
-        pos++;
-        // Byte 03-04: Lese Sektorgröße
-        int sectorSize = (buffer[pos++] & 0xFF) | ((int) buffer[pos++] & 0xFF) << 8;
-        // Byte 05-0F: ???
-        pos = 0x10;
-        // Byte 10-11: Anzahl der Sektoren pro Track
-        int sectorsPerTrack = (buffer[pos++] & 0xFF) | ((int) buffer[pos++] & 0xFF) << 8;
-        // Byte 12-13: Anzahl der Köpfe
-        int heads = (buffer[pos++] & 0xFF) | ((int) buffer[pos++] & 0xFF) << 8;
-        // Byte 14-59 : ??? Kommentar + ???
-        pos = 0x5A;
-        // Byte 5A: Anzahl benutzter Zylinder
-        int tracksUsed = buffer[pos++];
-        // Byte 5B: Anzahl Zylinder
-        int tracksTotal = buffer[pos++];
-        // Byte 5C-84: ???
-        pos = 0x85;
-
-        byte[] raw = new byte[tracksTotal * heads * sectorsPerTrack * sectorSize];
-        int rawpos = 0;
-
-        // Lese Datenblöcke
-        while (pos < buffer.length) {
-            int length = (short) ((buffer[pos++] & 0xFF) | ((int) buffer[pos++] & 0xFF) << 8);
-
-            if (length < 0) {
-                // Ein Byte (-length) mal wiederholt
-                byte fillByte = buffer[pos++];
-                Arrays.fill(raw, rawpos, rawpos - length, fillByte);
-                rawpos -= length;
-            } else {
-                // length Bytes
-                System.arraycopy(buffer, pos, raw, rawpos, length);
-                pos += length;
-                rawpos += length;
-            }
-        }
-
-        rawpos = 0;
-        // Für alle Tracks
-        for (int t = 0; t < tracksUsed; t++) {
-            // Für alle Seiten
-            for (int h = 0; h < heads; h++) {
-                // Für alle Sektoren
-                for (int s = 0; s < sectorsPerTrack; s++) {
-                    checkAndAddDiskGeometry(t, h, s+1);
-                    diskData[t][h][s] = new byte[sectorSize];
-                    System.arraycopy(raw, rawpos, diskData[t][h][s], 0, sectorSize);
-                    rawpos += sectorSize;
-                }
-            }
         }
     }
 
@@ -558,12 +151,12 @@ public class FloppyDisk implements StateSavable {
      * Liest Daten an der angegebenen Position von der Diskette.
      *
      * @param cylinder Zylindernummer
-     * @param sector Sektornummer
      * @param head Kopfnummer
-     * @param cnt Anzahl de Bytes
+     * @param sector Sektornummer
+     * @param cnt Anzahl der Bytes
      * @return gelesene Daten
      */
-    byte[] readData(int cylinder, int sector, int head, int cnt) {
+    public byte[] readData(int cylinder, int head, int sector, int cnt) {
         byte[] res = new byte[cnt];
         byte[] sectorData = diskData[cylinder][head][sector - 1];
         int byteToCopy = Math.min(cnt, sectorData.length);
@@ -591,7 +184,7 @@ public class FloppyDisk implements StateSavable {
                 // Nicht letzter Sector
                 sector++;
             }
-            byte[] nextData = readData(cylinder, sector, head, cnt);
+            byte[] nextData = readData(cylinder, head, sector, cnt);
             System.arraycopy(nextData, 0, res, byteToCopy, nextData.length);
         }
         return res;
@@ -601,11 +194,11 @@ public class FloppyDisk implements StateSavable {
      * Schreibt Daten auf die Diskette.
      *
      * @param cylinder Zylindernummer
-     * @param sector Sektornummer
      * @param head Kopfnummer
+     * @param sector Sektornummer
      * @param data Zu schreibende Daten
      */
-    void writeData(int cylinder, int sector, int head, byte[] data) {
+    public void writeData(int cylinder, int head, int sector, byte[] data) {
         byte[] sectorData = diskData[cylinder][head][sector - 1];
         int byteToCopy = Math.min(data.length, sectorData.length);
         System.arraycopy(data, 0, sectorData, 0, byteToCopy);
@@ -633,7 +226,7 @@ public class FloppyDisk implements StateSavable {
                 // Nicht letzter Sektor
                 sector++;
             }
-            writeData(cylinder, sector, head, resData);
+            writeData(cylinder, head, sector, resData);
         }
     }
 
@@ -675,13 +268,15 @@ public class FloppyDisk implements StateSavable {
 
     /**
      * Prüft ob die angegebene Position der Diskette verfügbar ist und ergänzt
-     * ggf. die fehlende Geometrie
+     * ggf. die fehlende Geometrie und legt einen Datenbereich für den Sektor
+     * an.
      *
      * @param cylinder Zylindernummer
      * @param head Seite/Kopfnummer
      * @param sector Sektor
+     * @param sectorSize Größe des Sektors
      */
-    private void checkAndAddDiskGeometry(int cylinder, int head, int sector) {
+    public void checkAndAddDiskGeometry(int cylinder, int head, int sector, int sectorSize) {
         if (cylinder >= diskData.length) {
             addCylinder(cylinder);
         }
@@ -691,6 +286,7 @@ public class FloppyDisk implements StateSavable {
         if ((sector - 1) >= diskData[cylinder][head].length) {
             addSector(cylinder, head, sector);
         }
+        diskData[cylinder][head][sector - 1] = new byte[sectorSize];
     }
 
     /**
@@ -715,6 +311,49 @@ public class FloppyDisk implements StateSavable {
             default:
                 return -1;
         }
+    }
+
+    /**
+     * Gibt die Anzahl der Zylinder zurück.
+     *
+     * @return Anzahl der Zylinder
+     */
+    public int getCylinder() {
+        return diskData.length;
+    }
+
+    /**
+     * Gibt die Anzahl der Köpfe für den angegebenen Zylinder zurück.
+     *
+     * @param cylinder Zylindernummer
+     * @return Anzahl der Köpfe
+     */
+    public int getHeads(int cylinder) {
+        return diskData[cylinder].length;
+    }
+
+    /**
+     * Gibt die Anzahl der Sektroen für den angegebenen Zylinder und Kopf
+     * zurück.
+     *
+     * @param cylinder Zylindernummer
+     * @param head Kopfnummer
+     * @return Anzahl der Sektoren
+     */
+    public int getSectors(int cylinder, int head) {
+        return diskData[cylinder][head].length;
+    }
+
+    /**
+     * Gibt die Datenbytes für den angegebenen Zylinder, Kopf und Sektor zurück.
+     *
+     * @param cylinder Zylindernummer
+     * @param head Kopfnummer
+     * @param sector Sektornummer
+     * @return Sektorgröße in Bytes
+     */
+    public int getSectorSize(int cylinder, int head, int sector) {
+        return diskData[cylinder][head][sector - 1].length;
     }
 
     /**
@@ -754,9 +393,8 @@ public class FloppyDisk implements StateSavable {
             for (int h = 0; h < heads; h++) {
                 int sectors = dis.readInt();
                 for (int s = 0; s < sectors; s++) {
-                    checkAndAddDiskGeometry(t, h, s + 1);
                     int sectorSize = dis.readInt();
-                    diskData[t][h][s] = new byte[sectorSize];
+                    checkAndAddDiskGeometry(t, h, s + 1, sectorSize);
                     dis.read(diskData[t][h][s]);
                 }
             }

@@ -2,7 +2,7 @@
  * UA857.java
  * 
  * Diese Datei gehört zum Projekt A7100 Emulator 
- * Copyright (c) 2011-2015 Dirk Bräuer
+ * Copyright (c) 2011-2016 Dirk Bräuer
  *
  * Der A7100 Emulator ist Freie Software: Sie können ihn unter den Bedingungen
  * der GNU General Public License, wie von der Free Software Foundation,
@@ -23,24 +23,29 @@
  *              - Interface IC implementiert
  *   12.12.2014 - Reset implementiert
  *   09.08.2015 - Javadoc korrigiert
+ *   05.12.2015 - Zugriffe auf KGS abstrahiert
+ *   30.12.2015 - Modul final gesetzt
+ *   26.03.2015 - Kommentare überarbeitet
+ *              - COUNTER Modus implementiert
+ *              - Weiterlaufen sichergestellt
+ *              - Von IC abgeleitet
+ *   02.02.2016 - Override Annotation hinzugefügt
  */
 package a7100emulator.components.ic;
 
 import a7100emulator.Tools.BitTest;
 import a7100emulator.Tools.StateSavable;
-import a7100emulator.components.modules.KGS;
+import a7100emulator.components.modules.SubsystemModule;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 
 /**
- * Klasse zur Realisierung des U857 CTC
- * <p>
- * TODO: Diese Klasse ist noch nicht vollständig implementiert
+ * Klasse zur Realisierung des U857 CTC.
  *
  * @author Dirk Bräuer
  */
-public class UA857 {
+public class UA857 implements IC {
 
     /**
      * Zähler
@@ -51,19 +56,17 @@ public class UA857 {
      */
     private int interruptVector;
     /**
-     * Zeiger auf KGS.
-     * <p>
-     * TODO: Referenz ersetzen oder verallgemeinern
+     * Zeiger auf UA880 Modul
      */
-    private KGS kgs;
+    private final SubsystemModule module;
 
     /**
-     * Erzeugt einen neuen CTC.
+     * Erzeugt einen neuen CTC und legt die einzelnen Zähler neu an.
      *
-     * @param kgs Referenz zur KGS
+     * @param module Referenz zum Modul
      */
-    public UA857(KGS kgs) {
-        this.kgs = kgs;
+    public UA857(SubsystemModule module) {
+        this.module = module;
         for (int i = 0; i < 4; i++) {
             counter[i] = new Counter(i);
         }
@@ -106,11 +109,12 @@ public class UA857 {
     }
 
     /**
-     * Speichert den Zustand des CTC in einer Datei
+     * Speichert den Zustand des CTC in einer Datei.
      *
      * @param dos Stream zur Datei
      * @throws IOException Wenn Schreiben nicht erfolgreich war
      */
+    @Override
     public void saveState(DataOutputStream dos) throws IOException {
         dos.writeInt(interruptVector);
         for (Counter cnt : counter) {
@@ -119,11 +123,12 @@ public class UA857 {
     }
 
     /**
-     * Liest den Zustand des CTC aus einer Datei
+     * Liest den Zustand des CTC aus einer Datei.
      *
      * @param dis Stream zur Datei
      * @throws IOException Wenn Lesen nicht erfolgreich war
      */
+    @Override
     public void loadState(DataInputStream dis) throws IOException {
         interruptVector = dis.readInt();
         for (Counter cnt : counter) {
@@ -158,7 +163,7 @@ public class UA857 {
         private int value;
         /**
          * Gibt an, ob mit dem nächsten Kommando eine Zeitkonstante gesendet
-         * wird
+         * wird.
          */
         private boolean timeConstantFollowing = false;
         /**
@@ -186,13 +191,15 @@ public class UA857 {
          */
         public void setControlWord(int data) {
             if (timeConstantFollowing) {
-                timeConstant = data;
+                timeConstant = (data == 0) ? 256 : data;
+                if (!running) {
                 value = data;
-//                System.out.println("Time Constant " + id + ": " + Integer.toBinaryString(data));
+                }
                 timeConstantFollowing = false;
                 if (!BitTest.getBit(controlWord, 3)) {
                     running = true;
                 }
+//                System.out.println("Time Constant " + id + ": " + timeConstant);
             } else {
                 controlWord = data;
 //                System.out.print("Control Word " + id + ": " + Integer.toBinaryString(data));
@@ -213,9 +220,9 @@ public class UA857 {
         }
 
         /**
-         * Liest den Wert des Counters
+         * Liest den Wert des Counters.
          *
-         * @return
+         * @return Zählerwert
          */
         public int readValue() {
             return value;
@@ -227,22 +234,25 @@ public class UA857 {
          * @param amount Anzahl der Ticks
          */
         private void updateClock(int amount) {
-            // TODO: Counter-Modus, weiterzählen
             if (running) {
                 buffer += amount;
+
+                if (BitTest.getBit(controlWord, 6)) {
+                    // COUNTER
+                    value -= amount;
+                    buffer -= amount;
+                } else {
+                    // TIMER
                 int prescaler = BitTest.getBit(controlWord, 5) ? 8 : 4;
                 value -= buffer >> prescaler;
                 buffer -= (buffer >> prescaler) << prescaler;
-                if (buffer < 0) {
-                    buffer = 0;
                 }
+
                 if (value <= 0) {
-                    value = timeConstant;
-                    //System.out.println("Zähler " + id + " 0");
+                    value += timeConstant;
                     if (BitTest.getBit(controlWord, 7)) {
                         // Interrupt
-                        kgs.requestInterrupt((interruptVector & 0xF8) | (id << 1));
-                        running = false;
+                        module.requestInterrupt((interruptVector & 0xF8) | (id << 1));
                     }
                 }
             }

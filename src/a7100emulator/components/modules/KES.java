@@ -29,13 +29,15 @@ package a7100emulator.components.modules;
 
 import a7100emulator.Tools.BitTest;
 import a7100emulator.Tools.Memory;
-import a7100emulator.components.system.*;
+import a7100emulator.components.system.FloppyDrive;
+import a7100emulator.components.system.GlobalClock;
+import a7100emulator.components.system.MMS16Bus;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 
 /**
- * Klasse zur Abbildung der KES (Kontroller für Externspeicher)
+ * Klasse zur Abbildung des KES (Kontroller für Externspeicher)
  * <p>
  * TODO: Lesen von einseitigen Disketten funktioniert nicht.
  *
@@ -306,7 +308,7 @@ public final class KES implements IOModule, ClockModule {
                         status |= 0x08;
                         // Laufwerksnummer
                         status |= (driveNr & 0x03) << 4;
-                        status |= (drive.getDiskInsert()) ? 0x00 : 0xC0;
+                        status |= (drive.isDiskInsert()) ? 0x00 : 0xC0;
 
                         drive.setCylinder(cylinder & 0x7FFF);
                         drive.setDoubleStep(BitTest.getBit(cylinder, 15));
@@ -338,8 +340,8 @@ public final class KES implements IOModule, ClockModule {
                     status |= (driveNr & 0x03) << 4;
                     // Hard Error
                     mms16.writeMemoryByte(memAddr + 0x0, 0);
-                    mms16.writeMemoryByte(memAddr + 0x1, (drive.getDiskInsert()) ? 0x00 : 0x40);
-                    status |= (drive.getDiskInsert()) ? 0x00 : 0xC0;
+                    mms16.writeMemoryByte(memAddr + 0x1, (drive.isDiskInsert()) ? 0x00 : 0x40);
+                    status |= (drive.isDiskInsert()) ? 0x00 : 0xC0;
                     // Soft Error
                     mms16.writeMemoryByte(memAddr + 0x2, 0);
                     // Verlangter Zylinder
@@ -438,7 +440,7 @@ public final class KES implements IOModule, ClockModule {
                         break;
                     case 0x03:
                         FloppyDrive drive = afs.getFloppy(driveNr & 0x03);
-                        byte[] data = drive.readData(cylinder, sector, head, byteCnt);
+                        byte[] data = drive.readData(cylinder, head, sector, byteCnt);
 //                        String ascii = "";
                         for (int i = 0; i < data.length; i++) {
                             mms16.writeMemoryByte(memAddr + i, data[i]);
@@ -476,7 +478,7 @@ public final class KES implements IOModule, ClockModule {
                 for (int i = 0; i < data.length; i++) {
                     data[i] = (byte) mms16.readMemoryByte(memAddr + i);
                 }
-                drive.writeData(cylinder, sector, head, data);
+                drive.writeData(cylinder, head, sector, data);
                 mms16.writeMemoryByte(ccbAddress + 0x13, 0xFF);
                 mms16.writeMemoryByte(ccbAddress + 0x11, 0x01);
             }

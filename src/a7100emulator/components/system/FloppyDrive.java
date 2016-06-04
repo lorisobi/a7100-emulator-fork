@@ -2,7 +2,7 @@
  * FloppyDrive.java
  * 
  * Diese Datei gehört zum Projekt A7100 Emulator 
- * Copyright (c) 2011-2015 Dirk Bräuer
+ * Copyright (c) 2011-2016 Dirk Bräuer
  *
  * Der A7100 Emulator ist Freie Software: Sie können ihn unter den Bedingungen
  * der GNU General Public License, wie von der Free Software Foundation,
@@ -25,11 +25,13 @@
  *              - Interface StateSavable implementiert
  *   30.07.2015 - Spurpositionierung und Lesen Sektor Identifikationsfeld
  *                implementiert
+ *   16.08.2015 - Parameterreihenfolge readData und writeData geändert
+ *              - Laden von Binärdateien, Angabe Imagetyp entfernt
  */
 package a7100emulator.components.system;
 
 import a7100emulator.Tools.BitTest;
-import a7100emulator.Tools.FloppyImageType;
+import a7100emulator.Tools.FloppyImageParser;
 import a7100emulator.Tools.StateSavable;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -37,7 +39,7 @@ import java.io.File;
 import java.io.IOException;
 
 /**
- * Klasse zur Realisierung eines Diskettenlaufwerkes
+ * Klasse zur Realisierung eines Diskettenlaufwerkes.
  *
  * @author Dirk Bräuer
  */
@@ -181,15 +183,15 @@ public class FloppyDrive implements StateSavable {
      * Schreibt Daten auf die eingelegte Diskette
      *
      * @param cylinder Zylindernummer
-     * @param sector Sektornummer
      * @param head Kopfnummer
+     * @param sector Sektornummer
      * @param data Daten
      */
-    public void writeData(int cylinder, int sector, int head, byte[] data) {
+    public void writeData(int cylinder, int head, int sector, byte[] data) {
         if (disk == null) {
             return;
         }
-        disk.writeData(cylinder, sector, head, data);
+        disk.writeData(cylinder, head, sector, data);
     }
 
     /**
@@ -208,26 +210,9 @@ public class FloppyDrive implements StateSavable {
      * Lädt eine Diskette aus einer Datei
      *
      * @param file Image
-     * @param imageType Typ der Image-Datei
      */
-    public void loadDiskFromFile(File file, FloppyImageType imageType) {
-        disk = new FloppyDisk(file, imageType);
-    }
-
-    /**
-     * Lädt eine Diskette aus einer Binärdatei unter Verwendung der angegebenen
-     * Parameter
-     *
-     * @param file Image
-     * @param cylinders Anzahl der Zylinder
-     * @param heads Anzahl der Köpfe
-     * @param sectorsPerTrack Anzahl der Sektoren pro Spur
-     * @param bytesPerSector Anzahl der Bytes pro Sektor
-     * @param sectorsInTrack0 Anzahl der Sektoren in Spur 0
-     * @param bytesPerSectorTrack0 Anzahl der Bytes pro Sektor in Spur 0
-     */
-    public void loadDiskFromFile(File file, int cylinders, int heads, int sectorsPerTrack, int bytesPerSector, int sectorsInTrack0, int bytesPerSectorTrack0) {
-        disk = new FloppyDisk(file, cylinders, heads, sectorsPerTrack, bytesPerSector, sectorsInTrack0, bytesPerSectorTrack0);
+    public void loadDiskFromFile(File file) {
+        disk = FloppyImageParser.loadDiskFromImageFile(file);
     }
 
     /**
@@ -241,16 +226,16 @@ public class FloppyDrive implements StateSavable {
      * Liest Daten von der Diskette
      *
      * @param cylinder Zylindernummer
-     * @param sector Sketornummer
      * @param head Kopfnummer
+     * @param sector Sketornummer
      * @param cnt Anzahl der zu lesenden Bytes
      * @return gelesene Daten
      */
-    public byte[] readData(int cylinder, int sector, int head, int cnt) {
+    public byte[] readData(int cylinder, int head, int sector, int cnt) {
         if (disk == null) {
             return null;
         }
-        return disk.readData(cylinder, sector, head, cnt);
+        return disk.readData(cylinder, head, sector, cnt);
     }
 
     /**
@@ -459,7 +444,7 @@ public class FloppyDrive implements StateSavable {
      *
      * @return true - wenn Diskette eingelegt , false - sonst
      */
-    public boolean getDiskInsert() {
+    public boolean isDiskInsert() {
         return disk != null;
     }
 
