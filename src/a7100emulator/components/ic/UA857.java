@@ -253,7 +253,6 @@ public class UA857 implements IC {
                     if (BitTest.getBit(controlWord, 7)) {
                         // Interrupt
                         module.requestInterrupt((interruptVector & 0xF8) | (id << 1));
-                        running=false;
                     }
                 }
             }

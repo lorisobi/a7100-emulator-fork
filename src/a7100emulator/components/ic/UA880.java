@@ -774,10 +774,10 @@ public class UA880 implements IC {
         // HACK - HACK - HACK - HACK
         // TODO: So bald als möglich entfernen
         // Diese Anweisung täuscht dem ACT einen erfolgreichen DMA Test vor!
-        if ((pc == 0x037B) && module instanceof KES) {
-            a = 0;
-            System.out.println("HACK: Erfolgreicher DMA Test!");
-        }
+//        if ((pc == 0x037B) && module instanceof KES) {
+//            a = 0;
+//            System.out.println("HACK: Erfolgreicher DMA Test!");
+//        }
 
         int opcode = module.readLocalByte(pc++);
         if (debug) {
