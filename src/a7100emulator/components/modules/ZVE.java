@@ -46,9 +46,9 @@ import java.io.IOException;
 import javax.swing.JOptionPane;
 
 /**
- * Klasse zur Abbildung der ZVE (Zentrale Verarbeitungeinheit)
+ * Klasse zur Abbildung der ZVE (Zentrale Verarbeitungeinheit).
  *
- * @author Dirk
+ * @author Dirk Bräuer
  */
 public final class ZVE implements IOModule, MemoryModule, ClockModule {
 
@@ -377,6 +377,7 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
      */
     @Override
     public void writeByte(int address, int data) {
+        // TODO: Diese Exceptions durch richtige Fehlerbehandlung ersetzen
         throw new IllegalArgumentException("Cannot Write to ZVE-ROM");
     }
 
@@ -389,6 +390,7 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
      */
     @Override
     public void writeWord(int address, int data) {
+        // TODO: Diese Exceptions durch richtige Fehlerbehandlung ersetzen
         throw new IllegalArgumentException("Cannot Write to ZVE-ROM");
     }
 

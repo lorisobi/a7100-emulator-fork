@@ -79,8 +79,8 @@ public class Decoder {
      *
      * @param filename Dateiname für LOG-Datei
      * @param useCS    <code>true</code> wenn die Adressangabe aufgeteilt in
-     *                 segment:offset erfolgen soll
-     * @param ident    Bezeichner des Decoders (bspw. Modulname)
+     * segment:offset erfolgen soll
+     * @param ident Bezeichner des Decoders (bspw. Modulname)
      */
     public Decoder(String filename, boolean useCS, String ident) {
         this.filename = filename;
@@ -106,17 +106,16 @@ public class Decoder {
 
     /**
      * Speichert die Decoder-Informationen in einer Datei.
+     *
+     * @throws java.io.FileNotFoundException Wenn beim Speichern der Decoder
+     * Informationen ein Fehler auftritt
      */
-    public void save() {
-        try {
-            PrintStream decoderFile = new PrintStream(new FileOutputStream("./debug/" + filename + "_decoder.log"));
-            for (String[] decoderLine : decoder.values()) {
-                decoderFile.println(decoderLine[0] + " " + decoderLine[1] + (decoderLine[2].isEmpty() ? "" : (" (" + decoderLine[2] + ")")));
-            }
-            decoderFile.close();
-        } catch (FileNotFoundException ex) {
-            Logger.getLogger(Decoder.class.getName()).log(Level.SEVERE, null, ex);
+    public void save() throws FileNotFoundException {
+        PrintStream decoderFile = new PrintStream(new FileOutputStream("./debug/" + filename + "_decoder.log"));
+        for (String[] decoderLine : decoder.values()) {
+            decoderFile.println(decoderLine[0] + " " + decoderLine[1] + (decoderLine[2].isEmpty() ? "" : (" (" + decoderLine[2] + ")")));
         }
+        decoderFile.close();
     }
 
     /**
@@ -201,7 +200,7 @@ public class Decoder {
         /**
          * Gibt an ob die gewählte Zelle editierbar ist
          *
-         * @param row    Zeilennummer
+         * @param row Zeilennummer
          * @param column Spaltennummer
          * @return true - wenn editierbar , false - sonst
          */
@@ -213,7 +212,7 @@ public class Decoder {
         /**
          * Gibt das Objekt an der gegebenen Poision zurück
          *
-         * @param row    Zeilennummer
+         * @param row Zeilennummer
          * @param column Spaltennummer
          * @return Objekt der Zelle
          */
@@ -230,8 +229,8 @@ public class Decoder {
         /**
          * Setzt das Objekt der Zelle
          *
-         * @param value  Objekt
-         * @param row    Zeilennummer
+         * @param value Objekt
+         * @param row Zeilennummer
          * @param column Spaltennummer
          */
         @Override

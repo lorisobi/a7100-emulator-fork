@@ -24,6 +24,7 @@
  *              - Interface StateSavable implementiert
  *   28.07.2015 - Lesen von Wörtern zwischen Modulgrenzen ermöglicht
  *   25.07.2016 - timeout bei reset hinzugefügt
+ *   29.07.2016 - IOException beim Speichern des Systemspeichers hinzugefügt
  */
 package a7100emulator.components.system;
 
@@ -239,18 +240,15 @@ public class MMS16Bus implements StateSavable {
      * Schreibt den Inhalt des Speichers in eine Datei.
      *
      * @param filename Dateiname
+     * @throws IOException Wenn das Speichern des Speicherinhalts auf dem
+     * Datenträger nicht erfolgreich war
      */
-    public void dumpSystemMemory(String filename) {
-        FileOutputStream fos;
-        try {
-            fos = new FileOutputStream(filename);
-            for (int i = 0; i <= MAX_ADDRESS; i++) {
-                fos.write(readMemoryByte(i));
-            }
-            fos.close();
-        } catch (IOException ex) {
-            Logger.getLogger(MMS16Bus.class.getName()).log(Level.SEVERE, null, ex);
+    public void dumpSystemMemory(String filename) throws IOException {
+        FileOutputStream fos = new FileOutputStream(filename);
+        for (int i = 0; i <= MAX_ADDRESS; i++) {
+            fos.write(readMemoryByte(i));
         }
+        fos.close();
     }
 
     /**

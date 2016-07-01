@@ -24,6 +24,7 @@
  *   18.12.2014 - Parity Hack ergänzt
  *   03.01.2015 - Parität setzen durch Modulo Rechnung überarbeitet
  *              - Fehler Paritätsprüfung behoben und Parity Hack entfernt
+ *   37.07.2016 - Ports für alle Module in Array zusammengefasst
  */
 package a7100emulator.components.modules;
 
@@ -65,24 +66,9 @@ public final class OPS implements IOModule, MemoryModule {
     public static int ops_count = 0;
 
     /**
-     * Port der 1. OPS
+     * Ports für die vier möglichen OPS-Module
      */
-    private final static int PORT_OPS_1_PES = 0x00;
-
-    /**
-     * Port der 2. OPS
-     */
-    private final static int PORT_OPS_2_PES = 0x02;
-
-    /**
-     * Port der 3. OPS
-     */
-    private final static int PORT_OPS_3_PES = 0x40;
-
-    /**
-     * Port der 4. OPS
-     */
-    private final static int PORT_OPS_4_PES = 0x42;
+    private final static int[] PORT_OPS_PES = new int[]{0x00, 0x02, 0x40, 0x42};
 
     /**
      * Nummer der OPS
@@ -115,7 +101,8 @@ public final class OPS implements IOModule, MemoryModule {
     private int state = 0x0F;
 
     /**
-     * Erstellt eine neue OPS
+     * Erstellt ein neues OPS-Modul. Die Gesamtanzahl der OPS-Module wird erhöht
+     * und das entsprechende Modul angelegt.
      */
     public OPS() {
         ops_id = ops_count++;
@@ -123,40 +110,31 @@ public final class OPS implements IOModule, MemoryModule {
     }
 
     /**
-     * Registriert die Ports im System
+     * Registriert die Ports des OPS im System. Für jede OPS wird im
+     * E/A-Adressraum nur ein Port registriert. Über diesen Port kann die
+     * Parität des Moduls festgelegt werden.
      */
     @Override
     public void registerPorts() {
-        switch (ops_id) {
-            case 0:
-                MMS16Bus.getInstance().registerIOPort(this, PORT_OPS_1_PES);
-                break;
-            case 1:
-                MMS16Bus.getInstance().registerIOPort(this, PORT_OPS_2_PES);
-                break;
-            case 2:
-                MMS16Bus.getInstance().registerIOPort(this, PORT_OPS_3_PES);
-                break;
-            case 3:
-                MMS16Bus.getInstance().registerIOPort(this, PORT_OPS_4_PES);
-                break;
-        }
+        MMS16Bus.getInstance().registerIOPort(this, PORT_OPS_PES[ops_id]);
     }
 
     /**
-     * Gibt ein Byte auf einem Port aus
+     * Gibt ein Byte auf einem Port des OPS aus.
      *
      * @param port Port
      * @param data Daten
      */
     @Override
     public void writePortByte(int port, int data) {
-        if ((data % 2) == 0) {
-            parity = Parity.EVEN;
-        } else {
-            parity = Parity.ODD;
+        if (port == PORT_OPS_PES[ops_id]) {
+            if ((data % 2) == 0) {
+                parity = Parity.EVEN;
+            } else {
+                parity = Parity.ODD;
+            }
+            state = 0x0F;
         }
-        state = 0x0F;
     }
 
     /**
@@ -178,7 +156,10 @@ public final class OPS implements IOModule, MemoryModule {
      */
     @Override
     public int readPortByte(int port) {
-        return state;
+        if (port == PORT_OPS_PES[ops_id]) {
+            return state;
+        }
+        return 0;
     }
 
     /**

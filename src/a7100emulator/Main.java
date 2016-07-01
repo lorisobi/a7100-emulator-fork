@@ -46,5 +46,4 @@ public class Main {
         MainView mainView = new MainView(a7100);
         mainView.showMainView();
     }
-
 }

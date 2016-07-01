@@ -33,6 +33,7 @@
  *              - localClockUpdate() bis auf CTC ohne Funktion
  *              - Speichern von Quartz-Informationen 
  *   28.07.2016 - Methode getDecoder() hinzugefügt
+ *   29.07.2016 - IOException beim Speichern des KGS-Rams hinzugefügt
  */
 package a7100emulator.components.modules;
 
@@ -474,19 +475,16 @@ public final class KGS implements IOModule, ClockModule, SubsystemModule {
     }
 
     /**
-     * Schreibt den Inhalt des KGS-RAM in eine Datei
+     * Schreibt den Inhalt des KGS-RAM in eine Datei.
      *
      * @param filename Dateiname
+     * @throws java.io.IOException Wenn das Speichern des Speicherninhaltes auf
+     * dem Datenträger nicht erfolgreich war
      */
-    public void dumpLocalMemory(String filename) {
-        DataOutputStream dos;
-        try {
-            dos = new DataOutputStream(new FileOutputStream(filename));
-            ram.saveMemory(dos);
-            dos.close();
-        } catch (IOException ex) {
-            Logger.getLogger(KGS.class.getName()).log(Level.SEVERE, null, ex);
-        }
+    public void dumpLocalMemory(String filename) throws IOException {
+        DataOutputStream dos = new DataOutputStream(new FileOutputStream(filename));
+        ram.saveMemory(dos);
+        dos.close();
     }
 
     /**
@@ -708,7 +706,7 @@ public final class KGS implements IOModule, ClockModule, SubsystemModule {
      * Gibt die Instanz des CPU Decoders zurück.
      *
      * @return Decoderinstanz oder <code>null</code> wenn kein Decoder
-     *         initialisiert ist.
+     * initialisiert ist.
      */
     public Decoder getDecoder() {
         return cpu.getDecoder();

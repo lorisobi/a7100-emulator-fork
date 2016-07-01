@@ -191,22 +191,20 @@ public class SCPFile {
      * Setzt die Daten der Datei
      *
      * @param data neue Daten
+     * @throws java.security.NoSuchAlgorithmException Wenn die Instanz für
+     * MD5-Hashwertbildung nicht initialisiert werden kann
      */
-    void setData(byte[] data) {
+    void setData(byte[] data) throws NoSuchAlgorithmException {
         this.data = data;
-        try {
-            MessageDigest md5 = MessageDigest.getInstance("MD5");
-            md5.reset();
-            md5.update(data);
-            byte[] digest = md5.digest();
-            String digestString = "";
-            for (byte b : digest) {
-                digestString += String.format("%02X", b);
-            }
-            this.md5 = digestString;
-        } catch (NoSuchAlgorithmException ex) {
-            Logger.getLogger(SCPFile.class.getName()).log(Level.SEVERE, null, ex);
+        MessageDigest md5 = MessageDigest.getInstance("MD5");
+        md5.reset();
+        md5.update(data);
+        byte[] digest = md5.digest();
+        String digestString = "";
+        for (byte b : digest) {
+            digestString += String.format("%02X", b);
         }
+        this.md5 = digestString;
     }
 
     /**

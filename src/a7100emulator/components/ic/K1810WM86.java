@@ -49,6 +49,7 @@
  *   26.07.2016 - Überflüssige Codereste entfernt
  *              - Kommentare vervollständigt
  *   28.07.2016 - Decoder Singletoninstanz entfernt
+ *   29.07.2016 - try{} catch {} bei Systembedingten dumps hinzugefügt
  */
 package a7100emulator.components.ic;
 
@@ -62,6 +63,8 @@ import a7100emulator.components.system.MMS16Bus;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Klasse zur Abbildung der CPU K1810WM86.
@@ -4372,7 +4375,11 @@ public final class K1810WM86 implements CPU {
                     debugInfo.setOperands(null);
                 }
                 System.out.println("Befehl WAIT noch nicht implementiert");
-                mms16.dumpSystemMemory("./debug/dump_wait.hex");
+                try {
+                    mms16.dumpSystemMemory("./debug/dump_wait.hex");
+                } catch (IOException ex) {
+                    Logger.getLogger(K1810WM86.class.getName()).log(Level.SEVERE, null, ex);
+                }
                 System.exit(0);
             }
             break;
@@ -4383,7 +4390,11 @@ public final class K1810WM86 implements CPU {
                     debugInfo.setOperands(null);
                 }
                 System.out.println("Befehl LOCK noch nicht implementiert");
-                mms16.dumpSystemMemory("./debug/dump_lock.hex");
+                try {
+                    mms16.dumpSystemMemory("./debug/dump_lock.hex");
+                } catch (IOException ex) {
+                    Logger.getLogger(K1810WM86.class.getName()).log(Level.SEVERE, null, ex);
+                }
                 System.exit(0);
             }
             break;
@@ -6003,8 +6014,12 @@ public final class K1810WM86 implements CPU {
             default:
                 // TODO: Ungültige opcodes ignorieren
                 System.out.println("Nicht implementierter oder ungültiger OPCode " + Integer.toHexString(opcode1) + " bei " + String.format("%04X:%04X", cs, (ip - 1)) + "!");
-                mms16.dumpSystemMemory("./debug/dump_unknown_opcode.hex");
-                decoder.save();
+                try {
+                    mms16.dumpSystemMemory("./debug/dump_unknown_opcode.hex");
+                    decoder.save();
+                } catch (IOException ex) {
+                    Logger.getLogger(K1810WM86.class.getName()).log(Level.SEVERE, null, ex);
+                }
                 System.exit(0);
                 break;
         }
@@ -6129,10 +6144,10 @@ public final class K1810WM86 implements CPU {
      * Addiert die angegebenen 8Bit Operanden und setzt die entsprechenden
      * Flags.
      *
-     * @param op1      Operand 1
-     * @param op2      Operand 2
+     * @param op1 Operand 1
+     * @param op2 Operand 2
      * @param useCarry <code>true</code> - wenn ein gesetztes Carry-Flag
-     *                 berücksichtigt werden soll, <code>false</code> - sonst
+     * berücksichtigt werden soll, <code>false</code> - sonst
      * @return Ergebniss
      */
     private int sub8(int op1, int op2, boolean useCarry) {
@@ -6153,10 +6168,10 @@ public final class K1810WM86 implements CPU {
      * Subtrahiert die angegebenen 16Bit Operanden und setzt die entsprechenden
      * Flags.
      *
-     * @param op1      Operand 1
-     * @param op2      Operand 2
+     * @param op1 Operand 1
+     * @param op2 Operand 2
      * @param useCarry <code>true</code> - wenn ein gesetztes Carry-Flag
-     *                 berücksichtigt werden soll, <code>false</code> - sonst
+     * berücksichtigt werden soll, <code>false</code> - sonst
      * @return Ergebniss
      */
     private int sub16(int op1, int op2, boolean useCarry) {
@@ -6211,10 +6226,10 @@ public final class K1810WM86 implements CPU {
      * Addiert die angegebenen 16Bit Operanden und setzt die entsprechenden
      * Flags.
      *
-     * @param op1      Operand 1
-     * @param op2      Operand 2
+     * @param op1 Operand 1
+     * @param op2 Operand 2
      * @param useCarry <code>true</code> - wenn ein gesetztes Carry-Flag
-     *                 berücksichtigt werden soll, <code>false</code> - sonst
+     * berücksichtigt werden soll, <code>false</code> - sonst
      * @return Ergebniss
      */
     private int add16(int op1, int op2, boolean useCarry) {
@@ -6235,10 +6250,10 @@ public final class K1810WM86 implements CPU {
      * Addiert die angegebenen 8Bit Operanden und setzt die entsprechenden
      * Flags.
      *
-     * @param op1      Operand 1
-     * @param op2      Operand 2
+     * @param op1 Operand 1
+     * @param op2 Operand 2
      * @param useCarry <code>true</code> - wenn ein gesetztes Carry-Flag
-     *                 berücksichtigt werden soll, <code>false</code> - sonst
+     * berücksichtigt werden soll, <code>false</code> - sonst
      * @return Ergebniss
      */
     private int add8(int op1, int op2, boolean useCarry) {
@@ -6314,7 +6329,7 @@ public final class K1810WM86 implements CPU {
      * Gibt das Immediate Byte basierend auf dem MOD/RM-Feld zurück.
      *
      * @param MOD MOD-Feld
-     * @param RM  RM-Feld
+     * @param RM RM-Feld
      * @return Immediate Byte
      */
     private int getImmediate8(int MOD, int RM) {
@@ -6340,7 +6355,7 @@ public final class K1810WM86 implements CPU {
      * Gibt das Immediate Wort basierend auf dem MOD/RM-Feld zurück.
      *
      * @param MOD MOD-Feld
-     * @param RM  RM-Feld
+     * @param RM RM-Feld
      * @return Immediate Wort
      */
     private int getImmediate16(int MOD, int RM) {
@@ -6413,8 +6428,8 @@ public final class K1810WM86 implements CPU {
     /**
      * Liefert einen Debug-String für das Offset entsprechend des MOD/RM-Feldes.
      *
-     * @param MOD      MOD-Feld
-     * @param RM       RM-Feld
+     * @param MOD MOD-Feld
+     * @param RM RM-Feld
      * @param ipOffset Zu berücksichtigender IP-Offset
      * @return Debug-String für Offset
      */
@@ -6472,10 +6487,10 @@ public final class K1810WM86 implements CPU {
      * Berechnet das Offset für einen Speicherzugriff entsprechend des
      * MOD/RM-Feldes.
      *
-     * @param MOD      MOD-Feld
-     * @param RM       RM-Feld
+     * @param MOD MOD-Feld
+     * @param RM RM-Feld
      * @param updateIP Gibt an ob der InstructionPointer aktualisiert werden
-     *                 soll
+     * soll
      * @return Offset
      */
     private int getOffset(int MOD, int RM, boolean updateIP) {
@@ -6655,7 +6670,7 @@ public final class K1810WM86 implements CPU {
      * zurück.
      *
      * @param MOD MOD-Feld
-     * @param RM  RM-Feld
+     * @param RM RM-Feld
      * @return Adresse des Segmentbeginns
      */
     private int getSegmentAddress(int MOD, int RM) {
@@ -6707,7 +6722,7 @@ public final class K1810WM86 implements CPU {
      * MOD/RM-Feldes zurück.
      *
      * @param MOD MOD-Feld
-     * @param RM  RM-Feld
+     * @param RM RM-Feld
      * @return String des Segments
      */
     private String getSegmentAddressAdressString(int MOD, int RM) {
@@ -6757,7 +6772,7 @@ public final class K1810WM86 implements CPU {
     /**
      * Setzt den Inhalt eines 8Bit Registers.
      *
-     * @param reg   Register
+     * @param reg Register
      * @param value Inhalt
      */
     private void setReg8(int reg, int value) {
@@ -6794,7 +6809,7 @@ public final class K1810WM86 implements CPU {
     /**
      * Setzt den Inhalt eines 16Bit Registers.
      *
-     * @param reg   Register
+     * @param reg Register
      * @param value Inhalt
      */
     private void setReg16(int reg, int value) {
@@ -6831,10 +6846,10 @@ public final class K1810WM86 implements CPU {
     /**
      * Gibt ein Byte entsprechend des gesetzten MOD/RM-Feldes zurück.
      *
-     * @param MOD      MOD-Feld
-     * @param RM       RM-Feld
+     * @param MOD MOD-Feld
+     * @param RM RM-Feld
      * @param updateIP <code>true</code> - wenn der Instructionpointer
-     *                 aktualisiert werden soll , <code>false</code> - sonst
+     * aktualisiert werden soll , <code>false</code> - sonst
      * @return gelesenes Byte
      */
     private int getMODRM8(int MOD, int RM, boolean updateIP) {
@@ -6848,10 +6863,10 @@ public final class K1810WM86 implements CPU {
     /**
      * Gibt ein Wort entsprechend des gesetzten MOD/RM-Feldes zurück.
      *
-     * @param MOD      MOD-Feld
-     * @param RM       RM-Feld
+     * @param MOD MOD-Feld
+     * @param RM RM-Feld
      * @param updateIP <code>true</code> - wenn der Instructionpointer
-     *                 aktualisiert werden soll , <code>false</code> - sonst
+     * aktualisiert werden soll , <code>false</code> - sonst
      * @return gelesenes Wort
      */
     private int getMODRM16(int MOD, int RM, boolean updateIP) {
@@ -6866,8 +6881,8 @@ public final class K1810WM86 implements CPU {
      * Gibt einen Debug-String für ein Byte entsprechend des gesetzten
      * MOD/RM-Feldes zurück.
      *
-     * @param MOD      MOD-Feld
-     * @param RM       RM-Feld
+     * @param MOD MOD-Feld
+     * @param RM RM-Feld
      * @param ipOffset Zu berücksichtigender Offset des Instruction Pointers
      * @return Debug-String
      */
@@ -6883,8 +6898,8 @@ public final class K1810WM86 implements CPU {
      * Gibt einen Debug-String für ein Wort entsprechend des gesetzten
      * MOD/RM-Feldes zurück.
      *
-     * @param MOD      MOD-Feld
-     * @param RM       RM-Feld
+     * @param MOD MOD-Feld
+     * @param RM RM-Feld
      * @param ipOffset Zu berücksichtigender Offset des Instruction Pointers
      * @return Debug-String
      */
@@ -6900,11 +6915,11 @@ public final class K1810WM86 implements CPU {
      * Setzt den Wert eines Registers oder eine Speicherzelle basierend auf dem
      * MOD/RM-Feld als Byte.
      *
-     * @param MOD      MOD-Feld
-     * @param RM       RM-Feld
-     * @param value    Daten
+     * @param MOD MOD-Feld
+     * @param RM RM-Feld
+     * @param value Daten
      * @param updateIP <code>true</code> - wenn der Instruction Pointer
-     *                 aktualisiert werden soll, <code>false</code> - sonst
+     * aktualisiert werden soll, <code>false</code> - sonst
      */
     private void setMODRM8(int MOD, int RM, int value, boolean updateIP) {
         if (MOD == MOD_REG) {
@@ -6918,11 +6933,11 @@ public final class K1810WM86 implements CPU {
      * Setzt den Wert eines Registers oder eine Speicherzelle basierend auf dem
      * MOD/RM-Feld als Wort.
      *
-     * @param MOD      MOD-Feld
-     * @param RM       RM-Feld
-     * @param value    Daten
+     * @param MOD MOD-Feld
+     * @param RM RM-Feld
+     * @param value Daten
      * @param updateIP <code>true</code> - wenn der Instruction Pointer
-     *                 aktualisiert werden soll, <code>false</code> - sonst
+     * aktualisiert werden soll, <code>false</code> - sonst
      */
     private void setMODRM16(int MOD, int RM, int value, boolean updateIP) {
         if (MOD == MOD_REG) {
@@ -6936,11 +6951,10 @@ public final class K1810WM86 implements CPU {
      * Liefert einen Debugstring mit der Berechneten Adresse eines MOD/RM
      * Feldes.
      *
-     * @param MOD      MOD-Feld
-     * @param RM       RM-Feld
+     * @param MOD MOD-Feld
+     * @param RM RM-Feld
      * @param ipOffset zu berücksichtigender IP-Offset, dies kann durch
-     *                 vorheriges verändern des Instruction Pointers notwendig
-     *                 sein
+     * vorheriges verändern des Instruction Pointers notwendig sein
      * @return String mit Adressinformationen
      */
     private String getAddressMODRMDebugString(int MOD, int RM, int ipOffset) {
@@ -6952,10 +6966,10 @@ public final class K1810WM86 implements CPU {
     /**
      * Liefert eine Adresse anhand des MOD/RM Feldes
      *
-     * @param MOD      MOD-Feld
-     * @param RM       RM-Feld
+     * @param MOD MOD-Feld
+     * @param RM RM-Feld
      * @param updateIP Gibt an, ob der Instruction-Pointer aktualisiert werden
-     *                 soll
+     * soll
      * @return Berechnete Adresse
      */
     private int getAddressMODRM(int MOD, int RM, boolean updateIP) {
@@ -6969,7 +6983,7 @@ public final class K1810WM86 implements CPU {
      * MOD/RM Feldes
      *
      * @param MOD MOD-Feld
-     * @param RM  RM-Feld
+     * @param RM RM-Feld
      * @return Anzahl der benötigten Takte
      */
     private int getOpcodeCyclesEA(int MOD, int RM) {
@@ -7031,7 +7045,7 @@ public final class K1810WM86 implements CPU {
     /**
      * Setzt ein Segmentregister.
      *
-     * @param SREG  Segmentregister
+     * @param SREG Segmentregister
      * @param value Neuer Wert
      */
     private void setSReg(int SREG, int value) {
@@ -7076,7 +7090,7 @@ public final class K1810WM86 implements CPU {
      *
      * @param flag Zu prüfendes Flag
      * @return <code>true</code> - wenn Flag gesetzt , <code>false</code> -
-     *         sonst
+     * sonst
      */
     private boolean getFlag(int flag) {
         return (flags & flag) != 0;
@@ -7436,7 +7450,7 @@ public final class K1810WM86 implements CPU {
      * Aktiviert oder deaktiviert den Debugger.
      *
      * @param debug <code>true</code> zum Aktivierendes Debuggers,
-     *              <code>false</code> zum Deaktivieren des Debuggers
+     * <code>false</code> zum Deaktivieren des Debuggers
      */
     @Override
     public void setDebug(boolean debug) {
@@ -7447,7 +7461,7 @@ public final class K1810WM86 implements CPU {
      * Gibt die Instanz des Decoders zurück.
      *
      * @return Decoderinstanz oder <code>null</code> wenn kein Decoder
-     *         initialisiert ist.
+     * initialisiert ist.
      */
     @Override
     public Decoder getDecoder() {

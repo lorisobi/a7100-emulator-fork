@@ -98,7 +98,8 @@ import java.util.LinkedList;
  * <ul>
  * <li>Tastaturtyp K7672 noch nicht implementiert</li>
  * <li>Wenige Tasten noch nicht implementiert</li>
- * <li>Selbsttest-Verzögerung überarbeitet</li>
+ * <li>Selbsttest-Verzögerung überarbeiten</li>
+ * <li>Break funktioniert im SCP nicht</li>
  * </ul>
  *
  * @author Dirk Bräuer

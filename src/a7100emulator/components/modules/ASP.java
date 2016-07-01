@@ -20,6 +20,7 @@
  * Letzte Änderungen:
  *   02.04.2014 - Kommentare vervollständigt
  *   09.08.2014 - Zugriffe auf SystemPorts durch MMS16Bus ersetzt
+ *   31.07.2016 - Ports für alle Module zusammengefasst
  */
 package a7100emulator.components.modules;
 
@@ -42,141 +43,73 @@ public final class ASP implements IOModule {
      */
     public static int asp_count = 0;
     /**
-     * 1. ASP - Port aktiviere Interrupt
+     * ASP - Ports aktiviere Interrupt
      */
-    private final static int PORT_ASP_1_ENABLE_INTERRUPT = 0x300;
+    private final static int[] PORT_ASP_ENABLE_INTERRUPT = new int[]{0x300, 0x320};
     /**
-     * 1. ASP - BOS1810 spezifischer Port
+     * ASP - BOS1810 spezifische Ports
      */
-    private final static int PORT_ASP_1_BOS1810 = 0x301;
+    private final static int[] PORT_ASP_BOS1810 = new int[]{0x301, 0x321};
     /**
-     * 1. ASP - Port Kommando RETI
+     * ASP - Ports Kommando RETI
      */
-    private final static int PORT_ASP_1_RETI = 0x302;
+    private final static int[] PORT_ASP_RETI = new int[]{0x302, 0x322};
     /**
-     * 1. ASP - Port Testbetrieb
+     * ASP - Ports Testbetrieb
      */
-    private final static int PORT_ASP_1_TEST = 0x304;
+    private final static int[] PORT_ASP_TEST = new int[]{0x304, 0x324};
     /**
-     * 1. ASP - Port Steuersignale IFSP
+     * ASP - Ports Steuersignale IFSP
      */
-    private final static int PORT_ASP_1_CONTROL = 0x306;
+    private final static int[] PORT_ASP_CONTROL = new int[]{0x306, 0x326};
     /**
-     * 1. ASP - Port PIO Port A - Daten
+     * ASP - Ports PIO Port A - Daten
      */
-    private final static int PORT_ASP_1_U855_PORT_A_DATA = 0x308;
+    private final static int[] PORT_ASP_U855_PORT_A_DATA = new int[]{0x308, 0x328};
     /**
-     * 1. ASP - Port PIO Port B - Daten
+     * ASP - Ports PIO Port B - Daten
      */
-    private final static int PORT_ASP_1_U855_PORT_B_DATA = 0x30A;
+    private final static int[] PORT_ASP_U855_PORT_B_DATA = new int[]{0x30A, 0x32A};
     /**
-     * 1. ASP - Port PIO Port A - Initialisierung
+     * ASP - Ports PIO Port A - Initialisierung
      */
-    private final static int PORT_ASP_1_U855_PORT_A_INIT = 0x30C;
+    private final static int[] PORT_ASP_U855_PORT_A_INIT = new int[]{0x30C, 0x32C};
     /**
-     * 1. ASP - Port PIO Port B - Initialisierung
+     * ASP - Ports PIO Port B - Initialisierung
      */
-    private final static int PORT_ASP_1_U855_PORT_B_INIT = 0x30E;
+    private final static int[] PORT_ASP_U855_PORT_B_INIT = new int[]{0x30E, 0x32E};
     /**
-     * 1. ASP - Port CTC - Kanal 0
+     * ASP - Ports CTC - Kanal 0
      */
-    private final static int PORT_ASP_1_U857_TIMER_0 = 0x310;
+    private final static int[] PORT_ASP_U857_TIMER_0 = new int[]{0x310, 0x330};
     /**
-     * 1. ASP - Port CTC - Kanal 1
+     * ASP - Ports CTC - Kanal 1
      */
-    private final static int PORT_ASP_1_U857_TIMER_1 = 0x312;
+    private final static int[] PORT_ASP_U857_TIMER_1 = new int[]{0x312, 0x332};
     /**
-     * 1. ASP - Port CTC - Kanal 2
+     * ASP - Ports CTC - Kanal 2
      */
-    private final static int PORT_ASP_1_U857_TIMER_2 = 0x314;
+    private final static int[] PORT_ASP_U857_TIMER_2 = new int[]{0x314, 0x334};
     /**
-     * 1. ASP - Port CTC - Kanal 3
+     * ASP - Ports CTC - Kanal 3
      */
-    private final static int PORT_ASP_1_U857_TIMER_3 = 0x316;
+    private final static int[] PORT_ASP_U857_TIMER_3 = new int[]{0x316, 0x336};
     /**
-     * 1. ASP - Port SIO - Daten Kanal A
+     * ASP - Ports SIO - Daten Kanal A
      */
-    private final static int PORT_ASP_1_U856_DATA_V24 = 0x318;
+    private final static int[] PORT_ASP_U856_DATA_V24 = new int[]{0x318, 0x338};
     /**
-     * 1. ASP - Port SIO - Daten Kanal B
+     * ASP - Ports SIO - Daten Kanal B
      */
-    private final static int PORT_ASP_1_U856_DATA_IFSS = 0x31A;
+    private final static int[] PORT_ASP_U856_DATA_IFSS = new int[]{0x31A, 0x33A};
     /**
-     * 1. ASP - Port SIO - Steuerung Kanal A
+     * ASP - Ports SIO - Steuerung Kanal A
      */
-    private final static int PORT_ASP_1_U856_CONTROL_V24 = 0x31C;
+    private final static int[] PORT_ASP_U856_CONTROL_V24 = new int[]{0x31C, 0x33C};
     /**
-     * 1. ASP - Port SIO - Steuerung Kanal B
+     * ASP - Ports SIO - Steuerung Kanal B
      */
-    private final static int PORT_ASP_1_U856_CONTROL_IFSS_V24 = 0x31E;
-    /**
-     * 2. ASP - Port aktiviere Interrupt
-     */
-    private final static int PORT_ASP_2_ENABLE_INTERRUPT = 0x320;
-    /**
-     * 2. ASP - BOS1810 spezifischer Port
-     */
-    private final static int PORT_ASP_2_BOS1810 = 0x321;
-    /**
-     * 2. ASP - Port Kommando RETI
-     */
-    private final static int PORT_ASP_2_RETI = 0x322;
-    /**
-     * 2. ASP - Port Testbetrieb
-     */
-    private final static int PORT_ASP_2_TEST = 0x324;
-    /**
-     * 2. ASP - Port Steuersignale IFSP
-     */
-    private final static int PORT_ASP_2_CONTROL = 0x326;
-    /**
-     * 2. ASP - Port PIO Port A - Daten
-     */
-    private final static int PORT_ASP_2_U855_PORT_A_DATA = 0x328;
-    /**
-     * 2. ASP - Port PIO Port B - Daten
-     */
-    private final static int PORT_ASP_2_U855_PORT_B_DATA = 0x32A;
-    /**
-     * 2. ASP - Port PIO Port A - Initialisierung
-     */
-    private final static int PORT_ASP_2_U855_PORT_A_INIT = 0x32C;
-    /**
-     * 2. ASP - Port PIO Port B - Initialisierung
-     */
-    private final static int PORT_ASP_2_U855_PORT_B_INIT = 0x32E;
-    /**
-     * 2. ASP - Port CTC - Kanal 0
-     */
-    private final static int PORT_ASP_2_U857_TIMER_0 = 0x330;
-    /**
-     * 2. ASP - Port CTC - Kanal 1
-     */
-    private final static int PORT_ASP_2_U857_TIMER_1 = 0x332;
-    /**
-     * 2. ASP - Port CTC - Kanal 2
-     */
-    private final static int PORT_ASP_2_U857_TIMER_2 = 0x334;
-    /**
-     * 2. ASP - Port CTC - Kanal 3
-     */
-    private final static int PORT_ASP_2_U857_TIMER_3 = 0x336;
-    /**
-     * 2. ASP - Port SIO - Daten Kanal A
-     */
-    private final static int PORT_ASP_2_U856_DATA_V24 = 0x338;
-    /**
-     * 2. ASP - Port SIO - Daten Kanal B
-     */
-    private final static int PORT_ASP_2_U856_DATA_IFSS = 0x33A;
-    /**
-     * 2. ASP - Port SIO - Steuerung Kanal A
-     */
-    private final static int PORT_ASP_2_U856_CONTROL_V24 = 0x33C;
-    /**
-     * 2. ASP - Port SIO - Steuerung Kanal B
-     */
-    private final static int PORT_ASP_2_U856_CONTROL_IFSS_V24 = 0x33E;
+    private final static int[] PORT_ASP_U856_CONTROL_IFSS_V24 = new int[]{0x31E, 0x33E};
     /**
      * ID der ASP
      */
@@ -195,47 +128,23 @@ public final class ASP implements IOModule {
      */
     @Override
     public void registerPorts() {
-
-        switch (asp_id) {
-            case 1:
-                MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_1_ENABLE_INTERRUPT);
-                MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_1_BOS1810);
-                MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_1_RETI);
-                MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_1_TEST);
-                MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_1_CONTROL);
-                MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_1_U855_PORT_A_DATA);
-                MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_1_U855_PORT_B_DATA);
-                MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_1_U855_PORT_A_INIT);
-                MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_1_U855_PORT_B_INIT);
-                MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_1_U857_TIMER_0);
-                MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_1_U857_TIMER_1);
-                MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_1_U857_TIMER_2);
-                MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_1_U857_TIMER_3);
-                MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_1_U856_DATA_V24);
-                MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_1_U856_DATA_IFSS);
-                MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_1_U856_CONTROL_V24);
-                MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_1_U856_CONTROL_IFSS_V24);
-                break;
-            case 2:
-                MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_2_ENABLE_INTERRUPT);
-                MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_2_BOS1810);
-                MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_2_RETI);
-                MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_2_TEST);
-                MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_2_CONTROL);
-                MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_2_U855_PORT_A_DATA);
-                MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_2_U855_PORT_B_DATA);
-                MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_2_U855_PORT_A_INIT);
-                MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_2_U855_PORT_B_INIT);
-                MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_2_U857_TIMER_0);
-                MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_2_U857_TIMER_1);
-                MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_2_U857_TIMER_2);
-                MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_2_U857_TIMER_3);
-                MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_2_U856_DATA_V24);
-                MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_2_U856_DATA_IFSS);
-                MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_2_U856_CONTROL_V24);
-                MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_2_U856_CONTROL_IFSS_V24);
-                break;
-        }
+        MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_ENABLE_INTERRUPT[asp_id]);
+        MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_BOS1810[asp_id]);
+        MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_RETI[asp_id]);
+        MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_TEST[asp_id]);
+        MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_CONTROL[asp_id]);
+        MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_U855_PORT_A_DATA[asp_id]);
+        MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_U855_PORT_B_DATA[asp_id]);
+        MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_U855_PORT_A_INIT[asp_id]);
+        MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_U855_PORT_B_INIT[asp_id]);
+        MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_U857_TIMER_0[asp_id]);
+        MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_U857_TIMER_1[asp_id]);
+        MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_U857_TIMER_2[asp_id]);
+        MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_U857_TIMER_3[asp_id]);
+        MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_U856_DATA_V24[asp_id]);
+        MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_U856_DATA_IFSS[asp_id]);
+        MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_U856_CONTROL_V24[asp_id]);
+        MMS16Bus.getInstance().registerIOPort(this, PORT_ASP_U856_CONTROL_IFSS_V24[asp_id]);
     }
 
     /**
@@ -246,41 +155,24 @@ public final class ASP implements IOModule {
      */
     @Override
     public void writePortByte(int port, int data) {
-        switch (port) {
-            case PORT_ASP_1_ENABLE_INTERRUPT:
-                break;
-            case PORT_ASP_1_BOS1810:
-                break;
-            case PORT_ASP_1_RETI:
-                break;
-            case PORT_ASP_1_TEST:
-                break;
-            case PORT_ASP_1_CONTROL:
-                break;
-            case PORT_ASP_1_U855_PORT_A_DATA:
-                break;
-            case PORT_ASP_1_U855_PORT_B_DATA:
-                break;
-            case PORT_ASP_1_U855_PORT_A_INIT:
-                break;
-            case PORT_ASP_1_U855_PORT_B_INIT:
-                break;
-            case PORT_ASP_1_U857_TIMER_0:
-                break;
-            case PORT_ASP_1_U857_TIMER_1:
-                break;
-            case PORT_ASP_1_U857_TIMER_2:
-                break;
-            case PORT_ASP_1_U857_TIMER_3:
-                break;
-            case PORT_ASP_1_U856_DATA_V24:
-                break;
-            case PORT_ASP_1_U856_DATA_IFSS:
-                break;
-            case PORT_ASP_1_U856_CONTROL_V24:
-                break;
-            case PORT_ASP_1_U856_CONTROL_IFSS_V24:
-                break;
+        if (port == PORT_ASP_ENABLE_INTERRUPT[asp_id]) {
+        } else if (port == PORT_ASP_BOS1810[asp_id]) {
+        } else if (port == PORT_ASP_RETI[asp_id]) {
+        } else if (port == PORT_ASP_TEST[asp_id]) {
+        } else if (port == PORT_ASP_CONTROL[asp_id]) {
+        } else if (port == PORT_ASP_U855_PORT_A_DATA[asp_id]) {
+        } else if (port == PORT_ASP_U855_PORT_B_DATA[asp_id]) {
+        } else if (port == PORT_ASP_U855_PORT_A_INIT[asp_id]) {
+        } else if (port == PORT_ASP_U855_PORT_B_INIT[asp_id]) {
+        } else if (port == PORT_ASP_U857_TIMER_0[asp_id]) {
+        } else if (port == PORT_ASP_U857_TIMER_1[asp_id]) {
+        } else if (port == PORT_ASP_U857_TIMER_2[asp_id]) {
+        } else if (port == PORT_ASP_U857_TIMER_3[asp_id]) {
+        } else if (port == PORT_ASP_U856_DATA_V24[asp_id]) {
+        } else if (port == PORT_ASP_U856_DATA_IFSS[asp_id]) {
+        } else if (port == PORT_ASP_U856_CONTROL_V24[asp_id]) {
+        } else if (port == PORT_ASP_U856_CONTROL_IFSS_V24[asp_id]) {
+        } else {
         }
     }
 
@@ -292,41 +184,24 @@ public final class ASP implements IOModule {
      */
     @Override
     public void writePortWord(int port, int data) {
-        switch (port) {
-            case PORT_ASP_1_ENABLE_INTERRUPT:
-                break;
-            case PORT_ASP_1_BOS1810:
-                break;
-            case PORT_ASP_1_RETI:
-                break;
-            case PORT_ASP_1_TEST:
-                break;
-            case PORT_ASP_1_CONTROL:
-                break;
-            case PORT_ASP_1_U855_PORT_A_DATA:
-                break;
-            case PORT_ASP_1_U855_PORT_B_DATA:
-                break;
-            case PORT_ASP_1_U855_PORT_A_INIT:
-                break;
-            case PORT_ASP_1_U855_PORT_B_INIT:
-                break;
-            case PORT_ASP_1_U857_TIMER_0:
-                break;
-            case PORT_ASP_1_U857_TIMER_1:
-                break;
-            case PORT_ASP_1_U857_TIMER_2:
-                break;
-            case PORT_ASP_1_U857_TIMER_3:
-                break;
-            case PORT_ASP_1_U856_DATA_V24:
-                break;
-            case PORT_ASP_1_U856_DATA_IFSS:
-                break;
-            case PORT_ASP_1_U856_CONTROL_V24:
-                break;
-            case PORT_ASP_1_U856_CONTROL_IFSS_V24:
-                break;
+        if (port == PORT_ASP_ENABLE_INTERRUPT[asp_id]) {
+        } else if (port == PORT_ASP_BOS1810[asp_id]) {
+        } else if (port == PORT_ASP_RETI[asp_id]) {
+        } else if (port == PORT_ASP_TEST[asp_id]) {
+        } else if (port == PORT_ASP_CONTROL[asp_id]) {
+        } else if (port == PORT_ASP_U855_PORT_A_DATA[asp_id]) {
+        } else if (port == PORT_ASP_U855_PORT_B_DATA[asp_id]) {
+        } else if (port == PORT_ASP_U855_PORT_A_INIT[asp_id]) {
+        } else if (port == PORT_ASP_U855_PORT_B_INIT[asp_id]) {
+        } else if (port == PORT_ASP_U857_TIMER_0[asp_id]) {
+        } else if (port == PORT_ASP_U857_TIMER_1[asp_id]) {
+        } else if (port == PORT_ASP_U857_TIMER_2[asp_id]) {
+        } else if (port == PORT_ASP_U857_TIMER_3[asp_id]) {
+        } else if (port == PORT_ASP_U856_DATA_V24[asp_id]) {
+        } else if (port == PORT_ASP_U856_DATA_IFSS[asp_id]) {
+        } else if (port == PORT_ASP_U856_CONTROL_V24[asp_id]) {
+        } else if (port == PORT_ASP_U856_CONTROL_IFSS_V24[asp_id]) {
+        } else {
         }
     }
 
@@ -338,41 +213,24 @@ public final class ASP implements IOModule {
      */
     @Override
     public int readPortByte(int port) {
-        switch (port) {
-            case PORT_ASP_1_ENABLE_INTERRUPT:
-                break;
-            case PORT_ASP_1_BOS1810:
-                break;
-            case PORT_ASP_1_RETI:
-                break;
-            case PORT_ASP_1_TEST:
-                break;
-            case PORT_ASP_1_CONTROL:
-                break;
-            case PORT_ASP_1_U855_PORT_A_DATA:
-                break;
-            case PORT_ASP_1_U855_PORT_B_DATA:
-                break;
-            case PORT_ASP_1_U855_PORT_A_INIT:
-                break;
-            case PORT_ASP_1_U855_PORT_B_INIT:
-                break;
-            case PORT_ASP_1_U857_TIMER_0:
-                break;
-            case PORT_ASP_1_U857_TIMER_1:
-                break;
-            case PORT_ASP_1_U857_TIMER_2:
-                break;
-            case PORT_ASP_1_U857_TIMER_3:
-                break;
-            case PORT_ASP_1_U856_DATA_V24:
-                break;
-            case PORT_ASP_1_U856_DATA_IFSS:
-                break;
-            case PORT_ASP_1_U856_CONTROL_V24:
-                break;
-            case PORT_ASP_1_U856_CONTROL_IFSS_V24:
-                break;
+        if (port == PORT_ASP_ENABLE_INTERRUPT[asp_id]) {
+        } else if (port == PORT_ASP_BOS1810[asp_id]) {
+        } else if (port == PORT_ASP_RETI[asp_id]) {
+        } else if (port == PORT_ASP_TEST[asp_id]) {
+        } else if (port == PORT_ASP_CONTROL[asp_id]) {
+        } else if (port == PORT_ASP_U855_PORT_A_DATA[asp_id]) {
+        } else if (port == PORT_ASP_U855_PORT_B_DATA[asp_id]) {
+        } else if (port == PORT_ASP_U855_PORT_A_INIT[asp_id]) {
+        } else if (port == PORT_ASP_U855_PORT_B_INIT[asp_id]) {
+        } else if (port == PORT_ASP_U857_TIMER_0[asp_id]) {
+        } else if (port == PORT_ASP_U857_TIMER_1[asp_id]) {
+        } else if (port == PORT_ASP_U857_TIMER_2[asp_id]) {
+        } else if (port == PORT_ASP_U857_TIMER_3[asp_id]) {
+        } else if (port == PORT_ASP_U856_DATA_V24[asp_id]) {
+        } else if (port == PORT_ASP_U856_DATA_IFSS[asp_id]) {
+        } else if (port == PORT_ASP_U856_CONTROL_V24[asp_id]) {
+        } else if (port == PORT_ASP_U856_CONTROL_IFSS_V24[asp_id]) {
+        } else {
         }
         return 0;
     }
@@ -385,41 +243,24 @@ public final class ASP implements IOModule {
      */
     @Override
     public int readPortWord(int port) {
-        switch (port) {
-            case PORT_ASP_1_ENABLE_INTERRUPT:
-                break;
-            case PORT_ASP_1_BOS1810:
-                break;
-            case PORT_ASP_1_RETI:
-                break;
-            case PORT_ASP_1_TEST:
-                break;
-            case PORT_ASP_1_CONTROL:
-                break;
-            case PORT_ASP_1_U855_PORT_A_DATA:
-                break;
-            case PORT_ASP_1_U855_PORT_B_DATA:
-                break;
-            case PORT_ASP_1_U855_PORT_A_INIT:
-                break;
-            case PORT_ASP_1_U855_PORT_B_INIT:
-                break;
-            case PORT_ASP_1_U857_TIMER_0:
-                break;
-            case PORT_ASP_1_U857_TIMER_1:
-                break;
-            case PORT_ASP_1_U857_TIMER_2:
-                break;
-            case PORT_ASP_1_U857_TIMER_3:
-                break;
-            case PORT_ASP_1_U856_DATA_V24:
-                break;
-            case PORT_ASP_1_U856_DATA_IFSS:
-                break;
-            case PORT_ASP_1_U856_CONTROL_V24:
-                break;
-            case PORT_ASP_1_U856_CONTROL_IFSS_V24:
-                break;
+        if (port == PORT_ASP_ENABLE_INTERRUPT[asp_id]) {
+        } else if (port == PORT_ASP_BOS1810[asp_id]) {
+        } else if (port == PORT_ASP_RETI[asp_id]) {
+        } else if (port == PORT_ASP_TEST[asp_id]) {
+        } else if (port == PORT_ASP_CONTROL[asp_id]) {
+        } else if (port == PORT_ASP_U855_PORT_A_DATA[asp_id]) {
+        } else if (port == PORT_ASP_U855_PORT_B_DATA[asp_id]) {
+        } else if (port == PORT_ASP_U855_PORT_A_INIT[asp_id]) {
+        } else if (port == PORT_ASP_U855_PORT_B_INIT[asp_id]) {
+        } else if (port == PORT_ASP_U857_TIMER_0[asp_id]) {
+        } else if (port == PORT_ASP_U857_TIMER_1[asp_id]) {
+        } else if (port == PORT_ASP_U857_TIMER_2[asp_id]) {
+        } else if (port == PORT_ASP_U857_TIMER_3[asp_id]) {
+        } else if (port == PORT_ASP_U856_DATA_V24[asp_id]) {
+        } else if (port == PORT_ASP_U856_DATA_IFSS[asp_id]) {
+        } else if (port == PORT_ASP_U856_CONTROL_V24[asp_id]) {
+        } else if (port == PORT_ASP_U856_CONTROL_IFSS_V24[asp_id]) {
+        } else {
         }
         return 0;
     }

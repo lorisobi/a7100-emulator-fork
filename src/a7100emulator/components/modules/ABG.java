@@ -43,6 +43,7 @@ import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferInt;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.logging.Level;
@@ -474,8 +475,8 @@ public final class ABG implements Module {
     }
 
     /**
-     * Aktualisiert die Bildschirmanzeige 
-     * <p> 
+     * Aktualisiert die Bildschirmanzeige
+     * <p>
      * TODO: NMIs richtig implementieren (warten auf KGS)
      */
     private void updateScreen() {
@@ -712,29 +713,28 @@ public final class ABG implements Module {
      *
      * @param filename Dateiname
      * @param page Speicherebene
+     * @throws FileNotFoundException Wenn die gewünschte Datei ungültig ist oder
+     * nicht erzeugt werden kann
+     * @throws IOException Wenn beim Speichern des Speicherbereichs ein Fehler
+     * auftritt
      */
-    public void dumpMemory(String filename, int page) {
-        DataOutputStream dos;
-        try {
-            dos = new DataOutputStream(new FileOutputStream(filename));
-            switch (page) {
-                case 0:
-                    alphanumericMemory[0].saveMemory(dos);
-                    break;
-                case 1:
-                    alphanumericMemory[1].saveMemory(dos);
-                    break;
-                case 2:
-                    graphicMemory[0].saveMemory(dos);
-                    break;
-                case 3:
-                    graphicMemory[1].saveMemory(dos);
-                    break;
-            }
-            dos.close();
-        } catch (IOException ex) {
-            Logger.getLogger(ABG.class.getName()).log(Level.SEVERE, null, ex);
+    public void dumpMemory(String filename, int page) throws FileNotFoundException, IOException {
+        DataOutputStream dos = new DataOutputStream(new FileOutputStream(filename));
+        switch (page) {
+            case 0:
+                alphanumericMemory[0].saveMemory(dos);
+                break;
+            case 1:
+                alphanumericMemory[1].saveMemory(dos);
+                break;
+            case 2:
+                graphicMemory[0].saveMemory(dos);
+                break;
+            case 3:
+                graphicMemory[1].saveMemory(dos);
+                break;
         }
+        dos.close();
     }
 
     /**

@@ -23,6 +23,9 @@
  *   02.01.2014 - Kommentare ergänzt
  *   24.07.2015 - Datenbank exportieren ergänzt
  *   26.07.2016 - Spezifische Exceptions definiert
+ *   28.07.2016 - Befehle zum Lesen der Datenbanken zusammengeführt
+ *              - try-catch durch throw ersetzt
+ *              - Kommentare überarbeitet
  */
 package a7100emulator.Apps.SCPDiskViewer;
 
@@ -43,7 +46,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Datei zur Verwaltung der SCP-Datei-Datenbank.
+ * Klasse zur Verwaltung der SCP-Datei-Datenbank. Die Datenbank enthält
+ * Informationen über SCP-Dateien, Dateitypen und Software-Pakete.
  *
  * @author Dirk Bräuer
  */
@@ -63,100 +67,102 @@ public class FileDatabaseManager {
     private final HashSet<String> fileTypes = new HashSet();
 
     /**
-     * Erezeugt einen Neuen Datenbankmanager.
+     * Erzeugt einen neuen Datenbankmanager. Dabei werden die Dateien system.dbd
+     * und user.dbd aus dem aktuellen Verzeichnis des Datenträgers gelesen und
+     * die jeweiligen Einträge der Datenbank hinzugefügt. Sind die Dateien nicht
+     * vorhanden, so werden sie im jeweiligen Verzeichnis erzeugt.
+     *
+     * @throws IOException Wenn beim Lesen oder Erzeugen der Dateien ein Fehler
+     * auftritt
      */
-    public FileDatabaseManager() {
-        readSystemDatabase();
-        readUserDatabase();
+    public FileDatabaseManager() throws IOException {
+        readDatabase(false);
+        readDatabase(true);
     }
 
     /**
-     * Gibt die Informationen zur einem MD5-Hashwert zurück.
+     * Gibt die Datei-Informationen zur einem MD5-Hashwert zurück. Diese Methode
+     * liefert entweder ein <code>FileInfo</code> Objekt mit den in der
+     * Datenbank hinterlegten Informationen oder <code>null</code> wenn für den
+     * gesuchten MD5-Hashwert keine Informationen in der Datebank vorhanden
+     * sind.
      *
-     * @param md5 MD5 Hash
-     * @return Dateiinformationen oder <code>null</code> wenn die Datei nicht in
-     * der Datenbank vorhanden ist.
+     * @param md5 MD5-Hashwert
+     * @return Dateiinformationen oder <code>null</code> wenn für den
+     * MD5-Hashwert keine Information in der Datenbank vorhanden ist.
      */
     public FileInfo getFileInfo(String md5) {
         return fileDatabase.get(md5);
     }
 
     /**
-     * Aktualisiert die Dateiinformationen in der Datenbank.
+     * Aktualisiert die Dateiinformationen in der Datenbank. Die übergebenen
+     * Dateiinformationen werden in der Datenbank abgelegt. Weiterhin wird ein
+     * eventuell neu definiertes Software-Paket oder ein neuer Dateityp in den
+     * Listen ergänzt.
      *
-     * @param md5 MD5 Hash
+     * @param md5 MD5-Hashwert
      * @param fileInfo Einzutragende Dateiinformationen
      */
     public void updateFileInfo(String md5, FileInfo fileInfo) {
+        if (fileInfo == null) {
+            throw new IllegalArgumentException("FileInfo ist null");
+        }
         fileDatabase.put(md5, fileInfo);
         fileTypes.add(fileInfo.getFileType());
         packages.add(fileInfo.getSoftwarePackage());
     }
 
     /**
-     * Speichert die Datenbank auf der Festplatte in zwei Dateien: system.dbd
-     * für normale Einträge und user.dbd für benutzerdefinierte Einträge.
+     * Speichert die Datenbank auf der Festplatte. Die Dateiinformationen werden
+     * in zwei Dateien abgelegt: system.dbd für normale Einträge und user.dbd
+     * für benutzerdefinierte Einträge.
+     *
+     * @throws IOException Wenn beim Speichern der Datenbanken auf dem
+     * Datenträger ein Fehler auftritt
      */
-    public void saveDatabase() {
-        try {
-            DataOutputStream dosSystem = new DataOutputStream(new FileOutputStream("./system.dbd"));
-            DataOutputStream dosUser = new DataOutputStream(new FileOutputStream("./user.dbd"));
-            for (Entry<String, FileInfo> dbEntry : fileDatabase.entrySet()) {
-                String md5 = dbEntry.getKey();
-                FileInfo fileInfo = dbEntry.getValue();
-                if (fileInfo.isUser()) {
-                    writeDatabase(dosUser, md5, fileInfo);
-                } else {
-                    writeDatabase(dosSystem, md5, fileInfo);
-                }
+    public void saveDatabase() throws IOException {
+        DataOutputStream dosSystem = new DataOutputStream(new FileOutputStream("./system.dbd"));
+        DataOutputStream dosUser = new DataOutputStream(new FileOutputStream("./user.dbd"));
+        for (Entry<String, FileInfo> dbEntry : fileDatabase.entrySet()) {
+            String md5 = dbEntry.getKey();
+            FileInfo fileInfo = dbEntry.getValue();
+            if (fileInfo.isUser()) {
+                writeDatabase(dosUser, md5, fileInfo);
+            } else {
+                writeDatabase(dosSystem, md5, fileInfo);
             }
-            dosSystem.close();
-            dosUser.close();
-        } catch (IOException ex) {
-            Logger.getLogger(FileDatabaseManager.class.getName()).log(Level.SEVERE, null, ex);
         }
+        dosSystem.close();
+        dosUser.close();
     }
 
     /**
-     * Liest die Systemdatenbank system.dbd von der Festplatte.
+     * Liest die Systemdatenbank system.dbd oder die Nutzerdatenbank user.dbd
+     * vom aktuellen Datenträger ein. Ist die jeweilige Datei im aktuellen
+     * Verzeichnis nicht vorhanden, so wird sie durch diese Methode erstellt.
+     *
+     * @param user <code>true</code> wenn die Nutzerdatenbank gelesen werden
+     * soll, <code>false</code> für die Systemdatenbank
+     * @throws java.io.IOException Wenn beim Lesen der Datenbank ein Fehler
+     * auftritt
      */
-    private void readSystemDatabase() {
-        File systemDB = new File("./system.dbd");
+    private void readDatabase(boolean user) throws IOException {
+        File dbFile = new File("./" + (user ? "user" : "system") + ".dbd");
 
-        try {
-            // Wenn Datenbank nicht vorhanden, neu anlegen
-            if (!systemDB.exists()) {
-                systemDB.createNewFile();
-            }
-            DataInputStream dis = new DataInputStream(new FileInputStream(systemDB));
-            readDatabase(dis, false);
-            dis.close();
-        } catch (IOException ex) {
-            Logger.getLogger(FileDatabaseManager.class.getName()).log(Level.SEVERE, null, ex);
+        // Wenn Datenbank nicht vorhanden, neu anlegen
+        if (!dbFile.exists()) {
+            dbFile.createNewFile();
         }
+        DataInputStream dis = new DataInputStream(new FileInputStream(dbFile));
+        readDatabase(dis, user);
+        dis.close();
     }
 
     /**
-     * Liest die Benutzerdatenbank user.dbd von der Festplatte.
-     */
-    private void readUserDatabase() {
-        File userDB = new File("./user.dbd");
-
-        try {
-            // Wenn Datenbank nicht vorhanden, neu anlegen
-            if (!userDB.exists()) {
-                userDB.createNewFile();
-            }
-            DataInputStream dis = new DataInputStream(new FileInputStream(userDB));
-            readDatabase(dis, true);
-            dis.close();
-        } catch (IOException ex) {
-            Logger.getLogger(FileDatabaseManager.class.getName()).log(Level.SEVERE, null, ex);
-        }
-    }
-
-    /**
-     * Liest Daten aus einer Datenbank.
+     * Liest Daten aus einer Datenbank. Solange im Eingabestrom noch Daten sind
+     * wird ein weiteres FileInfo Objekt aus dem Datenstrom gelesen und zur
+     * Datenbank hinzugefügt.
      *
      * @param dis Eingabestrom der Datei
      * @param user <code>true</code> wenn Benutzerdaten gelesen werden sollen,
@@ -177,14 +183,18 @@ public class FileDatabaseManager {
     }
 
     /**
-     * Schreibt einen Datensatz in eine Datenbank.
+     * Schreibt einen Datensatz in eine Datenbank. Die in <code>FileInfo</code>
+     * übergebenen Daten werden in den Ausgabestrom geschrieben.
      *
      * @param dos Ausgabestrom zur Datei
-     * @param md5 MD5 Hash
+     * @param md5 MD5-Hashwert
      * @param fileInfo Dateiinformationen
      * @throws IOException Wenn beim Schreiben ein Fehler auftritt
      */
     private void writeDatabase(DataOutputStream dos, String md5, FileInfo fileInfo) throws IOException {
+        if (fileInfo == null) {
+            throw new IllegalArgumentException("FileInfo ist null");
+        }
         dos.writeUTF(md5);
         dos.writeUTF(fileInfo.getName());
         dos.writeUTF(fileInfo.getVersion());
@@ -222,34 +232,36 @@ public class FileDatabaseManager {
     }
 
     /**
-     * Löscht einen Eintrag aus der Datenbank.
+     * Löscht einen Eintrag aus der Datenbank. Die Dateiinformationen für den
+     * angegebenen MD5-Hashwert werden aus der Datenbank entfernt.
      *
-     * @param md5 MD5-Hash
+     * @param md5 MD5-Hashwert
      */
     void removeFileInfo(String md5) {
         fileDatabase.remove(md5);
     }
 
     /**
-     * Speichert den Inhalt der Datenbank in ein CSV File.
+     * Speichert den Inhalt der Datenbank in ein CSV File. Die einzelnen Felder
+     * werden durch Semikolon getrennt abgelegt. Zusätzlich wird zu Beginn der
+     * Datei ein Header eingefügt.
      *
      * @param saveFile Export Datei
-     * @param user <code>true</code> wenn Benutzereinträge exportiert werden
+     * @param user     <code>true</code> wenn Benutzereinträge exportiert werden
      * sollen, <code>false</code> für Systemeinträge
+     * @throws java.io.FileNotFoundException Wenn die angegebene Datei ungültig
+     * ist oder nicht erstellt werden kann
      */
-    void exportDB(File saveFile, boolean user) {
-        PrintStream exportFile;
-        try {
-            exportFile = new PrintStream(new FileOutputStream(saveFile));
-            exportFile.println("MD5;Name;Dateityp;Softwarepaket;Version;Beschreibung");
-            for (Entry<String, FileInfo> dbEntry : fileDatabase.entrySet()) {
-                if ((dbEntry.getValue().isUser() && user) || (!dbEntry.getValue().isUser() && !user)) {
-                    exportFile.println(dbEntry.getKey() + ";" + dbEntry.getValue().getName() + ";" + dbEntry.getValue().getFileType() + ";" + dbEntry.getValue().getSoftwarePackage() + ";" + dbEntry.getValue().getVersion() + ";" + dbEntry.getValue().getDescription());
-                }
+    void exportDB(File saveFile, boolean user) throws FileNotFoundException {
+        PrintStream exportFile = new PrintStream(new FileOutputStream(saveFile));
+        exportFile.println("MD5;Name;Dateityp;Softwarepaket;Version;Beschreibung");
+
+        for (Entry<String, FileInfo> dbEntry : fileDatabase.entrySet()) {
+            if ((dbEntry.getValue().isUser() && user) || (!dbEntry.getValue().isUser() && !user)) {
+                exportFile.println(dbEntry.getKey() + ";" + dbEntry.getValue().getName() + ";" + dbEntry.getValue().getFileType() + ";" + dbEntry.getValue().getSoftwarePackage() + ";" + dbEntry.getValue().getVersion() + ";" + dbEntry.getValue().getDescription());
             }
-            exportFile.close();
-        } catch (FileNotFoundException ex) {
-            Logger.getLogger(FileDatabaseManager.class.getName()).log(Level.SEVERE, null, ex);
         }
+
+        exportFile.close();
     }
 }

@@ -59,21 +59,13 @@ public final class KES implements IOModule, ClockModule {
      */
     private boolean readWUB = true;
     /**
-     * Adresse des 1. Wake-Up E/A-Ports 1. KES
+     * Adresse des 1. Wake-Up E/A-Ports
      */
-    private final static int PORT_KES_1_WAKEUP_1 = 0x100;
+    private final static int[] PORT_KES_WAKEUP_1 = new int[]{0x100, 0x102};
     /**
-     * Adresse des 2. Wake-Up E/A-Ports 1. KES
+     * Adresse des 2. Wake-Up E/A-Ports
      */
-    private final static int PORT_KES_1_WAKEUP_2 = 0x101;
-    /**
-     * Adresse des 1. Wake-Up E/A-Ports 2. KES
-     */
-    private final static int PORT_KES_2_WAKEUP_1 = 0x102;
-    /**
-     * Adresse des 2. Wake-Up E/A-Ports 2. KES
-     */
-    private final static int PORT_KES_2_WAKEUP_2 = 0x103;
+    private final static int[] PORT_KES_WAKEUP_2 = new int[]{0x101, 0x103};
     /**
      * Nummer des KES-Moduls
      */
@@ -128,16 +120,8 @@ public final class KES implements IOModule, ClockModule {
      */
     @Override
     public void registerPorts() {
-        switch (kes_id) {
-            case 0:
-                MMS16Bus.getInstance().registerIOPort(this, PORT_KES_1_WAKEUP_1);
-                MMS16Bus.getInstance().registerIOPort(this, PORT_KES_1_WAKEUP_2);
-                break;
-            case 1:
-                MMS16Bus.getInstance().registerIOPort(this, PORT_KES_2_WAKEUP_1);
-                MMS16Bus.getInstance().registerIOPort(this, PORT_KES_2_WAKEUP_2);
-                break;
-        }
+        MMS16Bus.getInstance().registerIOPort(this, PORT_KES_WAKEUP_1[kes_id]);
+        MMS16Bus.getInstance().registerIOPort(this, PORT_KES_WAKEUP_2[kes_id]);
     }
 
     /**
@@ -159,30 +143,28 @@ public final class KES implements IOModule, ClockModule {
      */
     @Override
     public void writePortWord(int port, int data) {
-        switch (port) {
-            case PORT_KES_1_WAKEUP_1:
-                switch (data) {
-                    case 0x00:
-                        // RESET_OFF
+        if (port == PORT_KES_WAKEUP_1[kes_id]) {
+            switch (data) {
+                case 0x00:
+                    // RESET_OFF
 //                        System.out.println("RESET OFF");
-                        readWUB = true;
-                        interruptWaiting = false;
-                        break;
-                    case 0x01:
-                        // START_OPERATION
+                    readWUB = true;
+                    interruptWaiting = false;
+                    break;
+                case 0x01:
+                    // START_OPERATION
 //                        System.out.println("START OPERATION");
-                        startOperation();
-                        break;
-                    case 0x02:
-                        // RESET
+                    startOperation();
+                    break;
+                case 0x02:
+                    // RESET
 //                        System.out.println("RESET");
-                        break;
-                    default:
-                        throw new IllegalArgumentException("Illegal Command:" + Integer.toHexString(data));
-                }
-                break;
-            case PORT_KES_1_WAKEUP_2:
-                break;
+                    break;
+                default:
+                    throw new IllegalArgumentException("Illegal Command:" + Integer.toHexString(data));
+            }
+        } else if (port == PORT_KES_WAKEUP_2[kes_id]) {
+        } else {
         }
     }
 
@@ -194,12 +176,7 @@ public final class KES implements IOModule, ClockModule {
      */
     @Override
     public int readPortByte(int port) {
-        switch (port) {
-            case PORT_KES_1_WAKEUP_1:
-            case PORT_KES_1_WAKEUP_2:
-                throw new IllegalArgumentException("Cannot read from PORT:" + Integer.toHexString(port));
-        }
-        return 0;
+        return readPortWord(port);
     }
 
     /**
@@ -210,10 +187,9 @@ public final class KES implements IOModule, ClockModule {
      */
     @Override
     public int readPortWord(int port) {
-        switch (port) {
-            case PORT_KES_1_WAKEUP_1:
-            case PORT_KES_1_WAKEUP_2:
-                throw new IllegalArgumentException("Cannot read from PORT:" + Integer.toHexString(port));
+        if (port == PORT_KES_WAKEUP_1[kes_id] || port == PORT_KES_WAKEUP_2[kes_id]) {
+            throw new IllegalArgumentException("Cannot read from PORT:" + Integer.toHexString(port));
+        } else {
         }
         return 0;
     }

@@ -24,7 +24,6 @@
  *   06.01.2015 - Globalen Debugger ergänzt
  *              - Bezeichner hinzugefügt
  *   25.07.2015 - Funktionen für Automatischen Start und Slowdown deaktiviert
- *   28.07.2016 - 
  */
 package a7100emulator.Debug;
 

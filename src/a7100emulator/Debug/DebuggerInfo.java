@@ -18,8 +18,9 @@
  * Programm erhalten haben. Wenn nicht, siehe <http://www.gnu.org/licenses/>.
  * 
  * Letzte Änderungen:
- *   05.04.2014 Kommentare vervollständigt
- *   31.08.2014 Singleton entfernt
+ *   05.04.2014 - Kommentare vervollständigt
+ *   31.08.2014 - Singleton entfernt
+ *   31.07.2016 - systemClock entfernt
  */
 package a7100emulator.Debug;
 
@@ -30,10 +31,6 @@ package a7100emulator.Debug;
  */
 public class DebuggerInfo {
 
-    /**
-     * Aktuelle Systemzeit
-     */
-    private long systemClock;
     /**
      * Codesegment
      */
@@ -62,24 +59,6 @@ public class DebuggerInfo {
     }
 
     /**
-     * Liefert die Systemzeit zurück
-     *
-     * @return Systemzeit
-     */
-    long getSystemClock() {
-        return systemClock;
-    }
-
-    /**
-     * Setzt die Systemzeit
-     *
-     * @param systemClock Systemzeit
-     */
-    public void setSystemClock(long systemClock) {
-        this.systemClock = systemClock;
-    }
-
-    /**
      * Liefert das Codesegment zurück
      *
      * @return Codesegment
@@ -102,7 +81,7 @@ public class DebuggerInfo {
      *
      * @return Instruction-Pointer
      */
-    public int getIp() {
+    int getIp() {
         return ip;
     }
 

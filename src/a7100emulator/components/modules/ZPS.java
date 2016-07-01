@@ -32,7 +32,8 @@ import java.io.IOException;
 
 /**
  * Klasse zur Abbildung der ZPS (Zweiportspeicher).
- * <p> TODO: Einbindung verursacht Fehler im ACT
+ * <p>
+ * TODO: - Parity Check implementieren
  *
  * @author Dirk Bräuer
  */
