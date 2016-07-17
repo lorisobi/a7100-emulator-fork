@@ -627,7 +627,7 @@ public class K1810WM86 implements Runnable, IC {
     /**
      * Zählt die Takte der aktuellen Befehlsausführung
      */
-    private int ticks = 0;
+    private int tickBuffer = 0;
     /**
      * Referenz auf Systemzeit
      */
@@ -6432,34 +6432,43 @@ public class K1810WM86 implements Runnable, IC {
      */
     private void executeCPUCycle() {
 //        if (!MMS16Bus.getInstance().isBusInUse()) {
-            // Wenn READY Eingang der CPU gesetzt
-            if (!isHalted) {
-                executeNextInstruction();
-                if (mms16.isTimeout()) {
-                    // 10 ms Timeout
-                    updateTicks(49150);
-                    mms16.clearTimeout();
-                }
-            } else {
-                updateTicks(3);
+        // Wenn READY Eingang der CPU gesetzt
+        if (!isHalted) {
+            executeNextInstruction();
+            if (mms16.isTimeout()) {
+                // 10 ms Timeout
+                updateTicks(49150);
+                mms16.clearTimeout();
             }
+        } else {
+            updateTicks(3);
+        }
 
-            if (interruptSystem.getNMI()) {
-                interrupt(0x02);
-            } else if (getFlag(INTERRUPT_ENABLE_FLAG)) {
-                int irq = InterruptSystem.getInstance().getPIC().getInterrupt();
-                if (irq != -1) {
-                    if (debugger.isDebug()) {
-                        debugger.addComment("Verarbeite Interrupt: " + irq);
-                    }
-                    interrupt(irq);
+        if (interruptSystem.getNMI()) {
+            interrupt(0x02);
+        } else if (getFlag(INTERRUPT_ENABLE_FLAG)) {
+            int irq = InterruptSystem.getInstance().getPIC().getInterrupt();
+            if (irq != -1) {
+                if (debugger.isDebug()) {
+                    debugger.addComment("Verarbeite Interrupt: " + irq);
                 }
+                interrupt(irq);
             }
-//        } else {
-//            // Führe Warten aus
-//            updateTicks(100000);
-//            System.out.println("WAIT STATE");
-//        }
+        }
+    }
+
+    /**
+     * Führt CPU Zyklen gemäß der angegebenen Anzahl der Takte aus.
+     *
+     * @param ticks Anzahl der Takte
+     */
+    public void executeCycles(int ticks) {
+        this.tickBuffer += ticks;
+
+        // Mindestens 5 Takte sind für den kürzesten Befehl nötig
+        while (tickBuffer >= 5) {
+                executeCPUCycle();
+            } 
     }
 
     /**
@@ -6505,8 +6514,7 @@ public class K1810WM86 implements Runnable, IC {
      * @param amount Anzahl der Takte
      */
     private void updateTicks(int amount) {
-        ticks += amount;
-        clock.updateClock(amount);
+        tickBuffer -= amount;
     }
 
     /**
@@ -6544,7 +6552,7 @@ public class K1810WM86 implements Runnable, IC {
         dos.writeInt(string_prefix);
         dos.writeBoolean(isHalted);
         dos.writeBoolean(stiWaiting);
-        dos.writeInt(ticks);
+        dos.writeInt(tickBuffer);
         dos.writeBoolean(ready);
     }
 
@@ -6574,7 +6582,7 @@ public class K1810WM86 implements Runnable, IC {
         string_prefix = dis.readInt();
         isHalted = dis.readBoolean();
         stiWaiting = dis.readBoolean();
-        ticks = dis.readInt();
+        tickBuffer = dis.readInt();
         ready = dis.readBoolean();
     }
 

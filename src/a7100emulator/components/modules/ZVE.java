@@ -451,10 +451,12 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
     /**
      * Verarbeitet die geänderte Systemzeit
      *
-     * @param amount Anzahl der Ticks
+     * @param amount Zeitdauer in ns
      */
     @Override
     public void clockUpdate(int amount) {
+        //TODO: Ein und Ausgabe zwischen Bausteinen synchronisieren
+        cpu.executeCycles(amount);
         pti.updateClock(amount);
         usart.updateClock(amount);
     }

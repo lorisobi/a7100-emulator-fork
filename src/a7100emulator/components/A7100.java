@@ -88,14 +88,16 @@ public class A7100 {
      */
     public A7100() {
         initModules();
-        startMainCPU();
+        startClock();
     }
 
     /**
      * Startet die Systemzeit
      */
-    private void startMainCPU() {
-        zve.start();
+    private void startClock() {
+        //zve.start();
+        Thread clock = new Thread(GlobalClock.getInstance(),"Clock");
+        clock.start();
     }
 
     /**
@@ -220,7 +222,7 @@ public class A7100 {
         GlobalClock.getInstance().reset();
 
         initModules();
-        startMainCPU();
+        startClock();
     }
 
     /**

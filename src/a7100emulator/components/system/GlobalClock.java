@@ -2,7 +2,7 @@
  * GlobalClock.java
  * 
  * Diese Datei gehört zum Projekt A7100 Emulator 
- * Copyright (c) 2011-2015 Dirk Bräuer
+ * Copyright (c) 2011-2016 Dirk Bräuer
  *
  * Der A7100 Emulator ist Freie Software: Sie können ihn unter den Bedingungen
  * der GNU General Public License, wie von der Free Software Foundation,
@@ -23,6 +23,8 @@
  *              - Speichern und Laden implementiert
  *              - Interface StateSavable implementiert
  *   19.11.2014 - Thread Funktionalität entfernt
+ *   05.06.2016 - Interface Runnable implementiert
+ *              - Doppelte Typdefinitionen entfernt
  */
 package a7100emulator.components.system;
 
@@ -36,12 +38,16 @@ import java.util.LinkedList;
 /**
  * Klasse zur Abbildung der globalen Systemzeit. Dies ist die
  * Softwarerealisierung aller Taktgeber im System und sorgt für den parallelen,
- * zyklischen Ablauf der einzelnen Systemkomponenten
+ * zyklischen Ablauf der einzelnen Systemkomponenten.
  *
  * @author Dirk Bräuer
  */
-public class GlobalClock implements StateSavable {
+public class GlobalClock implements Runnable, StateSavable {
 
+    /**
+     * Zyklendauer in ns TODO: Was ist hier angebracht?
+     */
+    private static final int CYCLE_TIME = 1000;
     /**
      * Singleton Instanz
      */
@@ -53,7 +59,11 @@ public class GlobalClock implements StateSavable {
     /**
      * Liste mit allen Modulen, welche die globale Systemzeit verwenden
      */
-    private final LinkedList<ClockModule> modules = new LinkedList<ClockModule>();
+    private final LinkedList<ClockModule> modules = new LinkedList<>();
+    /**
+     * Gibt an, ob der Zeitgeber beendet werden soll.
+     */
+    private boolean stopped = false;
 
     /**
      * Privater Konstruktor
@@ -88,11 +98,15 @@ public class GlobalClock implements StateSavable {
      * @param amount Anzahl der Ticks
      */
     public void updateClock(int amount) {
+        // Zeit in ms aktualisieren
         clock += amount;
+        // Skalieren auf Haupt CPU
+        
         for (ClockModule module : modules) {
             module.clockUpdate(amount);
         }
     }
+    
 
     /**
      * Speichert den Zustand der Systemzeit in einer Datei.
@@ -103,6 +117,7 @@ public class GlobalClock implements StateSavable {
     @Override
     public void saveState(DataOutputStream dos) throws IOException {
         dos.writeLong(clock);
+        dos.writeBoolean(stopped);
     }
 
     /**
@@ -114,6 +129,7 @@ public class GlobalClock implements StateSavable {
     @Override
     public void loadState(DataInputStream dis) throws IOException {
         clock = dis.readLong();
+        stopped = dis.readBoolean();
     }
 
     /**
@@ -122,5 +138,23 @@ public class GlobalClock implements StateSavable {
     public void reset() {
         modules.clear();
         clock = 0;
+        stopped = false;
+    }
+
+    /**
+     * Startet den globalen Zeitgeber.
+     */
+    @Override
+    public void run() {
+        while (!stopped) {
+            updateClock(10);
+        }
+    }
+
+    /**
+     * Beendet den Zeitgeber
+     */
+    public void stop() {
+        stopped = true;
     }
 }
