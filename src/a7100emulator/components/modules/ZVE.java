@@ -22,6 +22,7 @@
  *   23.07.2014 - Aktualisierung Systemzeit an USART weitergeleitet
  *   09.08.2014 - Zugriffe auf SystemMemory, SystemPorts und SystemClock durch
  *                MMS16Bus ersetzt
+ *   23.07.2016 - Methoden für CPU- Pausieren und Anhalten entfernt
  */
 package a7100emulator.components.modules;
 
@@ -34,6 +35,7 @@ import a7100emulator.components.ic.KR580WM51A;
 import a7100emulator.components.ic.KR580WW55A;
 import a7100emulator.components.system.GlobalClock;
 import a7100emulator.components.system.MMS16Bus;
+import a7100emulator.components.system.QuartzCrystal;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
@@ -135,6 +137,11 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
      * Speicher der EPROMS
      */
     private final Memory memory = new Memory(32768);
+    
+    /**
+     * Quartz CPU-Takt
+     */
+    private QuartzCrystal cpuClock=new QuartzCrystal(4.9152);
 
     /**
      * Erstellt eine neue ZVE
@@ -433,14 +440,6 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
     }
 
     /**
-     * Startet die CPU
-     */
-    public void start() {
-        Thread cpuThread = new Thread(cpu, "K1810WM86");
-        cpuThread.start();
-    }
-
-    /**
      * Registriert das Modul für Änderungen der Systemzeit
      */
     @Override
@@ -455,36 +454,12 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
      */
     @Override
     public void clockUpdate(int amount) {
+       int cycles=cpuClock.getCycles(amount);
+
         //TODO: Ein und Ausgabe zwischen Bausteinen synchronisieren
-        cpu.executeCycles(amount);
-        pti.updateClock(amount);
-        usart.updateClock(amount);
-    }
-
-    /**
-     * Versetz die CPU in den Pause-Modus
-     */
-    public void pause() {
-        cpu.setSuspend(true);
-    }
-
-    /**
-     * Holt die CPU aus dem Pausemodus
-     */
-    public void resume() {
-        synchronized (cpu) {
-            cpu.setSuspend(false);
-            cpu.notify();
-        }
-    }
-
-    /**
-     * Veranlasst die CPU den nächsten Befehl abzuarbeiten
-     */
-    public void singleStep() {
-        synchronized (cpu) {
-            cpu.notify();
-        }
+        cpu.executeCycles(cycles);
+        pti.updateClock(cycles);
+        usart.updateClock(cycles);
     }
 
     /**
@@ -517,13 +492,6 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
         ppi.loadState(dis);
         pti.loadState(dis);
         usart.loadState(dis);
-    }
-
-    /**
-     * Hält die CPU an
-     */
-    public void stopCPU() {
-        cpu.stop();
     }
 
     /**

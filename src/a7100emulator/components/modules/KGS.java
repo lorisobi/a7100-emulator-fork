@@ -2,7 +2,7 @@
  * KGS.java
  * 
  * Diese Datei gehört zum Projekt A7100 Emulator 
- * Copyright (c) 2011-2015 Dirk Bräuer
+ * Copyright (c) 2011-2016 Dirk Bräuer
  *
  * Der A7100 Emulator ist Freie Software: Sie können ihn unter den Bedingungen
  * der GNU General Public License, wie von der Free Software Foundation,
@@ -28,6 +28,7 @@
  *   04.12.2014 - Dump RAM implementiert
  *   30.11.2015 - Speicherzugriffsmethoden umbenannt
  *   01.12.2015 - Kommentare korrigiert
+ *   23.07.2016 - Quartz hinzugefügt
  */
 package a7100emulator.components.modules;
 
@@ -39,6 +40,7 @@ import a7100emulator.components.ic.UA857;
 import a7100emulator.components.ic.UA880;
 import a7100emulator.components.system.GlobalClock;
 import a7100emulator.components.system.MMS16Bus;
+import a7100emulator.components.system.QuartzCrystal;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.image.BufferedImage;
@@ -195,6 +197,10 @@ public final class KGS implements IOModule, ClockModule, SubsystemModule {
      * Memory-Select-Register
      */
     private int msel;
+    /**
+     * Quarz-CPU Takt
+     */
+    private QuartzCrystal cpuClock = new QuartzCrystal(4.0);
 
     /**
      * Erstellt eine neue KGS
@@ -541,7 +547,9 @@ public final class KGS implements IOModule, ClockModule, SubsystemModule {
      */
     @Override
     public void clockUpdate(int amount) {
-        cpu.updateClock(amount);
+        int cycles = cpuClock.getCycles(amount);
+
+        cpu.executeCycles(cycles);
     }
 
     /**

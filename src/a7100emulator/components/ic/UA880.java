@@ -53,6 +53,7 @@
  *   23.03.2016 - Fehler Carry Flag in CPI, CPD, CPIR, CPDR behoben
  *              - Debugausgaben ergänzt
  *   28.03.2016 - Verzögerte Interruptfreigabe implementiert
+ *   23.07.2016 - Von CPU abgeleitet
  */
 package a7100emulator.components.ic;
 
@@ -74,7 +75,7 @@ import java.util.LinkedList;
  *
  * @author Dirk Bräuer
  */
-public class UA880 implements IC {
+public class UA880 implements CPU {
 
     /**
      * Taktverhältnis zur Haupt CPU
@@ -705,6 +706,10 @@ public class UA880 implements IC {
      * aussteht.
      */
     private boolean eiWaiting = false;
+    /**
+     * Zählt die Takte der aktuellen Befehlsausführung
+     */
+    private int tickBuffer = 0;
 
     /**
      * Erstellt einen neuen Prozessor.
@@ -778,7 +783,6 @@ public class UA880 implements IC {
 //            a = 0;
 //            System.out.println("HACK: Erfolgreicher DMA Test!");
 //        }
-
         int opcode = module.readLocalByte(pc++);
         if (debug) {
             debugInfo.setIp(pc - 1);
@@ -4575,42 +4579,48 @@ public class UA880 implements IC {
      * @param cycles Anzahl der Zyklen
      */
     public void updateTicks(int cycles) {
-        ticks += cycles;
+        tickBuffer -= cycles;
         module.localClockUpdate(cycles);
     }
 
     /**
-     * Aktualisiert die Uhrzeit und lässt die entsprechende Menge an Befehlen
-     * ablaufen
-     * <p>
-     * TODO: -HALT Befehl implementieren Prüfen ob Berechnung ok ist, Umwandlung
-     * auf double ungenau? - Takt einstellbar machen
-     *
-     * @param amount Anzahl der Zyklen der Haupt-CPU
+     * Führt einen CPU Zyklus aus.
      */
-    public void updateClock(int amount) {
-        double amountScaled = amount * TICK_RATIO;
-        //System.out.println("amount: "+amount+" amount*TR:"+amountScaled+ " now:"+(int)amountScaled+" remain:"+((int)(amountScaled/TICK_RATIO-(int)amountScaled)));
-        //int ticksNow=amount*TICK_RATIO;
-
+    public void executeCPUCycle() {
         // Prüfe ob ein Busgesucht vorliegt
-        if (!busRequest) {
-            // Führe normale Operation durch
-            while (ticks < amountScaled) {
-                executeNextInstruction();
-                if (nmi) {
-                    nmi = false;
-                    nmi();
-                } else if (iff1 == 1 && iff2 == 1) {
-                    if (interruptsWaiting.size() > 0) {
-                        interrupt(interruptsWaiting.pollFirst());
-                    }
-                }
+
+        // Führe normale Operation durch
+        executeNextInstruction();
+        if (nmi) {
+            nmi = false;
+            nmi();
+        } else if (iff1 == 1 && iff2 == 1) {
+            if (interruptsWaiting.size() > 0) {
+                interrupt(interruptsWaiting.pollFirst());
             }
-            ticks -= amountScaled;
-        } else {
-            // Aktualisiere nur die anderen Komponenten
-            module.localClockUpdate((int) amountScaled);
+        }
+
+    }
+
+    /**
+     * Führt CPU Zyklen gemäß der angegebenen Anzahl der Takte aus.
+     *
+     * @param ticks Anzahl der Takte
+     */
+    @Override
+    public void executeCycles(int ticks) {
+        this.tickBuffer += ticks;
+
+        //System.out.println("Tick Buffer:"+this.tickBuffer);
+        // Mindestens 4 Takte sind für den kürzesten Befehl nötig
+        while (tickBuffer >= 4) {
+            if (!busRequest) {
+                executeCPUCycle();
+            } else {
+                // Aktualisiere nur die anderen Komponenten
+                updateTicks(4);
+//            module.localClockUpdate((int) amountScaled);
+            }
         }
     }
 
@@ -4811,7 +4821,6 @@ public class UA880 implements IC {
      * Setzt die CPU zurück und beginnt die Programmabarbeitung neu.
      */
     public void reset() {
-
         interruptMode = 0;
         pc = 0x0000;
 //        debugger.setDebug(true);

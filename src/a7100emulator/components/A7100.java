@@ -21,6 +21,7 @@
  *   01.04.2014 - Kommentare vervollständigt
  *   17.11.2014 - Starten der Systemzeit implementiert
  *   05.06.2016 - Verweise auf alten KES entfernt
+ *   23.07.2016 - Methoden für Pausieren und Einzelschritt überarbeitet
  */
 package a7100emulator.components;
 
@@ -208,7 +209,7 @@ public class A7100 {
      * werden die reset Funktionen der Module sowie der Peripherie aufgerufen.
      */
     public void reset() {
-        zve.stopCPU();
+        GlobalClock.getInstance().stop();
         try {
             // Warte 100ms um das Anhalten des Systems zu garantieren
             Thread.sleep(100);
@@ -229,21 +230,26 @@ public class A7100 {
      * Pausiert den A7100.
      */
     public void pause() {
-        zve.pause();
+        GlobalClock.getInstance().setPause(true);
     }
 
     /**
      * Lässt den A7100 weiterlaufen.
      */
     public void resume() {
-        zve.resume();
+       synchronized(GlobalClock.getInstance()) {
+           GlobalClock.getInstance().setPause(false);
+           GlobalClock.getInstance().notify();
+       }
     }
 
     /**
      * Führt einen einzelnen Zeitschritt durch
      */
     public void singleStep() {
-        zve.singleStep();
+        synchronized (GlobalClock.getInstance()) {
+            GlobalClock.getInstance().notify();
+        }
     }
 
     /**

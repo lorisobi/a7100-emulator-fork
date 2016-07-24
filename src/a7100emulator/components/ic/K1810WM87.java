@@ -2,7 +2,7 @@
  * KR1810WM87.java
  * 
  * Diese Datei gehört zum Projekt A7100 Emulator 
- * Copyright (c) 2011-2015 Dirk Bräuer
+ * Copyright (c) 2011-2016 Dirk Bräuer
  *
  * Der A7100 Emulator ist Freie Software: Sie können ihn unter den Bedingungen
  * der GNU General Public License, wie von der Free Software Foundation,
@@ -21,6 +21,7 @@
  *   15.07.2014 - Kommentare aktualisiert
  *   09.08.2014 - Zugriffe auf SystemMemory und SystemPorts durch MMS16Bus ersetzt
  *   18.11.2014 - Interface IC implementiert
+ *   23.07.2016 - Runnable entfernt, executeCycles() hinzugefügt
  */
 package a7100emulator.components.ic;
 
@@ -37,7 +38,7 @@ import java.io.IOException;
  *
  * @author Dirk Bräuer
  */
-public class K1810WM87 implements Runnable, IC {
+public class K1810WM87 implements CPU {
 
     /**
      * Klasse zur Abbildung eines Stack-Registers
@@ -92,13 +93,13 @@ public class K1810WM87 implements Runnable, IC {
     }
 
     /**
-     * Startet den CPU-Thread
+     * Führt die angegebene Anzahl von Zyklen aus.
+     *
+     * @param ticks Anzahl der Takte
      */
     @Override
-    public void run() {
-        while (true) {
-            executeNextInstruction();
-        }
+    public void executeCycles(int ticks) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
     @Override

@@ -1,5 +1,5 @@
 /*
- * IC.java
+ * CPU.java
  * 
  * Diese Datei gehört zum Projekt A7100 Emulator 
  * Copyright (c) 2011-2016 Dirk Bräuer
@@ -18,17 +18,22 @@
  * Programm erhalten haben. Wenn nicht, siehe <http://www.gnu.org/licenses/>.
  * 
  * Letzte Änderungen:
- *   18.11.2014 - Erstellt
+ *   23.07.2016 - Erstellt
  */
 package a7100emulator.components.ic;
 
-import a7100emulator.Tools.StateSavable;
-
 /**
- * Interface für alle Schaltkreise.
+ * Interface für alle CPU Schlatkreise, welche basierend auf einem externen Takt
+ * arbeiten.
  *
  * @author Dirk Bräuer
  */
-public interface IC extends StateSavable {
+public interface CPU extends IC {
 
+    /**
+     * Führt Zyklen gemäß der angegebenen Anzahl von Takten aus.
+     *
+     * @param ticks Anzahl der Takte
+     */
+    void executeCycles(int ticks);
 }

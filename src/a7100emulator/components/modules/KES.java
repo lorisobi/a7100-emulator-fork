@@ -2,7 +2,7 @@
  * KES.java
  * 
  * Diese Datei gehört zum Projekt A7100 Emulator 
- * Copyright (c) 2011-2015 Dirk Bräuer
+ * Copyright (c) 2011-2016 Dirk Bräuer
  *
  * Der A7100 Emulator ist Freie Software: Sie können ihn unter den Bedingungen
  * der GNU General Public License, wie von der Free Software Foundation,
@@ -39,6 +39,7 @@
  *              - Lesen von Systemspeicher ermöglicht
  *   24.03.2016 - NMI Sperre ergänzt
  *   26.03.2016 - Speichern und Laden vervollständigt
+ *   23.07.2016 - Quartz hinzugefügt
  */
 package a7100emulator.components.modules;
 
@@ -50,6 +51,7 @@ import a7100emulator.components.ic.UA858;
 import a7100emulator.components.ic.UA880;
 import a7100emulator.components.system.GlobalClock;
 import a7100emulator.components.system.MMS16Bus;
+import a7100emulator.components.system.QuartzCrystal;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
@@ -219,6 +221,10 @@ public final class KES implements IOModule, ClockModule, SubsystemModule {
      * NMI ausstehend
      */
     private boolean nmiRequest = false;
+        /**
+     * Quarz-CPU Takt
+     */
+    private QuartzCrystal cpuClock = new QuartzCrystal(3.6864);
 
     /**
      * Erstellt ein neues KES-Modul
@@ -369,12 +375,14 @@ public final class KES implements IOModule, ClockModule, SubsystemModule {
      */
     @Override
     public void clockUpdate(int amount) {
+        int cycles = cpuClock.getCycles(amount);    
+        
         // Prüfe ob NMI erlaubt und Anfrage besteht
         if (nmiRequest && !BitTest.getBit(dnmi_map, 7)) {
             nmiRequest = false;
             cpu.requestNMI();
         }
-        cpu.updateClock(amount);
+        cpu.executeCycles(cycles);
     }
 
     /**
