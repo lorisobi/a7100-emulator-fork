@@ -2,7 +2,7 @@
  * GlobalClock.java
  * 
  * Diese Datei gehört zum Projekt A7100 Emulator 
- * Copyright (c) 2011-2015 Dirk Bräuer
+ * Copyright (c) 2011-2016 Dirk Bräuer
  *
  * Der A7100 Emulator ist Freie Software: Sie können ihn unter den Bedingungen
  * der GNU General Public License, wie von der Free Software Foundation,
@@ -23,6 +23,11 @@
  *              - Speichern und Laden implementiert
  *              - Interface StateSavable implementiert
  *   19.11.2014 - Thread Funktionalität entfernt
+ *   05.06.2016 - Interface Runnable implementiert
+ *              - Doppelte Typdefinitionen entfernt
+ *   17.07.2016 - Ausführzeit in Konstante ausgelagert
+ *   23.07.2016 - Kommentare überarbeitet
+ *              - Methoden zum Pausieren ergänzt
  */
 package a7100emulator.components.system;
 
@@ -32,28 +37,45 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.LinkedList;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Klasse zur Abbildung der globalen Systemzeit. Dies ist die
  * Softwarerealisierung aller Taktgeber im System und sorgt für den parallelen,
- * zyklischen Ablauf der einzelnen Systemkomponenten
+ * zyklischen Ablauf der einzelnen Systemkomponenten.
+ * <p>
+ * TODO: - Zyklendauer sinnvoll wählen - Synchronisation mit echter Zeit -
+ * Parallele Implementierung
  *
  * @author Dirk Bräuer
  */
-public class GlobalClock implements StateSavable {
+public class GlobalClock implements Runnable, StateSavable {
 
+    /**
+     * Zyklendauer in Mikrosekunden
+     */
+    private static final int CYCLE_TIME = 1;
     /**
      * Singleton Instanz
      */
     private static GlobalClock instance;
     /**
-     * Systemzeit in ms
+     * Systemzeit in Mikrosekunden
      */
     private long clock = 0;
     /**
      * Liste mit allen Modulen, welche die globale Systemzeit verwenden
      */
-    private final LinkedList<ClockModule> modules = new LinkedList<ClockModule>();
+    private final LinkedList<ClockModule> modules = new LinkedList<>();
+    /**
+     * Gibt an, ob der Zeitgeber beendet werden soll.
+     */
+    private boolean stopped = false;
+    /**
+     * Gibt an, ob der Zeitgeber pausiert ist.
+     */
+    private boolean suspended;
 
     /**
      * Privater Konstruktor
@@ -83,14 +105,17 @@ public class GlobalClock implements StateSavable {
     }
 
     /**
-     * Aktualisiert die Systemzeit auf Basis der Haupt-CPU Frequenz.
+     * Aktualisiert die Systemzeit um die angegebene Zeit und meldet die
+     * geänderte Zeit an alle registrierten Module weiter.
      *
-     * @param amount Anzahl der Ticks
+     * @param micros Zeitdauer in Mikrosekunden
      */
-    public void updateClock(int amount) {
-        clock += amount;
+    public void updateClock(int micros) {
+        // Zeit in µs aktualisieren
+        clock += micros;
+
         for (ClockModule module : modules) {
-            module.clockUpdate(amount);
+            module.clockUpdate(micros);
         }
     }
 
@@ -103,6 +128,8 @@ public class GlobalClock implements StateSavable {
     @Override
     public void saveState(DataOutputStream dos) throws IOException {
         dos.writeLong(clock);
+        dos.writeBoolean(stopped);
+        dos.writeBoolean(suspended);
     }
 
     /**
@@ -114,6 +141,8 @@ public class GlobalClock implements StateSavable {
     @Override
     public void loadState(DataInputStream dis) throws IOException {
         clock = dis.readLong();
+        stopped = dis.readBoolean();
+        suspended = dis.readBoolean();
     }
 
     /**
@@ -122,5 +151,43 @@ public class GlobalClock implements StateSavable {
     public void reset() {
         modules.clear();
         clock = 0;
+        stopped = false;
+        suspended = false;
+    }
+
+    /**
+     * Startet den globalen Zeitgeber.
+     */
+    @Override
+    public void run() {
+        while (!stopped) {
+            if (suspended) {
+                synchronized (this) {
+                    try {
+                        wait();
+                    } catch (InterruptedException ex) {
+                        Logger.getLogger(GlobalClock.class.getName()).log(Level.SEVERE, null, ex);
+}
+                }
+            }
+            updateClock(CYCLE_TIME);
+        }
+    }
+
+    /**
+     * Beendet den Zeitgeber
+     */
+    public void stop() {
+        stopped = true;
+    }
+
+    /**
+     * Pausiert den Zeitgeber oder lässt ihn weiterlaufen.
+     *
+     * @param pause <code>true</code> - wenn der Zeitgeber angehalten werden
+     * soll,<code>false</code> sonst
+     */
+    public void setPause(boolean pause) {
+        suspended = pause;
     }
 }

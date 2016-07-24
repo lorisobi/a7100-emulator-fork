@@ -53,6 +53,9 @@
  *   23.03.2016 - Fehler Carry Flag in CPI, CPD, CPIR, CPDR behoben
  *              - Debugausgaben ergänzt
  *   28.03.2016 - Verzögerte Interruptfreigabe implementiert
+ *   23.07.2016 - Von CPU abgeleitet
+ *   24.07.2016 - TICK_RATIO entfernt
+ *              - Methoden push(),pop() und executeCPUCycle() private gesetzt
  */
 package a7100emulator.components.ic;
 
@@ -73,12 +76,8 @@ import java.util.LinkedList;
  *
  * @author Dirk Bräuer
  */
-public class UA880 implements IC {
+public class UA880 implements CPU {
 
-    /**
-     * Taktverhältnis zur Haupt CPU
-     */
-    private static final double TICK_RATIO = 4000.0 / 4915.0;
     /**
      * Hauptregister
      */
@@ -700,6 +699,10 @@ public class UA880 implements IC {
      * aussteht.
      */
     private boolean eiWaiting = false;
+    /**
+     * Zählt die Takte der aktuellen Befehlsausführung
+     */
+    private int tickBuffer = 0;
 
     /**
      * Erstellt einen neuen Prozessor.
@@ -4091,7 +4094,7 @@ public class UA880 implements IC {
      *
      * @return Gelesenes Wort
      */
-    public int pop() {
+    private int pop() {
         int result = module.readLocalWord(sp);
         setRegisterPairHLSP(REGP_SP, getRegisterPairHLSP(REGP_SP) + 2);
         return result;
@@ -4102,7 +4105,7 @@ public class UA880 implements IC {
      *
      * @param value Zu speicherndes Wort
      */
-    public void push(int value) {
+    private void push(int value) {
         setRegisterPairHLSP(REGP_SP, getRegisterPairHLSP(REGP_SP) - 2);
         module.writeLocalWord(sp, value);
     }
@@ -4512,37 +4515,44 @@ public class UA880 implements IC {
      *
      * @param cycles Anzahl der Zyklen
      */
-    public void updateTicks(int cycles) {
-        ticks += cycles;
+    private void updateTicks(int cycles) {
+        tickBuffer -= cycles;
         module.localClockUpdate(cycles);
     }
 
     /**
-     * Aktualisiert die Uhrzeit und lässt die entsprechende Menge an Befehlen
-     * ablaufen
-     * <p>
-     * TODO: -HALT Befehl implementieren Prüfen ob Berechnung ok ist, Umwandlung
-     * auf double ungenau? - Takt einstellbar machen
-     *
-     * @param amount Anzahl der Zyklen der Haupt-CPU
+     * Führt einen CPU Zyklus aus.
      */
-    public void updateClock(int amount) {
-        double amountScaled = amount * TICK_RATIO;
-        //System.out.println("amount: "+amount+" amount*TR:"+amountScaled+ " now:"+(int)amountScaled+" remain:"+((int)(amountScaled/TICK_RATIO-(int)amountScaled)));
-        //int ticksNow=amount*TICK_RATIO;
+    private void executeCPUCycle() {
+        // Prüfe ob ein Busgesucht vorliegt
 
-        while (ticks < amountScaled) {
-            executeNextInstruction();
-            if (nmi) {
-                nmi = false;
-                nmi();
-            } else if (iff1 == 1 && iff2 == 1) {
-                if (interruptsWaiting.size() > 0) {
-                    interrupt(interruptsWaiting.pollFirst());
-                }
+        // Führe normale Operation durch
+        executeNextInstruction();
+        if (nmi) {
+            nmi = false;
+            nmi();
+        } else if (iff1 == 1 && iff2 == 1) {
+            if (interruptsWaiting.size() > 0) {
+                interrupt(interruptsWaiting.pollFirst());
             }
         }
-        ticks -= amountScaled;
+
+    }
+
+    /**
+     * Führt CPU Zyklen gemäß der angegebenen Anzahl der Takte aus.
+     *
+     * @param ticks Anzahl der Takte
+     */
+    @Override
+    public void executeCycles(int ticks) {
+        this.tickBuffer += ticks;
+
+        //System.out.println("Tick Buffer:"+this.tickBuffer);
+        // Mindestens 4 Takte sind für den kürzesten Befehl nötig
+        while (tickBuffer >= 4) {
+           executeCPUCycle();
+        }
     }
 
     /**
@@ -4623,6 +4633,7 @@ public class UA880 implements IC {
      *
      * @param debug true - zum Aktivieren, false- sonst
      */
+    @Override
     public void setDebug(boolean debug) {
         debugger.setDebug(debug);
     }
@@ -4725,11 +4736,11 @@ public class UA880 implements IC {
     /**
      * Setzt die CPU zurück und beginnt die Programmabarbeitung neu.
      */
+    @Override
     public void reset() {
-
         interruptMode = 0;
         pc = 0x0000;
 //        debugger.setDebug(true);
 //        debugger.addComment("CPU Reset");
-}
+    }
 }

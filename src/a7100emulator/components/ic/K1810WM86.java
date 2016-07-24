@@ -42,6 +42,10 @@
  *   05.08.2015 - Debugausgabe MOVS korrigiert
  *   09.08.2015 - Javadoc korrigiert
  *   11.08.2015 - Segment-Präfixe separat behandelt
+ *   23.07.2016 - Ausführung von Zyklen überarbeitet
+ *              - Von Interface CPU abgeleitet, Runnable entfernt
+ *              - Methoden zum Anhalten und Pausieren entfernt
+ *   24.07.2016 - reset() und setDebug() nach Interface CPU ausgelagert
  */
 package a7100emulator.components.ic;
 
@@ -50,21 +54,18 @@ import a7100emulator.Debug.DebuggerInfo;
 import a7100emulator.Debug.Decoder;
 import a7100emulator.Debug.OpcodeStatistic;
 import a7100emulator.Tools.BitTest;
-import a7100emulator.components.system.GlobalClock;
 import a7100emulator.components.system.InterruptSystem;
 import a7100emulator.components.system.MMS16Bus;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * Klasse zur Abbildung der CPU K1810WM86
  *
  * @author Dirk Bräuer
  */
-public class K1810WM86 implements Runnable, IC {
+public class K1810WM86 implements CPU {
 
     /**
      * Interrupt System
@@ -608,25 +609,13 @@ public class K1810WM86 implements Runnable, IC {
      */
     private final DebuggerInfo debugInfo = new DebuggerInfo();
     /**
-     * Gibt an, ob die CPU Pausiert ist
-     */
-    private boolean suspended = false;
-    /**
-     * Gibt an, ob die CPU angehalten ist
-     */
-    private boolean stopped = false;
-    /**
      * Gibt an, ob nach dem nächsten Befehl das Interrupt-Flag gesetzt wird
      */
     private boolean stiWaiting = false;
     /**
      * Zählt die Takte der aktuellen Befehlsausführung
      */
-    private int ticks = 0;
-    /**
-     * Referenz auf Systemzeit
-     */
-    private final GlobalClock clock = GlobalClock.getInstance();
+    private int tickBuffer = 0;
 
     /**
      * Erzeugt eine neue CPU
@@ -6357,6 +6346,7 @@ public class K1810WM86 implements Runnable, IC {
      * Setzt die CPU in ihren Anfangszustand. Dabei werden die Flags gelöscht
      * und die Code Abarbeitung begint bei FFFF:0000
      */
+    @Override
     public void reset() {
         flags = 0x0000;
         ip = 0x0000;
@@ -6419,7 +6409,7 @@ public class K1810WM86 implements Runnable, IC {
             executeNextInstruction();
             if (mms16.isTimeout()) {
                 // 10 ms Timeout
-                updateTicks(49150);
+                updateTicks(49152);
                 mms16.clearTimeout();
             }
         } else {
@@ -6440,39 +6430,20 @@ public class K1810WM86 implements Runnable, IC {
     }
 
     /**
-     * Startet den CPU-Thread
+     * Führt CPU Zyklen gemäß der angegebenen Anzahl der Takte aus.
+     *
+     * @param ticks Anzahl der Takte
      */
     @Override
-    public void run() {
-        while (!stopped) {
-            if (suspended) {
-                synchronized (this) {
-                    try {
-                        wait();
-                    } catch (InterruptedException ex) {
-                        Logger.getLogger(K1810WM86.class.getName()).log(Level.SEVERE, null, ex);
-                    }
-                }
-            }
+    public void executeCycles(int ticks) {
+        this.tickBuffer += ticks;
+        
+        //System.out.println("Tick Buffer:"+this.tickBuffer);
+        
+        // Mindestens 5 Takte sind für den kürzesten Befehl nötig
+        while (tickBuffer >= 5) {
             executeCPUCycle();
         }
-    }
-
-    /**
-     * Pausiert die Befehlsabarbeitung oder lässt sie wieder anlaufen, dies wird
-     * für Einzelschrittbetrieb und Debugging verwendet
-     *
-     * @param suspended true - wenn Pausiert werden soll, false - sonst
-     */
-    public void setSuspend(boolean suspended) {
-        this.suspended = suspended;
-    }
-
-    /**
-     * Hält die CPU an und beendet damit den Thread
-     */
-    public void stop() {
-        stopped = true;
     }
 
     /**
@@ -6482,11 +6453,10 @@ public class K1810WM86 implements Runnable, IC {
      * @param amount Anzahl der Takte
      */
     private void updateTicks(int amount) {
-        ticks += amount;
-        clock.updateClock(amount);
+        tickBuffer -= amount;
     }
 
-    /**
+     /**
      * Speichert den Zustand der CPU in einer Datei
      *
      * @param dos Stream zur Datei
@@ -6512,7 +6482,7 @@ public class K1810WM86 implements Runnable, IC {
         dos.writeInt(string_prefix);
         dos.writeBoolean(isHalted);
         dos.writeBoolean(stiWaiting);
-        dos.writeInt(ticks);
+        dos.writeInt(tickBuffer);
     }
 
     /**
@@ -6541,7 +6511,7 @@ public class K1810WM86 implements Runnable, IC {
         string_prefix = dis.readInt();
         isHalted = dis.readBoolean();
         stiWaiting = dis.readBoolean();
-        ticks = dis.readInt();
+        tickBuffer = dis.readInt();
     }
 
     /**
@@ -6549,6 +6519,7 @@ public class K1810WM86 implements Runnable, IC {
      *
      * @param debug true zum Aktivieren, false zum Deaktivieren
      */
+    @Override
     public void setDebug(boolean debug) {
         debugger.setDebug(debug);
     }

@@ -2,7 +2,7 @@
  * IC.java
  * 
  * Diese Datei gehört zum Projekt A7100 Emulator 
- * Copyright (c) 2011-2015 Dirk Bräuer
+ * Copyright (c) 2011-2016 Dirk Bräuer
  *
  * Der A7100 Emulator ist Freie Software: Sie können ihn unter den Bedingungen
  * der GNU General Public License, wie von der Free Software Foundation,
@@ -25,7 +25,8 @@ package a7100emulator.components.ic;
 import a7100emulator.Tools.StateSavable;
 
 /**
- * Interface für alle Schaltkreise
+ * Interface für alle Schaltkreise.
+ *
  * @author Dirk Bräuer
  */
 public interface IC extends StateSavable {

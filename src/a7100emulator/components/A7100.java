@@ -2,7 +2,7 @@
  * A7100.java
  * 
  * Diese Datei gehört zum Projekt A7100 Emulator 
- * Copyright (c) 2011-2015 Dirk Bräuer
+ * Copyright (c) 2011-2016 Dirk Bräuer
  *
  * Der A7100 Emulator ist Freie Software: Sie können ihn unter den Bedingungen
  * der GNU General Public License, wie von der Free Software Foundation,
@@ -20,11 +20,21 @@
  * Letzte Änderungen:
  *   01.04.2014 - Kommentare vervollständigt
  *   17.11.2014 - Starten der Systemzeit implementiert
+ *   23.07.2016 - Methoden für Pausieren und Einzelschritt überarbeitet
  */
 package a7100emulator.components;
 
-import a7100emulator.components.modules.*;
-import a7100emulator.components.system.*;
+import a7100emulator.components.modules.ABG;
+import a7100emulator.components.modules.ASP;
+import a7100emulator.components.modules.KES;
+import a7100emulator.components.modules.KGS;
+import a7100emulator.components.modules.OPS;
+import a7100emulator.components.modules.ZPS;
+import a7100emulator.components.modules.ZVE;
+import a7100emulator.components.system.GlobalClock;
+import a7100emulator.components.system.InterruptSystem;
+import a7100emulator.components.system.Keyboard;
+import a7100emulator.components.system.MMS16Bus;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.FileInputStream;
@@ -78,14 +88,16 @@ public class A7100 {
      */
     public A7100() {
         initModules();
-        startMainCPU();
+        startClock();
     }
 
     /**
      * Startet die Systemzeit
      */
-    private void startMainCPU() {
-        zve.start();
+    private void startClock() {
+        //zve.start();
+        Thread clock = new Thread(GlobalClock.getInstance(),"Clock");
+        clock.start();
     }
 
     /**
@@ -196,7 +208,7 @@ public class A7100 {
      * werden die reset Funktionen der Module sowie der Peripherie aufgerufen.
      */
     public void reset() {
-        zve.stopCPU();
+        GlobalClock.getInstance().stop();
         try {
             // Warte 100ms um das Anhalten des Systems zu garantieren
             Thread.sleep(100);
@@ -210,28 +222,33 @@ public class A7100 {
         GlobalClock.getInstance().reset();
 
         initModules();
-        startMainCPU();
+        startClock();
     }
 
     /**
      * Pausiert den A7100.
      */
     public void pause() {
-        zve.pause();
+        GlobalClock.getInstance().setPause(true);
     }
 
     /**
      * Lässt den A7100 weiterlaufen.
      */
     public void resume() {
-        zve.resume();
+       synchronized(GlobalClock.getInstance()) {
+           GlobalClock.getInstance().setPause(false);
+           GlobalClock.getInstance().notify();
+        }
     }
 
     /**
      * Führt einen einzelnen Zeitschritt durch
      */
     public void singleStep() {
-        zve.singleStep();
+        synchronized (GlobalClock.getInstance()) {
+            GlobalClock.getInstance().notify();
+        }
     }
 
     /**

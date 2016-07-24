@@ -1,5 +1,5 @@
 /*
- * MemoryModule.java
+ * CPU.java
  * 
  * Diese Datei gehört zum Projekt A7100 Emulator 
  * Copyright (c) 2011-2016 Dirk Bräuer
@@ -18,51 +18,36 @@
  * Programm erhalten haben. Wenn nicht, siehe <http://www.gnu.org/licenses/>.
  * 
  * Letzte Änderungen:
- *   02.04.2014 - Kommentare vervollständigt
+ *   23.07.2016 - Erstellt
+ *   24.07.2016 - Methoden reset() und setDebug() hinzugefügt
  */
-package a7100emulator.components.modules;
+package a7100emulator.components.ic;
 
 /**
- * Interface für Module welche Arbeitsspeicher zur Verfügung stellen
+ * Interface für alle CPU Schlatkreise, welche basierend auf einem externen Takt
+ * Befehle aus einem Speicherbereich decodieren und abarbeiten.
  *
  * @author Dirk Bräuer
  */
-public interface MemoryModule extends Module {
+public interface CPU extends IC {
 
     /**
-     * Registriert das Modul im Systemspeicher
-     */
-    void registerMemory();
-
-    /**
-     * Liest ein Byte von der angegebenen Adresse
+     * Führt Zyklen gemäß der angegebenen Anzahl von Takten aus.
      *
-     * @param address Adresse
-     * @return gelesenes Byte
+     * @param ticks Anzahl der Takte
      */
-    int readByte(int address);
+    void executeCycles(int ticks);
 
     /**
-     * Liest ein Wort von der angegebenen Adresse
-     *
-     * @param address Adresse
-     * @return gelesenes Wort
+     * Setzt die CPU in ihren Anfangszustand.
      */
-    int readWord(int address);
+    void reset();
 
     /**
-     * Schreibt ein Byte an die angegebene Adresse
+     * Aktiviert oder Deaktiviert den Debugger
      *
-     * @param address Adresse
-     * @param data Daten
+     * @param debug <code>true</code> zum Aktivieren, <code>false</code> zum
+     * Deaktivieren
      */
-    void writeByte(int address, int data);
-
-    /**
-     * Schreibt ein Wort an die angegebene Adresse
-     *
-     * @param address Adresse
-     * @param data Daten
-     */
-    void writeWord(int address, int data);
+    void setDebug(boolean debug);
 }
