@@ -54,6 +54,8 @@
  *              - Debugausgaben ergänzt
  *   28.03.2016 - Verzögerte Interruptfreigabe implementiert
  *   23.07.2016 - Von CPU abgeleitet
+ *   24.07.2016 - TICK_RATIO entfernt
+ *              - Methoden push(),pop() und executeCPUCycle() private gesetzt
  */
 package a7100emulator.components.ic;
 
@@ -77,10 +79,6 @@ import java.util.LinkedList;
  */
 public class UA880 implements CPU {
 
-    /**
-     * Taktverhältnis zur Haupt CPU
-     */
-    private static final double TICK_RATIO = 4000.0 / 4915.0;
     /**
      * Hauptregister
      */
@@ -4157,7 +4155,7 @@ public class UA880 implements CPU {
      *
      * @return Gelesenes Wort
      */
-    public int pop() {
+    private int pop() {
         int result = module.readLocalWord(sp);
         setRegisterPairHLSP(REGP_SP, getRegisterPairHLSP(REGP_SP) + 2);
         return result;
@@ -4168,7 +4166,7 @@ public class UA880 implements CPU {
      *
      * @param value Zu speicherndes Wort
      */
-    public void push(int value) {
+    private void push(int value) {
         setRegisterPairHLSP(REGP_SP, getRegisterPairHLSP(REGP_SP) - 2);
         module.writeLocalWord(sp, value);
     }
@@ -4578,7 +4576,7 @@ public class UA880 implements CPU {
      *
      * @param cycles Anzahl der Zyklen
      */
-    public void updateTicks(int cycles) {
+    private void updateTicks(int cycles) {
         tickBuffer -= cycles;
         module.localClockUpdate(cycles);
     }
@@ -4586,7 +4584,7 @@ public class UA880 implements CPU {
     /**
      * Führt einen CPU Zyklus aus.
      */
-    public void executeCPUCycle() {
+    private void executeCPUCycle() {
         // Prüfe ob ein Busgesucht vorliegt
 
         // Führe normale Operation durch
@@ -4672,7 +4670,7 @@ public class UA880 implements CPU {
                 push(pc);
 
                 pc = module.readLocalWord(isr_address);
-                //System.out.println("Starte Interrupt an: " + String.format("%04X", pc));
+                System.out.println("Starte Interrupt "+i+" an: " + String.format("%04X", pc));
                 break;
             default:
                 throw new IllegalStateException("Unbekannter Interrupt-Modus!");
@@ -4716,6 +4714,7 @@ public class UA880 implements CPU {
      *
      * @param debug true - zum Aktivieren, false- sonst
      */
+    @Override
     public void setDebug(boolean debug) {
         debugger.setDebug(debug);
     }
@@ -4820,6 +4819,7 @@ public class UA880 implements CPU {
     /**
      * Setzt die CPU zurück und beginnt die Programmabarbeitung neu.
      */
+    @Override
     public void reset() {
         interruptMode = 0;
         pc = 0x0000;

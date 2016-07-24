@@ -15,7 +15,7 @@ Inhaltsverzeichnis:
 1. Lizenzinformationen:
 
  A7100 Emulator
- Copyright (c) 2011-2015 Dirk Bräuer
+ Copyright (c) 2011-2016 Dirk Bräuer
 
  Der A7100 Emulator ist Freie Software: Sie können ihn unter den Bedingungen
  der GNU General Public License, wie von der Free Software Foundation,

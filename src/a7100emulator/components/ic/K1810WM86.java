@@ -46,6 +46,7 @@
  *   23.07.2016 - Ausführung von Zyklen überarbeitet
  *              - Von Interface CPU abgeleitet, Runnable entfernt
  *              - Methoden zum Anhalten und Pausieren entfernt
+ *   24.07.2016 - reset() und setDebug() nach Interface CPU ausgelagert
  */
 package a7100emulator.components.ic;
 
@@ -6361,6 +6362,7 @@ public class K1810WM86 implements CPU {
      * Setzt die CPU in ihren Anfangszustand. Dabei werden die Flags gelöscht
      * und die Code Abarbeitung begint bei FFFF:0000
      */
+    @Override
     public void reset() {
         flags = 0x0000;
         ip = 0x0000;
@@ -6546,6 +6548,7 @@ public class K1810WM86 implements CPU {
      *
      * @param debug true zum Aktivieren, false zum Deaktivieren
      */
+    @Override
     public void setDebug(boolean debug) {
         debugger.setDebug(debug);
     }

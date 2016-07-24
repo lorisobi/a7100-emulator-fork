@@ -408,8 +408,8 @@ public class UA858 implements IC {
         if (enableDMA) {
             // Addiere Anzahl der Takte
             // TODO: Maschinentakte, Takte
-            buffer += cycles * 1000;
-
+            //buffer += cycles * 1000;
+            buffer += cycles;
             do {
                 startOperation();
             } while (buffer > 0 && enableDMA);

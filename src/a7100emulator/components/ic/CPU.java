@@ -19,12 +19,13 @@
  * 
  * Letzte Änderungen:
  *   23.07.2016 - Erstellt
+ *   24.07.2016 - Methoden reset() und setDebug() hinzugefügt
  */
 package a7100emulator.components.ic;
 
 /**
  * Interface für alle CPU Schlatkreise, welche basierend auf einem externen Takt
- * arbeiten.
+ * Befehle aus einem Speicherbereich decodieren und abarbeiten.
  *
  * @author Dirk Bräuer
  */
@@ -36,4 +37,17 @@ public interface CPU extends IC {
      * @param ticks Anzahl der Takte
      */
     void executeCycles(int ticks);
+
+    /**
+     * Setzt die CPU in ihren Anfangszustand.
+     */
+    void reset();
+
+    /**
+     * Aktiviert oder Deaktiviert den Debugger
+     *
+     * @param debug <code>true</code> zum Aktivieren, <code>false</code> zum
+     * Deaktivieren
+     */
+    void setDebug(boolean debug);
 }

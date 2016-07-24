@@ -20,6 +20,7 @@
  * Letzte Änderungen:
  *   15.06.2016 - Erste Version
  *   23.07.2016 - Kommentare ergänzt
+ *   24.07.2016 - Parameter umbenannt
  */
 package a7100emulator.components.system;
 
@@ -57,18 +58,17 @@ public class QuartzCrystal implements StateSavable {
      * Berechnet die Anzahl der auszuführenden Takte für einen vorgegebenen
      * Zeitrahmen.
      *
-     * @param time Zeit in µs
+     * @param micros Zeit in Mikrosekunden
      * @return Anzahl der Takte
      */
-    public int getCycles(int time) {
+    public int getCycles(int micros) {
         // Addiere Anzahl der Takte für neue Zeit
-        remain += frequency * time;
+        remain += frequency * micros;
         // Berechne vollständige Takte
         int cycles = (int) Math.floor(remain);
         // Ziehe vollständige Takte ab
         remain -= cycles;
         return cycles;
-        //return 10;
     }
 
     /**

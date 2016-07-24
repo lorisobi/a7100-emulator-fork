@@ -2,7 +2,7 @@
  * ABG.java
  * 
  * Diese Datei gehört zum Projekt A7100 Emulator 
- * Copyright (c) 2011-2015 Dirk Bräuer
+ * Copyright (c) 2011-2016 Dirk Bräuer
  *
  * Der A7100 Emulator ist Freie Software: Sie können ihn unter den Bedingungen
  * der GNU General Public License, wie von der Free Software Foundation,
@@ -28,6 +28,7 @@
  *   03.01.2015 - Blinken bei nicht Cursor ergänzt
  *              - enum CursorMode entfernt
  *   09.08.2015 - Javadoc korrigiert
+ *   24.07.2016 - updateClock() in clockUpdate() umbenannt
  */
 package a7100emulator.components.modules;
 
@@ -242,7 +243,7 @@ public final class ABG implements Module {
      *
      * @param amount Anzahl der Ticks
      */
-    public void clockUpdate(int amount) {
+    public void updateClock(int amount) {
         localClock += amount;
         if (localClock > 160000) {
             localClock = 0;

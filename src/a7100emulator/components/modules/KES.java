@@ -40,6 +40,8 @@
  *   24.03.2016 - NMI Sperre ergänzt
  *   26.03.2016 - Speichern und Laden vervollständigt
  *   23.07.2016 - Quartz hinzugefügt
+ *   24.07.2016 - Parameter umbenannt
+ *              - localClockUpdate() ohne Funktion
  */
 package a7100emulator.components.modules;
 
@@ -221,10 +223,10 @@ public final class KES implements IOModule, ClockModule, SubsystemModule {
      * NMI ausstehend
      */
     private boolean nmiRequest = false;
-        /**
+    /**
      * Quarz-CPU Takt
      */
-    private QuartzCrystal cpuClock = new QuartzCrystal(3.6864);
+    private final QuartzCrystal cpuClock = new QuartzCrystal(3.6864);
 
     /**
      * Erstellt ein neues KES-Modul
@@ -367,22 +369,27 @@ public final class KES implements IOModule, ClockModule, SubsystemModule {
 
     /**
      * Verarbeitet Änderungen der Systemzeit. Diese Funktion lässt den UA880
-     * Prozessor Befehle abarbeiten. Die Anzahl der Befehle hängt von der Anzahl
-     * der ausgeführten Befehle der Haupt-CPU ab. Andere Komponenten des Systems
+     * Prozessor Befehle abarbeiten. Die Anzahl der Befehle hängt von der
+     * übergebenen Anzahl an Mikrosekunden ab. Andere Komponenten des Systems
      * werden nicht benachrichtigt.
      *
-     * @param amount Anzahl der Ticks
+     * @param micros Zeitdauer in Mikrosekunden
      */
     @Override
-    public void clockUpdate(int amount) {
-        int cycles = cpuClock.getCycles(amount);    
-        
+    public void clockUpdate(int micros) {
+        int cycles = cpuClock.getCycles(micros);
+
         // Prüfe ob NMI erlaubt und Anfrage besteht
         if (nmiRequest && !BitTest.getBit(dnmi_map, 7)) {
             nmiRequest = false;
             cpu.requestNMI();
         }
         cpu.executeCycles(cycles);
+        
+        ctc.updateClock(cycles);
+        dma.updateClock(cycles);
+        afs.updateClock(cycles);
+
     }
 
     /**
@@ -474,7 +481,7 @@ public final class KES implements IOModule, ClockModule, SubsystemModule {
             case LOCAL_PORT_DMA_1:
             case LOCAL_PORT_DMA_2:
             case LOCAL_PORT_DMA_3:
-                System.out.println(String.format("Ausgabe an DMA: %02X",data));
+                System.out.println(String.format("Ausgabe an DMA: %02X", data));
                 dma.writeControl(data);
                 break;
             case LOCAL_PORT_CTC_CHANNEL_0:
@@ -664,9 +671,9 @@ public final class KES implements IOModule, ClockModule, SubsystemModule {
      */
     @Override
     public void localClockUpdate(int cycles) {
-        ctc.updateClock(cycles);
-        dma.updateClock(cycles);
-        afs.updateClock(cycles);
+//        ctc.updateClock(cycles);
+//        dma.updateClock(cycles);
+//        afs.updateClock(cycles);
         //afp.clockUpdate(cycles);
     }
 

@@ -29,6 +29,8 @@
  *   30.11.2015 - Speicherzugriffsmethoden umbenannt
  *   01.12.2015 - Kommentare korrigiert
  *   23.07.2016 - Quartz hinzugefügt
+ *   24.07.2016 - Parameter umbenannt
+ *              - localClockUpdate() bis auf CTC ohne Funktion
  */
 package a7100emulator.components.modules;
 
@@ -200,7 +202,7 @@ public final class KGS implements IOModule, ClockModule, SubsystemModule {
     /**
      * Quarz-CPU Takt
      */
-    private QuartzCrystal cpuClock = new QuartzCrystal(4.0);
+    private final QuartzCrystal cpuClock = new QuartzCrystal(4.0);
 
     /**
      * Erstellt eine neue KGS
@@ -539,17 +541,22 @@ public final class KGS implements IOModule, ClockModule, SubsystemModule {
 
     /**
      * Verarbeitet Änderungen der Systemzeit. Diese Funktion lässt den UA880
-     * Prozessor Befehle abarbeiten. Die Anzahl der Befehle hängt von der Anzahl
-     * der ausgeführten Befehle der Haupt-CPU ab. Andere Komponenten des Systems
+     * Prozessor Befehle abarbeiten. Die Anzahl der Befehle hängt von der
+     * übergebenen Anzahl an Mikrosekunden ab. Andere Komponenten des Systems
      * werden nicht benachrichtigt.
      *
-     * @param amount Anzahl der Ticks
+     * @param micros Zeitdauer in Mikrosekunden
      */
     @Override
-    public void clockUpdate(int amount) {
-        int cycles = cpuClock.getCycles(amount);
+    public void clockUpdate(int micros) {
+        int cycles = cpuClock.getCycles(micros);
 
         cpu.executeCycles(cycles);
+
+        // TODO: CTC hierher verlagern, bisher Probleme mit letztem CTC Interrupt
+//        ctc.updateClock(cycles);
+        sio.updateClock(cycles);
+        abg.updateClock(cycles);
     }
 
     /**
@@ -662,9 +669,8 @@ public final class KGS implements IOModule, ClockModule, SubsystemModule {
      */
     @Override
     public void localClockUpdate(int cycles) {
+        // TODO: CTC hier entfernen, bisher Probleme mit letztem CTC Interrupt
         ctc.updateClock(cycles);
-        sio.updateClock(cycles);
-        abg.clockUpdate(cycles);
     }
 
     /**

@@ -2,7 +2,7 @@
  * ZVE.java
  * 
  * Diese Datei gehört zum Projekt A7100 Emulator 
- * Copyright (c) 2011-2015 Dirk Bräuer
+ * Copyright (c) 2011-2016 Dirk Bräuer
  *
  * Der A7100 Emulator ist Freie Software: Sie können ihn unter den Bedingungen
  * der GNU General Public License, wie von der Free Software Foundation,
@@ -450,11 +450,11 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
     /**
      * Verarbeitet die geänderte Systemzeit
      *
-     * @param amount Zeitdauer in ns
+     * @param micros Zeitdauer in Mikrosekunden
      */
     @Override
-    public void clockUpdate(int amount) {
-       int cycles=cpuClock.getCycles(amount);
+    public void clockUpdate(int micros) {
+       int cycles=cpuClock.getCycles(micros);
 
         //TODO: Ein und Ausgabe zwischen Bausteinen synchronisieren
         cpu.executeCycles(cycles);

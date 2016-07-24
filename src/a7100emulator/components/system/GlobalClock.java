@@ -53,15 +53,15 @@ import java.util.logging.Logger;
 public class GlobalClock implements Runnable, StateSavable {
 
     /**
-     * Zyklendauer in µs TODO: Was ist hier angebracht?
+     * Zyklendauer in Mikrosekunden
      */
-    private static final int CYCLE_TIME = 10;
+    private static final int CYCLE_TIME = 1;
     /**
      * Singleton Instanz
      */
     private static GlobalClock instance;
     /**
-     * Systemzeit in µs
+     * Systemzeit in Mikrosekunden
      */
     private long clock = 0;
     /**
@@ -108,14 +108,14 @@ public class GlobalClock implements Runnable, StateSavable {
      * Aktualisiert die Systemzeit um die angegebene Zeit und meldet die
      * geänderte Zeit an alle registrierten Module weiter.
      *
-     * @param amount Anzahl µs
+     * @param micros Zeitdauer in Mikrosekunden
      */
-    public void updateClock(int amount) {
+    public void updateClock(int micros) {
         // Zeit in µs aktualisieren
-        clock += amount;
+        clock += micros;
 
         for (ClockModule module : modules) {
-            module.clockUpdate(amount);
+            module.clockUpdate(micros);
         }
     }
 
