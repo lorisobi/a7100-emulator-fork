@@ -4524,8 +4524,6 @@ public class UA880 implements CPU {
      * Führt einen CPU Zyklus aus.
      */
     private void executeCPUCycle() {
-        // Prüfe ob ein Busgesucht vorliegt
-
         // Führe normale Operation durch
         executeNextInstruction();
         if (nmi) {
@@ -4536,7 +4534,6 @@ public class UA880 implements CPU {
                 interrupt(interruptsWaiting.pollFirst());
             }
         }
-
     }
 
     /**

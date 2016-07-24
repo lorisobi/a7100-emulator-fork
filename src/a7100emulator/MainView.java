@@ -37,6 +37,9 @@
  *   14.08.2015 - Lesen von CopyQM Images ergänzt
  *   16.08.2015 - Dialog für Floppy Format nach FloppyImageParser ausgelagert
  *   26.03.2016 - Schreibfehler korrigiert
+ *   24.07.2016 - Menüpunkt Synchronisation hinzugefügt
+ *              - Statusleiste mit Disketteninformationen hinzugefügt
+ *              - Minimale Größe des Fensters festgesetzt
  */
 package a7100emulator;
 
@@ -48,6 +51,7 @@ import a7100emulator.Debug.MemoryAnalyzer;
 import a7100emulator.Debug.OpcodeStatistic;
 import a7100emulator.components.A7100;
 import a7100emulator.components.ic.KR580WM51A;
+import a7100emulator.components.system.GlobalClock;
 import a7100emulator.components.system.Keyboard;
 import a7100emulator.components.system.MMS16Bus;
 import a7100emulator.components.system.Screen;
@@ -63,7 +67,23 @@ import java.util.Calendar;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
-import javax.swing.*;
+import javax.swing.BorderFactory;
+import javax.swing.ImageIcon;
+import javax.swing.JCheckBoxMenuItem;
+import javax.swing.JComponent;
+import javax.swing.JFileChooser;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JMenu;
+import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
+import javax.swing.KeyStroke;
+import javax.swing.SwingUtilities;
+import javax.swing.border.BevelBorder;
 
 /**
  * Hauptansicht des A7100 Emulators
@@ -100,6 +120,10 @@ public class MainView extends JFrame {
      * Menüeintrag Emulator Einzelschritt
      */
     private final JMenuItem menuEmulatorSingle = new JMenuItem("Einzelschritt");
+    /**
+     * Menüeintrag Emulator synchronisieren
+     */
+    private final JCheckBoxMenuItem menuEmulatorSync = new JCheckBoxMenuItem("Synchronisiere Zeit", true);
     /**
      * Menüeintrag Emulator Zustand Speichern
      */
@@ -294,9 +318,17 @@ public class MainView extends JFrame {
      */
     private final MainMenuController controller = new MainMenuController();
     /**
-     * Statusanzeige
+     * Statusbar
      */
-    //private final JLabel statusBar = new JLabel("Status");
+    private final JPanel statusBar = new JPanel(new GridLayout(1, 2));
+    /**
+     * Statusanzeige Laufwerk 1
+     */
+    private final JLabel statusDrive0 = new JLabel("A:[Keine Diskette]");
+    /**
+     * Statusanzeige Laufwerk 2
+     */
+    private final JLabel statusDrive1 = new JLabel("B:[Keine Diskette]");
     /**
      * Referenz auf A7100
      */
@@ -318,6 +350,7 @@ public class MainView extends JFrame {
         menuEmulator.add(menuEmulatorReset);
         menuEmulator.add(menuEmulatorPause);
         menuEmulator.add(menuEmulatorSingle);
+        menuEmulator.add(menuEmulatorSync);
         menuEmulator.addSeparator();
         menuEmulator.add(menuEmulatorSave);
         menuEmulator.add(menuEmulatorLoad);
@@ -327,6 +360,7 @@ public class MainView extends JFrame {
         menuEmulatorReset.addActionListener(controller);
         menuEmulatorPause.addActionListener(controller);
         menuEmulatorSingle.addActionListener(controller);
+        menuEmulatorSync.addActionListener(controller);
         menuEmulatorSave.addActionListener(controller);
         menuEmulatorLoad.addActionListener(controller);
         menuEmulatorExit.addActionListener(controller);
@@ -425,9 +459,13 @@ public class MainView extends JFrame {
 
         menuHelpAbout.addActionListener(controller);
 
+        statusBar.setBorder(BorderFactory.createBevelBorder(BevelBorder.LOWERED));
+        statusBar.add(statusDrive0);
+        statusBar.add(statusDrive1);
+        
         this.setJMenuBar(menubar);
         this.add(Screen.getInstance(), BorderLayout.CENTER);
-        //this.add(statusBar,BorderLayout.SOUTH);
+        this.add(statusBar, BorderLayout.SOUTH);
         this.setFocusTraversalKeysEnabled(false);
         this.addKeyListener(Keyboard.getInstance());
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -436,6 +474,7 @@ public class MainView extends JFrame {
         this.setVisible(true);
         this.pack();
         this.setLocationRelativeTo(null);
+        this.setMinimumSize(this.getSize());
     }
 
     /**
@@ -463,6 +502,8 @@ public class MainView extends JFrame {
                 menuEmulatorSingle.setEnabled(menuEmulatorPause.isSelected());
             } else if (e.getSource().equals(menuEmulatorSingle)) {
                 a7100.singleStep();
+            } else if (e.getSource().equals(menuEmulatorSync)) {
+                GlobalClock.getInstance().setSynchronizeClock(menuEmulatorSync.isSelected());
             } else if (e.getSource().equals(menuEmulatorSave)) {
                 a7100.saveState();
             } else if (e.getSource().equals(menuEmulatorLoad)) {
@@ -523,11 +564,14 @@ public class MainView extends JFrame {
                 if (saveDialog.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
                     File image = saveDialog.getSelectedFile();
                     a7100.getKES().getAFS().getFloppy(0).saveDiskToFile(image);
+                    statusDrive0.setText("A:" + image.getName());
                 }
             } else if (e.getSource() == menuDevicesDrive0Eject) {
                 a7100.getKES().getAFS().getFloppy(0).ejectDisk();
+                statusDrive0.setText("A:[Keine Diskette]");
             } else if (e.getSource() == menuDevicesDrive0Empty) {
                 a7100.getKES().getAFS().getFloppy(0).newDisk();
+                statusDrive0.setText("A:[Leere Diskette]");
             } else if (e.getSource() == menuDevicesDrive0WriteProtect) {
                 a7100.getKES().getAFS().getFloppy(0).setWriteProtect(menuDevicesDrive0WriteProtect.isSelected());
             } else if (e.getSource() == menuDevicesDrive1Load) {
@@ -537,11 +581,14 @@ public class MainView extends JFrame {
                 if (saveDialog.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
                     File image = saveDialog.getSelectedFile();
                     a7100.getKES().getAFS().getFloppy(1).saveDiskToFile(image);
+                    statusDrive1.setText("B:" + image.getName());
                 }
             } else if (e.getSource() == menuDevicesDrive1Eject) {
                 a7100.getKES().getAFS().getFloppy(1).ejectDisk();
+                statusDrive1.setText("B:[Keine Diskette]");
             } else if (e.getSource() == menuDevicesDrive1Empty) {
                 a7100.getKES().getAFS().getFloppy(1).newDisk();
+                statusDrive1.setText("B:[Leere Diskette]");
             } else if (e.getSource() == menuDevicesDrive1WriteProtect) {
                 a7100.getKES().getAFS().getFloppy(1).setWriteProtect(menuDevicesDrive0WriteProtect.isSelected());
             } else if (e.getSource() == menuToolsSCPDiskTool) {
@@ -623,7 +670,15 @@ public class MainView extends JFrame {
             if (loadDialog.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
                 File image = loadDialog.getSelectedFile();
                 a7100.getKES().getAFS().getFloppy(drive).loadDiskFromFile(image);
-                    }
+                switch (drive) {
+                    case 0:
+                        statusDrive0.setText("A:" + image.getName());
+                        break;
+                    case 1:
+                        statusDrive1.setText("B:" + image.getName());
+                        break;
                 }
             }
         }
+    }
+}

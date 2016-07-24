@@ -95,7 +95,6 @@ public class A7100 {
      * Startet die Systemzeit
      */
     private void startClock() {
-        //zve.start();
         Thread clock = new Thread(GlobalClock.getInstance(),"Clock");
         clock.start();
     }
@@ -236,9 +235,9 @@ public class A7100 {
      * Lässt den A7100 weiterlaufen.
      */
     public void resume() {
-       synchronized(GlobalClock.getInstance()) {
-           GlobalClock.getInstance().setPause(false);
-           GlobalClock.getInstance().notify();
+        synchronized (GlobalClock.getInstance()) {
+            GlobalClock.getInstance().setPause(false);
+            GlobalClock.getInstance().notify();
         }
     }
 
@@ -272,6 +271,7 @@ public class A7100 {
 
     /**
      * Gibt die Referenz auf die an der KGS angeschlossene ABG zurück.
+     *
      * @return ABG
      */
     public ABG getABG() {

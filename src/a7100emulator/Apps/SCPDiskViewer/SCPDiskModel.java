@@ -26,7 +26,7 @@
  *   09.08.2015 - Javadoc korrigiert
  *   16.08.2015 - parseImage vereinfacht
  *              - Lesen über FloppyImageParser realisiert
- *              - Andere Formate als SCP-Hausvormat möglich
+ *              - Andere Formate als SCP-Hausformat möglich
  */
 package a7100emulator.Apps.SCPDiskViewer;
 

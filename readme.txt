@@ -40,9 +40,15 @@ Inhaltsverzeichnis:
 
   vx.x.xx - xx.xx.xxxx
   Neue Features:
+    - Synchronisation mit realer Zeit
     - Lesen von CopyQM Images
+    - Statusleiste mit Image-Informationen
   Neuerungen im SCP-Disketten-Tool:
+    - Lesen von CopyQM-, Teledisk-, Imagedisk- und DMK-Images
+    - Lesen unabhängig vom SCP-Hausformat 
   Änderungen/Bugfixes:
+    - Fehler in UA880 Befehlen JP, BIT, CPI, CPD, CPIR und CPDR behoben
+    - UA880 Debugausgaben ergänzt
   Softwarekompatibilität:
   ----------------------------------------
   v0.8.45 - 11.08.2015
@@ -233,7 +239,8 @@ Andere als die angegebenen Versionen wurden bisher nicht getestet.
 Seit v0.6.20 werden beliebige RAW-Abbilder unterstützt. Dabei müssen durch den
 Benutzer beim Laden des Images die Formatparameter festgelegt werden. Als
 Standard ist hierbei das SCP-Format hinterlegt. Weiterhin wird das Lesen von 
-Teledisk- (TD0), Imagedisk- (IMD) und Catweasel- (DMK) Abbilder unterstützt.
+Teledisk- (TD0), Imagedisk- (IMD), CopyQM (CQM) und Catweasel- (DMK) Abbildern 
+unterstützt.
                                                           
 4.2.2 Speichern auf Disketten
 Veränderte Disketten werden nicht automatisch in der Binärdatei geändert. Das
@@ -242,7 +249,7 @@ Speichern muss über Geräte->Laufwerk X->Speicher Image erfolgen.
 4.2.3 SCP-Disk Tool
 Der Diskbetrachter ermöglicht das Lesen von SCP-Disketten sowie das extrahieren
 der darauf enthaltenen Dateien. Seit Version v0.7.90 können auch Dateien dem 
-Image hinzugefügt werden. Auch hier werden nur Binärdateien unterstützt.
+Image hinzugefügt werden.
 
 Seit Version v0.8.40 verfügt das SCP-Disk Tool über eine Datenbankfunktion. Mit
 deren Hilfe lassen sich Dateien auf Diskettenabbildern mit denen aus einer 
@@ -307,12 +314,12 @@ Tongeber werden nicht unterstützt.
 --------------------------------------------------------------------------------
 6. Unterstützung
 
-Die Entwicklung des Emulators ist entscheidend von der vorhandenen A7100
+Die Entwicklung des Emulators ist entscheidend von der vorhandenen A7100/A7150
 Dokumentation und Software abhängig. Hier werden die fehlenden Unterlagen und
 Programme gelistet:
 Dringend:
   - Dokumentation zur KGS-Firmware Version 6 (GRAF6.FRM)
-  - AFS K 5171.20 EPROMS
+  - AFP EPROMS
 Wäre schön:
   - A7150 Rechner und Geräte Band 2/3
   - Sämtliche nicht getestete Software
