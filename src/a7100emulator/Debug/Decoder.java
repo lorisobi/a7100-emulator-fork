@@ -20,6 +20,9 @@
  * Letzte Änderungen:
  *   05.04.2014 - Kommentare vervollständigt
  *   18.11.2014 - Fehlerausgabe geändert
+ *   28.07.2016 - Singleton entfernt
+ *              - Parameter für Namen und Segment-Verwendung hinzugefügt
+ *              - Fehler beim Speichern behoben
  */
 package a7100emulator.Debug;
 
@@ -37,10 +40,10 @@ import javax.swing.JTable;
 import javax.swing.table.AbstractTableModel;
 
 /**
- * Singleton-Klasse zum Bereitstellen von Decoder Informationen
+ * Klasse zum Bereitstellen von Decoder Informationen.
  * <p>
- * TODO: Diese Klasse arbeitet nicht mit der neuen Debugger Version zusammen,
- * Singleton muss entfernt werden
+ * TODO: Diese Klasse kann ggf. direkt in den Debugger integriert werden oder
+ * benötigt eine separate Möglichkeit zum aktivieren/deaktivieren.
  *
  * @author Dirk Bräuer
  */
@@ -51,10 +54,6 @@ public class Decoder {
      */
     private final TreeMap<Integer, String[]> decoder = new TreeMap();
     /**
-     * Instanz des Decoders
-     */
-    private static Decoder instance;
-    /**
      * Zuletzt hinzugefügte Adresse
      */
     private int lastAddress = 0;
@@ -62,30 +61,38 @@ public class Decoder {
      * Tabelle zur Anzeige der Decoder-Informationen
      */
     private final JTable table = new JTable(new DecoderTableModel());
-
     /**
-     * Erstellt einen neuen Decoder
+     * Dateiname für Decoder-Ausgaben
      */
-    private Decoder() {
-    }
+    private final String filename;
+    /**
+     * Gibt an ob Code-Segmente verwendet werden
+     */
+    private final boolean useCS;
+    /**
+     * Name der Decoder-Instanz
+     */
+    private final String ident;
 
     /**
-     * Gibt die Instanz des Decoders zurück
+     * Erstellt einen neuen Decoder.
      *
-     * @return Instanz
+     * @param filename Dateiname für LOG-Datei
+     * @param useCS    <code>true</code> wenn die Adressangabe aufgeteilt in
+     *                 segment:offset erfolgen soll
+     * @param ident    Bezeichner des Decoders (bspw. Modulname)
      */
-    public static Decoder getInstance() {
-        if (instance == null) {
-            instance = new Decoder();
-        }
-        return instance;
+    public Decoder(String filename, boolean useCS, String ident) {
+        this.filename = filename;
+        this.useCS = useCS;
+        this.ident = ident;
     }
 
     /**
      * Zeigt die Decoder-Informationen in einem Fensteran
      */
     public void show() {
-        JFrame frame = new JFrame("Disassembler");
+        JFrame frame = new JFrame("Disassembler - " + filename);
         frame.setMinimumSize(new Dimension(600, 500));
         frame.setPreferredSize(new Dimension(600, 500));
         frame.getContentPane().add(new JScrollPane(table), BorderLayout.CENTER);
@@ -98,31 +105,30 @@ public class Decoder {
     }
 
     /**
-     * Speichert die Decoder-Informationen in der Datei ./debug/Decoder.log
+     * Speichert die Decoder-Informationen in einer Datei.
      */
     public void save() {
         try {
-            PrintStream decoderFile = new PrintStream(new FileOutputStream("./debug/Decoder.log"));
-            Object[] dec = decoder.values().toArray();
-            for (Object dec1 : dec) {
-                decoderFile.println(dec1.toString());
+            PrintStream decoderFile = new PrintStream(new FileOutputStream("./debug/" + filename + "_decoder.log"));
+            for (String[] decoderLine : decoder.values()) {
+                decoderFile.println(decoderLine[0] + " " + decoderLine[1] + (decoderLine[2].isEmpty() ? "" : (" (" + decoderLine[2] + ")")));
             }
             decoderFile.close();
         } catch (FileNotFoundException ex) {
             Logger.getLogger(Decoder.class.getName()).log(Level.SEVERE, null, ex);
         }
-
     }
 
     /**
-     * Fügt die aktuellen Debug-Informationen dem Decoder hinzu
+     * Fügt die aktuellen Debug-Informationen dem Decoder hinzu.
      *
      * @param debugInfo Debug-Informationen
      */
     public void addItem(DebuggerInfo debugInfo) {
         lastAddress = debugInfo.getCs() * 16 + debugInfo.getIp();
         synchronized (decoder) {
-            decoder.put(lastAddress, new String[]{String.format("%04X:%04X", debugInfo.getCs(), debugInfo.getIp()), debugInfo.getCode(), debugInfo.getOperands() == null ? "" : debugInfo.getOperands()});
+            String addressString = useCS ? String.format("%04X:%04X", debugInfo.getCs(), debugInfo.getIp()) : String.format("%04X", debugInfo.getIp());
+            decoder.put(lastAddress, new String[]{addressString, debugInfo.getCode(), debugInfo.getOperands() == null ? "" : debugInfo.getOperands()});
         }
         ((AbstractTableModel) table.getModel()).fireTableDataChanged();
     }
@@ -195,7 +201,7 @@ public class Decoder {
         /**
          * Gibt an ob die gewählte Zelle editierbar ist
          *
-         * @param row Zeilennummer
+         * @param row    Zeilennummer
          * @param column Spaltennummer
          * @return true - wenn editierbar , false - sonst
          */
@@ -207,7 +213,7 @@ public class Decoder {
         /**
          * Gibt das Objekt an der gegebenen Poision zurück
          *
-         * @param row Zeilennummer
+         * @param row    Zeilennummer
          * @param column Spaltennummer
          * @return Objekt der Zelle
          */
@@ -224,8 +230,8 @@ public class Decoder {
         /**
          * Setzt das Objekt der Zelle
          *
-         * @param value Objekt
-         * @param row Zeilennummer
+         * @param value  Objekt
+         * @param row    Zeilennummer
          * @param column Spaltennummer
          */
         @Override

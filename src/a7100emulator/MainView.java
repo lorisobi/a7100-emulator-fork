@@ -45,13 +45,13 @@
  *              - Anzeige Disketteninhalt über Debug->AFS
  *   26.07.2016 - Anzeige der Benutzeroberfläche in showMainView() verlagert
  *   28.07.2016 - Synchronisieren beim Start deaktiviert
+ *              - Decoder für KGS hinzugefügt
  */
 package a7100emulator;
 
 import a7100emulator.Apps.SCPDiskViewer.SCPDiskModel;
 import a7100emulator.Apps.SCPDiskViewer.SCPDiskViewer;
 import a7100emulator.Debug.Debugger;
-import a7100emulator.Debug.Decoder;
 import a7100emulator.Debug.MemoryAnalyzer;
 import a7100emulator.Debug.OpcodeStatistic;
 import a7100emulator.components.A7100;
@@ -240,6 +240,18 @@ public class MainView extends JFrame {
      */
     private final JCheckBoxMenuItem menuDebugZVEDebuggerSwitch = new JCheckBoxMenuItem("Debugger");
     /**
+     * Menüeintrag ZVE-Decoder anzeigen
+     */
+    private final JMenuItem menuDebugZVEDecoderShow = new JMenuItem("Zeige Decoder");
+    /**
+     * Menüeintrag ZVE-Decoderinformationen speichern
+     */
+    private final JMenuItem menuDebugZVEDecoderDump = new JMenuItem("Dump Decoder");
+    /**
+     * Menüeintrag Opcode-Statistik speichern
+     */
+    private final JMenuItem menuDebugZVEOpcodeStatistic = new JMenuItem("Dump Opcode Statistik");
+    /**
      * Menüeintrag Zeige KGS Speicher
      */
     private final JMenuItem menuDebugKGSMemoryShow = new JMenuItem("Zeige KGS Speicher");
@@ -252,21 +264,17 @@ public class MainView extends JFrame {
      */
     private final JCheckBoxMenuItem menuDebugKGSDebuggerSwitch = new JCheckBoxMenuItem("Debugger");
     /**
-     * Menüeintrag Decoder anzeigen
+     * Menüeintrag ZVE-Decoder anzeigen
      */
-    private final JMenuItem menuDebugZVEDecoderShow = new JMenuItem("Zeige Decoder");
+    private final JMenuItem menuDebugKGSDecoderShow = new JMenuItem("Zeige Decoder");
     /**
-     * Menüeintrag Decoderinformationen speichern
+     * Menüeintrag ZVE-Decoderinformationen speichern
      */
-    private final JMenuItem menuDebugZVEDecoderDump = new JMenuItem("Dump Decoder");
+    private final JMenuItem menuDebugKGSDecoderDump = new JMenuItem("Dump Decoder");
     /**
      * Menüeintrag Zeichensatz anzeigen
      */
     private final JMenuItem menuDebugKGSCharacters = new JMenuItem("KGS Zeichensatz");
-    /**
-     * Menüeintrag Opcode-Statistik speichern
-     */
-    private final JMenuItem menuDebugZVEOpcodeStatistic = new JMenuItem("Dump Opcode Statistik");
     /**
      * Menüeintrag ABG Zeige Alphanumerik
      */
@@ -445,6 +453,8 @@ public class MainView extends JFrame {
         menuDebugKGS.add(menuDebugKGSDebuggerSwitch);
         menuDebugKGS.add(menuDebugKGSMemoryShow);
         menuDebugKGS.add(menuDebugKGSMemoryDump);
+        menuDebugKGS.add(menuDebugKGSDecoderShow);
+        menuDebugKGS.add(menuDebugKGSDecoderDump);
         menuDebugKGS.add(menuDebugKGSCharacters);
         //menuDebug.add(menuDebugKES);
         menuDebug.add(menuDebugABG);
@@ -472,6 +482,8 @@ public class MainView extends JFrame {
         menuDebugKGSDebuggerSwitch.addActionListener(controller);
         menuDebugKGSMemoryShow.addActionListener(controller);
         menuDebugKGSMemoryDump.addActionListener(controller);
+        menuDebugKGSDecoderShow.addActionListener(controller);
+        menuDebugKGSDecoderDump.addActionListener(controller);
         menuDebugKGSCharacters.addActionListener(controller);
         menuDebugABGAlphanumerics.addActionListener(controller);
         menuDebugABGGraphics.addActionListener(controller);
@@ -602,7 +614,7 @@ public class MainView extends JFrame {
             } else if (e.getSource().equals(menuDebugSystemMemoryShow)) {
                 (new MemoryAnalyzer()).show();
             } else if (e.getSource() == menuDebugZVEDecoderShow) {
-                Decoder.getInstance().show();
+                a7100.getZVE().getDecoder().show();
             } else if (e.getSource() == menuDebugSystemMemoryDump) {
                 MMS16Bus.getInstance().dumpSystemMemory("./debug/system_user_dump.hex");
             } else if (e.getSource() == menuDebugKGSMemoryShow) {
@@ -611,14 +623,14 @@ public class MainView extends JFrame {
                 a7100.getKGS().dumpLocalMemory("./debug/kgs_user_dump.hex");
             } else if (e.getSource().equals(menuDebugKGSDebuggerSwitch)) {
                 a7100.getKGS().setDebug(menuDebugKGSDebuggerSwitch.isSelected());
+            } else if (e.getSource() == menuDebugKGSDecoderShow) {
+                a7100.getKGS().getDecoder().show();
+            } else if (e.getSource() == menuDebugKGSDecoderDump) {
+                a7100.getKGS().getDecoder().save();
             } else if (e.getSource() == menuDebugZVEDecoderDump) {
-                Decoder.getInstance().save();
+                a7100.getZVE().getDecoder().save();
             } else if (e.getSource() == menuDebugZVEDebuggerSwitch) {
-                boolean debug = menuDebugZVEDebuggerSwitch.isSelected();
                 a7100.getZVE().setDebug(menuDebugZVEDebuggerSwitch.isSelected());
-                if (debug) {
-                    Decoder.getInstance().clear();
-                }
             } else if (e.getSource() == menuDebugKGSCharacters) {
                 a7100.getKGS().showCharacters();
             } else if (e.getSource() == menuDebugZVEOpcodeStatistic) {

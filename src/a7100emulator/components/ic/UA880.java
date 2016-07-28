@@ -57,11 +57,13 @@
  *   24.07.2016 - TICK_RATIO entfernt
  *              - Methoden push(),pop() und executeCPUCycle() private gesetzt
  *   28.07.2016 - Kommentare erweitert
+ *              - Decoder ergänzt
  */
 package a7100emulator.components.ic;
 
 import a7100emulator.Debug.Debugger;
 import a7100emulator.Debug.DebuggerInfo;
+import a7100emulator.Debug.Decoder;
 import a7100emulator.Tools.BitTest;
 import a7100emulator.components.modules.SubsystemModule;
 import java.io.DataInputStream;
@@ -72,8 +74,8 @@ import java.util.LinkedList;
 /**
  * Klasse zur Realisierung eines UA880 Prozessors für A7100 Subsysteme.
  * <p>
- * TODO: - Prüfen ob 16 Bit checkSignFlag immer verwendet wird<p>
- * - HalfCarryFlag bei 16 Bit implementieren
+ * TODO: - Prüfen ob 16 Bit checkSignFlag immer verwendet wird, HalfCarryFlag
+ * bei 16 Bit implementieren
  *
  * @author Dirk Bräuer
  */
@@ -2012,6 +2014,10 @@ public class UA880 implements CPU {
      */
     private final Debugger debugger;
     /**
+     * Zeiger auf Decoder Instanz
+     */
+    private final Decoder decoder;
+    /**
      * Zeiger auf Debugger Informationen
      */
     private final DebuggerInfo debugInfo = new DebuggerInfo();
@@ -2064,6 +2070,7 @@ public class UA880 implements CPU {
     public UA880(SubsystemModule module, String debug_ident) {
         this.module = module;
         debugger = new Debugger("UA880_" + debug_ident, false, debug_ident);
+        decoder = new Decoder("UA880_" + debug_ident, false, debug_ident);
         debugger.setDebug(false);
     }
 
@@ -5131,6 +5138,7 @@ public class UA880 implements CPU {
         if (debug) {
             if (debugInfo.getCode() != null) {
                 debugger.addLine(debugInfo);
+                decoder.addItem(debugInfo);
             }
         }
     }
@@ -6081,5 +6089,16 @@ public class UA880 implements CPU {
     public void reset() {
         interruptMode = 0;
         pc = 0x0000;
+    }
+
+    /**
+     * Gibt die Instanz des Decoders zurück.
+     *
+     * @return Decoderinstanz oder <code>null</code> wenn kein Decoder
+     *         initialisiert ist.
+     */
+    @Override
+    public Decoder getDecoder() {
+        return decoder;
     }
 }

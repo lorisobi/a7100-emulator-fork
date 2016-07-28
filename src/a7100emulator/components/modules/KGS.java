@@ -32,9 +32,11 @@
  *   24.07.2016 - Parameter umbenannt
  *              - localClockUpdate() bis auf CTC ohne Funktion
  *              - Speichern von Quartz-Informationen 
+ *   28.07.2016 - Methode getDecoder() hinzugefügt
  */
 package a7100emulator.components.modules;
 
+import a7100emulator.Debug.Decoder;
 import a7100emulator.Debug.MemoryAnalyzer;
 import a7100emulator.Tools.BitmapGenerator;
 import a7100emulator.Tools.Memory;
@@ -700,5 +702,15 @@ public final class KGS implements IOModule, ClockModule, SubsystemModule {
      */
     boolean isNMIInProgress() {
         return cpu.isNmiInProgress();
+    }
+
+    /**
+     * Gibt die Instanz des CPU Decoders zurück.
+     *
+     * @return Decoderinstanz oder <code>null</code> wenn kein Decoder
+     *         initialisiert ist.
+     */
+    public Decoder getDecoder() {
+        return cpu.getDecoder();
     }
 }

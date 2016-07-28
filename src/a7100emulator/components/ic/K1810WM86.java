@@ -48,6 +48,7 @@
  *   24.07.2016 - reset() und setDebug() nach Interface CPU ausgelagert
  *   26.07.2016 - Überflüssige Codereste entfernt
  *              - Kommentare vervollständigt
+ *   28.07.2016 - Decoder Singletoninstanz entfernt
  */
 package a7100emulator.components.ic;
 
@@ -1593,7 +1594,7 @@ public final class K1810WM86 implements CPU {
     /**
      * Zeiger auf Decoder Instanz
      */
-    private final Decoder decoder = Decoder.getInstance();
+    private final Decoder decoder = new Decoder("K1810WM86", true, "ZVE");
     /**
      * Zeiger auf Debugger Instanz
      */
@@ -7440,5 +7441,16 @@ public final class K1810WM86 implements CPU {
     @Override
     public void setDebug(boolean debug) {
         debugger.setDebug(debug);
+    }
+
+    /**
+     * Gibt die Instanz des Decoders zurück.
+     *
+     * @return Decoderinstanz oder <code>null</code> wenn kein Decoder
+     *         initialisiert ist.
+     */
+    @Override
+    public Decoder getDecoder() {
+        return decoder;
     }
 }

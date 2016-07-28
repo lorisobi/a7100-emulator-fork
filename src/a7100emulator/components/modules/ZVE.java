@@ -24,9 +24,11 @@
  *                MMS16Bus ersetzt
  *   23.07.2016 - Methoden für CPU- Pausieren und Anhalten entfernt
  *   24.07.2016 - Speichern Quartz Zustand
+ *   28.07.2016 - Methode getDecoder() hinzugefügt
  */
 package a7100emulator.components.modules;
 
+import a7100emulator.Debug.Decoder;
 import a7100emulator.Tools.AddressSpace;
 import a7100emulator.Tools.Memory;
 import a7100emulator.components.ic.K1810WM86;
@@ -142,7 +144,7 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
     /**
      * Quartz CPU-Takt
      */
-    private final QuartzCrystal cpuClock=new QuartzCrystal(4.9152);
+    private final QuartzCrystal cpuClock = new QuartzCrystal(4.9152);
 
     /**
      * Erstellt eine neue ZVE
@@ -371,7 +373,7 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
      * Fehler, da die ZVE EPROMS nicht beschreibbar sind.
      *
      * @param address Adresse
-     * @param data Daten
+     * @param data    Daten
      */
     @Override
     public void writeByte(int address, int data) {
@@ -383,7 +385,7 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
      * Fehler, da die ZVE EPROMS nicht beschreibbar sind.
      *
      * @param address Adresse
-     * @param data Daten
+     * @param data    Daten
      */
     @Override
     public void writeWord(int address, int data) {
@@ -455,7 +457,7 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
      */
     @Override
     public void clockUpdate(int micros) {
-       int cycles=cpuClock.getCycles(micros);
+        int cycles = cpuClock.getCycles(micros);
 
         //TODO: Ein und Ausgabe zwischen Bausteinen synchronisieren
         cpu.executeCycles(cycles);
@@ -504,5 +506,19 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
      */
     public void setDebug(boolean debug) {
         cpu.setDebug(debug);
+        if (debug) {
+            getDecoder().clear();
+        }
     }
+
+    /**
+     * Gibt die Instanz des CPU Decoders zurück.
+     *
+     * @return Decoderinstanz oder <code>null</code> wenn kein Decoder
+     *         initialisiert ist.
+     */
+    public Decoder getDecoder() {
+        return cpu.getDecoder();
+    }
+
 }
