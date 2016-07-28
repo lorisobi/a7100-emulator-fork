@@ -30,6 +30,7 @@
  *              - Weiterlaufen sichergestellt
  *              - Von IC abgeleitet
  *   02.02.2016 - Override Annotation hinzugefügt
+ *   26.07.2016 - Klasse Counter private gesetzt
  */
 package a7100emulator.components.ic;
 
@@ -139,7 +140,7 @@ public class UA857 implements IC {
     /**
      * Klasse zur Realisierung eines CTC-Zählerkanals
      */
-    class Counter implements StateSavable {
+    private class Counter implements StateSavable {
 
         /**
          * ID des Zählers
@@ -180,7 +181,7 @@ public class UA857 implements IC {
          * 
          * @param id ID des Counters
          */
-        public Counter(int id) {
+        private Counter(int id) {
             this.id = id;
         }
 

@@ -56,6 +56,7 @@
  *   23.07.2016 - Von CPU abgeleitet
  *   24.07.2016 - TICK_RATIO entfernt
  *              - Methoden push(),pop() und executeCPUCycle() private gesetzt
+ *   28.07.2016 - Kommentare erweitert
  */
 package a7100emulator.components.ic;
 
@@ -71,35 +72,79 @@ import java.util.LinkedList;
 /**
  * Klasse zur Realisierung eines UA880 Prozessors für A7100 Subsysteme.
  * <p>
- * TODO: - Prüfen ob 16 Bit checkSignFlag immer verwendet wird - HalfCarryFlag
- * bei 16 Bit implementieren
+ * TODO: - Prüfen ob 16 Bit checkSignFlag immer verwendet wird<p>
+ * - HalfCarryFlag bei 16 Bit implementieren
  *
  * @author Dirk Bräuer
  */
 public class UA880 implements CPU {
 
     /**
-     * Hauptregister
+     * Hauptregistersatz: Akkumulator
      */
     private int a;
-    private int b;
-    private int d;
-    private int h;
-    private int f;
-    private int c;
-    private int e;
-    private int l;
     /**
-     * Tauschregister
+     * Hauptregistersatz: Universalregister b
+     */
+    private int b;
+    /**
+     * Hauptregistersatz: Universalregister d
+     */
+    private int d;
+    /**
+     * Hauptregistersatz: Universalregister h
+     */
+    private int h;
+    /**
+     * Hauptregistersatz: Flagregister
+     */
+    private int f;
+    /**
+     * Hauptregistersatz: Universalregister c
+     */
+    private int c;
+    /**
+     * Hauptregistersatz: Universalregister e
+     */
+    private int e;
+    /**
+     * Hauptregistersatz: Universalregister l
+     */
+    private int l;
+
+    /**
+     * Tauschregistersatz: Akkumulator
      */
     private int a_;
+    /**
+     * Tauschregistersatz: Universalregister b
+     */
     private int b_;
+    /**
+     * Tauschregistersatz: Universalregister d
+     */
     private int d_;
+    /**
+     * Tauschregistersatz: Universalregister g
+     */
     private int h_;
+    /**
+     * Tauschregistersatz: Flagregister
+     */
     private int f_;
+    /**
+     * Tauschregistersatz: Universalregister c
+     */
     private int c_;
+    /**
+     * Tauschregistersatz: Universalregister e
+     */
     private int e_;
+    /**
+     * Tauschregistersatz: Universalregister l
+     */
     private int l_;
+
     /**
      * Interrupt-Register
      */
@@ -134,522 +179,1832 @@ public class UA880 implements CPU {
     private int iff2;
 
     /**
-     * 8-bit-Ladebefehle
+     * Opcode: Lade Register B aus B
      */
     private static final int LD_B_B = 0x40;
+    /**
+     * Opcode: Lade Register B aus C
+     */
     private static final int LD_C_B = 0x41;
+    /**
+     * Opcode: Lade Register B aus D
+     */
     private static final int LD_D_B = 0x42;
+    /**
+     * Opcode: Lade Register B aus E
+     */
     private static final int LD_E_B = 0x43;
+    /**
+     * Opcode: Lade Register B aus H
+     */
     private static final int LD_H_B = 0x44;
+    /**
+     * Opcode: Lade Register B aus L
+     */
     private static final int LD_L_B = 0x45;
+    /**
+     * Opcode: Lade Register B aus A
+     */
     private static final int LD_A_B = 0x47;
+    /**
+     * Opcode: Lade Register C aus B
+     */
     private static final int LD_B_C = 0x48;
+    /**
+     * Opcode: Lade Register C aus C
+     */
     private static final int LD_C_C = 0x49;
+    /**
+     * Opcode: Lade Register C aus D
+     */
     private static final int LD_D_C = 0x4A;
+    /**
+     * Opcode: Lade Register C aus E
+     */
     private static final int LD_E_C = 0x4B;
+    /**
+     * Opcode: Lade Register C aus H
+     */
     private static final int LD_H_C = 0x4C;
+    /**
+     * Opcode: Lade Register C aus L
+     */
     private static final int LD_L_C = 0x4D;
+    /**
+     * Opcode: Lade Register C aus A
+     */
     private static final int LD_A_C = 0x4F;
+    /**
+     * Opcode: Lade Register D aus B
+     */
     private static final int LD_B_D = 0x50;
+    /**
+     * Opcode: Lade Register D aus C
+     */
     private static final int LD_C_D = 0x51;
+    /**
+     * Opcode: Lade Register D aus D
+     */
     private static final int LD_D_D = 0x52;
+    /**
+     * Opcode: Lade Register D aus E
+     */
     private static final int LD_E_D = 0x53;
+    /**
+     * Opcode: Lade Register D aus H
+     */
     private static final int LD_H_D = 0x54;
+    /**
+     * Opcode: Lade Register D aus L
+     */
     private static final int LD_L_D = 0x55;
+    /**
+     * Opcode: Lade Register D aus A
+     */
     private static final int LD_A_D = 0x57;
+    /**
+     * Opcode: Lade Register E aus B
+     */
     private static final int LD_B_E = 0x58;
+    /**
+     * Opcode: Lade Register E aus C
+     */
     private static final int LD_C_E = 0x59;
+    /**
+     * Opcode: Lade Register E aus D
+     */
     private static final int LD_D_E = 0x5A;
+    /**
+     * Opcode: Lade Register E aus E
+     */
     private static final int LD_E_E = 0x5B;
+    /**
+     * Opcode: Lade Register E aus H
+     */
     private static final int LD_H_E = 0x5C;
+    /**
+     * Opcode: Lade Register E aus L
+     */
     private static final int LD_L_E = 0x5D;
+    /**
+     * Opcode: Lade Register E aus A
+     */
     private static final int LD_A_E = 0x5F;
+    /**
+     * Opcode: Lade Register H aus B
+     */
     private static final int LD_B_H = 0x60;
+    /**
+     * Opcode: Lade Register H aus C
+     */
     private static final int LD_C_H = 0x61;
+    /**
+     * Opcode: Lade Register H aus D
+     */
     private static final int LD_D_H = 0x62;
+    /**
+     * Opcode: Lade Register H aus E
+     */
     private static final int LD_E_H = 0x63;
+    /**
+     * Opcode: Lade Register H aus H
+     */
     private static final int LD_H_H = 0x64;
+    /**
+     * Opcode: Lade Register H aus L
+     */
     private static final int LD_L_H = 0x65;
+    /**
+     * Opcode: Lade Register H aus A
+     */
     private static final int LD_A_H = 0x67;
+    /**
+     * Opcode: Lade Register L aus B
+     */
     private static final int LD_B_L = 0x68;
+    /**
+     * Opcode: Lade Register L aus C
+     */
     private static final int LD_C_L = 0x69;
+    /**
+     * Opcode: Lade Register L aus D
+     */
     private static final int LD_D_L = 0x6A;
+    /**
+     * Opcode: Lade Register L aus E
+     */
     private static final int LD_E_L = 0x6B;
+    /**
+     * Opcode: Lade Register L aus H
+     */
     private static final int LD_H_L = 0x6C;
+    /**
+     * Opcode: Lade Register L aus L
+     */
     private static final int LD_L_L = 0x6D;
+    /**
+     * Opcode: Lade Register L aus A
+     */
     private static final int LD_A_L = 0x6F;
+    /**
+     * Opcode: Lade Register A aus B
+     */
     private static final int LD_B_A = 0x78;
+    /**
+     * Opcode: Lade Register A aus C
+     */
     private static final int LD_C_A = 0x79;
+    /**
+     * Opcode: Lade Register A aus D
+     */
     private static final int LD_D_A = 0x7A;
+    /**
+     * Opcode: Lade Register A aus E
+     */
     private static final int LD_E_A = 0x7B;
+    /**
+     * Opcode: Lade Register A aus H
+     */
     private static final int LD_H_A = 0x7C;
+    /**
+     * Opcode: Lade Register A aus L
+     */
     private static final int LD_L_A = 0x7D;
+    /**
+     * Opcode: Lade Register A aus A
+     */
     private static final int LD_A_A = 0x7F;
+    /**
+     * Opcode: Lade Register B aus direktem Operanden
+     */
     private static final int LD_IMM_B = 0x06;
+    /**
+     * Opcode: Lade Register C aus direktem Operanden
+     */
     private static final int LD_IMM_C = 0x0E;
+    /**
+     * Opcode: Lade Register D aus direktem Operanden
+     */
     private static final int LD_IMM_D = 0x16;
+    /**
+     * Opcode: Lade Register E aus direktem Operanden
+     */
     private static final int LD_IMM_E = 0x1E;
+    /**
+     * Opcode: Lade Register L aus direktem Operanden
+     */
     private static final int LD_IMM_L = 0x2E;
+    /**
+     * Opcode: Lade Register A aus direktem Operanden
+     */
     private static final int LD_IMM_A = 0x3E;
+    /**
+     * Opcode: Lade Register H aus direktem Operanden
+     */
     private static final int LD_IMM_H = 0x26;
+    /**
+     * Opcode: Lade Register A nach (BC)
+     */
     private static final int LD_A_MEM_BC = 0x02;
+    /**
+     * Opcode: Lade Register A nach (DE)
+     */
     private static final int LD_A_MEM_DE = 0x12;
+    /**
+     * Opcode: Lade Register A nach (Speicher)
+     */
     private static final int LD_A_MEM = 0x32;
+    /**
+     * Opcode: Lade (BC) nach Register A
+     */
     private static final int LD_MEM_BC_A = 0x0A;
+    /**
+     * Opcode: Lade (DE) nach Register A
+     */
     private static final int LD_MEM_DE_A = 0x1A;
+    /**
+     * Opcode: Lade (Speicher) nach Register A
+     */
     private static final int LD_MEM_A = 0x3A;
+    /**
+     * Opcode: Lade (HL) nach Register B
+     */
     private static final int LD_MEM_HL_B = 0x46;
+    /**
+     * Opcode: Lade (HL) nach Register C
+     */
     private static final int LD_MEM_HL_C = 0x4E;
+    /**
+     * Opcode: Lade (HL) nach Register D
+     */
     private static final int LD_MEM_HL_D = 0x56;
+    /**
+     * Opcode: Lade (HL) nach Register E
+     */
     private static final int LD_MEM_HL_E = 0x5E;
+    /**
+     * Opcode: Lade (HL) nach Register H
+     */
     private static final int LD_MEM_HL_H = 0x66;
+    /**
+     * Opcode: Lade (HL) nach Register L
+     */
     private static final int LD_MEM_HL_L = 0x6E;
+    /**
+     * Opcode: Lade (HL) nach Register A
+     */
     private static final int LD_MEM_HL_A = 0x7E;
+    /**
+     * Opcode: Lade Register B nach (HL)
+     */
     private static final int LD_B_MEM_HL = 0x70;
+    /**
+     * Opcode: Lade Register C nach (HL)
+     */
     private static final int LD_C_MEM_HL = 0x71;
+    /**
+     * Opcode: Lade Register D nach (HL)
+     */
     private static final int LD_D_MEM_HL = 0x72;
+    /**
+     * Opcode: Lade Register E nach (HL)
+     */
     private static final int LD_E_MEM_HL = 0x73;
+    /**
+     * Opcode: Lade Register H nach (HL)
+     */
     private static final int LD_H_MEM_HL = 0x74;
+    /**
+     * Opcode: Lade Register L nach (HL)
+     */
     private static final int LD_L_MEM_HL = 0x75;
+    /**
+     * Opcode: Lade Register A nach (HL)
+     */
     private static final int LD_A_MEM_HL = 0x77;
 
     /**
-     * 16-bit-Ladebefehle
+     * Opcode: Lade direkten Operand nach BC
      */
     private static final int LD_IMM_BC = 0x01;
+    /**
+     * Opcode: Lade direkten Operand nach DE
+     */
     private static final int LD_IMM_DE = 0x11;
+    /**
+     * Opcode: Lade direkten Operand nach HL
+     */
     private static final int LD_IMM_HL = 0x21;
+    /**
+     * Opcode: Lade HL nach (Speicher)
+     */
     private static final int LD_HL_MEM = 0x22;
+    /**
+     * Opcode: Lade (Speicher) nach HL
+     */
     private static final int LD_MEM_HL = 0x2A;
+    /**
+     * Opcode: Lade direkten Operand nach SP
+     */
     private static final int LD_IMM_SP = 0x31;
+    /**
+     * Opcode: Lade direkten Operand nach (HL)
+     */
     private static final int LD_IMM_MEM_HL = 0x36;
+    /**
+     * Opcode: Lade HL nach SP
+     */
     private static final int LD_HL_SP = 0xF9;
+
+    /**
+     * Opcode: Hole BC von Stack
+     */
     private static final int POP_BC = 0xC1;
+    /**
+     * Opcode: Hole DE von Stack
+     */
     private static final int POP_DE = 0xD1;
+    /**
+     * Opcode: Hole HL von Stack
+     */
     private static final int POP_HL = 0xE1;
+    /**
+     * Opcode: Hole BC von Stack
+     */
     private static final int POP_AF = 0xF1;
+    /**
+     * Opcode: Speicher BC auf Stack
+     */
     private static final int PUSH_BC = 0xC5;
+    /**
+     * Opcode: Speicher DE auf Stack
+     */
     private static final int PUSH_DE = 0xD5;
+    /**
+     * Opcode: Speicher HL auf Stack
+     */
     private static final int PUSH_HL = 0xE5;
+    /**
+     * Opcode: Speicher AF auf Stack
+     */
     private static final int PUSH_AF = 0xF5;
 
     /**
-     * Ein- und Ausgabebefehle
+     * Opcode: Gebe A auf direkt angegebenem Port aus
      */
     private static final int OUT_A_IMM = 0xD3;
+    /**
+     * Opcode: Lese A von direkt angegebenem Port
+     */
     private static final int IN_IMM_A = 0xDB;
 
     /**
-     * Austauschbefehle
+     * Opcode: Tausche Hauptregister A und F mit Tauschregistersatz
      */
     private static final int EX_AF = 0x08;
+    /**
+     * Opcode: Tausche Alle Hauptregister mit Tauschregistersatz
+     */
     private static final int EXX = 0xD9;
+    /**
+     * Opcode: Tausche (HL) mit SP
+     */
     private static final int EX_HL_MEM_SP = 0xE3;
+    /**
+     * Opcode: Tausche HL mit DE
+     */
     private static final int EX_HL_DE = 0xEB;
 
     /**
-     * 8-bit-Arithmetikbefehle
+     * Opcode: Addiere Register B zu A
      */
     private static final int ADD_B_A = 0x80;
+    /**
+     * Opcode: Addiere Register C zu A
+     */
     private static final int ADD_C_A = 0x81;
+    /**
+     * Opcode: Addiere Register D zu A
+     */
     private static final int ADD_D_A = 0x82;
+    /**
+     * Opcode: Addiere Register E zu A
+     */
     private static final int ADD_E_A = 0x83;
+    /**
+     * Opcode: Addiere Register H zu A
+     */
     private static final int ADD_H_A = 0x84;
+    /**
+     * Opcode: Addiere Register L zu A
+     */
     private static final int ADD_L_A = 0x85;
+    /**
+     * Opcode: Addiere Register A zu A
+     */
     private static final int ADD_A_A = 0x87;
+    /**
+     * Opcode: Addiere (HL) zu A
+     */
     private static final int ADD_MEM_HL_A = 0x86;
+    /**
+     * Opcode: Addiere direkten Operanden zu A
+     */
     private static final int ADD_IMM_A = 0xC6;
+    /**
+     * Opcode: Addiere Register B zu A mit Übertrag
+     */
     private static final int ADC_B_A = 0x88;
+    /**
+     * Opcode: Addiere Register C zu A mit Übertrag
+     */
     private static final int ADC_C_A = 0x89;
+    /**
+     * Opcode: Addiere Register D zu A mit Übertrag
+     */
     private static final int ADC_D_A = 0x8A;
+    /**
+     * Opcode: Addiere Register E zu A mit Übertrag
+     */
     private static final int ADC_E_A = 0x8B;
+    /**
+     * Opcode: Addiere Register H zu A mit Übertrag
+     */
     private static final int ADC_H_A = 0x8C;
+    /**
+     * Opcode: Addiere Register L zu A mit Übertrag
+     */
     private static final int ADC_L_A = 0x8D;
+    /**
+     * Opcode: Addiere Register A zu A mit Übertrag
+     */
     private static final int ADC_A_A = 0x8F;
+    /**
+     * Opcode: Addiere (HL) zu A mit Übertrag
+     */
     private static final int ADC_MEM_HL_A = 0x8E;
+    /**
+     * Opcode: Addiere direkten Operanden zu A mit Übertrag
+     */
     private static final int ADC_IMM_A = 0xCE;
+    /**
+     * Opcode: Subtrahiere Register B von A
+     */
     private static final int SUB_B_A = 0x90;
+    /**
+     * Opcode: Subtrahiere Register C von A
+     */
     private static final int SUB_C_A = 0x91;
+    /**
+     * Opcode: Subtrahiere Register D von A
+     */
     private static final int SUB_D_A = 0x92;
+    /**
+     * Opcode: Subtrahiere Register E von A
+     */
     private static final int SUB_E_A = 0x93;
+    /**
+     * Opcode: Subtrahiere Register H von A
+     */
     private static final int SUB_H_A = 0x94;
+    /**
+     * Opcode: Subtrahiere Register L von A
+     */
     private static final int SUB_L_A = 0x95;
+    /**
+     * Opcode: Subtrahiere Register A von A
+     */
     private static final int SUB_A_A = 0x97;
+    /**
+     * Opcode: Subtrahiere (HL) von A
+     */
     private static final int SUB_MEM_HL_A = 0x96;
+    /**
+     * Opcode: Subtrahiere direkten Operanden von A
+     */
     private static final int SUB_IMM_A = 0xD6;
+    /**
+     * Opcode: Subtrahiere Register B von A mit Übertrag
+     */
     private static final int SBC_B_A = 0x98;
+    /**
+     * Opcode: Subtrahiere Register C von A mit Übertrag
+     */
     private static final int SBC_C_A = 0x99;
+    /**
+     * Opcode: Subtrahiere Register D von A mit Übertrag
+     */
     private static final int SBC_D_A = 0x9A;
+    /**
+     * Opcode: Subtrahiere Register E von A mit Übertrag
+     */
     private static final int SBC_E_A = 0x9B;
+    /**
+     * Opcode: Subtrahiere Register H von A mit Übertrag
+     */
     private static final int SBC_H_A = 0x9C;
+    /**
+     * Opcode: Subtrahiere Register L von A mit Übertrag
+     */
     private static final int SBC_L_A = 0x9D;
+    /**
+     * Opcode: Subtrahiere Register A von A mit Übertrag
+     */
     private static final int SBC_A_A = 0x9F;
+    /**
+     * Opcode: Subtrahiere (HL) von A mit Übertrag
+     */
     private static final int SBC_MEM_HL_A = 0x9E;
+    /**
+     * Opcode: Subtrahiere direkten Operanden von A mit Übertrag
+     */
     private static final int SBC_IMM_A = 0xDE;
+    /**
+     * Opcode: Inkrementiere Register B
+     */
     private static final int INC_B = 0x04;
+    /**
+     * Opcode: Inkrementiere Register C
+     */
     private static final int INC_C = 0x0C;
+    /**
+     * Opcode: Inkrementiere Register D
+     */
     private static final int INC_D = 0x14;
+    /**
+     * Opcode: Inkrementiere Register E
+     */
     private static final int INC_E = 0x1C;
+    /**
+     * Opcode: Inkrementiere Register H
+     */
     private static final int INC_H = 0x24;
+    /**
+     * Opcode: Inkrementiere Register L
+     */
     private static final int INC_L = 0x2C;
+    /**
+     * Opcode: Inkrementiere (HL)
+     */
     private static final int INC_MEM_HL = 0x34;
+    /**
+     * Opcode: Inkrementiere Register A
+     */
     private static final int INC_A = 0x3C;
+    /**
+     * Opcode: Dekrementiere Register B
+     */
     private static final int DEC_B = 0x05;
+    /**
+     * Opcode: Dekrementiere Register C
+     */
     private static final int DEC_C = 0x0D;
+    /**
+     * Opcode: Dekrementiere Register D
+     */
     private static final int DEC_D = 0x15;
+    /**
+     * Opcode: Dekrementiere Register E
+     */
     private static final int DEC_E = 0x1D;
+    /**
+     * Opcode: Dekrementiere Register H
+     */
     private static final int DEC_H = 0x25;
+    /**
+     * Opcode: Dekrementiere Register L
+     */
     private static final int DEC_L = 0x2D;
-    private static final int DEC_A = 0x3D;
+    /**
+     * Opcode: Dekrementiere (HL)
+     */
     private static final int DEC_MEM_HL = 0x35;
+    /**
+     * Opcode: Dekrementiere Register A
+     */
+    private static final int DEC_A = 0x3D;
+    /**
+     * Opcode: Dezimalanpassung des Akkumulators
+     */
     private static final int DAA = 0x27;
+    /**
+     * Opcode: Komplementiere Akkumulator
+     */
     private static final int CPL = 0x2F;
 
     /**
-     * 16-bit-Arithmetikbefehle
+     * Opcode: Addiere BC zu HL
      */
     private static final int ADD_BC_HL = 0x09;
+    /**
+     * Opcode: Addiere DE zu HL
+     */
     private static final int ADD_DE_HL = 0x19;
+    /**
+     * Opcode: Addiere HL zu HL
+     */
     private static final int ADD_HL_HL = 0x29;
+    /**
+     * Opcode: Addiere SP zu HL
+     */
     private static final int ADD_SP_HL = 0x39;
+    /**
+     * Opcode: Inkrementiere BC
+     */
     private static final int INC_BC = 0x03;
+    /**
+     * Opcode: Inkrementiere DE
+     */
     private static final int INC_DE = 0x13;
+    /**
+     * Opcode: Inkrementiere HL
+     */
     private static final int INC_HL = 0x23;
+    /**
+     * Opcode: Inkrementiere SP
+     */
     private static final int INC_SP = 0x33;
+    /**
+     * Opcode: Dekrementiere BC
+     */
     private static final int DEC_BC = 0x0B;
+    /**
+     * Opcode: Dekrementiere DE
+     */
     private static final int DEC_DE = 0x1B;
+    /**
+     * Opcode: Dekrementiere HL
+     */
     private static final int DEC_HL = 0x2B;
+    /**
+     * Opcode: Dekrementiere SP
+     */
     private static final int DEC_SP = 0x3B;
 
     /**
-     * 8-bit-Logikbefehle
+     * Opcode: Bitweises UND Register A mit B
      */
     private static final int AND_B = 0xA0;
+    /**
+     * Opcode: Bitweises UND Register A mit C
+     */
     private static final int AND_C = 0xA1;
+    /**
+     * Opcode: Bitweises UND Register A mit D
+     */
     private static final int AND_D = 0xA2;
+    /**
+     * Opcode: Bitweises UND Register A mit E
+     */
     private static final int AND_E = 0xA3;
+    /**
+     * Opcode: Bitweises UND Register A mit H
+     */
     private static final int AND_H = 0xA4;
+    /**
+     * Opcode: Bitweises UND Register A mit L
+     */
     private static final int AND_L = 0xA5;
+    /**
+     * Opcode: Bitweises UND Register A mit A
+     */
     private static final int AND_A = 0xA7;
+    /**
+     * Opcode: Bitweises UND Register A mit (HL)
+     */
     private static final int AND_MEM_HL = 0xA6;
+    /**
+     * Opcode: Bitweises UND Register A mit direktem Operand
+     */
     private static final int AND_IMM = 0xE6;
+    /**
+     * Opcode: Bitweises XOR Register A mit B
+     */
     private static final int XOR_B = 0xA8;
+    /**
+     * Opcode: Bitweises XOR Register A mit C
+     */
     private static final int XOR_C = 0xA9;
+    /**
+     * Opcode: Bitweises XOR Register A mit D
+     */
     private static final int XOR_D = 0xAA;
+    /**
+     * Opcode: Bitweises XOR Register A mit E
+     */
     private static final int XOR_E = 0xAB;
+    /**
+     * Opcode: Bitweises XOR Register A mit H
+     */
     private static final int XOR_H = 0xAC;
+    /**
+     * Opcode: Bitweises XOR Register A mit L
+     */
     private static final int XOR_L = 0xAD;
-    private static final int XOR_A = 0xAF;
+    /**
+     * Opcode: Bitweises XOR Register A mit (HL)
+     */
     private static final int XOR_MEM_HL = 0xAE;
+    /**
+     * Opcode: Bitweises XOR Register A mit A
+     */
+    private static final int XOR_A = 0xAF;
+    /**
+     * Opcode: Bitweises XOR Register A mit direktem Operand
+     */
     private static final int XOR_IMM = 0xEE;
+    /**
+     * Opcode: Bitweises ODER Register A mit B
+     */
     private static final int OR_B = 0xB0;
+    /**
+     * Opcode: Bitweises ODER Register A mit C
+     */
     private static final int OR_C = 0xB1;
+    /**
+     * Opcode: Bitweises ODER Register A mit D
+     */
     private static final int OR_D = 0xB2;
+    /**
+     * Opcode: Bitweises ODER Register A mit E
+     */
     private static final int OR_E = 0xB3;
+    /**
+     * Opcode: Bitweises ODER Register A mit H
+     */
     private static final int OR_H = 0xB4;
+    /**
+     * Opcode: Bitweises ODER Register A mit L
+     */
     private static final int OR_L = 0xB5;
+    /**
+     * Opcode: Bitweises ODER Register A mit A
+     */
     private static final int OR_A = 0xB7;
+    /**
+     * Opcode: Bitweises ODER Register A mit (HL)
+     */
     private static final int OR_MEM_HL = 0xB6;
+    /**
+     * Opcode: Bitweises ODER Register A mit direktem Operanden
+     */
     private static final int OR_IMM = 0xF6;
+    /**
+     * Opcode: Vergleiche Register A mit B
+     */
     private static final int CP_B = 0xB8;
+    /**
+     * Opcode: Vergleiche Register A mit C
+     */
     private static final int CP_C = 0xB9;
+    /**
+     * Opcode: Vergleiche Register A mit D
+     */
     private static final int CP_D = 0xBA;
+    /**
+     * Opcode: Vergleiche Register A mit E
+     */
     private static final int CP_E = 0xBB;
+    /**
+     * Opcode: Vergleiche Register A mit H
+     */
     private static final int CP_H = 0xBC;
+    /**
+     * Opcode: Vergleiche Register A mit L
+     */
     private static final int CP_L = 0xBD;
+    /**
+     * Opcode: Vergleiche Register A mit A
+     */
     private static final int CP_A = 0xBF;
+    /**
+     * Opcode: Vergleiche Register A mit (HL)
+     */
     private static final int CP_MEM_HL = 0xBE;
+    /**
+     * Opcode: Vergleiche Register A mit direktem Operanden
+     */
     private static final int CP_IMM = 0xFE;
 
     /**
-     * Sprungbefehle
+     * Opcode: Springe zu direktem Operanden
      */
     private static final int JP_IMM = 0xC3;
+    /**
+     * Opcode: Springe zu (HL)
+     */
     private static final int JP_MEM_HL = 0xE9;
+    /**
+     * Opcode: Sprung, wenn nicht null zu direktem Operanden
+     */
     private static final int JP_NZ_IMM = 0xC2;
+    /**
+     * Opcode: Sprung, wenn null zu direktem Operanden
+     */
     private static final int JP_Z_IMM = 0xCA;
+    /**
+     * Opcode: Sprung, wenn kein Carry zu direktem Operanden
+     */
     private static final int JP_NC_IMM = 0xD2;
+    /**
+     * Opcode: Sprung, wenn Carry zu direktem Operanden
+     */
     private static final int JP_C_IMM = 0xDA;
+    /**
+     * Opcode: Sprung, wenn ungerade Parität zu direktem Operanden
+     */
     private static final int JP_PO_IMM = 0xE2;
+    /**
+     * Opcode: Sprung, wenn gerade Parität zu direktem Operanden
+     */
     private static final int JP_PE_IMM = 0xEA;
+    /**
+     * Opcode: Sprung, wenn positiv zu direktem Operanden
+     */
     private static final int JP_P_IMM = 0xF2;
+    /**
+     * Opcode: Sprung, wenn negativ zu direktem Operanden
+     */
     private static final int JP_M_IMM = 0xFA;
+    /**
+     * Opcode: Springe relativ
+     */
     private static final int JR_IMM = 0x18;
+    /**
+     * Opcode: Sprung relativ, wenn nicht null
+     */
     private static final int JR_NZ_IMM = 0x20;
+    /**
+     * Opcode: Sprung relativ, wenn null
+     */
     private static final int JR_Z_IMM = 0x28;
+    /**
+     * Opcode: Sprung relativ, wenn kein Carry
+     */
     private static final int JR_NC_IMM = 0x30;
+    /**
+     * Opcode: Sprung relativ, wenn Carry
+     */
     private static final int JR_C_IMM = 0x38;
+    /**
+     * Opcode: Dekrementiere B und Sprung, wenn nicht null
+     */
     private static final int DJNZ_IMM = 0x10;
 
     /**
-     * Rufbefehle
+     * Opcode: Unterprogrammaufruf zu direktem Operanden
      */
     private static final int CALL_IMM = 0xCD;
+    /**
+     * Opcode: Unterprogrammaufruf, wenn nicht null zu direktem Operanden
+     */
     private static final int CALL_NZ_IMM = 0xC4;
+    /**
+     * Opcode: Unterprogrammaufruf, wenn null zu direktem Operanden
+     */
     private static final int CALL_Z_IMM = 0xCC;
+    /**
+     * Opcode: Unterprogrammaufruf, wenn kein Carry zu direktem Operanden
+     */
     private static final int CALL_NC_IMM = 0xD4;
+    /**
+     * Opcode: Unterprogrammaufruf, wenn Carry zu direktem Operanden
+     */
     private static final int CALL_C_IMM = 0xDC;
+    /**
+     * Opcode: Unterprogrammaufruf, wenn ungerade Parität zu direktem Operanden
+     */
     private static final int CALL_PO_IMM = 0xE4;
+    /**
+     * Opcode: Unterprogrammaufruf, wenn gerade Parität zu direktem Operanden
+     */
     private static final int CALL_PE_IMM = 0xEC;
+    /**
+     * Opcode: Unterprogrammaufruf, wenn positiv zu direktem Operanden
+     */
     private static final int CALL_P_IMM = 0xF4;
+    /**
+     * Opcode: Unterprogrammaufruf, wenn negativ zu direktem Operanden
+     */
     private static final int CALL_M_IMM = 0xFC;
+    /**
+     * Opcode: Rückkehr aus Unterprogramm
+     */
     private static final int RET = 0xC9;
+    /**
+     * Opcode: Rückkehr aus Unterprogramm, wenn nicht null
+     */
     private static final int RET_NZ = 0xC0;
+    /**
+     * Opcode: Rückkehr aus Unterprogramm, wenn null
+     */
     private static final int RET_Z = 0xC8;
+    /**
+     * Opcode: Rückkehr aus Unterprogramm, wenn kein Carry
+     */
     private static final int RET_NC = 0xD0;
+    /**
+     * Opcode: Rückkehr aus Unterprogramm, wenn Carry
+     */
     private static final int RET_C = 0xD8;
+    /**
+     * Opcode: Rückkehr aus Unterprogramm, wenn Parität ungerade
+     */
     private static final int RET_PO = 0xE0;
+    /**
+     * Opcode: Rückkehr aus Unterprogramm, wenn Parität gerade
+     */
     private static final int RET_PE = 0xE8;
+    /**
+     * Opcode: Rückkehr aus Unterprogramm, wenn positiv
+     */
     private static final int RET_P = 0xF0;
+    /**
+     * Opcode: Rückkehr aus Unterprogramm, wenn negativ
+     */
     private static final int RET_M = 0xF8;
+    /**
+     * Opcode: Neustart bei Adresse 0x00
+     */
     private static final int RST_00 = 0xC7;
+    /**
+     * Opcode: Neustart bei Adresse 0x08
+     */
     private static final int RST_08 = 0xCF;
+    /**
+     * Opcode: Neustart bei Adresse 0x10
+     */
     private static final int RST_10 = 0xD7;
+    /**
+     * Opcode: Neustart bei Adresse 0x18
+     */
     private static final int RST_18 = 0xDF;
+    /**
+     * Opcode: Neustart bei Adresse 0x20
+     */
     private static final int RST_20 = 0xE7;
+    /**
+     * Opcode: Neustart bei Adresse 0x28
+     */
     private static final int RST_28 = 0xEF;
+    /**
+     * Opcode: Neustart bei Adresse 0x30
+     */
     private static final int RST_30 = 0xF7;
+    /**
+     * Opcode: Neustart bei Adresse 0x38
+     */
     private static final int RST_38 = 0xFF;
 
     /**
-     * Prozessorsteuerung
+     * Opcode: Keine Operation
      */
     private static final int NOP = 0x00;
+    /**
+     * Opcode: Setze Carry-FlagKeine Operation
+     */
     private static final int SCF = 0x37;
+    /**
+     * Opcode: Komplementiere Carry-Flag
+     */
     private static final int CCF = 0x3F;
+    /**
+     * Opcode: Prozessorhalt
+     */
     private static final int HALT = 0x76;
+    /**
+     * Opcode: Deaktiviere Interrupts
+     */
     private static final int DI = 0xF3;
+    /**
+     * Opcode: Aktiviere Interrupts
+     */
     private static final int EI = 0xFB;
 
     /**
-     * Rotations- und Verschiebebefehle
+     * Opcode: Rotiere Akkumulator links
      */
     private static final int RLCA = 0x07;
+    /**
+     * Opcode: Rotiere Akkumulator rechts
+     */
     private static final int RRCA = 0x0F;
+    /**
+     * Opcode: Rotiere Akkumulator links durch Carry-Flag
+     */
     private static final int RLA = 0x17;
+    /**
+     * Opcode: Rotiere Akkumulator rechts durch Carry-Flag
+     */
     private static final int RRA = 0x1F;
 
     /**
-     * Zweier CB
+     * (0xCB) 2. Opcode : Rotiere Links
      */
     private static final int _CB_RLC = 0x00;
+    /**
+     * (0xCB) 2. Opcode : Rotiere Rechts
+     */
     private static final int _CB_RRC = 0x08;
+    /**
+     * (0xCB) 2. Opcode : Rotiere Links durch Carry-Flag
+     */
     private static final int _CB_RL = 0x10;
+    /**
+     * (0xCB) 2. Opcode : Rotiere Rechts durch Carry-Flag
+     */
     private static final int _CB_RR = 0x18;
+    /**
+     * (0xCB) 2. Opcode : Arithmetisches Links-Schieben
+     */
     private static final int _CB_SLA = 0x20;
+    /**
+     * (0xCB) 2. Opcode : Arithmetisches Rechts-Schieben
+     */
     private static final int _CB_SRA = 0x28;
-    private static final int _CB_SLS = 0x30;
+    /**
+     * (0xCB) 2. Opcode : Unoffizieller Opcode SLL
+     */
+    private static final int _CB_SLL = 0x30;
+    /**
+     * (0xCB) 2. Opcode : Unoffizieller Opcode SRL
+     */
     private static final int _CB_SRL = 0x38;
+    /**
+     * (0xCB) 2. Opcode : Prüfe Bit 0
+     */
     private static final int _CB_BIT0 = 0x40;
+    /**
+     * (0xCB) 2. Opcode : Prüfe Bit 1
+     */
     private static final int _CB_BIT1 = 0x48;
+    /**
+     * (0xCB) 2. Opcode : Prüfe Bit 2
+     */
     private static final int _CB_BIT2 = 0x50;
+    /**
+     * (0xCB) 2. Opcode : Prüfe Bit 3
+     */
     private static final int _CB_BIT3 = 0x58;
+    /**
+     * (0xCB) 2. Opcode : Prüfe Bit 4
+     */
     private static final int _CB_BIT4 = 0x60;
+    /**
+     * (0xCB) 2. Opcode : Prüfe Bit 5
+     */
     private static final int _CB_BIT5 = 0x68;
+    /**
+     * (0xCB) 2. Opcode : Prüfe Bit 6
+     */
     private static final int _CB_BIT6 = 0x70;
+    /**
+     * (0xCB) 2. Opcode : Prüfe Bit 7
+     */
     private static final int _CB_BIT7 = 0x78;
+    /**
+     * (0xCB) 2. Opcode : Lösche Bit 0
+     */
     private static final int _CB_RES0 = 0x80;
+    /**
+     * (0xCB) 2. Opcode : Lösche Bit 1
+     */
     private static final int _CB_RES1 = 0x88;
+    /**
+     * (0xCB) 2. Opcode : Lösche Bit 2
+     */
     private static final int _CB_RES2 = 0x90;
+    /**
+     * (0xCB) 2. Opcode : Lösche Bit 3
+     */
     private static final int _CB_RES3 = 0x98;
+    /**
+     * (0xCB) 2. Opcode : Lösche Bit 4
+     */
     private static final int _CB_RES4 = 0xA0;
+    /**
+     * (0xCB) 2. Opcode : Lösche Bit 5
+     */
     private static final int _CB_RES5 = 0xA8;
+    /**
+     * (0xCB) 2. Opcode : Lösche Bit 6
+     */
     private static final int _CB_RES6 = 0xB0;
+    /**
+     * (0xCB) 2. Opcode : Lösche Bit 7
+     */
     private static final int _CB_RES7 = 0xB8;
+    /**
+     * (0xCB) 2. Opcode : Setze Bit 0
+     */
     private static final int _CB_SET0 = 0xC0;
+    /**
+     * (0xCB) 2. Opcode : Setze Bit 1
+     */
     private static final int _CB_SET1 = 0xC8;
+    /**
+     * (0xCB) 2. Opcode : Setze Bit 2
+     */
     private static final int _CB_SET2 = 0xD0;
+    /**
+     * (0xCB) 2. Opcode : Setze Bit 3
+     */
     private static final int _CB_SET3 = 0xD8;
+    /**
+     * (0xCB) 2. Opcode : Setze Bit 4
+     */
     private static final int _CB_SET4 = 0xE0;
+    /**
+     * (0xCB) 2. Opcode : Setze Bit 5
+     */
     private static final int _CB_SET5 = 0xE8;
+    /**
+     * (0xCB) 2. Opcode : Setze Bit 6
+     */
     private static final int _CB_SET6 = 0xF0;
+    /**
+     * (0xCB) 2. Opcode : Setze Bit 7
+     */
     private static final int _CB_SET7 = 0xF8;
 
     /**
-     * Zweier DD/FD
+     * (0xDD/0xFD) 2. Opcode : Addiere BC zu IX/IY
      */
     private static final int _DD_FD_ADD_BC_I = 0x09;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Addiere DE zu IX/IY
+     */
     private static final int _DD_FD_ADD_DE_I = 0x19;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Lade IX/IY aus direktem Operanden
+     */
     private static final int _DD_FD_LD_IMM_I = 0x21;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Lade (direkter Operand) aus IX/IY
+     */
     private static final int _DD_FD_LD_I_MEM = 0x22;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Inkrementiere IX/IY
+     */
     private static final int _DD_FD_INC_I = 0x23;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Unoffizieller Opcode Inkrementiere IXH/IYH
+     */
     private static final int _DD_FD_INC_IH = 0x24;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Unoffizieller Opcode Dekrementiere IXH/IYH
+     */
     private static final int _DD_FD_DEC_IH = 0x25;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Unoffizieller Opcode Lade IXH/IYH aus direktem
+     * Operanden
+     */
     private static final int _DD_FD_LD_IMM_IH = 0x26;
-    private static final int _DD_FD_ADD_IX_I = 0x29;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Addiere IX/IY zu IX/IY
+     */
+    private static final int _DD_FD_ADD_I_I = 0x29;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Lade IX/IY aus (direktem Operanden)
+     */
     private static final int _DD_FD_LD_MEM_I = 0x2A;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Dekrementiere IX/IY
+     */
     private static final int _DD_FD_DEC_I = 0x2B;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Unoffizieller Opcode Inkrementiere IXL/IYL
+     */
     private static final int _DD_FD_INC_IL = 0x2C;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Unoffizieller Opcode Dekrementiere IXL/IYL
+     */
     private static final int _DD_FD_DEC_IL = 0x2D;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Unoffizieller Opcode Lade IXL/IYL aus direktem
+     * Operanden
+     */
     private static final int _DD_FD_LD_IMM_IL = 0x2E;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Inkrementiere (IX+0)/(IY+0)
+     */
     private static final int _DD_FD_INC_I_0 = 0x34;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Dekrementiere (IX+0)/(IY+0)
+     */
     private static final int _DD_FD_DEC_I_0 = 0x35;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Lade (IX+0)/(IY+0) aus direktem Operanden
+     */
     private static final int _DD_FD_LD_IMM_I_0 = 0x36;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Addiere SP zu IX/IY
+     */
     private static final int _DD_FD_ADD_SP_I = 0x39;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Unoffizieller Opcode Lade Register B aus IXH/IYH
+     */
     private static final int _DD_FD_LD_IH_B = 0x44;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Unoffizieller Opcode Lade Register B aus IXL/IYL
+     */
     private static final int _DD_FD_LD_IL_B = 0x45;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Lade Register B aus (IX+0)/(IY+0)
+     */
     private static final int _DD_FD_LD_I_0_B = 0x46;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Unoffizieller Opcode Lade Register C aus IXH/IYH
+     */
     private static final int _DD_FD_LD_IH_C = 0x4C;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Unoffizieller Opcode Lade Register C aus IXL/IYL
+     */
     private static final int _DD_FD_LD_IL_C = 0x4D;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Lade Register C aus (IX+0)/(IY+0)
+     */
     private static final int _DD_FD_LD_I_0_C = 0x4E;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Unoffizieller Opcode Lade Register D aus IXH/IYH
+     */
     private static final int _DD_FD_LD_IH_D = 0x54;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Unoffizieller Opcode Lade Register D aus IXL/IYL
+     */
     private static final int _DD_FD_LD_IL_D = 0x55;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Lade Register D aus (IX+0)/(IY+0)
+     */
     private static final int _DD_FD_LD_I_0_D = 0x56;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Unoffizieller Opcode Lade Register E aus IXH/IYH
+     */
     private static final int _DD_FD_LD_IH_E = 0x5C;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Unoffizieller Opcode Lade Register E aus IXL/IYL
+     */
     private static final int _DD_FD_LD_IL_E = 0x5D;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Lade Register E aus (IX+0)/(IY+0)
+     */
     private static final int _DD_FD_LD_I_0_E = 0x5E;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Unoffizieller Opcode Lade IXH/IYH aus Register B
+     */
     private static final int _DD_FD_LD_B_IH = 0x60;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Unoffizieller Opcode Lade IXH/IYH aus Register C
+     */
     private static final int _DD_FD_LD_C_IH = 0x61;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Unoffizieller Opcode Lade IXH/IYH aus Register D
+     */
     private static final int _DD_FD_LD_D_IH = 0x62;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Unoffizieller Opcode Lade IXH/IYH aus Register E
+     */
     private static final int _DD_FD_LD_E_IH = 0x63;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Unoffizieller Opcode Lade IXH/IYH aus IXH/IYH
+     */
     private static final int _DD_FD_LD_IH_IH = 0x64;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Unoffizieller Opcode Lade IXH/IYH aus IXL/IYL
+     */
     private static final int _DD_FD_LD_IL_IH = 0x65;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Lade Register H aus (IX+0)/(IY+0)
+     */
     private static final int _DD_FD_LD_I_0_H = 0x66;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Unoffizieller Opcode Lade IXL/IYL aus Register A
+     */
     private static final int _DD_FD_LD_A_IH = 0x67;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Unoffizieller Opcode Lade IXL/IYL aus Register B
+     */
     private static final int _DD_FD_LD_B_IL = 0x68;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Unoffizieller Opcode Lade IXL/IYL aus Register C
+     */
     private static final int _DD_FD_LD_C_IL = 0x69;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Unoffizieller Opcode Lade IXL/IYL aus Register D
+     */
     private static final int _DD_FD_LD_D_IL = 0x6A;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Unoffizieller Opcode Lade IXL/IYL aus Register E
+     */
     private static final int _DD_FD_LD_E_IL = 0x6B;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Unoffizieller Opcode Lade IXL/IYL aus IXH/IYH
+     */
     private static final int _DD_FD_LD_IH_IL = 0x6C;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Unoffizieller Opcode Lade IXL/IYL aus IXL/IYL
+     */
     private static final int _DD_FD_LD_IL_IL = 0x6D;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Lade Register H aus (IX+0)/(IY+0)
+     */
     private static final int _DD_FD_LD_I_0_L = 0x6E;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Unoffizieller Opcode Lade IXL/IYL aus Register E
+     */
     private static final int _DD_FD_LD_A_IL = 0x6F;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Lade (IX+0)/(IY+0) aus Register B
+     */
     private static final int _DD_FD_LD_B_I_0 = 0x70;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Lade (IX+0)/(IY+0) aus Register C
+     */
     private static final int _DD_FD_LD_C_I_0 = 0x71;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Lade (IX+0)/(IY+0) aus Register D
+     */
     private static final int _DD_FD_LD_D_I_0 = 0x72;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Lade (IX+0)/(IY+0) aus Register E
+     */
     private static final int _DD_FD_LD_E_I_0 = 0x73;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Lade (IX+0)/(IY+0) aus Register H
+     */
     private static final int _DD_FD_LD_H_I_0 = 0x74;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Lade (IX+0)/(IY+0) aus Register L
+     */
     private static final int _DD_FD_LD_L_I_0 = 0x75;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Lade (IX+0)/(IY+0) aus Register B
+     */
     private static final int _DD_FD_LD_A_I_0 = 0x77;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Unoffizieller Opcode Lade Register A aus IXH/IYH
+     */
     private static final int _DD_FD_LD_IH_A = 0x7C;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Unoffizieller Opcode Lade Register A aus IXL/IYL
+     */
     private static final int _DD_FD_LD_IL_A = 0x7D;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Lade Register A aus (IX+0)/(IY+0)
+     */
     private static final int _DD_FD_LD_I_0_A = 0x7E;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Unoffizieller Opcode Addiere IXH/IYH zu A
+     */
     private static final int _DD_FD_ADD_IH_A = 0x84;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Unoffizieller Opcode Addiere IXL/IYL zu A
+     */
     private static final int _DD_FD_ADD_IL_A = 0x85;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Addiere (IX+0)/(IY+0) zu Register A
+     */
     private static final int _DD_FD_ADD_I_0_A = 0x86;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Unoffizieller Opcode Addiere IXH/IYH zu A mit
+     * Übertrag
+     */
     private static final int _DD_FD_ADC_IH_A = 0x8C;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Unoffizieller Opcode Addiere IXL/IYL zu A mit
+     * Übertrag
+     */
     private static final int _DD_FD_ADC_IL_A = 0x8D;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Addiere (IX+0)/(IY+0) zu Register A mit Übertrag
+     */
     private static final int _DD_FD_ADC_I_0_A = 0x8E;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Unoffizieller Opcode Subtrahiere IXH/IYH von A
+     */
     private static final int _DD_FD_SUB_IH_A = 0x94;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Unoffizieller Opcode Subtrahiere IXL/IYL von A
+     */
     private static final int _DD_FD_SUB_IL_A = 0x95;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Subtrahiere (IX+0)/(IY+0) von A
+     */
     private static final int _DD_FD_SUB_I_0_A = 0x96;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Unoffizieller Opcode Subtrahiere IXH/IYH von A
+     * mit Übertrag
+     */
     private static final int _DD_FD_SBC_IH_A = 0x9C;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Unoffizieller Opcode Subtrahiere IXL/IYL von A
+     * mit Übertrag
+     */
     private static final int _DD_FD_SBC_IL_A = 0x9D;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Subtrahiere (IX+0)/(IY+0) von A mit Übertrag
+     */
     private static final int _DD_FD_SBC_I_0_A = 0x9E;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Unoffizieller Opcode Bitweises UND IXH/IYH mit A
+     */
     private static final int _DD_FD_AND_IH = 0xA4;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Unoffizieller Opcode Bitweises UND IXL/IYL mit A
+     */
     private static final int _DD_FD_AND_IL = 0xA5;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Bitweises UND (IX+0)/(IY+0) mit A
+     */
     private static final int _DD_FD_AND_I_0 = 0xA6;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Unoffizieller Opcode Bitweises XOR IXH/IYH mit A
+     */
     private static final int _DD_FD_XOR_IH = 0xAC;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Unoffizieller Opcode Bitweises XOR IXL/IYL mit A
+     */
     private static final int _DD_FD_XOR_IL = 0xAD;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Bitweises XOR (IX+0)/(IY+0) mit A
+     */
     private static final int _DD_FD_XOR_I_0 = 0xAE;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Unoffizieller Opcode Bitweises ODER IXH/IYH mit A
+     */
     private static final int _DD_FD_OR_IH = 0xB4;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Unoffizieller Opcode Bitweises ODER IXL/IYL mit A
+     */
     private static final int _DD_FD_OR_IL = 0xB5;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Bitweises ODER (IX+0)/(IY+0) mit A
+     */
     private static final int _DD_FD_OR_I_0 = 0xB6;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Unoffizieller Opcode Vergleich IXH/IYH mit A
+     */
     private static final int _DD_FD_CP_IH = 0xBC;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Unoffizieller Opcode Vergleich IXL/IYL mit A
+     */
     private static final int _DD_FD_CP_IL = 0xBD;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Vergleich (IX+0)/(IY+0) mit A
+     */
     private static final int _DD_FD_CP_I_0 = 0xBE;
+    /**
+     * (0xDD/0xFD) 2. Opcode : IX/IY von Stack laden
+     */
     private static final int _DD_FD_POP_I = 0xE1;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Tausche (SP) mit IX/IY
+     */
     private static final int _DD_FD_EX_SP_I = 0xE3;
+    /**
+     * (0xDD/0xFD) 2. Opcode : IX/IY auf Stack speichern
+     */
     private static final int _DD_FD_PUSH_I = 0xE5;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Spring zu (IX)/(IY)
+     */
     private static final int _DD_FD_JP_MEM_I = 0xE9;
+    /**
+     * (0xDD/0xFD) 2. Opcode : Lade SP aus IX/IY
+     */
     private static final int _DD_FD_LD_I_SP = 0xF9;
 
     /**
-     * Zweier ED
+     * (0xED) 2. Opcode : Lese aus Port C nach Register B
      */
     private static final int _ED_IN_C_B = 0x40;
+    /**
+     * (0xED) 2. Opcode : Schreibe auf Port C aus Register B
+     */
     private static final int _ED_OUT_B_C = 0x41;
+    /**
+     * (0xED) 2. Opcode : Subtrahiere BC von HL mit Übertrag
+     */
     private static final int _ED_SBC_BC_HL = 0x42;
+    /**
+     * (0xED) 2. Opcode : Lade BC aus (direktem Operand)
+     */
     private static final int _ED_LD_BC_MEM = 0x43;
+    /**
+     * (0xED) 2. Opcode : Negiere Akkumulator
+     */
     private static final int _ED_NEG = 0x44;
+    /**
+     * (0xED) 2. Opcode : Rücksprung von Nicht-Maskierbarem Interrupt
+     */
     private static final int _ED_RETN = 0x45;
+    /**
+     * (0xED) 2. Opcode : Setze Interruptmodus 0
+     */
     private static final int _ED_IM0 = 0x46;
+    /**
+     * (0xED) 2. Opcode : Lade Interruptregister aus A
+     */
     private static final int _ED_LD_A_INT = 0x47;
+    /**
+     * (0xED) 2. Opcode : Lese aus Port C nach Register C
+     */
     private static final int _ED_IN_C_C = 0x48;
+    /**
+     * (0xED) 2. Opcode : Schreibe auf Port C aus Register C
+     */
     private static final int _ED_OUT_C_C = 0x49;
+    /**
+     * (0xED) 2. Opcode : Addiere BC zu HL mit Übertrag
+     */
     private static final int _ED_ADC_BC_HL = 0x4A;
+    /**
+     * (0xED) 2. Opcode : Lade (direkten Operand) aus BC
+     */
     private static final int _ED_LD_MEM_BC = 0x4B;
+    /**
+     * (0xED) 2. Opcode : Rücksprung von Interrupt
+     */
     private static final int _ED_RETI = 0x4D;
+    /**
+     * (0xED) 2. Opcode : Lade Refreshregister aus A
+     */
     private static final int _ED_LD_A_R = 0x4F;
+    /**
+     * (0xED) 2. Opcode : Lese aus Port C nach Register D
+     */
     private static final int _ED_IN_C_D = 0x50;
+    /**
+     * (0xED) 2. Opcode : Schreibe auf Port C aus Register D
+     */
     private static final int _ED_OUT_D_C = 0x51;
+    /**
+     * (0xED) 2. Opcode : Subtrahiere DE von HL mit Übertrag
+     */
     private static final int _ED_SBC_DE_HL = 0x52;
+    /**
+     * (0xED) 2. Opcode : Lade (direkten Operand) aus DE
+     */
     private static final int _ED_LD_DE_MEM = 0x53;
+    /**
+     * (0xED) 2. Opcode : Setze Interruptmodus 1
+     */
     private static final int _ED_IM1 = 0x56;
+    /**
+     * (0xED) 2. Opcode : Lade A aus Interruptregister
+     */
     private static final int _ED_LD_INT_A = 0x57;
+    /**
+     * (0xED) 2. Opcode : Lese aus Port C nach Register E
+     */
     private static final int _ED_IN_C_E = 0x58;
+    /**
+     * (0xED) 2. Opcode : Schreibe auf Port C aus Register E
+     */
     private static final int _ED_OUT_E_C = 0x59;
+    /**
+     * (0xED) 2. Opcode : Addiere DE zu HL mit Übertrag
+     */
     private static final int _ED_ADC_DE_HL = 0x5A;
+    /**
+     * (0xED) 2. Opcode : Lade DE aus (direktem Operand)
+     */
     private static final int _ED_LD_MEM_DE = 0x5B;
+    /**
+     * (0xED) 2. Opcode : Setze Interruptmodus 2
+     */
     private static final int _ED_IM2 = 0x5E;
+    /**
+     * (0xED) 2. Opcode : Lade A aus Refreshregister
+     */
     private static final int _ED_LD_R_A = 0x5F;
+    /**
+     * (0xED) 2. Opcode : Lese aus Port C nach Register H
+     */
     private static final int _ED_IN_C_H = 0x60;
+    /**
+     * (0xED) 2. Opcode : Schreibe auf Port C aus Register H
+     */
     private static final int _ED_OUT_H_C = 0x61;
+    /**
+     * (0xED) 2. Opcode : Subtrahiere HL von HL mit Übertrag
+     */
     private static final int _ED_SBC_HL_HL = 0x62;
+    /**
+     * (0xED) 2. Opcode : Lade (direkten Operand) aus HL
+     */
     private static final int _ED_LD_HL_MEM = 0x63;
+    /**
+     * (0xED) 2. Opcode : Rotiere Rechts Dezimal
+     */
     private static final int _ED_RRD = 0x67;
+    /**
+     * (0xED) 2. Opcode : Lese aus Port C nach Register L
+     */
     private static final int _ED_IN_C_L = 0x68;
+    /**
+     * (0xED) 2. Opcode : Schreibe auf Port C aus Register L
+     */
     private static final int _ED_OUT_L_C = 0x69;
+    /**
+     * (0xED) 2. Opcode : Addiere HL zu HL mit Übertrag
+     */
     private static final int _ED_ADC_HL_HL = 0x6A;
+    /**
+     * (0xED) 2. Opcode : Lade HL aus (direktem Operand)
+     */
     private static final int _ED_LD_MEM_HL = 0x6B;
+    /**
+     * (0xED) 2. Opcode : Rotiere Links Dezimal
+     */
     private static final int _ED_RLD = 0x6F;
+    /**
+     * (0xED) 2. Opcode : Unoffizieller Opcode Lese aus Port C nach Flagregister
+     */
     private static final int _ED_IN_C_F = 0x70;
+    /**
+     * (0xED) 2. Opcode : Unoffizieller Opcode Schreibe auf Port C aus
+     * Flagregister
+     */
     private static final int _ED_OUT_F_C = 0x71;
+    /**
+     * (0xED) 2. Opcode : Subtrahiere SP von HL mit Übertrag
+     */
     private static final int _ED_SBC_SP_HL = 0x72;
+    /**
+     * (0xED) 2. Opcode : Lade (direkten Operand) aus SP
+     */
     private static final int _ED_LD_SP_MEM = 0x73;
+    /**
+     * (0xED) 2. Opcode : Lese aus Port C nach Register A
+     */
     private static final int _ED_IN_C_A = 0x78;
+    /**
+     * (0xED) 2. Opcode : Schreibe auf Port C aus Register A
+     */
     private static final int _ED_OUT_A_C = 0x79;
+    /**
+     * (0xED) 2. Opcode : Addiere SP zu HL mit Übertrag
+     */
     private static final int _ED_ADC_SP_HL = 0x7A;
+    /**
+     * (0xED) 2. Opcode : Lade SP aus (direktem Operand)
+     */
     private static final int _ED_LD_MEM_SP = 0x7B;
+    /**
+     * (0xED) 2. Opcode : Blockladen mit Inkrementieren
+     */
     private static final int _ED_LDI = 0xA0;
+    /**
+     * (0xED) 2. Opcode : Vergleiche und Inkrementiere
+     */
     private static final int _ED_CPI = 0xA1;
+    /**
+     * (0xED) 2. Opcode : Eingabe mit Inkrementieren
+     */
     private static final int _ED_INI = 0xA2;
+    /**
+     * (0xED) 2. Opcode : Ausgabe mit Inkrementieren
+     */
     private static final int _ED_OUTI = 0xA3;
+    /**
+     * (0xED) 2. Opcode : Blockladen mit Dekrementieren
+     */
     private static final int _ED_LDD = 0xA8;
+    /**
+     * (0xED) 2. Opcode : Vergleiche und Dekrementiere
+     */
     private static final int _ED_CPD = 0xA9;
+    /**
+     * (0xED) 2. Opcode : Eingabe mit Dekrementieren
+     */
     private static final int _ED_IND = 0xAA;
+    /**
+     * (0xED) 2. Opcode : Ausgabe mit Dekrementieren
+     */
     private static final int _ED_OUTD = 0xAB;
+    /**
+     * (0xED) 2. Opcode : Wiederholtes Blockladen mit Inkrementieren
+     */
     private static final int _ED_LDIR = 0xB0;
+    /**
+     * (0xED) 2. Opcode : Blockvergleich und Inkrementieren
+     */
     private static final int _ED_CPIR = 0xB1;
+    /**
+     * (0xED) 2. Opcode : Blockeingabe mit Inkrementieren
+     */
     private static final int _ED_INIR = 0xB2;
+    /**
+     * (0xED) 2. Opcode : Blockausgabe mit Inkrementieren
+     */
     private static final int _ED_OTIR = 0xB3;
+    /**
+     * (0xED) 2. Opcode : Wiederholtes Blockladen mit Dekrementieren
+     */
     private static final int _ED_LDDR = 0xB8;
+    /**
+     * (0xED) 2. Opcode : Blockvergleich und Dekrementieren
+     */
     private static final int _ED_CPDR = 0xB9;
+    /**
+     * (0xED) 2. Opcode : Blockeingabe mit Dekrementieren
+     */
     private static final int _ED_INDR = 0xBA;
+    /**
+     * (0xED) 2. Opcode : Blockausgabe mit Inkrementieren
+     */
     private static final int _ED_OTDR = 0xBB;
 
     /**
-     * Test 8-Bit-Register
+     * Maske Register B
      */
     private static final int REG_B = 0x00;
+    /**
+     * Maske Register C
+     */
     private static final int REG_C = 0x01;
+    /**
+     * Maske Register D
+     */
     private static final int REG_D = 0x02;
+    /**
+     * Maske Register E
+     */
     private static final int REG_E = 0x03;
+    /**
+     * Maske Register H
+     */
     private static final int REG_H = 0x04;
+    /**
+     * Maske Register L
+     */
     private static final int REG_L = 0x05;
+    /**
+     * Maske Speicher (HL)
+     */
     private static final int MEM_HL = 0x06;
+    /**
+     * Maske Register A
+     */
     private static final int REG_A = 0x07;
 
     /**
-     * Test 16-Bit-Register
+     * Maske Registerpaar BC
      */
     private static final int REGP_BC = 0x00;
+    /**
+     * Maske Registerpaar DE
+     */
     private static final int REGP_DE = 0x01;
+    /**
+     * Maske Registerpaar HL
+     */
     private static final int REGP_HL = 0x02;
+    /**
+     * Maske Registerpaar IX/IY
+     */
     private static final int REGP_IX_IY = 0x02;
+    /**
+     * Maske Register SP
+     */
     private static final int REGP_SP = 0x03;
+    /**
+     * Maske Registerpaar AF
+     */
     private static final int REGP_AF = 0x03;
 
     /**
-     * Flags
+     * Maske: Carry-Flag
      */
     private static final int CARRY_FLAG = 0x01;
+    /**
+     * Maske: Carry-Flag
+     */
     private static final int SUBTRACT_FLAG = 0x02;
+    /**
+     * Maske: Paritäts/Überlauf-Flag
+     */
     private static final int PARITY_OVERFLOW_FLAG = 0x04;
+    /**
+     * Maske: Undokumentiertes Flag Bit 3
+     */
     private static final int BIT3_FLAG = 0x08;
+    /**
+     * Maske: Halbübertrags-Flag
+     */
     private static final int HALF_CARRY_FLAG = 0x10;
+    /**
+     * Maske: Undokumentiertes Flag Bit 5
+     */
     private static final int BIT5_FLAG = 0x20;
+    /**
+     * Maske: null Flag
+     */
     private static final int ZERO_FLAG = 0x40;
+    /**
+     * Maske: Vorzeichen-Flag
+     */
     private static final int SIGN_FLAG = 0x80;
 
     /**
@@ -664,10 +2019,6 @@ public class UA880 implements CPU {
      * Zeiger auf Subsystem Modul
      */
     private final SubsystemModule module;
-    /**
-     * Gibt an, ob der Thread bereits beendet wurde
-     */
-    private boolean stopped;
     /**
      * Gibt an, ob sich die CPU im HALT Zustand befindet.
      */
@@ -707,7 +2058,7 @@ public class UA880 implements CPU {
     /**
      * Erstellt einen neuen Prozessor.
      *
-     * @param module Referenz auf KGS Modul
+     * @param module      Referenz auf KGS Modul
      * @param debug_ident Kürzel, welches die Debug-Ausgaben beinhalten
      */
     public UA880(SubsystemModule module, String debug_ident) {
@@ -717,7 +2068,7 @@ public class UA880 implements CPU {
     }
 
     /**
-     * Holt den nächsten Befehl aus dem Speicher und führt ihn aus
+     * Holt den nächsten Befehl aus dem Speicher und führt ihn aus.
      */
     private void executeNextInstruction() {
         boolean debug = debugger.isDebug();
@@ -2398,7 +3749,7 @@ public class UA880 implements CPU {
                         }
                     }
                     break;
-                    case _CB_SLS: {
+                    case _CB_SLL: {
                         System.out.println("Unoffizieller Opcode SLS");
                     }
                     break;
@@ -2509,7 +3860,7 @@ public class UA880 implements CPU {
                 switch (opcode2) {
                     case _DD_FD_ADD_BC_I:
                     case _DD_FD_ADD_DE_I:
-                    case _DD_FD_ADD_IX_I:
+                    case _DD_FD_ADD_I_I:
                     case _DD_FD_ADD_SP_I: {
                         int op1 = getRegisterPairISP((opcode2 >> 4) & 0x03, useIY);
                         int op2 = getRegisterPairISP(REGP_IX_IY, useIY);
@@ -3085,7 +4436,7 @@ public class UA880 implements CPU {
                                 }
                             }
                             break;
-                            case _CB_SLS: {
+                            case _CB_SLL: {
                                 System.out.println("Unoffizieller Opcode SLS");
                             }
                             break;
@@ -3780,22 +5131,15 @@ public class UA880 implements CPU {
         if (debug) {
             if (debugInfo.getCode() != null) {
                 debugger.addLine(debugInfo);
-                // TODO: Slowdown gegenwärtig deaktiviert
-//                try {
-//                    Thread.sleep(debugger.getSlowdown());
-//                } catch (InterruptedException ex) {
-//                    Logger.getLogger(K1810WM86.class.getName()).log(Level.SEVERE, null, ex);
-//                }
             }
         }
-
     }
 
     /**
      * Setzt den Wert eines Registers
      *
      * @param register Register
-     * @param value Wert
+     * @param value    Wert
      */
     private void setRegister(int register, int value) {
         switch (register) {
@@ -3935,7 +5279,7 @@ public class UA880 implements CPU {
      * (BC,DE,HL,SP)
      *
      * @param registerPair Registerpaar
-     * @param value Wert
+     * @param value        Wert
      */
     private void setRegisterPairHLSP(int registerPair, int value) {
         switch (registerPair) {
@@ -3964,7 +5308,7 @@ public class UA880 implements CPU {
      * Indexregisters (BC,DE,SP,IX/IY) als 16-bit Wert zurück
      *
      * @param registerPair Registerpaar
-     * @param useIY true - IndexRegister IY, false - Indexregister IX
+     * @param useIY        true - IndexRegister IY, false - Indexregister IX
      * @return Inhalt des Registerpaars
      */
     private int getRegisterPairISP(int registerPair, boolean useIY) {
@@ -3985,7 +5329,7 @@ public class UA880 implements CPU {
      * ein Indexregister (BC,DE,HL,IX/IY) repräsentiert
      *
      * @param registerPair Registerpaar
-     * @param useIY true - IndexRegister IY, false - Indexregister IX
+     * @param useIY        true - IndexRegister IY, false - Indexregister IX
      * @return Inhalt des Registerpaars
      */
     private String getRegisterPairISPString(int registerPair, boolean useIY) {
@@ -4006,8 +5350,8 @@ public class UA880 implements CPU {
      * Indexregisters (BC,DE,SP,IX/IY)
      *
      * @param registerPair Registerpaar
-     * @param useIY true - IndexRegister IY, false - Indexregister IX
-     * @param value Wert
+     * @param useIY        true - IndexRegister IY, false - Indexregister IX
+     * @param value        Wert
      */
     private void setRegisterPairISP(int registerPair, int value, boolean useIY) {
         switch (registerPair) {
@@ -4071,7 +5415,7 @@ public class UA880 implements CPU {
      * Setzt den Inhalt eines Registerpaares (BC,DE,HL,AF)
      *
      * @param registerPair Registerpaar
-     * @param value Wert
+     * @param value        Wert
      */
     private void setRegisterPairAF(int registerPair, int value) {
         switch (registerPair) {
@@ -4167,10 +5511,10 @@ public class UA880 implements CPU {
     /**
      * Addiert zwei Bytes und setzt die entsprechenden Flags
      *
-     * @param op1 1. Operand
-     * @param op2 2. Operand
+     * @param op1      1. Operand
+     * @param op2      2. Operand
      * @param useCarry gibt an, ob ein Carry Flag berücksichtigt werden soll
-     * (ADC)
+     *                 (ADC)
      * @return Ergebnis
      */
     private int add8(int op1, int op2, boolean useCarry) {
@@ -4190,10 +5534,10 @@ public class UA880 implements CPU {
     /**
      * Addiert zwei Wörter und setzt die entsprechenden Flags
      *
-     * @param op1 1. Operand
-     * @param op2 2. Operand
+     * @param op1      1. Operand
+     * @param op2      2. Operand
      * @param useCarry gibt an, ob ein Carry Flag berücksichtigt werden soll
-     * (ADC)
+     *                 (ADC)
      * @return Ergebnis
      */
     private int add16(int op1, int op2, boolean useCarry) {
@@ -4215,10 +5559,10 @@ public class UA880 implements CPU {
     /**
      * Subtrahiert zwei Bytes und setzt die entsprechenden Flags
      *
-     * @param op1 1. Operand
-     * @param op2 2. Operand
+     * @param op1      1. Operand
+     * @param op2      2. Operand
      * @param useCarry gibt an, ob ein Carry Flag berücksichtigt werden soll
-     * (SBC)
+     *                 (SBC)
      * @return Ergebnis
      */
     private int sub8(int op1, int op2, boolean useCarry) {
@@ -4238,10 +5582,10 @@ public class UA880 implements CPU {
     /**
      * Subtrahiert zwei Wörter und setzt die entsprechenden Flags
      *
-     * @param op1 1. Operand
-     * @param op2 2. Operand
+     * @param op1      1. Operand
+     * @param op2      2. Operand
      * @param useCarry gibt an, ob ein Carry Flag berücksichtigt werden soll
-     * (SBC)
+     *                 (SBC)
      * @return Ergebnis
      */
     private int sub16(int op1, int op2, boolean useCarry) {
@@ -4259,7 +5603,7 @@ public class UA880 implements CPU {
     }
 
     /**
-     * Inkrementiert einen Operanden und setzt die entsprechenden Flags
+     * Inkrementiert einen Operanden und setzt die entsprechenden Flags.
      *
      * @param op Operand
      * @return Ergebnis
@@ -4275,7 +5619,7 @@ public class UA880 implements CPU {
     }
 
     /**
-     * Dekrementiert einen Operanden und setzt die entsprechenden Flags
+     * Dekrementiert einen Operanden und setzt die entsprechenden Flags.
      *
      * @param op Operand
      * @return Ergebnis
@@ -4292,7 +5636,7 @@ public class UA880 implements CPU {
 
     /**
      * Setzt das Carry Flag entsprechend einer ausgeführten Addition von zwei
-     * Bytes
+     * Bytes.
      *
      * @param res Ergebniss der Addition
      */
@@ -4306,7 +5650,7 @@ public class UA880 implements CPU {
 
     /**
      * Setzt das Carry Flag entsprechend einer ausgeführten Addition von zwei
-     * Wörtern
+     * Wörtern.
      *
      * @param res Ergebnis der Addition
      */
@@ -4320,7 +5664,7 @@ public class UA880 implements CPU {
 
     /**
      * Setzt das Carry Flag entsprechend einer ausgeführten Subtraktion von zwei
-     * Bytes
+     * Bytes.
      *
      * @param res Ergebniss der Subtraktion
      */
@@ -4334,7 +5678,7 @@ public class UA880 implements CPU {
 
     /**
      * Setzt das Half-Carry-Flag entsprechend einer ausgeführten Subtraktion
-     * op1-op2
+     * op1-op2.
      *
      * @param op1 Erster Operand
      * @param op2 Zweiter Operand
@@ -4349,7 +5693,7 @@ public class UA880 implements CPU {
 
     /**
      * Setzt das Half-Carry-Flag entsprechend einer ausgeführten Addition
-     * op1+op2
+     * op1+op2.
      *
      * @param op1 Erster Operand
      * @param op2 Zweiter Operand
@@ -4363,7 +5707,7 @@ public class UA880 implements CPU {
     }
 
     /**
-     * Setzt das Overflow-Flag entsprechend einer ausgeführten Addition op1+op2
+     * Setzt das Overflow-Flag entsprechend einer ausgeführten Addition op1+op2.
      *
      * @param op1 1. Operand
      * @param op2 2. Operand
@@ -4379,7 +5723,7 @@ public class UA880 implements CPU {
 
     /**
      * Setzt das Overflow-Flag entsprechend einer ausgeführten Subtraktion von
-     * zwei Bytes op1-op2
+     * zwei Bytes op1-op2.
      *
      * @param op1 Erster Operand
      * @param op2 Zweiter Operand
@@ -4395,7 +5739,7 @@ public class UA880 implements CPU {
 
     /**
      * Setzt das Overflow Flag entsprechend einer ausgeführten Subtraktion von
-     * zwei Wörtern op1-op2
+     * zwei Wörtern op1-op2.
      *
      * @param op1 Erster Operand
      * @param op2 Zweiter Operand
@@ -4410,7 +5754,7 @@ public class UA880 implements CPU {
     }
 
     /**
-     * Setzt das Parity-Flag entsprechend einer vorangehenden Operation
+     * Setzt das Parity-Flag entsprechend einer vorangehenden Operation.
      *
      * @param res Ergebnis
      */
@@ -4429,7 +5773,7 @@ public class UA880 implements CPU {
     }
 
     /**
-     * Setzt das Zero-Flag entsprechend einer vorangehenden Byte-Operation
+     * Setzt das Zero-Flag entsprechend einer vorangehenden Byte-Operation.
      *
      * @param res Ergebnis
      */
@@ -4442,7 +5786,7 @@ public class UA880 implements CPU {
     }
 
     /**
-     * Setzt das Zero-Flag entsprechend einer vorangehenden Wort-Operation
+     * Setzt das Zero-Flag entsprechend einer vorangehenden Wort-Operation.
      *
      * @param res Ergebnis
      */
@@ -4483,10 +5827,11 @@ public class UA880 implements CPU {
     }
 
     /**
-     * Gibt an, ob ein Flag gesetzt ist
+     * Gibt an, ob ein Flag gesetzt ist.
      *
      * @param flag Zu prüfendes Flag
-     * @return true - wenn Flag gesetzt ist, false-sonst
+     * @return <code>true</code> - wenn das entsprechende Flag gesetzt ist,
+     *         <code>false</code> - sonst
      */
     private boolean getFlag(int flag) {
         return (f & flag) != 0;
@@ -4545,10 +5890,9 @@ public class UA880 implements CPU {
     public void executeCycles(int ticks) {
         this.tickBuffer += ticks;
 
-        //System.out.println("Tick Buffer:"+this.tickBuffer);
         // Mindestens 4 Takte sind für den kürzesten Befehl nötig
         while (tickBuffer >= 4) {
-           executeCPUCycle();
+            executeCPUCycle();
         }
     }
 
@@ -4724,7 +6068,7 @@ public class UA880 implements CPU {
      * Gibt an, ob noch ein NMI ansteht bzw. gerade ein NMI bearbeitet wird.
      *
      * @return <code>true</code> wenn ein NMI in Bearbeitung ist oder ansteht,
-     * <code>false</code> sonst
+     *         <code>false</code> sonst
      */
     public boolean isNmiInProgress() {
         return nmiInProgress;
@@ -4737,7 +6081,5 @@ public class UA880 implements CPU {
     public void reset() {
         interruptMode = 0;
         pc = 0x0000;
-//        debugger.setDebug(true);
-//        debugger.addComment("CPU Reset");
     }
 }

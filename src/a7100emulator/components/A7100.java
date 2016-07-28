@@ -21,6 +21,7 @@
  *   01.04.2014 - Kommentare vervollständigt
  *   17.11.2014 - Starten der Systemzeit implementiert
  *   23.07.2016 - Methoden für Pausieren und Einzelschritt überarbeitet
+ *   24.07.2016 - Laden und Speichern des Zustands in beliebige Dateien
  */
 package a7100emulator.components;
 
@@ -37,6 +38,7 @@ import a7100emulator.components.system.Keyboard;
 import a7100emulator.components.system.MMS16Bus;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -130,11 +132,13 @@ public class A7100 {
     }
 
     /**
-     * Speichert den aktuellen Zustand des Emulators in der Datei
-     * "./state/state.a7100" Dabei werden die saveState Methoden der Module
-     * sowie der verwendeten Peripherie aufgerufen.
+     * Speichert den aktuellen Zustand des Emulators in der angegebenen Datei.
+     * Dabei werden die saveState Methoden der Module sowie der verwendeten 
+     * Peripherie aufgerufen.
+     * 
+     * @param stateFile Datei zum Speichern des Emulatorzustands
      */
-    public void saveState() {
+    public void saveState(File stateFile) {
         pause();
         try {
             // Warte 100ms um das Anhalten des Systems zu garantieren
@@ -143,7 +147,7 @@ public class A7100 {
             Logger.getLogger(A7100.class.getName()).log(Level.SEVERE, null, ex);
         }
         try {
-            DataOutputStream dos = new DataOutputStream(new FileOutputStream("./state/state.a7100"));
+            DataOutputStream dos = new DataOutputStream(new FileOutputStream(stateFile));
 
             // TODO: Speichern der Module ZPS, ASP
             zve.saveState(dos);
@@ -167,11 +171,13 @@ public class A7100 {
     }
 
     /**
-     * Lädt den aktuellen Zustand des Emulators aus der Datei
-     * "./state/state.a7100" Dabei werden die loadState Methoden der Module
-     * sowie der verwendeten Peripherie aufgerufen.
+     * Lädt den aktuellen Zustand des Emulators aus der angegebenen Datei.
+     * Dabei werden die loadState Methoden der Module sowie der verwendeten
+     * Peripherie aufgerufen.
+     * 
+     * @param stateFile Datei zum Laden des Emulatorzustands
      */
-    public void loadState() {
+    public void loadState(File stateFile) {
         pause();
         try {
             // Warte 100ms um das Anhalten des Systems zu garantieren
@@ -180,7 +186,7 @@ public class A7100 {
             Logger.getLogger(A7100.class.getName()).log(Level.SEVERE, null, ex);
         }
         try {
-            DataInputStream dis = new DataInputStream(new FileInputStream("./state/state.a7100"));
+            DataInputStream dis = new DataInputStream(new FileInputStream(stateFile));
 
             // TODO: Laden der Module ZPS, ASP
             zve.loadState(dis);

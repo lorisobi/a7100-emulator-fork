@@ -19,9 +19,11 @@
  * 
  * Letzte Änderungen:
  *   01.04.2014 - Kommentare vervollständigt
+ *   24.07.2016 - Anzeige von Disketteninhalten im MemoryAnalyzer
  */
 package a7100emulator.components.modules;
 
+import a7100emulator.Debug.MemoryAnalyzer;
 import a7100emulator.components.system.FloppyDrive;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -65,6 +67,17 @@ public final class AFS implements Module {
         drives[1] = new FloppyDrive(FloppyDrive.DriveType.K5601);
         drives[2] = new FloppyDrive(FloppyDrive.DriveType.K5600_20);
         drives[3] = new FloppyDrive(FloppyDrive.DriveType.K5600_20);
+    }
+
+    /**
+     * Zeigt den Inhalt der Diskette an.
+     *
+     * @param drive Floppylaufwerk
+     */
+    public void showFloppy(int drive) {
+        if (drives[drive].isDiskInsert()) {
+            (new MemoryAnalyzer(drives[drive].getDisk().getFlatData(), "Floppy Disk " + (drive + 1))).show();
+        }
     }
 
     /**

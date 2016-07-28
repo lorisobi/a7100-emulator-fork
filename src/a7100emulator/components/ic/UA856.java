@@ -88,7 +88,6 @@ public class UA856 implements IC {
      */
     public void writeData(int channel, int data) {
         // TODO: Versenden
-        // TODO: Spezifische KGS Funktion abstrahieren!!!
         if (isRTS(1)) {
             channels[channel].receiveData(data);
         }

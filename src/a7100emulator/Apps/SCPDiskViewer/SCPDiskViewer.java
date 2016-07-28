@@ -26,6 +26,7 @@
  *   17.05.2015 - Punkt im Menüeintrag entfernt
  *   24.07.2015 - Datenbank exportieren hinzugefügt
  *   26.07.2015 - Auswahl löschen beim Laden von Image
+ *   26.07.2016 - Doppelte Typdefinition entfernt
  */
 package a7100emulator.Apps.SCPDiskViewer;
 
@@ -71,7 +72,6 @@ import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.table.AbstractTableModel;
 import javax.swing.table.DefaultTableCellRenderer;
-import javax.swing.table.TableModel;
 import javax.swing.table.TableRowSorter;
 import javax.swing.text.MaskFormatter;
 
@@ -267,7 +267,7 @@ public class SCPDiskViewer extends JFrame {
         setJMenuBar(menubar);
 
         // Tabelle
-        fileTable.setRowSorter(new TableRowSorter<TableModel>(fileTable.getModel()));
+        fileTable.setRowSorter(new TableRowSorter<>(fileTable.getModel()));
 
         fileTable.getColumn("RO").setPreferredWidth(2);
         fileTable.getColumn("SYS").setPreferredWidth(2);
@@ -792,7 +792,7 @@ public class SCPDiskViewer extends JFrame {
             } else if (value instanceof Boolean) {
                 component = new JCheckBox();
                 ((JCheckBox) component).setHorizontalAlignment(JLabel.CENTER);
-                ((JCheckBox) component).setSelected(value != null && ((Boolean) value).booleanValue());
+                ((JCheckBox) component).setSelected(value != null && ((Boolean) value));
             }
 
             if (table.getSelectedRow() == row) {

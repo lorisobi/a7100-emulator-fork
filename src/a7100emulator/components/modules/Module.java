@@ -19,13 +19,11 @@
  * 
  * Letzte Änderungen:
  *   02.04.2014 - Kommentare vervollständigt
+ *   26.07.2016 - Abgeleitete Methoden loadState und saveState entfernt
  */
 package a7100emulator.components.modules;
 
 import a7100emulator.Tools.StateSavable;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
 
 /**
  * Allgemeines Interface für alle Module
@@ -38,21 +36,4 @@ public interface Module extends StateSavable {
      * Initialisiert das Modul
      */
     public void init();
-
-    /**
-     * Schreibt den Zustand des Moduls in einen Datei
-     *
-     * @param dos Stream zur Datei
-     * @throws IOException Wenn Schreiben nicht erfolgreich war
-     */
-    public void saveState(DataOutputStream dos) throws IOException;
-
-    /**
-     * Liest den Zustand des Moduls aus einer Datei
-     *
-     * @param dis Stream zur Datei
-     * @throws IOException Wenn Lesen nicht erfolgreich war
-     */
-    public void loadState(DataInputStream dis) throws IOException;
-
 }

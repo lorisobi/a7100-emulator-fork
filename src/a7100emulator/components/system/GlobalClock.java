@@ -29,6 +29,7 @@
  *   23.07.2016 - Kommentare überarbeitet
  *              - Methoden zum Pausieren ergänzt
  *   24.07.2016 - Synchronisation mit Systemzeit ermöglicht
+ *   28.07.2016 - Synchronisieren beim Start deaktiviert
  */
 package a7100emulator.components.system;
 
@@ -83,7 +84,7 @@ public class GlobalClock implements Runnable, StateSavable {
     /**
      * Gibt an, ob der Emulator synchronisiert zur realen Zeit läuft
      */
-    private boolean synchronizeClock = true;
+    private boolean synchronizeClock = false;
 
     /**
      * Privater Konstruktor
@@ -161,7 +162,7 @@ public class GlobalClock implements Runnable, StateSavable {
         clock = 0;
         stopped = false;
         suspended = false;
-        synchronizeClock = true;
+        synchronizeClock = false;
     }
 
     /**
@@ -239,5 +240,25 @@ public class GlobalClock implements Runnable, StateSavable {
      */
     public void setSynchronizeClock(boolean synchronizeClock) {
         this.synchronizeClock = synchronizeClock;
+    }
+
+    /**
+     * Gibt an, ob die Emulatorzeit mit der realen Zeit synchronisiert wird.
+     *
+     * @return <code>true</code> fals synchronisiert wird, <code>false</code>
+     * sonst
+     */
+    public boolean isSynchronizedClock() {
+        return synchronizeClock;
+    }
+
+    /**
+     * Gibt an, ob der Emulator pausiert ist.
+     *
+     * @return <code>true</code> wenn der Emulator pausiert ist,
+     * <code>false</code> sonst
+     */
+    public boolean isSuspended() {
+        return suspended;
     }
 }

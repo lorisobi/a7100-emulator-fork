@@ -20,6 +20,7 @@
  * Letzte Änderungen:
  *   05.04.2014 - Kommentare vervollständigt
  *   18.11.2014 - Interface StateSavable implementiert
+ *   25.07.2016 - parityNMIEnable=true in reset()
  */
 package a7100emulator.components.system;
 
@@ -153,7 +154,7 @@ public class InterruptSystem implements StateSavable {
      * Setzt das Interrupt-System in den Grundzustand zurück
      */
     public void reset() {
-        parityNMIEnable = false;
+        parityNMIEnable = true;
         nmi = false;
     }
 }

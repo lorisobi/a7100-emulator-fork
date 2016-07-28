@@ -24,6 +24,7 @@
  *                MMS16Bus ersetzt
  *   30.07.2015 - Spurpositionierung und Lesen Sektor Identifikationsfeld
  *                implementiert
+ *   25.07.2016 - Erkennen von fehlerhafter Diskettenposition beim Daten lesen
  */
 package a7100emulator.components.modules;
 
@@ -442,13 +443,15 @@ public final class KES implements IOModule, ClockModule {
                         FloppyDrive drive = afs.getFloppy(driveNr & 0x03);
                         byte[] data = drive.readData(cylinder, head, sector, byteCnt);
 //                        String ascii = "";
-                        for (int i = 0; i < data.length; i++) {
-                            mms16.writeMemoryByte(memAddr + i, data[i]);
+                        if (data != null) {
+                            for (int i = 0; i < data.length; i++) {
+                                mms16.writeMemoryByte(memAddr + i, data[i]);
 //                            System.out.print(String.format("%02X", data[i] & 0xFF) + " ");
 //                            ascii += ((data[i] < 0x20) || (data[i] == 127)) ? '.' : (char) (data[i] & 0xFF);
 //                            if ((i + 1) % 16 == 0) {
 //                                System.out.println(" " + ascii);
 //                                ascii = "";
+                            }
                         }
 //                        }
 //                        System.out.println();
