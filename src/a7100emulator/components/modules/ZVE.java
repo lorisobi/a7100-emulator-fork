@@ -23,6 +23,7 @@
  *   09.08.2014 - Zugriffe auf SystemMemory, SystemPorts und SystemClock durch
  *                MMS16Bus ersetzt
  *   23.07.2016 - Methoden für CPU- Pausieren und Anhalten entfernt
+ *   24.07.2016 - Speichern Quartz Zustand
  */
 package a7100emulator.components.modules;
 
@@ -137,11 +138,11 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
      * Speicher der EPROMS
      */
     private final Memory memory = new Memory(32768);
-    
+
     /**
      * Quartz CPU-Takt
      */
-    private QuartzCrystal cpuClock=new QuartzCrystal(4.9152);
+    private final QuartzCrystal cpuClock=new QuartzCrystal(4.9152);
 
     /**
      * Erstellt eine neue ZVE
@@ -476,6 +477,7 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
         ppi.saveState(dos);
         pti.saveState(dos);
         usart.saveState(dos);
+        cpuClock.saveState(dos);
     }
 
     /**
@@ -492,6 +494,7 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
         ppi.loadState(dis);
         pti.loadState(dis);
         usart.loadState(dis);
+        cpuClock.loadState(dis);
     }
 
     /**

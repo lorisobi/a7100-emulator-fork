@@ -47,6 +47,8 @@
  *              - Von Interface CPU abgeleitet, Runnable entfernt
  *              - Methoden zum Anhalten und Pausieren entfernt
  *   24.07.2016 - reset() und setDebug() nach Interface CPU ausgelagert
+ *   26.07.2016 - Überflüssige Codereste entfernt
+ *              - Kommentare vervollständigt
  */
 package a7100emulator.components.ic;
 
@@ -62,469 +64,1461 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 
 /**
- * Klasse zur Abbildung der CPU K1810WM86
+ * Klasse zur Abbildung der CPU K1810WM86.
+ * <p>
+ * Die Klasse steuert die Befehlsabarbeitung und das Interrupt-system der
+ * Haupt-CPU. Über <code>executeCycles()</code> Kann die Abarbeitung für eine
+ * bestimmte Anzahl von Takten aktiviert werden.
+ * <p>
+ * Folgende Opcodes werden von der CPU nicht behandelt, da sie in der
+ * Dokumentation zur ZVE als (not used) deklariert sind: 0F, 60-6F, C0-C1,
+ * C8-C9, D6, F1, 82-83 (REG: 001,100,110), 8C und 8E (REG: 1xx), 8F
+ * (REG:001-111), C6-C7 (REG:001-111), D0-D3 (REG:110), C6-C7 (REG:001-111),
+ * F6-F7 (REG:001), FE (REG:010-111), FF (REG:111)
  *
  * @author Dirk Bräuer
  */
-public class K1810WM86 implements CPU {
+public final class K1810WM86 implements CPU {
 
     /**
-     * Interrupt System
+     * Interrupt System des A7100
      */
     private final InterruptSystem interruptSystem = InterruptSystem.getInstance();
     /**
-     * MMS16 - Systembus
+     * MMS16 - Systembus des A7100
      */
     private final MMS16Bus mms16 = MMS16Bus.getInstance();
 
     /**
-     * Nicht verwendet 0F 60-6F C0,C1,C8,C9 D6 F1 82 001,100,110 83 001,100,110
-     * 8C 1xx 8E 1xx 8F 001-111 C6 001-111 C7 001-111 D0 110 D1 110 D2 110 D3
-     * 110 C6 001-111 C7 001-111 D0 110 D1 110 D2 110 D3 110 F6 001 F7 001 FE
-     * 010-111 FF 111
-     */
-    /**
-     * Segment Präfix ES
+     * Opcode: Segment Präfix Extrasegment-Register ES
      */
     private static final int PREFIX_ES = 0x26;
     /**
-     * Segment Präfix CS
+     * Opcode: Segment Präfix Codesegment-Register CS
      */
     private static final int PREFIX_CS = 0x2E;
     /**
-     * Segment Präfix SS
+     * Opcode: Segment Präfix Stacksegment-Register SS
      */
     private static final int PREFIX_SS = 0x36;
     /**
-     * Segment Präfix DS
+     * Opcode: Segment Präfix Datensegment-Register DS
      */
     private static final int PREFIX_DS = 0x3E;
+
+    /**
+     * Opcode: ES auf Stack ablegen
+     */
+    private static final int PUSH_ES = 0x06;
+    /**
+     * Opcode: ES von Stack holen
+     */
+    private static final int POP_ES = 0x07;
+    /**
+     * Opcode: CS auf Stack ablegen
+     */
+    private static final int PUSH_CS = 0x0E;
+    /**
+     * Opcode: SS auf Stack ablegen
+     */
+    private static final int PUSH_SS = 0x16;
+    /**
+     * Opcode: SS von Stack holen
+     */
+    private static final int POP_SS = 0x17;
+    /**
+     * Opcode: DS auf Stack ablegen
+     */
+    private static final int PUSH_DS = 0x1E;
+    /**
+     * Opcode: DS von Stack holen
+     */
+    private static final int POP_DS = 0x1F;
+    /**
+     * Opcode: AX auf Stack ablegen
+     */
+    private static final int PUSH_AX = 0x50;
+    /**
+     * Opcode: CX auf Stack ablegen
+     */
+    private static final int PUSH_CX = 0x51;
+    /**
+     * Opcode: DX auf Stack ablegen
+     */
+    private static final int PUSH_DX = 0x52;
+    /**
+     * Opcode: BX auf Stack ablegen
+     */
+    private static final int PUSH_BX = 0x53;
+    /**
+     * Opcode: SP auf Stack ablegen
+     */
+    private static final int PUSH_SP = 0x54;
+    /**
+     * Opcode: BP auf Stack ablegen
+     */
+    private static final int PUSH_BP = 0x55;
+    /**
+     * Opcode: SI auf Stack ablegen
+     */
+    private static final int PUSH_SI = 0x56;
+    /**
+     * Opcode: DI auf Stack ablegen
+     */
+    private static final int PUSH_DI = 0x57;
+    /**
+     * Opcode: Flagregister auf Stack ablegen
+     */
+    private static final int PUSHF = 0x9C;
+    /**
+     * Opcode: AX von Stack holen
+     */
+    private static final int POP_AX = 0x58;
+    /**
+     * Opcode: CX von Stack holen
+     */
+    private static final int POP_CX = 0x59;
+    /**
+     * Opcode: DX von Stack holen
+     */
+    private static final int POP_DX = 0x5A;
+    /**
+     * Opcode: BX von Stack holen
+     */
+    private static final int POP_BX = 0x5B;
+    /**
+     * Opcode: SP von Stack holen
+     */
+    private static final int POP_SP = 0x5C;
+    /**
+     * Opcode: BP von Stack holen
+     */
+    private static final int POP_BP = 0x5D;
+    /**
+     * Opcode: SI von Stack holen
+     */
+    private static final int POP_SI = 0x5E;
+    /**
+     * Opcode: DI von Stack holen
+     */
+    private static final int POP_DI = 0x5F;
+    /**
+     * Opcode: Flagregister von Stack holen
+     */
+    private static final int POPF = 0x9D;
+
+    /**
+     * Opcode: Kopiere AH nach Flagregister
+     */
+    private static final int SAHF = 0x9E;
+    /**
+     * Opcode: Lade AH aus Flagregister
+     */
+    private static final int LAHF = 0x9F;
+    /**
+     * Opcode: Kopiere 8Bit Operand aus Register nach Register/Speicher
+     */
+    private static final int MOV_REG_MODRM_8 = 0x88;
+    /**
+     * Opcode: Kopiere 16Bit Operand aus Register nach Register/Speicher
+     */
+    private static final int MOV_REG_MODRM_16 = 0x89;
+    /**
+     * Opcode: Kopiere 8Bit Operand aus Register/Speicher nach Register
+     */
+    private static final int MOV_MODRM_REG_8 = 0x8A;
+    /**
+     * Opcode: Kopiere 16Bit Operand aus Register/Speicher nach Register
+     */
+    private static final int MOV_MODRM_REG_16 = 0x8B;
+    /**
+     * Opcode: Kopiere 8Bit aus Speicher nach AL
+     */
+    private static final int MOV_MEM_AL = 0xA0;
+    /**
+     * Opcode: Kopiere 16Bit aus Speicher nach AX
+     */
+    private static final int MOV_MEM_AX = 0xA1;
+    /**
+     * Opcode: Kopiere 8Bit aus AL nach Speicher
+     */
+    private static final int MOV_AL_MEM = 0xA2;
+    /**
+     * Opcode: Kopiere 16Bit aus AX nach Speicher
+     */
+    private static final int MOV_AX_MEM = 0xA3;
+    /**
+     * Opcode: Kopiere 8Bit aus direktem Operanden nach AL
+     */
+    private static final int MOV_IMM_AL = 0xB0;
+    /**
+     * Opcode: Kopiere 8Bit aus direktem Operanden nach CL
+     */
+    private static final int MOV_IMM_CL = 0xB1;
+    /**
+     * Opcode: Kopiere 8Bit aus direktem Operanden nach DL
+     */
+    private static final int MOV_IMM_DL = 0xB2;
+    /**
+     * Opcode: Kopiere 8Bit aus direktem Operanden nach BL
+     */
+    private static final int MOV_IMM_BL = 0xB3;
+    /**
+     * Opcode: Kopiere 8Bit aus direktem Operanden nach AH
+     */
+    private static final int MOV_IMM_AH = 0xB4;
+    /**
+     * Opcode: Kopiere 8Bit aus direktem Operanden nach CH
+     */
+    private static final int MOV_IMM_CH = 0xB5;
+    /**
+     * Opcode: Kopiere 8Bit aus direktem Operanden nach DH
+     */
+    private static final int MOV_IMM_DH = 0xB6;
+    /**
+     * Opcode: Kopiere 8Bit aus direktem Operanden nach BH
+     */
+    private static final int MOV_IMM_BH = 0xB7;
+    /**
+     * Opcode: Kopiere 16Bit aus direktem Operanden nach AX
+     */
+    private static final int MOV_IMM_AX = 0xB8;
+    /**
+     * Opcode: Kopiere 16Bit aus direktem Operanden nach CX
+     */
+    private static final int MOV_IMM_CX = 0xB9;
+    /**
+     * Opcode: Kopiere 16Bit aus direktem Operanden nach DX
+     */
+    private static final int MOV_IMM_DX = 0xBA;
+    /**
+     * Opcode: Kopiere 16Bit aus direktem Operanden nach BX
+     */
+    private static final int MOV_IMM_BX = 0xBB;
+    /**
+     * Opcode: Kopiere 16Bit aus direktem Operanden nach SP
+     */
+    private static final int MOV_IMM_SP = 0xBC;
+    /**
+     * Opcode: Kopiere 16Bit aus direktem Operanden nach BP
+     */
+    private static final int MOV_IMM_BP = 0xBD;
+    /**
+     * Opcode: Kopiere 16Bit aus direktem Operanden nach SI
+     */
+    private static final int MOV_IMM_SI = 0xBE;
+    /**
+     * Opcode: Kopiere 16Bit aus direktem Operanden nach DI
+     */
+    private static final int MOV_IMM_DI = 0xBF;
+    /**
+     * Opcode: Vertausche 8Bit Register mit Register/Speicher
+     */
+    private static final int XCHG_MODRM_REG_8 = 0x86;
+    /**
+     * Opcode: Vertausche 16Bit Register mit Register/Speicher
+     */
+    private static final int XCHG_MODRM_REG_16 = 0x87;
+    /**
+     * Opcode: Vertausche Register CX und AX
+     */
+    private static final int XCHG_CX_AX = 0x91;
+    /**
+     * Opcode: Vertausche Register DX und AX
+     */
+    private static final int XCHG_DX_AX = 0x92;
+    /**
+     * Opcode: Vertausche Register BX und AX
+     */
+    private static final int XCHG_BX_AX = 0x93;
+    /**
+     * Opcode: Vertausche Register SP und AX
+     */
+    private static final int XCHG_SP_AX = 0x94;
+    /**
+     * Opcode: Vertausche Register BP und AX
+     */
+    private static final int XCHG_BP_AX = 0x95;
+    /**
+     * Opcode: Vertausche Register SI und AX
+     */
+    private static final int XCHG_SI_AX = 0x96;
+    /**
+     * Opcode: Vertausche Register DI und AX
+     */
+    private static final int XCHG_DI_AX = 0x97;
+    /**
+     * Opcode: Lade Effektive Adresse
+     */
+    private static final int LEA_MEM_REG = 0x8D;
+    /**
+     * Opcode: Lade Adresse nach Register und Extrasegment-Register
+     */
+    private static final int LES_MEM_REG = 0xC4;
+    /**
+     * Opcode: Lade Adresse nach Register und Datensegment-Register
+     */
+    private static final int LDS_MEM_REG = 0xC5;
+    /**
+     * Opcode: Kopiere aus Tabellenzugriff
+     */
+    private static final int XLAT = 0xD7;
+
+    /**
+     * Opcode: Lese 8Bit von direkt angegebenen Port nach AL
+     */
+    private static final int IN_IMM_AL = 0xE4;
+    /**
+     * Opcode: Lese 16Bit von direkt angegebenen Port nach AX
+     */
+    private static final int IN_IMM_AX = 0xE5;
+    /**
+     * Opcode: Schreibe 8Bit aus AL in direkt angegebenen Port
+     */
+    private static final int OUT_IMM_AL = 0xE6;
+    /**
+     * Opcode: Schreibe 16Bit aus AX in direkt angegebenen Port
+     */
+    private static final int OUT_IMM_AX = 0xE7;
+    /**
+     * Opcode: Lese 8Bit von Port (DX) nach AL
+     */
+    private static final int IN_DX_AL = 0xEC;
+    /**
+     * Opcode: Lese 16Bit von Port (DX) nach AX
+     */
+    private static final int IN_DX_AX = 0xED;
+    /**
+     * Opcode: Schreibe 8Bit aus AL in Port (DX)
+     */
+    private static final int OUT_DX_AL = 0xEE;
+    /**
+     * Opcode: Schreibe 16Bit aus AX in Port (DX)
+     */
+    private static final int OUT_DX_AX = 0xEF;
+
+    /**
+     * Opcode: Addiere 8Bit Register zu Register/Speicher
+     */
+    private static final int ADD_REG_MODRM_8 = 0x00;
+    /**
+     * Opcode: Addiere 16Bit Register zu Register/Speicher
+     */
+    private static final int ADD_REG_MODRM_16 = 0x01;
+    /**
+     * Opcode: Addiere 8Bit Register/Speicher zu Register
+     */
+    private static final int ADD_MODRM_REG_8 = 0x02;
+    /**
+     * Opcode: Addiere 16Bit Register/Speicher zu Register
+     */
+    private static final int ADD_MODRM_REG_16 = 0x03;
+    /**
+     * Opcode: Addiere 8Bit direkten Operanden zu AL
+     */
+    private static final int ADD_IMM_AL = 0x04;
+    /**
+     * Opcode: Addiere 16Bit direkten Operanden zu AX
+     */
+    private static final int ADD_IMM_AX = 0x05;
+    /**
+     * Opcode: Addiere 8Bit Register zu Register/Speicher mit Übertrag
+     */
+    private static final int ADC_REG_MODRM_8 = 0x10;
+    /**
+     * Opcode: Addiere 16Bit Register zu Register/Speicher mit Übertrag
+     */
+    private static final int ADC_REG_MODRM_16 = 0x11;
+    /**
+     * Opcode: Addiere 8Bit Register/Speicher zu Register mit Übertrag
+     */
+    private static final int ADC_MODRM_REG_8 = 0x12;
+    /**
+     * Opcode: Addiere 16Bit Register/Speicher zu Register mit Übertrag
+     */
+    private static final int ADC_MODRM_REG_16 = 0x13;
+    /**
+     * Opcode: Addiere 8Bit direkten Operanden zu AL mit Übertrag
+     */
+    private static final int ADC_IMM_AL = 0x14;
+    /**
+     * Opcode: Addiere 16Bit direkten Operanden zu AX mit Übertrag
+     */
+    private static final int ADC_IMM_AX = 0x15;
+    /**
+     * Opcode: Subtrahiere 8Bit Register von Register/Speicher
+     */
+    private static final int SUB_REG_MODRM_8 = 0x28;
+    /**
+     * Opcode: Subtrahiere 16Bit Register von Register/Speicher
+     */
+    private static final int SUB_REG_MODRM_16 = 0x29;
+    /**
+     * Opcode: Subtrahiere 8Bit Register/Speicher von Register
+     */
+    private static final int SUB_MODRM_REG_8 = 0x2A;
+    /**
+     * Opcode: Subtrahiere 16Bit Register/Speicher von Register
+     */
+    private static final int SUB_MODRM_REG_16 = 0x2B;
+    /**
+     * Opcode: Subtrahiere 8Bit direkten Operanden von AL
+     */
+    private static final int SUB_IMM_AL = 0x2C;
+    /**
+     * Opcode: Subtrahiere 16Bit direkten Operanden von AX
+     */
+    private static final int SUB_IMM_AX = 0x2D;
+    /**
+     * Opcode: Subtrahiere 8Bit Register von Register/Speicher mit Übertrag
+     */
+    private static final int SBB_REG_MODRM_8 = 0x18;
+    /**
+     * Opcode: Subtrahiere 16Bit Register von Register/Speicher mit Übertrag
+     */
+    private static final int SBB_REG_MODRM_16 = 0x19;
+    /**
+     * Opcode: Subtrahiere 8Bit Register/Speicher von Register mit Übertrag
+     */
+    private static final int SBB_MODRM_REG_8 = 0x1A;
+    /**
+     * Opcode: Subtrahiere 16Bit Register/Speicher von Register mit Übertrag
+     */
+    private static final int SBB_MODRM_REG_16 = 0x1B;
+    /**
+     * Opcode: Subtrahiere 8Bit direkten Operanden von AL mit Übertrag
+     */
+    private static final int SBB_IMM_AL = 0x1C;
+    /**
+     * Opcode: Subtrahiere 16Bit direkten Operanden von AX mit Übertrag
+     */
+    private static final int SBB_IMM_AX = 0x1D;
+    /**
+     * Opcode: Vergleiche 8Bit Register mit Register/Speicher
+     */
+    private static final int CMP_REG_MODRM_8 = 0x38;
+    /**
+     * Opcode: Vergleiche 16Bit Register mit Register/Speicher
+     */
+    private static final int CMP_REG_MODRM_16 = 0x39;
+    /**
+     * Opcode: Vergleiche 8Bit Register/Speicher mit Register
+     */
+    private static final int CMP_MODRM_REG_8 = 0x3A;
+    /**
+     * Opcode: Vergleiche 16Bit Register/Speicher mit Register
+     */
+    private static final int CMP_MODRM_REG_16 = 0x3B;
+    /**
+     * Opcode: Vergleiche 8Bit direkten Operanden mit AL
+     */
+    private static final int CMP_IMM_AL = 0x3C;
+    /**
+     * Opcode: Vergleiche 16Bit direkten Operanden mit AX
+     */
+    private static final int CMP_IMM_AX = 0x3D;
+    /**
+     * Opcode: Dezimalkorrektur nach Addition
+     */
+    private static final int DAA = 0x27;
+    /**
+     * Opcode: Dezimalkorrektur nach Subtraktion
+     */
+    private static final int DAS = 0x2F;
+    /**
+     * Opcode: BCD-Korrektur nach Addition
+     */
+    private static final int AAA = 0x37;
+    /**
+     * Opcode: BCD-Korrektur nach Subtraktion
+     */
+    private static final int AAS = 0x3F;
+    /**
+     * Opcode: BCD-Korrektur nach Multiplikation
+     */
+    private static final int AAM = 0xD4;
+    /**
+     * Opcode: Korrektur vor BCD-Division
+     */
+    private static final int AAD = 0xD5;
+    /**
+     * Opcode: Inkrement AX
+     */
+    private static final int INC_AX = 0x40;
+    /**
+     * Opcode: Inkrement CX
+     */
+    private static final int INC_CX = 0x41;
+    /**
+     * Opcode: Inkrement DX
+     */
+    private static final int INC_DX = 0x42;
+    /**
+     * Opcode: Inkrement BX
+     */
+    private static final int INC_BX = 0x43;
+    /**
+     * Opcode: Inkrement SP
+     */
+    private static final int INC_SP = 0x44;
+    /**
+     * Opcode: Inkrement BP
+     */
+    private static final int INC_BP = 0x45;
+    /**
+     * Opcode: Inkrement SI
+     */
+    private static final int INC_SI = 0x46;
+    /**
+     * Opcode: Inkrement DI
+     */
+    private static final int INC_DI = 0x47;
+    /**
+     * Opcode: Decrement AX
+     */
+    private static final int DEC_AX = 0x48;
+    /**
+     * Opcode: Decrement CX
+     */
+    private static final int DEC_CX = 0x49;
+    /**
+     * Opcode: Decrement DX
+     */
+    private static final int DEC_DX = 0x4A;
+    /**
+     * Opcode: Decrement BX
+     */
+    private static final int DEC_BX = 0x4B;
+    /**
+     * Opcode: Decrement SP
+     */
+    private static final int DEC_SP = 0x4C;
+    /**
+     * Opcode: Decrement BP
+     */
+    private static final int DEC_BP = 0x4D;
+    /**
+     * Opcode: Decrement SI
+     */
+    private static final int DEC_SI = 0x4E;
+    /**
+     * Opcode: Decrement DI
+     */
+    private static final int DEC_DI = 0x4F;
+    /**
+     * Opcode: Umwandlung Byte in AL nach Wort in AX
+     */
+    private static final int CBW = 0x98;
+    /**
+     * Opcode: Umwandlung Wort in AX nach Doppelwort in DX:AX
+     */
+    private static final int CWD = 0x99;
+
+    /**
+     * Opcode: Zeichenkette Kopieren 8Bit
+     */
+    private static final int MOVS_8 = 0xA4;
+    /**
+     * Opcode: Zeichenkette Kopieren 16Bit
+     */
+    private static final int MOVS_16 = 0xA5;
+    /**
+     * Opcode: Zeichenkette Vergleich 8Bit
+     */
+    private static final int CMPS_8 = 0xA6;
+    /**
+     * Opcode: Zeichenkette Vergleich 16Bit
+     */
+    private static final int CMPS_16 = 0xA7;
+    /**
+     * Opcode: Zeichenkette Speichern 8Bit
+     */
+    private static final int STOS_8 = 0xAA;
+    /**
+     * Opcode: Zeichenkette Speichern 16Bit
+     */
+    private static final int STOS_16 = 0xAB;
+    /**
+     * Opcode: Zeichenkette Laden 8Bit
+     */
+    private static final int LODS_8 = 0xAC;
+    /**
+     * Opcode: Zeichenkette Laden 16Bit
+     */
+    private static final int LODS_16 = 0xAD;
+    /**
+     * Opcode: Zeichenkette Suchen 8Bit
+     */
+    private static final int SCAS_8 = 0xAE;
+    /**
+     * Opcode: Zeichenkette Suchen 16Bit
+     */
+    private static final int SCAS_16 = 0xAF;
+    /**
+     * Opcode: Wiederhole String-Operation solange nicht gleich/nicht null
+     */
+    private static final int REPNE_REPNZ = 0xF2;
+    /**
+     * Opcode: Wiederhole String-Operation solange CX!=0/gleich/null
+     */
+    private static final int REP_REPE_REPZ = 0xF3;
+
+    /**
+     * Opcode: Bitweises ODER 8Bit Register mit Register/Speicher
+     */
+    private static final int OR_REG_MODRM_8 = 0x08;
+    /**
+     * Opcode: Bitweises ODER 16Bit Register mit Register/Speicher
+     */
+    private static final int OR_REG_MODRM_16 = 0x09;
+    /**
+     * Opcode: Bitweises ODER 8Bit Register/Speicher mit Register
+     */
+    private static final int OR_MODRM_REG_8 = 0x0A;
+    /**
+     * Opcode: Bitweises ODER 16Bit Register/Speicher mit Register
+     */
+    private static final int OR_MODRM_REG_16 = 0x0B;
+    /**
+     * Opcode: Bitweises ODER 8Bit direkter Operand mit AL
+     */
+    private static final int OR_IMM_AL = 0x0C;
+    /**
+     * Opcode: Bitweises ODER 16Bit direkter Operand mit AX
+     */
+    private static final int OR_IMM_AX = 0x0D;
+    /**
+     * Opcode: Bitweises UND 8Bit Register mit Register/Speicher
+     */
+    private static final int AND_REG_MODRM_8 = 0x20;
+    /**
+     * Opcode: Bitweises UND 16Bit Register mit Register/Speicher
+     */
+    private static final int AND_REG_MODRM_16 = 0x21;
+    /**
+     * Opcode: Bitweises UND 8Bit Register/Speicher mit Register
+     */
+    private static final int AND_MODRM_REG_8 = 0x22;
+    /**
+     * Opcode: Bitweises UND 16Bit Register/Speicher mit Register
+     */
+    private static final int AND_MODRM_REG_16 = 0x23;
+    /**
+     * Opcode: Bitweises UND 8Bit direkter Operand mit AL
+     */
+    private static final int AND_IMM_AL = 0x24;
+    /**
+     * Opcode: Bitweises UND 16Bit direkter Operand mit AX
+     */
+    private static final int AND_IMM_AX = 0x25;
+    /**
+     * Opcode: Bitweises XOR 8Bit Register mit Register/Speicher
+     */
+    private static final int XOR_REG_MODRM_8 = 0x30;
+    /**
+     * Opcode: Bitweises XOR 16Bit Register mit Register/Speicher
+     */
+    private static final int XOR_REG_MODRM_16 = 0x31;
+    /**
+     * Opcode: Bitweises XOR 8Bit Register/Speicher mit Register
+     */
+    private static final int XOR_MODRM_REG_8 = 0x32;
+    /**
+     * Opcode: Bitweises XOR 16Bit Register/Speicher mit Register
+     */
+    private static final int XOR_MODRM_REG_16 = 0x33;
+    /**
+     * Opcode: Bitweises XOR 8Bit direkter Operand mit AL
+     */
+    private static final int XOR_IMM_AL = 0x34;
+    /**
+     * Opcode: Bitweises XOR 16Bit direkter Operand mit AX
+     */
+    private static final int XOR_IMM_AX = 0x35;
+    /**
+     * Opcode: Bitweises Testen 8Bit Register mit Register/Speicher
+     */
+    private static final int TEST_REG_MODRM_8 = 0x84;
+    /**
+     * Opcode: Bitweises Testen 16Bit Register mit Register/Speicher
+     */
+    private static final int TEST_REG_MODRM_16 = 0x85;
+    /**
+     * Opcode: Bitweises Testen 8Bit direkter Operand mit AL
+     */
+    private static final int TEST_IMM_AL = 0xA8;
+    /**
+     * Opcode: Bitweises Testen 16Bit direkter Operand mit AX
+     */
+    private static final int TEST_IMM_AX = 0xA9;
+
+    /**
+     * Opcode: Sprung, wenn Überlauf
+     */
+    private static final int JO = 0x70;
+    /**
+     * Opcode: Sprung, wenn kein Überlauf
+     */
+    private static final int JNO = 0x71;
+    /**
+     * Opcode: Sprung, wenn darunter/nicht darüber oder gleich/Übertrag
+     */
+    private static final int JB_JNAE_JC = 0x72;
+    /**
+     * Opcode: Sprung, wenn nicht darunter/kein Übertrag/darüber oder gleich
+     */
+    private static final int JNB_JAE_JNC = 0x73;
+    /**
+     * Opcode: Sprung, wenn gleich/null
+     */
+    private static final int JE_JZ = 0x74;
+    /**
+     * Opcode: Sprung, wenn nicht gleich/nicht null
+     */
+    private static final int JNE_JNZ = 0x75;
+    /**
+     * Opcode: Sprung, wenn darunter oder gleich/nicht darüber
+     */
+    private static final int JBE_JNA = 0x76;
+    /**
+     * Opcode: Sprung, wenn nicht darunter oder gleich/darüber
+     */
+    private static final int JNBE_JA = 0x77;
+    /**
+     * Opcode: Sprung, wenn Vorzeichen
+     */
+    private static final int JS = 0x78;
+    /**
+     * Opcode: Sprung, wenn kein Vorzeichen
+     */
+    private static final int JNS = 0x79;
+    /**
+     * Opcode: Sprung, wenn Parität/Parität gerade
+     */
+    private static final int JP_JPE = 0x7A;
+    /**
+     * Opcode: Sprung, wenn keine Parität/Parität ungerade
+     */
+    private static final int JNP_JPO = 0x7B;
+    /**
+     * Opcode: Sprung, wenn kleiner/nicht größer oder gleich
+     */
+    private static final int JL_JNGE = 0x7C;
+    /**
+     * Opcode: Sprung, wenn nicht kleiner/größer oder gleich
+     */
+    private static final int JNL_JGE = 0x7D;
+    /**
+     * Opcode: Sprung, wenn kleiner oder gleich/nicht größer
+     */
+    private static final int JLE_JNG = 0x7E;
+    /**
+     * Opcode: Sprung, wenn nicht kleiner oder gleich/größer
+     */
+    private static final int JNLE_JG = 0x7F;
+    /**
+     * Opcode: Sprung, wenn CX=0
+     */
+    private static final int JCXZ = 0xE3;
+
+    /**
+     * Opcode: Sprung innerhalb des Segments 8Bit
+     */
+    private static final int JMP_SHORT_LABEL = 0xEB;
+    /**
+     * Opcode: Sprung innerhalb des Segments 16Bit
+     */
+    private static final int JMP_NEAR_LABEL = 0xE9;
+    /**
+     * Opcode: Sprung mit Segmentwechsel
+     */
+    private static final int JMP_FAR_LABEL = 0xEA;
+
+    /**
+     * Opcode: Unterprogrammaufruf ohne Segmentwechsel
+     */
+    private static final int CALL_NEAR_PROC = 0xE8;
+    /**
+     * Opcode: Unterprogrammaufruf mit Segmentwechsel
+     */
+    private static final int CALL_FAR_PROC = 0x9A;
+    /**
+     * Opcode: Rückkehr aus Unterprogramm ohne Segmentwechsel
+     */
+    private static final int RET_IN_SEG = 0xC3;
+    /**
+     * Opcode: Rückkehr aus Unterprogramm ohne Segmentwechsel mit Versatz
+     */
+    private static final int RET_IN_SEG_IMM = 0xC2;
+    /**
+     * Opcode: Rückkehr aus Unterprogramm mit Segmentwechsel
+     */
+    private static final int RET_INTER_SEG = 0xCB;
+    /**
+     * Opcode: Rückkehr aus Unterprogramm mit Segmentwechsel mit Versatz
+     */
+    private static final int RET_INTER_SEG_IMM = 0xCA;
+
+    /**
+     * Opcode: Interrupt 3
+     */
+    private static final int INT3 = 0xCC;
+    /**
+     * Opcode: Interrupt aus direktem Operanden
+     */
+    private static final int INT_IMM = 0xCD;
+    /**
+     * Opcode: Interrupt Überlauf
+     */
+    private static final int INTO = 0xCE;
+    /**
+     * Opcode: Rückkehr aus Interrupt
+     */
+    private static final int IRET = 0xCF;
+
+    /**
+     * Opcode: Wiederhole solange CX!=0 und nicht null
+     */
+    private static final int LOOPNE_LOOPNZ = 0xE0;
+    /**
+     * Opcode: Wiederhole solange CX!=0 und null
+     */
+    private static final int LOOPE_LOOPZ = 0xE1;
+    /**
+     * Opcode: Wiederhole solgange CX!=0
+     */
+    private static final int LOOP = 0xE2;
+
+    /**
+     * Opcode: Keine Operation
+     */
+    private static final int NOP = 0x90;
+    /**
+     * Opcode: Warte bis Signalleitung TEST aktiv
+     */
+    private static final int WAIT = 0x9B;
+    /**
+     * Opcode: Aktiviere LOCK Signal
+     */
+    private static final int LOCK = 0xF0;
+    /**
+     * Opcode: Prozessorhalt
+     */
+    private static final int HLT = 0xF4;
+    /**
+     * Opcode: Escape (Speicherzugriff) op0
+     */
+    private static final int ESC0 = 0xD8;
+    /**
+     * Opcode: Escape (Speicherzugriff) op1
+     */
+    private static final int ESC1 = 0xD9;
+    /**
+     * Opcode: Escape (Speicherzugriff) op2
+     */
+    private static final int ESC2 = 0xDA;
+    /**
+     * Opcode: Escape (Speicherzugriff) op3
+     */
+    private static final int ESC3 = 0xDB;
+    /**
+     * Opcode: Escape (Speicherzugriff) op4
+     */
+    private static final int ESC4 = 0xDC;
+    /**
+     * Opcode: Escape (Speicherzugriff) op5
+     */
+    private static final int ESC5 = 0xDD;
+    /**
+     * Opcode: Escape (Speicherzugriff) op6
+     */
+    private static final int ESC6 = 0xDE;
+    /**
+     * Opcode: Escape (Speicherzugriff) op7
+     */
+    private static final int ESC7 = 0xDF;
+
+    /**
+     * Opcode: Komplementiere Carry-Flag
+     */
+    private static final int CMC = 0xF5;
+    /**
+     * Opcode: Lösche Carry-Flag
+     */
+    private static final int CLC = 0xF8;
+    /**
+     * Opcode: Setze Carry-Flag
+     */
+    private static final int STC = 0xF9;
+    /**
+     * Opcode: Lösche Interrupt-Flag
+     */
+    private static final int CLI = 0xFA;
+    /**
+     * Opcode: Setze Interrupt-Flag
+     */
+    private static final int STI = 0xFB;
+    /**
+     * Opcode: Lösche Richtungs-Flag
+     */
+    private static final int CLD = 0xFC;
+    /**
+     * Opcode: Setze Richtungs-Flag
+     */
+    private static final int STD = 0xFD;
+
+    /**
+     * (0x80) 2. Opcode: Addiere 8Bit direkten Operanden zu Register
+     * vorzeichenlos
+     */
+    private static final int _80_ADD_IMM_REG_8_NOSIGN = 0x00;
+    /**
+     * (0x80) 2. Opcode: Bitweises ODER 8Bit direkten Operanden von Register
+     * vorzeichenlos
+     */
+    private static final int _80_OR_IMM_REG_8_NOSIGN = 0x08;
+    /**
+     * (0x80) 2. Opcode: Addiere 8Bit direkten Operanden zu Register
+     * vorzeichenlos mit Übertrag
+     */
+    private static final int _80_ADC_IMM_REG_8_NOSIGN = 0x10;
+    /**
+     * (0x80) 2. Opcode: Subtrahiere 8Bit direkten Operanden von Register
+     * vorzeichenlos mit Übertrag
+     */
+    private static final int _80_SBB_IMM_REG_8_NOSIGN = 0x18;
+    /**
+     * (0x80) 2. Opcode: Bitweises UND 8Bit direkten Operanden von Register
+     * vorzeichenlos
+     */
+    private static final int _80_AND_IMM_REG_8_NOSIGN = 0x20;
+    /**
+     * (0x80) 2. Opcode: Subtrahiere 8Bit direkten Operanden von Register
+     * vorzeichenlos
+     */
+    private static final int _80_SUB_IMM_REG_8_NOSIGN = 0x28;
+    /**
+     * (0x80) 2. Opcode: Bitweises XOR 8Bit direkten Operanden von Register
+     * vorzeichenlos
+     */
+    private static final int _80_XOR_IMM_REG_8_NOSIGN = 0x30;
+    /**
+     * (0x80) 2. Opcode: Vergleiche 8Bit direkten Operanden von Register
+     * vorzeichenlos
+     */
+    private static final int _80_CMP_IMM_REG_8_NOSIGN = 0x38;
+    /**
+     * (0x81) 2. Opcode: Addiere 16Bit direkten Operanden zu Register
+     * vorzeichenlos
+     */
+    private static final int _81_ADD_IMM_REG_16_NOSIGN = 0x00;
+    /**
+     * (0x81) 2. Opcode: Bitweises ODER 16Bit direkten Operanden von Register
+     * vorzeichenlos
+     */
+    private static final int _81_OR_IMM_REG_16_NOSIGN = 0x08;
+    /**
+     * (0x81) 2. Opcode: Addiere 16Bit direkten Operanden zu Register
+     * vorzeichenlos mit Übertrag
+     */
+    private static final int _81_ADC_IMM_REG_16_NOSIGN = 0x10;
+    /**
+     * (0x81) 2. Opcode: Subtrahiere 16Bit direkten Operanden von Register
+     * vorzeichenlos mit Übertrag
+     */
+    private static final int _81_SBB_IMM_REG_16_NOSIGN = 0x18;
+    /**
+     * (0x81) 2. Opcode: Bitweises UND 16Bit direkten Operanden von Register
+     * vorzeichenlos
+     */
+    private static final int _81_AND_IMM_REG_16_NOSIGN = 0x20;
+    /**
+     * (0x81) 2. Opcode: Subtrahiere 16Bit direkten Operanden von Register
+     * vorzeichenlos
+     */
+    private static final int _81_SUB_IMM_REG_16_NOSIGN = 0x28;
+    /**
+     * (0x81) 2. Opcode: Bitweises XOR 16Bit direkten Operanden von Register
+     * vorzeichenlos
+     */
+    private static final int _81_XOR_IMM_REG_16_NOSIGN = 0x30;
+    /**
+     * (0x81) 2. Opcode: Vergleiche 16Bit direkten Operanden von Register
+     * vorzeichenlos
+     */
+    private static final int _81_CMP_IMM_REG_16_NOSIGN = 0x38;
+    /**
+     * (0x82) 2. Opcode: Addiere 8Bit direkten Operanden zu Register
+     * vorzeichenbehaftet
+     */
+    private static final int _82_ADD_IMM_REG_8_SIGN = 0x00;
+    /**
+     * (0x82) 2. Opcode: Subtrahiere 8Bit direkten Operanden von Register
+     * vorzeichenbehaftet mit Übertrag
+     */
+    private static final int _82_ADC_IMM_REG_8_SIGN = 0x10;
+    /**
+     * (0x82) 2. Opcode: Subtrahiere 8Bit direkten Operanden von Register
+     * vorzeichenbehaftet mit Übertrag
+     */
+    private static final int _82_SBB_IMM_REG_8_SIGN = 0x18;
+    /**
+     * (0x82) 2. Opcode: Subtrahiere 8Bit direkten Operanden von Register
+     * vorzeichenbehaftet
+     */
+    private static final int _82_SUB_IMM_REG_8_SIGN = 0x28;
+    /**
+     * (0x82) 2. Opcode: Vergleiche 8Bit direkten Operanden von Register
+     * vorzeichenbehaftet
+     */
+    private static final int _82_CMP_IMM_REG_8_SIGN = 0x38;
+    /**
+     * (0x83) 2. Opcode: Addiere 16Bit direkten Operanden zu Register
+     * vorzeichenbehaftet
+     */
+    private static final int _83_ADD_IMM_REG_16_SIGN = 0x00;
+    /**
+     * (0x83) 2. Opcode: Addiere 16Bit direkten Operanden zu Register
+     * vorzeichenbehaftet mit Übertrag
+     */
+    private static final int _83_ADC_IMM_REG_16_SIGN = 0x10;
+    /**
+     * (0x83) 2. Opcode: Subtrahiere 16Bit direkten Operanden von Register
+     * vorzeichenbehaftet mit Übertrag
+     */
+    private static final int _83_SBB_IMM_REG_16_SIGN = 0x18;
+    /**
+     * (0x83) 2. Opcode: Subtrahiere 16Bit direkten Operanden von Register
+     * vorzeichenbehaftet
+     */
+    private static final int _83_SUB_IMM_REG_16_SIGN = 0x28;
+    /**
+     * (0x83) 2. Opcode: Vergleiche 16Bit direkten Operanden von Register
+     * vorzeichenbehaftet
+     */
+    private static final int _83_CMP_IMM_REG_16_SIGN = 0x38;
+
+    /**
+     * (0x8C) 2. Opcode: Kopiere ES nach Register/Speicher
+     */
+    private static final int _8C_MOV_ES_MODRM_16 = 0x00;
+    /**
+     * (0x8C) 2. Opcode: Kopiere CS nach Register/Speicher
+     */
+    private static final int _8C_MOV_CS_MODRM_16 = 0x08;
+    /**
+     * (0x8C) 2. Opcode: Kopiere SS nach Register/Speicher
+     */
+    private static final int _8C_MOV_SS_MODRM_16 = 0x10;
+    /**
+     * (0x8C) 2. Opcode: Kopiere DS nach Register/Speicher
+     */
+    private static final int _8C_MOV_DS_MODRM_16 = 0x18;
+    /**
+     * (0x8E) 2. Opcode: Kopiere Register/Speicher nach ES
+     */
+    private static final int _8E_MOV_MODRM_ES_16 = 0x00;
+    /**
+     * (0x8E) 2. Opcode: Kopiere Register/Speicher nach CS
+     */
+    private static final int _8E_MOV_MODRM_CS_16 = 0x08;
+    /**
+     * (0x8E) 2. Opcode: Kopiere Register/Speicher nach SS
+     */
+    private static final int _8E_MOV_MODRM_SS_16 = 0x10;
+    /**
+     * (0x8E) 2. Opcode: Kopiere Register/Speicher nach DS
+     */
+    private static final int _8E_MOV_MODRM_DS_16 = 0x18;
+    /**
+     * (0x8F) 2. Opcode: Register/Speicher von Stack holen
+     */
+    private static final int _8F_POP_MODRM_16 = 0x00;
+    /**
+     * (0xC6) 2. Opcode: Kopiere 8Bit direkten Operanden nach Speicher
+     */
+    private static final int _C6_MOV_IMM_MEM_8 = 0x00;
+    /**
+     * (0xC7) 2. Opcode: Kopiere 16Bit direkten Operanden nach Speicher
+     */
+    private static final int _C7_MOV_IMM_MEM_16 = 0x00;
+
+    /**
+     * (0xD0) 2. Opcode: Linksrotieren 8Bit Register/Speicher um 1
+     */
+    private static final int _D0_ROL_MODRM_1_8 = 0x00;
+    /**
+     * (0xD0) 2. Opcode: Rechtsrotieren 8Bit Register/Speicher um 1
+     */
+    private static final int _D0_ROR_MODRM_1_8 = 0x08;
+    /**
+     * (0xD0) 2. Opcode: Linksrotieren 8Bit mit Carry Register/Speicher um 1
+     */
+    private static final int _D0_RCL_MODRM_1_8 = 0x10;
+    /**
+     * (0xD0) 2. Opcode: Rechtsrotieren 8Bit mit Carry Register/Speicher um 1
+     */
+    private static final int _D0_RCR_MODRM_1_8 = 0x18;
+    /**
+     * (0xD0) 2. Opcode: Arithmetisches/logisches Linksverschieben 8Bit
+     * Register/Speicher um 1
+     */
+    private static final int _D0_SAL_SHL_MODRM_1_8 = 0x20;
+    /**
+     * (0xD0) 2. Opcode: Logisches Rechtsverschieben 8Bit Register/Speicher um 1
+     */
+    private static final int _D0_SHR_MODRM_1_8 = 0x28;
+    /**
+     * (0xD0) 2. Opcode: Arithmetisches Rechtsverschieben 8Bit Register/Speicher
+     * um 1
+     */
+    private static final int _D0_SAR_MODRM_1_8 = 0x38;
+    /**
+     * (0xD1) 2. Opcode: Linksrotieren 16Bit Register/Speicher um 1
+     */
+    private static final int _D1_ROL_MODRM_1_16 = 0x00;
+    /**
+     * (0xD1) 2. Opcode: Rechtsrotieren 16Bit Register/Speicher um 1
+     */
+    private static final int _D1_ROR_MODRM_1_16 = 0x08;
+    /**
+     * (0xD1) 2. Opcode: Linksrotieren 16Bit mit Carry Register/Speicher um 1
+     */
+    private static final int _D1_RCL_MODRM_1_16 = 0x10;
+    /**
+     * (0xD1) 2. Opcode: Rechtsrotieren 16Bit mit Carry Register/Speicher um 1
+     */
+    private static final int _D1_RCR_MODRM_1_16 = 0x18;
+    /**
+     * (0xD1) 2. Opcode: Arithmetisches/logisches Linksverschieben 16Bit
+     * Register/Speicher um 1
+     */
+    private static final int _D1_SAL_SHL_MODRM_1_16 = 0x20;
+    /**
+     * (0xD1) 2. Opcode: Logisches Rechtsverschieben 16Bit Register/Speicher um
+     * 1
+     */
+    private static final int _D1_SHR_MODRM_1_16 = 0x28;
+    /**
+     * (0xD1) 2. Opcode: Arithmetisches Rechtsverschieben 16Bit
+     * Register/Speicher um 1
+     */
+    private static final int _D1_SAR_MODRM_1_16 = 0x38;
+    /**
+     * (0xD2) 2. Opcode: Linksrotieren 8Bit Register/Speicher um CL
+     */
+    private static final int _D2_ROL_MODRM_CL_8 = 0x00;
+    /**
+     * (0xD2) 2. Opcode: Rechtsrotieren 8Bit Register/Speicher um CL
+     */
+    private static final int _D2_ROR_MODRM_CL_8 = 0x08;
+    /**
+     * (0xD2) 2. Opcode: Linksrotieren 8Bit mit Carry Register/Speicher um CL
+     */
+    private static final int _D2_RCL_MODRM_CL_8 = 0x10;
+    /**
+     * (0xD2) 2. Opcode: Rechtsrotieren 8Bit mit Carry Register/Speicher um CL
+     */
+    private static final int _D2_RCR_MODRM_CL_8 = 0x18;
+    /**
+     * (0xD2) 2. Opcode: Arithmetisches/logisches Linksverschieben 8Bit
+     * Register/Speicher um CL
+     */
+    private static final int _D2_SAL_SHL_MODRM_CL_8 = 0x20;
+    /**
+     * (0xD2) 2. Opcode: Logisches Rechtsverschieben 8Bit Register/Speicher um
+     * CL
+     */
+    private static final int _D2_SHR_MODRM_CL_8 = 0x28;
+    /**
+     * (0xD2) 2. Opcode: Arithmetisches Rechtsverschieben 8Bit Register/Speicher
+     * um CL
+     */
+    private static final int _D2_SAR_MODRM_CL_8 = 0x38;
+    /**
+     * (0xD3) 2. Opcode: Linksrotieren 16Bit Register/Speicher um CL
+     */
+    private static final int _D3_ROL_MODRM_CL_16 = 0x00;
+    /**
+     * (0xD3) 2. Opcode: Rechtsrotieren 16Bit Register/Speicher um CL
+     */
+    private static final int _D3_ROR_MODRM_CL_16 = 0x08;
+    /**
+     * (0xD3) 2. Opcode: Linksrotieren 16Bit mit Carry Register/Speicher um CL
+     */
+    private static final int _D3_RCL_MODRM_CL_16 = 0x10;
+    /**
+     * (0xD3) 2. Opcode: Rechtsrotieren 16Bit mit Carry Register/Speicher um CL
+     */
+    private static final int _D3_RCR_MODRM_CL_16 = 0x18;
+    /**
+     * (0xD3) 2. Opcode: Arithmetisches/logisches Linksverschieben 16Bit
+     * Register/Speicher um CL
+     */
+    private static final int _D3_SAL_SHL_MODRM_CL_16 = 0x20;
+    /**
+     * (0xD3) 2. Opcode: Logisches Rechtsverschieben 16Bit Register/Speicher um
+     * CL
+     */
+    private static final int _D3_SHR_MODRM_CL_16 = 0x28;
+    /**
+     * (0xD3) 2. Opcode: Arithmetisches Rechtsverschieben 16Bit
+     * Register/Speicher um CL
+     */
+    private static final int _D3_SAR_MODRM_CL_16 = 0x38;
+
+    /**
+     * (0xF6) 2. Opcode: Bitweises Testen 8Bit direkter Operand
+     * Register/Speicher
+     */
+    private static final int _F6_TEST_IMM_MODRM_8 = 0x00;
+    /**
+     * (0xF6) 2. Opcode: Logisches NOT (Einerkomplement) 8Bit Register/Speicher
+     */
+    private static final int _F6_NOT_MODRM_8 = 0x10;
+    /**
+     * (0xF6) 2. Opcode: Negieren (Zweierkomplement) 8Bit Register/Speicher
+     */
+    private static final int _F6_NEG_MODRM_8 = 0x18;
+    /**
+     * (0xF6) 2. Opcode: Multiplikation 8Bit ohne Vorzeichen
+     */
+    private static final int _F6_MUL_MODRM_8 = 0x20;
+    /**
+     * (0xF6) 2. Opcode: Multiplikation 8Bit mit Vorzeichen
+     */
+    private static final int _F6_IMUL_MODRM_8 = 0x28;
+    /**
+     * (0xF6) 2. Opcode: Division 8Bit ohne Vorzeichen
+     */
+    private static final int _F6_DIV_MODRM_8 = 0x30;
+    /**
+     * (0xF6) 2. Opcode: Division 8Bit mit Vorzeichen
+     */
+    private static final int _F6_IDIV_MODRM_8 = 0x38;
+    /**
+     * (0xF7) 2. Opcode: Bitweises Testen 16Bit direkter Operand
+     * Register/Speicher
+     */
+    private static final int _F7_TEST_IMM_MODRM_16 = 0x00;
+    /**
+     * (0xF7) 2. Opcode: Logisches NOT (Einerkomplement) 16Bit Register/Speicher
+     */
+    private static final int _F7_NOT_MODRM_16 = 0x10;
+    /**
+     * (0xF7) 2. Opcode: Negieren (Zweierkomplement) 16Bit Register/Speicher
+     */
+    private static final int _F7_NEG_MODRM_16 = 0x18;
+    /**
+     * (0xF7) 2. Opcode: Multiplikation 16Bit ohne Vorzeichen
+     */
+    private static final int _F7_MUL_MODRM_16 = 0x20;
+    /**
+     * (0xF7) 2. Opcode: Multiplikation 16Bit mit Vorzeichen
+     */
+    private static final int _F7_IMUL_MODRM_16 = 0x28;
+    /**
+     * (0xF7) 2. Opcode: Division 16Bit ohne Vorzeichen
+     */
+    private static final int _F7_DIV_MODRM_16 = 0x30;
+    /**
+     * (0xF7) 2. Opcode: Division 16Bit mit Vorzeichen
+     */
+    private static final int _F7_IDIV_MODRM_16 = 0x38;
+
+    /**
+     * (0xFE) 2. Opcode: Inkrement 8Bit Speicher/Register
+     */
+    private static final int _FE_INC_MODRM_8 = 0x00;
+    /**
+     * (0xFE) 2. Opcode: Dekrement 8Bit Speicher/Register
+     */
+    private static final int _FE_DEC_MODRM_8 = 0x08;
+
+    /**
+     * (0xFF) 2. Opcode: Inkrement 16Bit Speicher/Register
+     */
+    private static final int _FF_INC_MEM_16 = 0x00;
+    /**
+     * (0xFF) 2. Opcode: Dekrement 16Bit Speicher/Register
+     */
+    private static final int _FF_DEC_MEM_16 = 0x08;
+    /**
+     * (0xFF) 2. Opcode: Unterprogrammaufruf Register/Speicher
+     */
+    private static final int _FF_CALL_MODRM_16 = 0x10;
+    /**
+     * (0xFF) 2. Opcode: Unterprogrammaufruf Ziel aus Register/Speicher
+     */
+    private static final int _FF_CALL_MEM_16 = 0x18;
+    /**
+     * (0xFF) 2. Opcode: Sprung Register/Speicher
+     */
+    private static final int _FF_JMP_MODRM_16 = 0x20;
+    /**
+     * (0xFF) 2. Opcode: Sprung Ziel aus Register/Speicher
+     */
+    private static final int _FF_JMP_MEM_16 = 0x28;
+    /**
+     * (0xFF) 2. Opcode: Speicher Adresse aus Register/Speicher auf Stack
+     */
+    private static final int _FF_PUSH_MEM_16 = 0x30;
+
+    /**
+     * Register Mode/Memory Mode: Kein Versatz
+     */
+    private static final int MOD_MEM_NO_DISPL = 0x00;
+    /**
+     * Register Mode/Memory Mode: 8Bit Versatz
+     */
+    private static final int MOD_MEM_8_DISPL = 0x40;
+    /**
+     * Register Mode/Memory Mode: 16Bit Versatz
+     */
+    private static final int MOD_MEM_16_DISPL = 0x80;
+    /**
+     * Register Mode/Memory Mode: Registerzugriff
+     */
+    private static final int MOD_REG = 0xC0;
+
+    /**
+     * Registerfeld: AL/AX
+     */
+    private static final int REG_AL_AX = 0x00;
+    /**
+     * Registerfeld: CL/CX
+     */
+    private static final int REG_CL_CX = 0x08;
+    /**
+     * Registerfeld: DL/DX
+     */
+    private static final int REG_DL_DX = 0x10;
+    /**
+     * Registerfeld: BL/BX
+     */
+    private static final int REG_BL_BX = 0x18;
+    /**
+     * Registerfeld: AH/SP
+     */
+    private static final int REG_AH_SP = 0x20;
+    /**
+     * Registerfeld: CH/BP
+     */
+    private static final int REG_CH_BP = 0x28;
+    /**
+     * Registerfeld: DH/SI
+     */
+    private static final int REG_DH_SI = 0x30;
+    /**
+     * Registerfeld: BH/DI
+     */
+    private static final int REG_BH_DI = 0x38;
+
+    /**
+     * Segmentregister: Extra-Segment
+     */
+    private static final int SREG_ES = 0x00;
+    /**
+     * Segmentregister: Code-Segment
+     */
+    private static final int SREG_CS = 0x01;
+    /**
+     * Segmentregister: Stack-Segment
+     */
+    private static final int SREG_SS = 0x02;
+    /**
+     * Segmentregister: Daten-Segment
+     */
+    private static final int SREG_DS = 0x03;
+
+    /**
+     * Registeroperand: (BX)+(SI)
+     */
+    private static final int RM_BX_SI = 0x00;
+    /**
+     * Registeroperand: (BX)+(DI)
+     */
+    private static final int RM_BX_DI = 0x01;
+    /**
+     * Registeroperand: (BP)+(SI)
+     */
+    private static final int RM_BP_SI = 0x02;
+    /**
+     * Registeroperand: (BX)+(DI)
+     */
+    private static final int RM_BP_DI = 0x03;
+    /**
+     * Registeroperand: (SI)
+     */
+    private static final int RM_SI = 0x04;
+    /**
+     * Registeroperand: (DI)
+     */
+    private static final int RM_DI = 0x05;
+    /**
+     * Registeroperand: Direkte Adressierung oder (BP)
+     */
+    private static final int RM_DIRECT_BP = 0x06;
+    /**
+     * Registeroperand: (BX)
+     */
+    private static final int RM_BX = 0x07;
+
+    /**
+     * Maske: Teste Opcode Register Mode/Memory Mode
+     */
+    private static final int TEST_MOD = 0xC0;
+    /**
+     * Maske: Teste Opcode Registeroperand/Erweiterung Opcode
+     */
+    private static final int TEST_REG = 0x38;
+    /**
+     * Maske: Teste Opcode Registeroperand
+     */
+    private static final int TEST_RM = 0x07;
+
+    /**
+     * Maske: Carry-Flag aus Flagregister
+     */
+    private static final int CARRY_FLAG = 0x0001;
+    /**
+     * Maske: Paritäts-Flag aus Flagregister
+     */
+    private static final int PARITY_FLAG = 0x0004;
+    /**
+     * Maske: Auxiliary-Carry-Flag aus Flagregister
+     */
+    private static final int AUXILIARY_CARRY_FLAG = 0x0010;
+    /**
+     * Maske: Zero-Flag aus Flagregister
+     */
+    private static final int ZERO_FLAG = 0x0040;
+    /**
+     * Maske: Vorzeichen-Flag aus Flagregister
+     */
+    private static final int SIGN_FLAG = 0x0080;
+    /**
+     * Maske: Trap-Flag aus Flagregister
+     */
+    private static final int TRAP_FLAG = 0x0100;
+    /**
+     * Maske: Interrupt-Flag aus Flagregister
+     */
+    private static final int INTERRUPT_ENABLE_FLAG = 0x0200;
+    /**
+     * Maske: Richtungs-Flag aus Flagregister
+     */
+    private static final int DIRECTION_FLAG = 0x0400;
+    /**
+     * Maske: Überlauf-Flag aus Flagregister
+     */
+    private static final int OVERFLOW_FLAG = 0x0800;
+
     /**
      * Kein Segment Präfix
      */
     private static final int NO_PREFIX = 0x00;
-    /**
-     * Datentransfer
-     */
-    private static final int PUSH_ES = 0x06;
-    private static final int POP_ES = 0x07;
-    private static final int PUSH_CS = 0x0E;
-    private static final int PUSH_SS = 0x16;
-    private static final int POP_SS = 0x17;
-    private static final int PUSH_DS = 0x1E;
-    private static final int POP_DS = 0x1F;
-    private static final int PUSH_AX = 0x50;
-    private static final int PUSH_CX = 0x51;
-    private static final int PUSH_DX = 0x52;
-    private static final int PUSH_BX = 0x53;
-    private static final int PUSH_SP = 0x54;
-    private static final int PUSH_BP = 0x55;
-    private static final int PUSH_SI = 0x56;
-    private static final int PUSH_DI = 0x57;
-    private static final int PUSHF = 0x9C;
-    private static final int POP_AX = 0x58;
-    private static final int POP_CX = 0x59;
-    private static final int POP_DX = 0x5A;
-    private static final int POP_BX = 0x5B;
-    private static final int POP_SP = 0x5C;
-    private static final int POP_BP = 0x5D;
-    private static final int POP_SI = 0x5E;
-    private static final int POP_DI = 0x5F;
-    private static final int POPF = 0x9D;
-    private static final int SAHF = 0x9E;
-    private static final int LAHF = 0x9F;
-    private static final int XCHG_MODRM_REG_8 = 0x86;
-    private static final int XCHG_MODRM_REG_16 = 0x87;
-    private static final int MOV_REG_MODRM_8 = 0x88;
-    private static final int MOV_REG_MODRM_16 = 0x89;
-    private static final int MOV_MODRM_REG_8 = 0x8A;
-    private static final int MOV_MODRM_REG_16 = 0x8B;
-    private static final int MOV_MEM_AL = 0xA0;
-    private static final int MOV_MEM_AX = 0xA1;
-    private static final int MOV_AL_MEM = 0xA2;
-    private static final int MOV_AX_MEM = 0xA3;
-    private static final int MOV_IMM_AL = 0xB0;
-    private static final int MOV_IMM_CL = 0xB1;
-    private static final int MOV_IMM_DL = 0xB2;
-    private static final int MOV_IMM_BL = 0xB3;
-    private static final int MOV_IMM_AH = 0xB4;
-    private static final int MOV_IMM_CH = 0xB5;
-    private static final int MOV_IMM_DH = 0xB6;
-    private static final int MOV_IMM_BH = 0xB7;
-    private static final int MOV_IMM_AX = 0xB8;
-    private static final int MOV_IMM_CX = 0xB9;
-    private static final int MOV_IMM_DX = 0xBA;
-    private static final int MOV_IMM_BX = 0xBB;
-    private static final int MOV_IMM_SP = 0xBC;
-    private static final int MOV_IMM_BP = 0xBD;
-    private static final int MOV_IMM_SI = 0xBE;
-    private static final int MOV_IMM_DI = 0xBF;
-    private static final int XCHG_CX_AX = 0x91;
-    private static final int XCHG_DX_AX = 0x92;
-    private static final int XCHG_BX_AX = 0x93;
-    private static final int XCHG_SP_AX = 0x94;
-    private static final int XCHG_BP_AX = 0x95;
-    private static final int XCHG_SI_AX = 0x96;
-    private static final int XCHG_DI_AX = 0x97;
-    private static final int LEA_MEM_REG = 0x8D;
-    private static final int LES_MEM_REG = 0xC4;
-    private static final int LDS_MEM_REG = 0xC5;
-    private static final int XLAT = 0xD7;
-    private static final int IN_IMM_AL = 0xE4;
-    private static final int IN_IMM_AX = 0xE5;
-    private static final int OUT_IMM_AL = 0xE6;
-    private static final int OUT_IMM_AX = 0xE7;
-    private static final int IN_DX_AL = 0xEC;
-    private static final int IN_DX_AX = 0xED;
-    private static final int OUT_DX_AL = 0xEE;
-    private static final int OUT_DX_AX = 0xEF;
-    /**
-     * Arithmetik
-     */
-    private static final int ADD_REG_MODRM_8 = 0x00;
-    private static final int ADD_REG_MODRM_16 = 0x01;
-    private static final int ADD_MODRM_REG_8 = 0x02;
-    private static final int ADD_MODRM_REG_16 = 0x03;
-    private static final int ADD_IMM_AL = 0x04;
-    private static final int ADD_IMM_AX = 0x05;
-    private static final int ADC_REG_MODRM_8 = 0x10;
-    private static final int ADC_REG_MODRM_16 = 0x11;
-    private static final int ADC_MODRM_REG_8 = 0x12;
-    private static final int ADC_MODRM_REG_16 = 0x13;
-    private static final int ADC_IMM_AL = 0x14;
-    private static final int ADC_IMM_AX = 0x15;
-    private static final int SBB_REG_MODRM_8 = 0x18;
-    private static final int SBB_REG_MODRM_16 = 0x19;
-    private static final int SBB_MODRM_REG_8 = 0x1A;
-    private static final int SBB_MODRM_REG_16 = 0x1B;
-    private static final int SBB_IMM_AL = 0x1C;
-    private static final int SBB_IMM_AX = 0x1D;
-    private static final int SUB_REG_MODRM_8 = 0x28;
-    private static final int SUB_REG_MODRM_16 = 0x29;
-    private static final int SUB_MODRM_REG_8 = 0x2A;
-    private static final int SUB_MODRM_REG_16 = 0x2B;
-    private static final int SUB_IMM_AL = 0x2C;
-    private static final int SUB_IMM_AX = 0x2D;
-    private static final int CMP_REG_MODRM_8 = 0x38;
-    private static final int CMP_REG_MODRM_16 = 0x39;
-    private static final int CMP_MODRM_REG_8 = 0x3A;
-    private static final int CMP_MODRM_REG_16 = 0x3B;
-    private static final int CMP_IMM_AL = 0x3C;
-    private static final int CMP_IMM_AX = 0x3D;
-    private static final int DAA = 0x27;
-    private static final int DAS = 0x2F;
-    private static final int AAA = 0x37;
-    private static final int AAS = 0x3F;
-    private static final int AAM = 0xD4;
-    private static final int AAD = 0xD5;
-    private static final int INC_AX = 0x40;
-    private static final int INC_CX = 0x41;
-    private static final int INC_DX = 0x42;
-    private static final int INC_BX = 0x43;
-    private static final int INC_SP = 0x44;
-    private static final int INC_BP = 0x45;
-    private static final int INC_SI = 0x46;
-    private static final int INC_DI = 0x47;
-    private static final int DEC_AX = 0x48;
-    private static final int DEC_CX = 0x49;
-    private static final int DEC_DX = 0x4A;
-    private static final int DEC_BX = 0x4B;
-    private static final int DEC_SP = 0x4C;
-    private static final int DEC_BP = 0x4D;
-    private static final int DEC_SI = 0x4E;
-    private static final int DEC_DI = 0x4F;
-    private static final int CBW = 0x98;
-    private static final int CWD = 0x99;
-    /**
-     * Zeichenkettenverarbeitung
-     */
-    private static final int MOVS_8 = 0xA4;
-    private static final int MOVS_16 = 0xA5;
-    private static final int CMPS_8 = 0xA6;
-    private static final int CMPS_16 = 0xA7;
-    private static final int STOS_8 = 0xAA;
-    private static final int STOS_16 = 0xAB;
-    private static final int LODS_8 = 0xAC;
-    private static final int LODS_16 = 0xAD;
-    private static final int SCAS_8 = 0xAE;
-    private static final int SCAS_16 = 0xAF;
-    /**
-     * Logische Befehle
-     */
-    private static final int OR_REG_MODRM_8 = 0x08;
-    private static final int OR_REG_MODRM_16 = 0x09;
-    private static final int OR_MODRM_REG_8 = 0x0A;
-    private static final int OR_MODRM_REG_16 = 0x0B;
-    private static final int OR_IMM_AL = 0x0C;
-    private static final int OR_IMM_AX = 0x0D;
-    private static final int AND_REG_MODRM_8 = 0x20;
-    private static final int AND_REG_MODRM_16 = 0x21;
-    private static final int AND_MODRM_REG_8 = 0x22;
-    private static final int AND_MODRM_REG_16 = 0x23;
-    private static final int AND_IMM_AL = 0x24;
-    private static final int AND_IMM_AX = 0x25;
-    private static final int XOR_REG_MODRM_8 = 0x30;
-    private static final int XOR_REG_MODRM_16 = 0x31;
-    private static final int XOR_MODRM_REG_8 = 0x32;
-    private static final int XOR_MODRM_REG_16 = 0x33;
-    private static final int XOR_IMM_AL = 0x34;
-    private static final int XOR_IMM_AX = 0x35;
-    private static final int TEST_REG_MODRM_8 = 0x84;
-    private static final int TEST_REG_MODRM_16 = 0x85;
-    private static final int TEST_IMM_AL = 0xA8;
-    private static final int TEST_IMM_AX = 0xA9;
-    /**
-     * Übergabe der Steuerung
-     */
-    private static final int JO = 0x70;
-    private static final int JNO = 0x71;
-    private static final int JB_JNAE_JC = 0x72;
-    private static final int JNB_JAE_JNC = 0x73;
-    private static final int JE_JZ = 0x74;
-    private static final int JNE_JNZ = 0x75;
-    private static final int JBE_JNA = 0x76;
-    private static final int JNBE_JA = 0x77;
-    private static final int JS = 0x78;
-    private static final int JNS = 0x79;
-    private static final int JP_JPE = 0x7A;
-    private static final int JNP_JPO = 0x7B;
-    private static final int JL_JNGE = 0x7C;
-    private static final int JNL_JGE = 0x7D;
-    private static final int JLE_JNG = 0x7E;
-    private static final int JNLE_JG = 0x7F;
-    private static final int CALL_FAR_PROC = 0x9A;
-    private static final int CALL_NEAR_PROC = 0xE8;
-    private static final int RET_IN_SEG_IMM = 0xC2;
-    private static final int RET_IN_SEG = 0xC3;
-    private static final int RET_INTER_SEG_IMM = 0xCA;
-    private static final int RET_INTER_SEG = 0xCB;
-    private static final int INT3 = 0xCC;
-    private static final int INT_IMM = 0xCD;
-    private static final int INTO = 0xCE;
-    private static final int IRET = 0xCF;
-    private static final int LOOPNE_LOOPNZ = 0xE0;
-    private static final int LOOPE_LOOPZ = 0xE1;
-    private static final int LOOP = 0xE2;
-    private static final int JCXZ = 0xE3;
-    private static final int JMP_NEAR_LABEL = 0xE9;
-    private static final int JMP_FAR_LABEL = 0xEA;
-    private static final int JMP_SHORT_LABEL = 0xEB;
-    private static final int REPNE_REPNZ = 0xF2;
-    private static final int REP_REPE_REPZ = 0xF3;
-    /**
-     * Prozessorsteuerung
-     */
-    private static final int NOP = 0x90;
-    private static final int WAIT = 0x9B;
-    private static final int LOCK = 0xF0;
-    private static final int HLT = 0xF4;
-    private static final int CMC = 0xF5;
-    private static final int CLC = 0xF8;
-    private static final int STC = 0xF9;
-    private static final int CLI = 0xFA;
-    private static final int STI = 0xFB;
-    private static final int CLD = 0xFC;
-    private static final int STD = 0xFD;
-    private static final int ESC0 = 0xD8;
-    private static final int ESC1 = 0xD9;
-    private static final int ESC2 = 0xDA;
-    private static final int ESC3 = 0xDB;
-    private static final int ESC4 = 0xDC;
-    private static final int ESC5 = 0xDD;
-    private static final int ESC6 = 0xDE;
-    private static final int ESC7 = 0xDF;
-    /**
-     * Zweier - Nur Reg
-     */
-    // 80
-    private static final int _80_ADD_IMM_REG_8_NOSIGN = 0x00;
-    private static final int _80_OR_IMM_REG_8_NOSIGN = 0x08;
-    private static final int _80_ADC_IMM_REG_8_NOSIGN = 0x10;
-    private static final int _80_SBB_IMM_REG_8_NOSIGN = 0x18;
-    private static final int _80_AND_IMM_REG_8_NOSIGN = 0x20;
-    private static final int _80_SUB_IMM_REG_8_NOSIGN = 0x28;
-    private static final int _80_XOR_IMM_REG_8_NOSIGN = 0x30;
-    private static final int _80_CMP_IMM_REG_8_NOSIGN = 0x38;
-    // 81
-    private static final int _81_ADD_IMM_REG_16_NOSIGN = 0x00;
-    private static final int _81_OR_IMM_REG_16_NOSIGN = 0x08;
-    private static final int _81_ADC_IMM_REG_16_NOSIGN = 0x10;
-    private static final int _81_SBB_IMM_REG_16_NOSIGN = 0x18;
-    private static final int _81_AND_IMM_REG_16_NOSIGN = 0x20;
-    private static final int _81_SUB_IMM_REG_16_NOSIGN = 0x28;
-    private static final int _81_XOR_IMM_REG_16_NOSIGN = 0x30;
-    private static final int _81_CMP_IMM_REG_16_NOSIGN = 0x38;
-    // 82
-    private static final int _82_ADD_IMM_REG_8_SIGN = 0x00;
-    private static final int _82_ADC_IMM_REG_8_SIGN = 0x10;
-    private static final int _82_SBB_IMM_REG_8_SIGN = 0x18;
-    private static final int _82_SUB_IMM_REG_8_SIGN = 0x28;
-    private static final int _82_CMP_IMM_REG_8_SIGN = 0x38;
-    // 83
-    private static final int _83_ADD_IMM_REG_16_SIGN = 0x00;
-    private static final int _83_ADC_IMM_REG_16_SIGN = 0x10;
-    private static final int _83_SBB_IMM_REG_16_SIGN = 0x18;
-    private static final int _83_SUB_IMM_REG_16_SIGN = 0x28;
-    private static final int _83_CMP_IMM_REG_16_SIGN = 0x38;
-    // 8C
-    private static final int _8C_MOV_ES_MODRM_16 = 0x00;
-    private static final int _8C_MOV_CS_MODRM_16 = 0x08;
-    private static final int _8C_MOV_SS_MODRM_16 = 0x10;
-    private static final int _8C_MOV_DS_MODRM_16 = 0x18;
-    // 8E
-    private static final int _8E_MOV_MODRM_ES_16 = 0x00;
-    private static final int _8E_MOV_MODRM_CS_16 = 0x08;
-    private static final int _8E_MOV_MODRM_SS_16 = 0x10;
-    private static final int _8E_MOV_MODRM_DS_16 = 0x18;
-    // 8F
-    private static final int _8F_POP_MODRM_16 = 0x00;
-    // C6
-    private static final int _C6_MOV_IMM_MEM_8 = 0x00;
-    // C7
-    private static final int _C7_MOV_IMM_MEM_16 = 0x00;
-    // D0
-    private static final int _D0_ROL_MODRM_1_8 = 0x00;
-    private static final int _D0_ROR_MODRM_1_8 = 0x08;
-    private static final int _D0_RCL_MODRM_1_8 = 0x10;
-    private static final int _D0_RCR_MODRM_1_8 = 0x18;
-    private static final int _D0_SAL_SHL_MODRM_1_8 = 0x20;
-    private static final int _D0_SHR_MODRM_1_8 = 0x28;
-    private static final int _D0_SAR_MODRM_1_8 = 0x38;
-    // D1
-    private static final int _D1_ROL_MODRM_1_16 = 0x00;
-    private static final int _D1_ROR_MODRM_1_16 = 0x08;
-    private static final int _D1_RCL_MODRM_1_16 = 0x10;
-    private static final int _D1_RCR_MODRM_1_16 = 0x18;
-    private static final int _D1_SAL_SHL_MODRM_1_16 = 0x20;
-    private static final int _D1_SHR_MODRM_1_16 = 0x28;
-    private static final int _D1_SAR_MODRM_1_16 = 0x38;
-    // D2
-    private static final int _D2_ROL_MODRM_CL_8 = 0x00;
-    private static final int _D2_ROR_MODRM_CL_8 = 0x08;
-    private static final int _D2_RCL_MODRM_CL_8 = 0x10;
-    private static final int _D2_RCR_MODRM_CL_8 = 0x18;
-    private static final int _D2_SAL_SHL_MODRM_CL_8 = 0x20;
-    private static final int _D2_SHR_MODRM_CL_8 = 0x28;
-    private static final int _D2_SAR_MODRM_CL_8 = 0x38;
-    // D3
-    private static final int _D3_ROL_MODRM_CL_16 = 0x00;
-    private static final int _D3_ROR_MODRM_CL_16 = 0x08;
-    private static final int _D3_RCL_MODRM_CL_16 = 0x10;
-    private static final int _D3_RCR_MODRM_CL_16 = 0x18;
-    private static final int _D3_SAL_SHL_MODRM_CL_16 = 0x20;
-    private static final int _D3_SHR_MODRM_CL_16 = 0x28;
-    private static final int _D3_SAR_MODRM_CL_16 = 0x38;
-    // F6
-    private static final int _F6_TEST_IMM_MODRM_8 = 0x00;
-    private static final int _F6_NOT_MODRM_8 = 0x10;
-    private static final int _F6_NEG_MODRM_8 = 0x18;
-    private static final int _F6_MUL_MODRM_8 = 0x20;
-    private static final int _F6_IMUL_MODRM_8 = 0x28;
-    private static final int _F6_DIV_MODRM_8 = 0x30;
-    private static final int _F6_IDIV_MODRM_8 = 0x38;
-    // F7
-    private static final int _F7_TEST_IMM_MODRM_16 = 0x00;
-    private static final int _F7_NOT_MODRM_16 = 0x10;
-    private static final int _F7_NEG_MODRM_16 = 0x18;
-    private static final int _F7_MUL_MODRM_16 = 0x20;
-    private static final int _F7_IMUL_MODRM_16 = 0x28;
-    private static final int _F7_DIV_MODRM_16 = 0x30;
-    private static final int _F7_IDIV_MODRM_16 = 0x38;
-    // FE
-    private static final int _FE_INC_MODRM_8 = 0x00;
-    private static final int _FE_DEC_MODRM_8 = 0x08;
-    // FF
-    private static final int _FF_INC_MEM_16 = 0x00;
-    private static final int _FF_DEC_MEM_16 = 0x08;
-    private static final int _FF_CALL_MODRM_16 = 0x10;
-    private static final int _FF_CALL_MEM_16 = 0x18;
-    private static final int _FF_JMP_MODRM_16 = 0x20;
-    private static final int _FF_JMP_MEM_16 = 0x28;
-    private static final int _FF_PUSH_MEM_16 = 0x30;
-    /**
-     * MOD
-     */
-    private static final int MOD_MEM_NO_DISPL = 0x00;
-    private static final int MOD_MEM_8_DISPL = 0x40;
-    private static final int MOD_MEM_16_DISPL = 0x80;
-    private static final int MOD_REG = 0xC0;
-    /**
-     * REG
-     */
-    private static final int REG_AL_AX = 0x00;
-    private static final int REG_CL_CX = 0x08;
-    private static final int REG_DL_DX = 0x10;
-    private static final int REG_BL_BX = 0x18;
-    private static final int REG_AH_SP = 0x20;
-    private static final int REG_CH_BP = 0x28;
-    private static final int REG_DH_SI = 0x30;
-    private static final int REG_BH_DI = 0x38;
-    /**
-     * SREG
-     */
-    private static final int SREG_ES = 0x00;
-    private static final int SREG_CS = 0x01;
-    private static final int SREG_SS = 0x02;
-    private static final int SREG_DS = 0x03;
-    /**
-     * RM
-     */
-    private static final int RM_BX_SI = 0x00;
-    private static final int RM_BX_DI = 0x01;
-    private static final int RM_BP_SI = 0x02;
-    private static final int RM_BP_DI = 0x03;
-    private static final int RM_SI = 0x04;
-    private static final int RM_DI = 0x05;
-    private static final int RM_DIRECT_BP = 0x06;
-    private static final int RM_BX = 0x07;
-    /**
-     * MOD+RM
-     */
-    private static final int RM_BX_SI_MOD_NO_DISPL = 0x00;
-    private static final int RM_BX_DI_MOD_NO_DISPL = 0x01;
-    private static final int RM_BP_SI_MOD_NO_DISPL = 0x02;
-    private static final int RM_BP_DI_MOD_NO_DISPL = 0x03;
-    private static final int RM_SI_MOD_NO_DISPL = 0x04;
-    private static final int RM_DI_MOD_NO_DISPL = 0x05;
-    private static final int RM_DIRECT_BP_MOD_NO_DISPL = 0x06;
-    private static final int RM_BX_MOD_NO_DISPL = 0x07;
-    private static final int RM_BX_SI_MOD_DISPL_8 = 0x40;
-    private static final int RM_BX_DI_MOD_DISPL_8 = 0x41;
-    private static final int RM_BP_SI_MOD_DISPL_8 = 0x42;
-    private static final int RM_BP_DI_MOD_DISPL_8 = 0x43;
-    private static final int RM_SI_MOD_DISPL_8 = 0x44;
-    private static final int RM_DI_MOD_DISPL_8 = 0x45;
-    private static final int RM_DIRECT_BP_MOD_DISPL_8 = 0x46;
-    private static final int RM_BX_MOD_DISPL_8 = 0x47;
-    private static final int RM_BX_SI_MOD_DISPL_16 = 0x80;
-    private static final int RM_BX_DI_MOD_DISPL_16 = 0x81;
-    private static final int RM_BP_SI_MOD_DISPL_16 = 0x82;
-    private static final int RM_BP_DI_MOD_DISPL_16 = 0x83;
-    private static final int RM_SI_MOD_DISPL_16 = 0x84;
-    private static final int RM_DI_MOD_DISPL_16 = 0x85;
-    private static final int RM_DIRECT_BP_MOD_DISPL_16 = 0x86;
-    private static final int RM_BX_MOD_DISPL_16 = 0x87;
-    /**
-     * Tests
-     */
-    private static final int TEST_D = 0x02;
-    private static final int TEST_W = 0x01;
-    private static final int TEST_MOD = 0xC0;
-    private static final int TEST_REG = 0x38;
-    private static final int TEST_RM = 0x07;
-    private static final int TEST_MOD_RM = 0xC7;
-    /**
-     * Flags
-     */
-    private static final int CARRY_FLAG = 0x0001;
-    private static final int PARITY_FLAG = 0x0004;
-    private static final int AUXILIARY_CARRY_FLAG = 0x0010;
-    private static final int ZERO_FLAG = 0x0040;
-    private static final int SIGN_FLAG = 0x0080;
-    private static final int TRAP_FLAG = 0x0100;
-    private static final int INTERRUPT_ENABLE_FLAG = 0x0200;
-    private static final int DIRECTION_FLAG = 0x0400;
-    private static final int OVERFLOW_FLAG = 0x0800;
+
     /**
      * Akku-Register
      */
@@ -5022,6 +6016,7 @@ public class K1810WM86 implements CPU {
             }
             break;
             default:
+                // TODO: Ungültige opcodes ignorieren
                 System.out.println("Nicht implementierter oder ungültiger OPCode " + Integer.toHexString(opcode1) + " bei " + String.format("%04X:%04X", cs, (ip - 1)) + "!");
                 mms16.dumpSystemMemory("./debug/dump_unknown_opcode.hex");
                 decoder.save();
@@ -5032,33 +6027,14 @@ public class K1810WM86 implements CPU {
         if (debug) {
             if (debugInfo.getCode() != null) {
                 decoder.addItem(debugInfo);
-                // Auskommentieren der SCP-Befehle
-//                if (cs != 0x0104) {
                 debugger.addLine(debugInfo);
-//                }
-                // TODO: Slowdown gegenwärtig deaktiviert
-//                try {
-//                    Thread.sleep(debugger.getSlowdown());
-//                } catch (InterruptedException ex) {
-//                    Logger.getLogger(K1810WM86.class.getName()).log(Level.SEVERE, null, ex);
-//                }
             }
         }
-        // TODO: Debuggerstart bei bestimmter Adresse
-//        else {
-//            if ((cs << 4) + ip == debugger.getDebugStart()) {
-//                debugger.setDebug(true);
-//            }
-//        }
-
-//        if (prefix != NO_PREFIX && opcode1 != PREFIX_CS && opcode1 != PREFIX_SS && opcode1 != PREFIX_DS && opcode1 != PREFIX_ES) {
-//            prefix = NO_PREFIX;
-//        }
     }
 
     /**
      * Führt ein bitweises UND der 16Bit Operanden durch und setzt die
-     * entsprechenden Flags
+     * entsprechenden Flags.
      *
      * @param op1 Operand 1
      * @param op2 Operand 2
@@ -5076,7 +6052,7 @@ public class K1810WM86 implements CPU {
 
     /**
      * Führt ein bitweises XOR der 16Bit Operanden durch und setzt die
-     * entsprechenden Flags
+     * entsprechenden Flags.
      *
      * @param op1 Operand 1
      * @param op2 Operand 2
@@ -5094,7 +6070,7 @@ public class K1810WM86 implements CPU {
 
     /**
      * Führt ein bitweises XOR der 8Bit Operanden durch und setzt die
-     * entsprechenden Flags
+     * entsprechenden Flags.
      *
      * @param op1 Operand 1
      * @param op2 Operand 2
@@ -5112,7 +6088,7 @@ public class K1810WM86 implements CPU {
 
     /**
      * Führt ein bitweises UND der 8Bit Operanden durch und setzt die
-     * entsprechenden Flags
+     * entsprechenden Flags.
      *
      * @param op1 Operand 1
      * @param op2 Operand 2
@@ -5130,7 +6106,7 @@ public class K1810WM86 implements CPU {
 
     /**
      * Führt ein bitweises ODER der 16Bit Operanden durch und setzt die
-     * entsprechenden Flags
+     * entsprechenden Flags.
      *
      * @param op1 Operand 1
      * @param op2 Operand 2
@@ -5148,7 +6124,7 @@ public class K1810WM86 implements CPU {
 
     /**
      * Führt ein bitweises ODER der 8Bit Operanden durch und setzt die
-     * entsprechenden Flags
+     * entsprechenden Flags.
      *
      * @param op1 Operand 1
      * @param op2 Operand 2
@@ -5165,12 +6141,13 @@ public class K1810WM86 implements CPU {
     }
 
     /**
-     * Addiert die angegebenen 8Bit Operanden und setzt die entsprechenden Flags
+     * Addiert die angegebenen 8Bit Operanden und setzt die entsprechenden
+     * Flags.
      *
-     * @param op1 Operand 1
-     * @param op2 Operand 2
-     * @param useCarry true - wenn ein gesetztes Carry-Flag berücksichtigt
-     * werden soll, false - sonst
+     * @param op1      Operand 1
+     * @param op2      Operand 2
+     * @param useCarry <code>true</code> - wenn ein gesetztes Carry-Flag
+     *                 berücksichtigt werden soll, <code>false</code> - sonst
      * @return Ergebniss
      */
     private int sub8(int op1, int op2, boolean useCarry) {
@@ -5189,12 +6166,12 @@ public class K1810WM86 implements CPU {
 
     /**
      * Subtrahiert die angegebenen 16Bit Operanden und setzt die entsprechenden
-     * Flags
+     * Flags.
      *
-     * @param op1 Operand 1
-     * @param op2 Operand 2
-     * @param useCarry true - wenn ein gesetztes Carry-Flag berücksichtigt
-     * werden soll, false - sonst
+     * @param op1      Operand 1
+     * @param op2      Operand 2
+     * @param useCarry <code>true</code> - wenn ein gesetztes Carry-Flag
+     *                 berücksichtigt werden soll, <code>false</code> - sonst
      * @return Ergebniss
      */
     private int sub16(int op1, int op2, boolean useCarry) {
@@ -5213,7 +6190,7 @@ public class K1810WM86 implements CPU {
 
     /**
      * Verringert den angegebenen 8Bit Operanden um 1 und setzt die
-     * entsprechenden Flags
+     * entsprechenden Flags.
      *
      * @param op Operand
      * @return Ergebniss
@@ -5230,7 +6207,7 @@ public class K1810WM86 implements CPU {
 
     /**
      * Verringert den angegebenen 16Bit Operanden um 1 und setzt die
-     * entsprechenden Flags
+     * entsprechenden Flags.
      *
      * @param op Operand
      * @return Ergebniss
@@ -5247,12 +6224,12 @@ public class K1810WM86 implements CPU {
 
     /**
      * Addiert die angegebenen 16Bit Operanden und setzt die entsprechenden
-     * Flags
+     * Flags.
      *
-     * @param op1 Operand 1
-     * @param op2 Operand 2
-     * @param useCarry true - wenn ein gesetztes Carry-Flag berücksichtigt
-     * werden soll, false - sonst
+     * @param op1      Operand 1
+     * @param op2      Operand 2
+     * @param useCarry <code>true</code> - wenn ein gesetztes Carry-Flag
+     *                 berücksichtigt werden soll, <code>false</code> - sonst
      * @return Ergebniss
      */
     private int add16(int op1, int op2, boolean useCarry) {
@@ -5270,12 +6247,13 @@ public class K1810WM86 implements CPU {
     }
 
     /**
-     * Addiert die angegebenen 8Bit Operanden und setzt die entsprechenden Flags
+     * Addiert die angegebenen 8Bit Operanden und setzt die entsprechenden
+     * Flags.
      *
-     * @param op1 Operand 1
-     * @param op2 Operand 2
-     * @param useCarry true - wenn ein gesetztes Carry-Flag berücksichtigt
-     * werden soll, false - sonst
+     * @param op1      Operand 1
+     * @param op2      Operand 2
+     * @param useCarry <code>true</code> - wenn ein gesetztes Carry-Flag
+     *                 berücksichtigt werden soll, <code>false</code> - sonst
      * @return Ergebniss
      */
     private int add8(int op1, int op2, boolean useCarry) {
@@ -5294,7 +6272,7 @@ public class K1810WM86 implements CPU {
 
     /**
      * Erhöht den Angegebenen 8Bit Operanden um 1 und setzt die entsprechenden
-     * Flags
+     * Flags.
      *
      * @param op Operand
      * @return Ergebniss
@@ -5311,7 +6289,7 @@ public class K1810WM86 implements CPU {
 
     /**
      * Erhöht den Angegebenen 16Bit Operanden um 1 und setzt die entsprechenden
-     * Flags
+     * Flags.
      *
      * @param op Operand
      * @return Ergebniss
@@ -5327,9 +6305,9 @@ public class K1810WM86 implements CPU {
     }
 
     /**
-     * Holt einen Wert vom Stack SS:SP und erhöht den Stackpointer
+     * Holt einen Wert vom Stack SS:SP und erhöht den Stackpointer.
      *
-     * @return
+     * @return Vom Stack geholter Wert.
      */
     private int pop() {
         int result = mms16.readMemoryWord((ss << 4) + getReg16(REG_AH_SP));
@@ -5338,7 +6316,7 @@ public class K1810WM86 implements CPU {
     }
 
     /**
-     * Verringert den Stackpointer und legt einen Wert auf dem Stack SS:SP
+     * Verringert den Stackpointer und legt einen Wert auf dem Stack SS:SP.
      *
      * @param value Daten
      */
@@ -5348,10 +6326,10 @@ public class K1810WM86 implements CPU {
     }
 
     /**
-     * Gibt das Immediate Byte basierend auf dem MOD/RM-Feld zurück
+     * Gibt das Immediate Byte basierend auf dem MOD/RM-Feld zurück.
      *
      * @param MOD MOD-Feld
-     * @param RM RM-Feld
+     * @param RM  RM-Feld
      * @return Immediate Byte
      */
     private int getImmediate8(int MOD, int RM) {
@@ -5374,10 +6352,10 @@ public class K1810WM86 implements CPU {
     }
 
     /**
-     * Gibt das Immediate Wort basierend auf dem MOD/RM-Feld zurück
+     * Gibt das Immediate Wort basierend auf dem MOD/RM-Feld zurück.
      *
      * @param MOD MOD-Feld
-     * @param RM RM-Feld
+     * @param RM  RM-Feld
      * @return Immediate Wort
      */
     private int getImmediate16(int MOD, int RM) {
@@ -5403,13 +6381,13 @@ public class K1810WM86 implements CPU {
      * Gibt den Inhalt eines Segmentregisters basierend auf dem aktuell
      * gesetzten Präfix zurück.
      *
-     * @param default_segment Standardsegment, wenn kein Präfix definiert ist
+     * @param defaultSegment Standardsegment, wenn kein Präfix definiert ist
      * @return Segmentregister
      */
-    private int getSegment(int default_segment) {
+    private int getSegment(int defaultSegment) {
         switch (prefix) {
             case NO_PREFIX:
-                return default_segment;
+                return defaultSegment;
             case PREFIX_CS:
                 return cs;
             case PREFIX_DS:
@@ -5448,47 +6426,10 @@ public class K1810WM86 implements CPU {
     }
 
     /**
-     * Gibt die Inhalte aller Register als String zurück
+     * Liefert einen Debug-String für das Offset entsprechend des MOD/RM-Feldes.
      *
-     * @return String mit Registerinhalten
-     */
-    private String getRegisterString() {
-        String result = "";
-
-        result += "AX:" + Integer.toHexString(ax) + " ";
-        result += "BX:" + Integer.toHexString(bx) + " ";
-        result += "CX:" + Integer.toHexString(cx) + " ";
-        result += "DX:" + Integer.toHexString(dx) + "\n";
-        result += "SP:" + Integer.toHexString(sp) + " ";
-        result += "BP:" + Integer.toHexString(bp) + " ";
-        result += "SI:" + Integer.toHexString(si) + " ";
-        result += "DI:" + Integer.toHexString(di) + "\n";
-        result += "CS:" + Integer.toHexString(cs) + " ";
-        result += "DS:" + Integer.toHexString(ds) + " ";
-        result += "SS:" + Integer.toHexString(ss) + " ";
-        result += "ES:" + Integer.toHexString(es) + "\n";
-        result += "IP:" + Integer.toHexString(ip) + " ";
-        result += "Flags:" + Integer.toBinaryString(flags) + "\n";
-
-        return result;
-    }
-
-    /**
-     * Gibt die Flags der CPU auf der Konsole aus
-     */
-    public void printFlags() {
-        System.out.println("CF:" + ((flags & CARRY_FLAG) != 0));
-        System.out.println("OF:" + ((flags & OVERFLOW_FLAG) != 0));
-        System.out.println("PF:" + ((flags & PARITY_FLAG) != 0));
-        System.out.println("ZF:" + ((flags & ZERO_FLAG) != 0));
-        System.out.println("SF:" + ((flags & SIGN_FLAG) != 0));
-    }
-
-    /**
-     * Liefert einen Debug-String für das Offset entsprechend des MOD/RM-Feldes
-     *
-     * @param MOD MOD-Feld
-     * @param RM RM-Feld
+     * @param MOD      MOD-Feld
+     * @param RM       RM-Feld
      * @param ipOffset Zu berücksichtigender IP-Offset
      * @return Debug-String für Offset
      */
@@ -5544,12 +6485,12 @@ public class K1810WM86 implements CPU {
 
     /**
      * Berechnet das Offset für einen Speicherzugriff entsprechend des
-     * MOD/RM-Feldes
+     * MOD/RM-Feldes.
      *
-     * @param MOD MOD-Feld
-     * @param RM RM-Feld
+     * @param MOD      MOD-Feld
+     * @param RM       RM-Feld
      * @param updateIP Gibt an ob der InstructionPointer aktualisiert werden
-     * soll
+     *                 soll
      * @return Offset
      */
     private int getOffset(int MOD, int RM, boolean updateIP) {
@@ -5609,7 +6550,7 @@ public class K1810WM86 implements CPU {
     }
 
     /**
-     * Gibt den Registernamen eines 8Bit Registers als String zurück
+     * Gibt den Registernamen eines 8Bit Registers als String zurück.
      *
      * @param reg Register
      * @return String mit Registernamen
@@ -5638,7 +6579,7 @@ public class K1810WM86 implements CPU {
     }
 
     /**
-     * Gibt den Registernamen eines 16Bit Registers als String zurück
+     * Gibt den Registernamen eines 16Bit Registers als String zurück.
      *
      * @param reg Register
      * @return String mit Registernamen
@@ -5667,7 +6608,7 @@ public class K1810WM86 implements CPU {
     }
 
     /**
-     * Gibt den Inhalt eines 8Bit Registers zurück
+     * Gibt den Inhalt eines 8Bit Registers zurück.
      *
      * @param reg Register
      * @return Registerinhalt
@@ -5696,7 +6637,7 @@ public class K1810WM86 implements CPU {
     }
 
     /**
-     * Gibt den Inhalt eines 16Bit Registers zurück
+     * Gibt den Inhalt eines 16Bit Registers zurück.
      *
      * @param reg Register
      * @return Registerinhalt
@@ -5726,10 +6667,10 @@ public class K1810WM86 implements CPU {
 
     /**
      * Gibt die Adresse des Segmentbereiches entsprechend des MOD/RM-Feldes
-     * zurück
+     * zurück.
      *
      * @param MOD MOD-Feld
-     * @param RM RM-Feld
+     * @param RM  RM-Feld
      * @return Adresse des Segmentbeginns
      */
     private int getSegmentAddress(int MOD, int RM) {
@@ -5778,10 +6719,10 @@ public class K1810WM86 implements CPU {
 
     /**
      * Gibt einen Debug-String für das zu verwendende Segment entsprechend des
-     * MOD/RM-Feldes zurück
+     * MOD/RM-Feldes zurück.
      *
      * @param MOD MOD-Feld
-     * @param RM RM-Feld
+     * @param RM  RM-Feld
      * @return String des Segments
      */
     private String getSegmentAddressAdressString(int MOD, int RM) {
@@ -5829,9 +6770,9 @@ public class K1810WM86 implements CPU {
     }
 
     /**
-     * Setzt den Inhalt eines 8Bit Registers
+     * Setzt den Inhalt eines 8Bit Registers.
      *
-     * @param reg Register
+     * @param reg   Register
      * @param value Inhalt
      */
     private void setReg8(int reg, int value) {
@@ -5866,9 +6807,9 @@ public class K1810WM86 implements CPU {
     }
 
     /**
-     * Setzt den Inhalt eines 16Bit Registers
+     * Setzt den Inhalt eines 16Bit Registers.
      *
-     * @param reg Register
+     * @param reg   Register
      * @param value Inhalt
      */
     private void setReg16(int reg, int value) {
@@ -5903,12 +6844,12 @@ public class K1810WM86 implements CPU {
     }
 
     /**
-     * Gibt ein Byte entsprechend des gesetzten MOD/RM-Feldes zurück
+     * Gibt ein Byte entsprechend des gesetzten MOD/RM-Feldes zurück.
      *
-     * @param MOD MOD-Feld
-     * @param RM RM-Feld
-     * @param updateIP true - wenn der Instructionpointer aktualisiert werden
-     * soll , false - sonst
+     * @param MOD      MOD-Feld
+     * @param RM       RM-Feld
+     * @param updateIP <code>true</code> - wenn der Instructionpointer
+     *                 aktualisiert werden soll , <code>false</code> - sonst
      * @return gelesenes Byte
      */
     private int getMODRM8(int MOD, int RM, boolean updateIP) {
@@ -5920,12 +6861,12 @@ public class K1810WM86 implements CPU {
     }
 
     /**
-     * Gibt ein Wort entsprechend des gesetzten MOD/RM-Feldes zurück
+     * Gibt ein Wort entsprechend des gesetzten MOD/RM-Feldes zurück.
      *
-     * @param MOD MOD-Feld
-     * @param RM RM-Feld
-     * @param updateIP true - wenn der Instructionpointer aktualisiert werden
-     * soll , false - sonst
+     * @param MOD      MOD-Feld
+     * @param RM       RM-Feld
+     * @param updateIP <code>true</code> - wenn der Instructionpointer
+     *                 aktualisiert werden soll , <code>false</code> - sonst
      * @return gelesenes Wort
      */
     private int getMODRM16(int MOD, int RM, boolean updateIP) {
@@ -5938,10 +6879,10 @@ public class K1810WM86 implements CPU {
 
     /**
      * Gibt einen Debug-String für ein Byte entsprechend des gesetzten
-     * MOD/RM-Feldes zurück
+     * MOD/RM-Feldes zurück.
      *
-     * @param MOD MOD-Feld
-     * @param RM RM-Feld
+     * @param MOD      MOD-Feld
+     * @param RM       RM-Feld
      * @param ipOffset Zu berücksichtigender Offset des Instruction Pointers
      * @return Debug-String
      */
@@ -5955,10 +6896,10 @@ public class K1810WM86 implements CPU {
 
     /**
      * Gibt einen Debug-String für ein Wort entsprechend des gesetzten
-     * MOD/RM-Feldes zurück
+     * MOD/RM-Feldes zurück.
      *
-     * @param MOD MOD-Feld
-     * @param RM RM-Feld
+     * @param MOD      MOD-Feld
+     * @param RM       RM-Feld
      * @param ipOffset Zu berücksichtigender Offset des Instruction Pointers
      * @return Debug-String
      */
@@ -5972,13 +6913,13 @@ public class K1810WM86 implements CPU {
 
     /**
      * Setzt den Wert eines Registers oder eine Speicherzelle basierend auf dem
-     * MOD/RM-Feld als Byte
+     * MOD/RM-Feld als Byte.
      *
-     * @param MOD MOD-Feld
-     * @param RM RM-Feld
-     * @param value Daten
-     * @param updateIP true - wenn der Instruction Pointer aktualisiert werden
-     * soll, false - sonst
+     * @param MOD      MOD-Feld
+     * @param RM       RM-Feld
+     * @param value    Daten
+     * @param updateIP <code>true</code> - wenn der Instruction Pointer
+     *                 aktualisiert werden soll, <code>false</code> - sonst
      */
     private void setMODRM8(int MOD, int RM, int value, boolean updateIP) {
         if (MOD == MOD_REG) {
@@ -5990,13 +6931,13 @@ public class K1810WM86 implements CPU {
 
     /**
      * Setzt den Wert eines Registers oder eine Speicherzelle basierend auf dem
-     * MOD/RM-Feld als Wort
+     * MOD/RM-Feld als Wort.
      *
-     * @param MOD MOD-Feld
-     * @param RM RM-Feld
-     * @param value Daten
-     * @param updateIP true - wenn der Instruction Pointer aktualisiert werden
-     * soll, false - sonst
+     * @param MOD      MOD-Feld
+     * @param RM       RM-Feld
+     * @param value    Daten
+     * @param updateIP <code>true</code> - wenn der Instruction Pointer
+     *                 aktualisiert werden soll, <code>false</code> - sonst
      */
     private void setMODRM16(int MOD, int RM, int value, boolean updateIP) {
         if (MOD == MOD_REG) {
@@ -6007,12 +6948,14 @@ public class K1810WM86 implements CPU {
     }
 
     /**
-     * Liefert einen Debugstring mit der Berechneten Adresse eines MOD/RM Feldes
+     * Liefert einen Debugstring mit der Berechneten Adresse eines MOD/RM
+     * Feldes.
      *
-     * @param MOD MOD-Feld
-     * @param RM RM-Feld
+     * @param MOD      MOD-Feld
+     * @param RM       RM-Feld
      * @param ipOffset zu berücksichtigender IP-Offset, dies kann durch
-     * vorheriges verändern des Instruction Pointers notwendig sein
+     *                 vorheriges verändern des Instruction Pointers notwendig
+     *                 sein
      * @return String mit Adressinformationen
      */
     private String getAddressMODRMDebugString(int MOD, int RM, int ipOffset) {
@@ -6024,10 +6967,10 @@ public class K1810WM86 implements CPU {
     /**
      * Liefert eine Adresse anhand des MOD/RM Feldes
      *
-     * @param MOD MOD-Feld
-     * @param RM RM-Feld
+     * @param MOD      MOD-Feld
+     * @param RM       RM-Feld
      * @param updateIP Gibt an, ob der Instruction-Pointer aktualisiert werden
-     * soll
+     *                 soll
      * @return Berechnete Adresse
      */
     private int getAddressMODRM(int MOD, int RM, boolean updateIP) {
@@ -6041,7 +6984,7 @@ public class K1810WM86 implements CPU {
      * MOD/RM Feldes
      *
      * @param MOD MOD-Feld
-     * @param RM RM-Feld
+     * @param RM  RM-Feld
      * @return Anzahl der benötigten Takte
      */
     private int getOpcodeCyclesEA(int MOD, int RM) {
@@ -6080,7 +7023,7 @@ public class K1810WM86 implements CPU {
     }
 
     /**
-     * Liest ein Segmentregister
+     * Liest ein Segmentregister.
      *
      * @param SREG Segmentregister
      * @return Wert
@@ -6101,9 +7044,9 @@ public class K1810WM86 implements CPU {
     }
 
     /**
-     * Setzt ein Segmentregister
+     * Setzt ein Segmentregister.
      *
-     * @param SREG Segmentregister
+     * @param SREG  Segmentregister
      * @param value Neuer Wert
      */
     private void setSReg(int SREG, int value) {
@@ -6126,7 +7069,7 @@ public class K1810WM86 implements CPU {
     }
 
     /**
-     * Setzt das angegebene Flag
+     * Setzt das angegebene Flag.
      *
      * @param flag Zu setzendes Flag
      */
@@ -6135,7 +7078,7 @@ public class K1810WM86 implements CPU {
     }
 
     /**
-     * Löscht das angegebene Flag
+     * Löscht das angegebene Flag.
      *
      * @param flag Zu löschendes Flag
      */
@@ -6144,10 +7087,11 @@ public class K1810WM86 implements CPU {
     }
 
     /**
-     * Liefert den Status des angegebenen Flags
+     * Liefert den Status des angegebenen Flags.
      *
      * @param flag Zu prüfendes Flag
-     * @return true - wenn Flag gesetzt , false - sonst
+     * @return <code>true</code> - wenn Flag gesetzt , <code>false</code> -
+     *         sonst
      */
     private boolean getFlag(int flag) {
         return (flags & flag) != 0;
@@ -6155,7 +7099,7 @@ public class K1810WM86 implements CPU {
 
     /**
      * Setzt das Carry Flag entsprechend einer ausgeführten Addition von zwei
-     * Bytes
+     * Bytes.
      *
      * @param res Ergebniss der Addition
      */
@@ -6169,7 +7113,7 @@ public class K1810WM86 implements CPU {
 
     /**
      * Setzt das Carry Flag entsprechend einer ausgeführten Addition von zwei
-     * Wörtern
+     * Wörtern.
      *
      * @param res Ergebniss der Addition
      */
@@ -6182,7 +7126,7 @@ public class K1810WM86 implements CPU {
     }
 
     /**
-     * Setzt das Carry Flag entsprechend einer ausgeführten Subtraktion
+     * Setzt das Carry Flag entsprechend einer ausgeführten Subtraktion.
      *
      * @param res Ergebniss der Subtraktion
      */
@@ -6195,7 +7139,7 @@ public class K1810WM86 implements CPU {
     }
 
     /**
-     * Setzt das Zero Flag entsprechend des angegebenen Byte Operanden
+     * Setzt das Zero Flag entsprechend des angegebenen Byte Operanden.
      *
      * @param res Operand
      */
@@ -6208,7 +7152,7 @@ public class K1810WM86 implements CPU {
     }
 
     /**
-     * Setzt das Zero Flag entsprechend des angegebenen Wort Operanden
+     * Setzt das Zero Flag entsprechend des angegebenen Wort Operanden.
      *
      * @param res Operand
      */
@@ -6221,7 +7165,7 @@ public class K1810WM86 implements CPU {
     }
 
     /**
-     * Setzt das Sign Flag entsprechend des angegebenen Byte Operanden
+     * Setzt das Sign Flag entsprechend des angegebenen Byte Operanden.
      *
      * @param res Operand
      */
@@ -6234,7 +7178,7 @@ public class K1810WM86 implements CPU {
     }
 
     /**
-     * Setzt das Sign Flag entsprechend des angegebenen Wort Operanden
+     * Setzt das Sign Flag entsprechend des angegebenen Wort Operanden.
      *
      * @param res Operand
      */
@@ -6247,7 +7191,7 @@ public class K1810WM86 implements CPU {
     }
 
     /**
-     * Setzt das Parity Flag entsprechend des angegebenen Operanden
+     * Setzt das Parity Flag entsprechend des angegebenen Operanden.
      *
      * @param res Operand
      */
@@ -6267,7 +7211,7 @@ public class K1810WM86 implements CPU {
 
     /**
      * Setzt das Overflow Flag entsprechend einer ausgeführten Subtraktion von
-     * zwei Bytes op1+op2
+     * zwei Bytes op1+op2.
      *
      * @param op1 Erster Operand
      * @param op2 Zweiter Operand
@@ -6283,7 +7227,7 @@ public class K1810WM86 implements CPU {
 
     /**
      * Setzt das Overflow Flag entsprechend einer ausgeführten Addition von zwei
-     * Wörtern op1+op2
+     * Wörtern op1+op2.
      *
      * @param op1 Erster Operand
      * @param op2 Zweiter Operand
@@ -6299,7 +7243,7 @@ public class K1810WM86 implements CPU {
 
     /**
      * Setzt das Overflow Flag entsprechend einer ausgeführten Subtraktion von
-     * zwei Bytes op1-op2
+     * zwei Bytes op1-op2.
      *
      * @param op1 Erster Operand
      * @param op2 Zweiter Operand
@@ -6315,7 +7259,7 @@ public class K1810WM86 implements CPU {
 
     /**
      * Setzt das Overflow Flag entsprechend einer ausgeführten Subtraktion von
-     * zwei Wörtern op1-op2
+     * zwei Wörtern op1-op2.
      *
      * @param op1 Erster Operand
      * @param op2 Zweiter Operand
@@ -6330,7 +7274,8 @@ public class K1810WM86 implements CPU {
     }
 
     /**
-     * Setzt das Auxiliary Flag entsprechend einer ausgeführten Addition op1+op2
+     * Setzt das Auxiliary Flag entsprechend einer ausgeführten Addition
+     * op1+op2.
      *
      * @param op1 Erster Operand
      * @param op2 Zweiter Operand
@@ -6345,7 +7290,7 @@ public class K1810WM86 implements CPU {
 
     /**
      * Setzt das Auxiliary Flag entsprechend einer ausgeführten Subtraktion
-     * op1-op2
+     * op1-op2.
      *
      * @param op1 Erster Operand
      * @param op2 Zweiter Operand
@@ -6360,7 +7305,7 @@ public class K1810WM86 implements CPU {
 
     /**
      * Setzt die CPU in ihren Anfangszustand. Dabei werden die Flags gelöscht
-     * und die Code Abarbeitung begint bei FFFF:0000
+     * und die Code Abarbeitung begint bei FFFF:0000.
      */
     @Override
     public void reset() {
@@ -6375,37 +7320,11 @@ public class K1810WM86 implements CPU {
     /**
      * Arbeitet einen Interrupt ab. Dazu werden die Flags sowie CS und IP auf
      * den Stack gespeichert und die Abarbeitung in der Interrupt Routine
-     * fortgeführt
+     * fortgeführt.
      *
      * @param interruptID ID Interruptcode
      */
     private void interrupt(int interruptID) {
-//        if (interruptID == 224 && cx == 0x0473) {
-//            System.out.println(String.format("\nSCP-GX Aufruf bei %04X:%04X :", cs, ip));
-//            int pbaddr = (ds << 4) + dx;
-//            System.out.println(String.format("PB-Adresse: %05X", pbaddr));
-//            int pbctrladdr = (mms16.readMemoryWord(pbaddr + 2) << 4) + mms16.readMemoryWord(pbaddr);
-//            int pbintinaddr = (mms16.readMemoryWord(pbaddr + 6) << 4) + mms16.readMemoryWord(pbaddr + 4);
-//            int pbptsinaddr = (mms16.readMemoryWord(pbaddr + 10) << 4) + mms16.readMemoryWord(pbaddr + 8);
-//            int pbptsintout = (mms16.readMemoryWord(pbaddr + 14) << 4) + mms16.readMemoryWord(pbaddr + 12);
-//            int pbptsoutaddr = (mms16.readMemoryWord(pbaddr + 18) << 4) + mms16.readMemoryWord(pbaddr + 16);
-//            //System.out.println(String.format("PB-Ctrl-Adresse: %05X", pbctrladdr));
-//            int ctrlcode1 = mms16.readMemoryByte(pbctrladdr);
-//            int ctrlcode2 = mms16.readMemoryByte(pbctrladdr + 2);
-//            int ctrlcode4 = mms16.readMemoryByte(pbctrladdr + 6);
-//
-//            System.out.println("Operationscode: " + ctrlcode1 + ", Anzahl der Punkte: " + ctrlcode2 + ", Anzahl Int-Parameter: " + ctrlcode4);
-//            if (debugger.isDebug()) {
-//                debugger.addComment("Operationscode: " + ctrlcode1 + ", Anzahl der Punkte: " + ctrlcode2 + ", Anzahl Int-Parameter: " + ctrlcode4);
-//            }
-//            if (ctrlcode2 > 0) {
-//                System.out.print("Punkte: ");
-//                for (int i = 0; i < ctrlcode2; i++) {
-//                    System.out.print("(" + mms16.readMemoryWord(pbptsinaddr + 4 * i) + "," + mms16.readMemoryWord(pbptsinaddr + 4 * i + 2) + ") ");
-//                }
-//                System.out.println();
-//            }
-//        }
         push(flags);
         clearFlag(INTERRUPT_ENABLE_FLAG);
         clearFlag(TRAP_FLAG);
@@ -6456,8 +7375,6 @@ public class K1810WM86 implements CPU {
     public void executeCycles(int ticks) {
         this.tickBuffer += ticks;
         
-        //System.out.println("Tick Buffer:"+this.tickBuffer);
-        
         // Mindestens 5 Takte sind für den kürzesten Befehl nötig
         while (tickBuffer >= 5) {
             executeCPUCycle();
@@ -6484,7 +7401,7 @@ public class K1810WM86 implements CPU {
     }
 
     /**
-     * Speichert den Zustand der CPU in einer Datei
+     * Speichert den Zustand der CPU in einer Datei.
      *
      * @param dos Stream zur Datei
      * @throws IOException Wenn Schreiben nicht erfolgreich war
@@ -6514,7 +7431,7 @@ public class K1810WM86 implements CPU {
     }
 
     /**
-     * Lädt den Zustand der CPU aus einer Datei
+     * Lädt den Zustand der CPU aus einer Datei.
      *
      * @param dis Stream zur Datei
      * @throws IOException Wenn Lesen nicht erfolgreich war
@@ -6544,9 +7461,10 @@ public class K1810WM86 implements CPU {
     }
 
     /**
-     * Aktiviert oder deaktiviert den Debugger
+     * Aktiviert oder deaktiviert den Debugger.
      *
-     * @param debug true zum Aktivieren, false zum Deaktivieren
+     * @param debug <code>true</code> zum Aktivierendes Debuggers,
+     *              <code>false</code> zum Deaktivieren des Debuggers
      */
     @Override
     public void setDebug(boolean debug) {

@@ -474,8 +474,9 @@ public final class ABG implements Module {
     }
 
     /**
-     * Aktualisiert die Bildschirmanzeige TODO: NMIs richtig implementieren
-     * (warten auf KGS)
+     * Aktualisiert die Bildschirmanzeige 
+     * <p> 
+     * TODO: NMIs richtig implementieren (warten auf KGS)
      */
     private void updateScreen() {
         // Adresszähler

@@ -19,6 +19,7 @@
  * 
  * Letzte Änderungen:
  *   16.08.2014 - Erstellt aus FloppyDisk
+ *   26.07.2016 - Doppelte Typecasts entfernt
  */
 package a7100emulator.Tools;
 
@@ -67,50 +68,54 @@ public class FloppyImageParser {
 
             // Versuche anhand der Dateierweiterung Imagetyp zu erkennen
             String extension = image.getName().substring(image.getName().length() - 3, image.getName().length()).toLowerCase();
-            if (extension.equals("imd")) {
-                return readImagediskFile(buffer);
-            } else if (extension.equals("td0")) {
-                return readTelediskFile(buffer);
-            } else if (extension.equals("dmk")) {
-                return readDMKFile(buffer);
-            } else if (extension.equals("cqm")) {
-                return readCopyQMFile(buffer);
-            } else {
-                NumberFormat integerFormat = NumberFormat.getIntegerInstance();
-                integerFormat.setGroupingUsed(false);
-                JFormattedTextField editCylinder = new JFormattedTextField(NumberFormat.getIntegerInstance());
-                JFormattedTextField editHeads = new JFormattedTextField(NumberFormat.getIntegerInstance());
-                JFormattedTextField editSectorsPerTrack = new JFormattedTextField(NumberFormat.getIntegerInstance());
-                JFormattedTextField editBytesPerSector = new JFormattedTextField(NumberFormat.getIntegerInstance());
-                JFormattedTextField editSectorsInTrack0 = new JFormattedTextField(NumberFormat.getIntegerInstance());
-                JFormattedTextField editBytesPerSectorTrack0 = new JFormattedTextField(NumberFormat.getIntegerInstance());
-                editCylinder.setValue(80);
-                editHeads.setValue(2);
-                editSectorsPerTrack.setValue(16);
-                editBytesPerSector.setValue(256);
-                editSectorsInTrack0.setValue(16);
-                editBytesPerSectorTrack0.setValue(128);
-                JPanel panelEdit = new JPanel(new GridLayout(6, 2));
-                panelEdit.add(new JLabel("Anzahl der Zylinder:"));
-                panelEdit.add(editCylinder);
-                panelEdit.add(new JLabel("Anzahl der Seiten:"));
-                panelEdit.add(editHeads);
-                panelEdit.add(new JLabel("Sektoren pro Spur:"));
-                panelEdit.add(editSectorsPerTrack);
-                panelEdit.add(new JLabel("Bytes pro Sektor:"));
-                panelEdit.add(editBytesPerSector);
-                panelEdit.add(new JLabel("Sektoren in Spur 0:"));
-                panelEdit.add(editSectorsInTrack0);
-                panelEdit.add(new JLabel("Bytes pro Sektor Spur 0:"));
-                panelEdit.add(editBytesPerSectorTrack0);
-                if (JOptionPane.showConfirmDialog(null, panelEdit, "Image laden", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE) == JOptionPane.OK_OPTION) {
-                    int cylinder = ((Number) editCylinder.getValue()).intValue();
-                    int heads = ((Number) editHeads.getValue()).intValue();
-                    int sectorsPerTrack = ((Number) editSectorsPerTrack.getValue()).intValue();
-                    int bytesPerSector = ((Number) editBytesPerSector.getValue()).intValue();
-                    int sectorsInTrack0 = ((Number) editSectorsInTrack0.getValue()).intValue();
-                    int bytesPerSectorTrack0 = ((Number) editBytesPerSectorTrack0.getValue()).intValue();
-                    return parseBinaryFile(buffer, cylinder, heads, sectorsPerTrack, bytesPerSector, sectorsInTrack0, bytesPerSectorTrack0);
+
+            switch (extension) {
+                case "imd":
+                    return readImagediskFile(buffer);
+                case "td0":
+                    return readTelediskFile(buffer);
+                case "dmk":
+                    return readDMKFile(buffer);
+                case "cqm":
+                    return readCopyQMFile(buffer);
+                default: {
+                    NumberFormat integerFormat = NumberFormat.getIntegerInstance();
+                    integerFormat.setGroupingUsed(false);
+                    JFormattedTextField editCylinder = new JFormattedTextField(NumberFormat.getIntegerInstance());
+                    JFormattedTextField editHeads = new JFormattedTextField(NumberFormat.getIntegerInstance());
+                    JFormattedTextField editSectorsPerTrack = new JFormattedTextField(NumberFormat.getIntegerInstance());
+                    JFormattedTextField editBytesPerSector = new JFormattedTextField(NumberFormat.getIntegerInstance());
+                    JFormattedTextField editSectorsInTrack0 = new JFormattedTextField(NumberFormat.getIntegerInstance());
+                    JFormattedTextField editBytesPerSectorTrack0 = new JFormattedTextField(NumberFormat.getIntegerInstance());
+                    editCylinder.setValue(80);
+                    editHeads.setValue(2);
+                    editSectorsPerTrack.setValue(16);
+                    editBytesPerSector.setValue(256);
+                    editSectorsInTrack0.setValue(16);
+                    editBytesPerSectorTrack0.setValue(128);
+                    JPanel panelEdit = new JPanel(new GridLayout(6, 2));
+                    panelEdit.add(new JLabel("Anzahl der Zylinder:"));
+                    panelEdit.add(editCylinder);
+                    panelEdit.add(new JLabel("Anzahl der Seiten:"));
+                    panelEdit.add(editHeads);
+                    panelEdit.add(new JLabel("Sektoren pro Spur:"));
+                    panelEdit.add(editSectorsPerTrack);
+                    panelEdit.add(new JLabel("Bytes pro Sektor:"));
+                    panelEdit.add(editBytesPerSector);
+                    panelEdit.add(new JLabel("Sektoren in Spur 0:"));
+                    panelEdit.add(editSectorsInTrack0);
+                    panelEdit.add(new JLabel("Bytes pro Sektor Spur 0:"));
+                    panelEdit.add(editBytesPerSectorTrack0);
+                    if (JOptionPane.showConfirmDialog(null, panelEdit, "Image laden", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE) == JOptionPane.OK_OPTION) {
+                        int cylinder = ((Number) editCylinder.getValue()).intValue();
+                        int heads = ((Number) editHeads.getValue()).intValue();
+                        int sectorsPerTrack = ((Number) editSectorsPerTrack.getValue()).intValue();
+                        int bytesPerSector = ((Number) editBytesPerSector.getValue()).intValue();
+                        int sectorsInTrack0 = ((Number) editSectorsInTrack0.getValue()).intValue();
+                        int bytesPerSectorTrack0 = ((Number) editBytesPerSectorTrack0.getValue()).intValue();
+                        return parseBinaryFile(buffer, cylinder, heads, sectorsPerTrack, bytesPerSector, sectorsInTrack0, bytesPerSectorTrack0);
+                    }
+                    break;
                 }
             }
         } catch (IOException ex) {
@@ -348,14 +353,14 @@ public class FloppyImageParser {
                                 sectorData = disk.readData(cylinder, head, sectorNumber, sectorSizeBytes);
 
                                 for (int j = 0; j < dataBlockSize - 1; j++) {
-                                    int length = (int) (buffer[pos + j] & 0xFF);
+                                    int length = buffer[pos + j] & 0xFF;
                                     if (length == 00) {
-                                        int l2 = (int) (buffer[pos + j + 1] & 0xFF);
+                                        int l2 = buffer[pos + j + 1] & 0xFF;
                                         System.arraycopy(buffer, pos + j + 2, sectorData, blockPos, l2);
                                         j += l2 + 1;
                                         blockPos += l2;
                                     } else {
-                                        int r = (int) (buffer[pos + j + 1] & 0xFF);
+                                        int r = buffer[pos + j + 1] & 0xFF;
                                         for (int k = 0; k < r; k++) {
                                             System.arraycopy(buffer, pos + j + 2, sectorData, blockPos, length * 2);
                                             blockPos += length * 2;
@@ -391,10 +396,10 @@ public class FloppyImageParser {
 
         // Lese Header ab Byte 00
         // Byte 00: Schreibschutz (FF bei Schreibschutz, 00 sonst)
-        int writeProtectImage = (int) (buffer[pos++] & 0xFF);
+        int writeProtectImage = buffer[pos++] & 0xFF;
         disk.setWriteProtect(writeProtectImage == 0xFF);
         // Byte 01: Anzahl der Tracks
-        int trackCount = (int) (buffer[pos++] & 0xFF);
+        int trackCount = buffer[pos++] & 0xFF;
         // Byte02,03 : Länge eines Tracks
         int trackSize = (buffer[pos] & 0xFF) | ((int) buffer[pos + 1] & 0xFF) << 8;
         // Byte 4: Flags

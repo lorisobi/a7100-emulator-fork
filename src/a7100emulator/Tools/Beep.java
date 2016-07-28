@@ -19,6 +19,7 @@
  * 
  * Letzte Änderungen:
  *   05.04.2014 - Kommentare vervollständigt
+ *   26.07.2016 - Spezifische Exceptions definiert
  */
 package a7100emulator.Tools;
 
@@ -28,6 +29,7 @@ import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.Clip;
 import javax.sound.sampled.Line;
+import javax.sound.sampled.LineUnavailableException;
 
 /**
  * Klasse zur Realisierung des Tongebers
@@ -52,7 +54,7 @@ public class Beep {
             byte[] soundData = getSinusTone(2000, af);
             c = (Clip) AudioSystem.getLine(new Line.Info(Clip.class));
             c.open(af, soundData, 0, soundData.length);
-        } catch (Exception ex) {
+        } catch (LineUnavailableException ex) {
         }
     }
 

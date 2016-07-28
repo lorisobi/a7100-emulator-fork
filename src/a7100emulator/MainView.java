@@ -39,6 +39,14 @@
  *   14.02.2016 - Menüpunkte KES hinzugefügt
  *   15.03.2016 - Menüpunkt KES Speicher anzeigen, speichern hinzugefügt 
  *   26.03.2016 - Schreibfehler korrigiert
+ *   24.07.2016 - Menüpunkt Synchronisation hinzugefügt
+ *              - Statusleiste mit Disketteninformationen hinzugefügt
+ *              - Minimale Größe des Fensters festgesetzt
+ *              - Speichern und Laden von Zuständen aus beliebigen Dateien
+ *              - Speichern von Screenshots in beliebige Datei
+ *              - Anzeige Disketteninhalt über Debug->AFS
+ *   26.07.2016 - Anzeige der Benutzeroberfläche in showMainView() verlagert
+ *   28.07.2016 - Synchronisieren beim Start deaktiviert
  */
 package a7100emulator;
 
@@ -50,6 +58,7 @@ import a7100emulator.Debug.MemoryAnalyzer;
 import a7100emulator.Debug.OpcodeStatistic;
 import a7100emulator.components.A7100;
 import a7100emulator.components.ic.KR580WM51A;
+import a7100emulator.components.system.GlobalClock;
 import a7100emulator.components.system.Keyboard;
 import a7100emulator.components.system.MMS16Bus;
 import a7100emulator.components.system.Screen;
@@ -65,10 +74,28 @@ import java.util.Calendar;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
-import javax.swing.*;
+import javax.swing.BorderFactory;
+import javax.swing.ImageIcon;
+import javax.swing.JCheckBoxMenuItem;
+import javax.swing.JComponent;
+import javax.swing.JFileChooser;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JMenu;
+import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
+import javax.swing.KeyStroke;
+import javax.swing.SwingUtilities;
+import javax.swing.border.BevelBorder;
+import javax.swing.filechooser.FileNameExtensionFilter;
 
 /**
- * Hauptansicht des A7100 Emulators
+ * Hauptansicht des A7100 Emulators. Diese Klasse behinhaltet die grafische
+ * Benutzeroberfläche des A7100 Emulators.
  *
  * @author Dirk Bräuer
  */
@@ -103,13 +130,25 @@ public class MainView extends JFrame {
      */
     private final JMenuItem menuEmulatorSingle = new JMenuItem("Einzelschritt");
     /**
+     * Menüeintrag Emulator synchronisieren
+     */
+    private final JCheckBoxMenuItem menuEmulatorSync = new JCheckBoxMenuItem("Synchronisiere Zeit", false);
+    /**
      * Menüeintrag Emulator Zustand Speichern
      */
     private final JMenuItem menuEmulatorSave = new JMenuItem("Zustand Speichern");
     /**
+     * Menüeintrag Emulator Zustand Speichern Unter
+     */
+    private final JMenuItem menuEmulatorSaveAs = new JMenuItem("Zustand Speichern unter...");
+    /**
      * Menüeintrag Emulator Zustand Laden
      */
     private final JMenuItem menuEmulatorLoad = new JMenuItem("Zustand Laden");
+    /**
+     * Menüeintrag Emulator Zustand Laden Aus
+     */
+    private final JMenuItem menuEmulatorLoadFrom = new JMenuItem("Zustand Laden aus...");
     /**
      * Menüeintrag Emulator Beenden
      */
@@ -182,6 +221,10 @@ public class MainView extends JFrame {
      * Untermenü Debug - ABG
      */
     private final JMenu menuDebugABG = new JMenu("ABG");
+    /**
+     * Untermenü Debug - AFS
+     */
+    private final JMenu menuDebugAFS = new JMenu("AFS");
     /**
      * Menüeintrag Globaler Debugger
      */
@@ -282,6 +325,14 @@ public class MainView extends JFrame {
      */
     private final JMenuItem menuDebugABGDumpGraphicsPage2 = new JMenuItem("Dump Grafikspeicher Ebene 2");
     /**
+     * Menüeintrag AFS Zeige Floppy Disk 1
+     */
+    private final JMenuItem menuDebugAFSShowFloppyDisk0 = new JMenuItem("Zeige Diskette 1");
+    /**
+     * Menüeintrag AFS Zeige Floppy Disk 2
+     */
+    private final JMenuItem menuDebugAFSShowFloppyDisk1 = new JMenuItem("Zeige Diskette 2");
+    /**
      * Menü Tools
      */
     private final JMenu menuTools = new JMenu("Tools");
@@ -292,14 +343,21 @@ public class MainView extends JFrame {
     /**
      * Menüeintrag Screenshot speichern
      */
-    private final JMenuItem menuToolsScreenshot = new JMenuItem("Bildschirmfoto");
+    private final JMenuItem menuToolsScreenshot = new JMenuItem("Bildschirmfoto speichern");
     /**
-     * Menü Emulator Hacks TODO: Hacks wenn möglich entfernen
+     * Menüeintrag Screenshot speichern unter
+     */
+    private final JMenuItem menuToolsScreenshotAs = new JMenuItem("Bildschirmfoto speichern unter...");
+    /**
+     * Menü Emulator Hacks
+     * <p>
+     * TODO: Hacks wenn möglich entfernen
      */
     private final JMenu menuHacks = new JMenu("Hacks");
     /**
-     * Menüeintrag Emulator Hacks - Deaktiviere Tastatur Reset TODO: Hacks wenn
-     * möglich entfernen
+     * Menüeintrag Emulator Hacks - Deaktiviere Tastatur Reset
+     * <p>
+     * TODO: Hacks wenn möglich entfernen
      */
     private final JCheckBoxMenuItem menuHacksKeyboardReset = new JCheckBoxMenuItem("KR580WM51A Tastaturreset deaktivieren", false);
     /**
@@ -311,16 +369,25 @@ public class MainView extends JFrame {
      */
     private final MainMenuController controller = new MainMenuController();
     /**
-     * Statusanzeige
+     * Statusbar
      */
-    //private final JLabel statusBar = new JLabel("Status");
+    private final JPanel statusBar = new JPanel(new GridLayout(1, 2));
+    /**
+     * Statusanzeige Laufwerk 1
+     */
+    private final JLabel statusDrive0 = new JLabel("A:[Keine Diskette]");
+    /**
+     * Statusanzeige Laufwerk 2
+     */
+    private final JLabel statusDrive1 = new JLabel("B:[Keine Diskette]");
     /**
      * Referenz auf A7100
      */
     private final A7100 a7100;
 
     /**
-     * Erstellt eine neue Hauptansicht
+     * Erstellt eine neue Hauptansicht. Hierbei werden alle Menüs sowie die
+     * Statusleiste und die Bildschirmanzeige initialisiert.
      *
      * @param a7100 Referenz auf A7100
      */
@@ -335,17 +402,23 @@ public class MainView extends JFrame {
         menuEmulator.add(menuEmulatorReset);
         menuEmulator.add(menuEmulatorPause);
         menuEmulator.add(menuEmulatorSingle);
+        menuEmulator.add(menuEmulatorSync);
         menuEmulator.addSeparator();
         menuEmulator.add(menuEmulatorSave);
+        menuEmulator.add(menuEmulatorSaveAs);
         menuEmulator.add(menuEmulatorLoad);
+        menuEmulator.add(menuEmulatorLoadFrom);
         menuEmulator.addSeparator();
         menuEmulator.add(menuEmulatorExit);
 
         menuEmulatorReset.addActionListener(controller);
         menuEmulatorPause.addActionListener(controller);
         menuEmulatorSingle.addActionListener(controller);
+        menuEmulatorSync.addActionListener(controller);
         menuEmulatorSave.addActionListener(controller);
+        menuEmulatorSaveAs.addActionListener(controller);
         menuEmulatorLoad.addActionListener(controller);
+        menuEmulatorLoadFrom.addActionListener(controller);
         menuEmulatorExit.addActionListener(controller);
 
         menuEmulatorSingle.setEnabled(false);
@@ -405,6 +478,9 @@ public class MainView extends JFrame {
         menuDebugABG.add(menuDebugABGDumpAlphanumericsPage2);
         menuDebugABG.add(menuDebugABGDumpGraphicsPage1);
         menuDebugABG.add(menuDebugABGDumpGraphicsPage2);
+        menuDebug.add(menuDebugAFS);
+        menuDebugAFS.add(menuDebugAFSShowFloppyDisk0);
+        menuDebugAFS.add(menuDebugAFSShowFloppyDisk1);
 
         menuDebugGlobalDebuggerSwitch.addActionListener(controller);
         menuDebugSystemMemoryShow.addActionListener(controller);
@@ -430,13 +506,17 @@ public class MainView extends JFrame {
         menuDebugABGDumpAlphanumericsPage2.addActionListener(controller);
         menuDebugABGDumpGraphicsPage1.addActionListener(controller);
         menuDebugABGDumpGraphicsPage2.addActionListener(controller);
+        menuDebugAFSShowFloppyDisk0.addActionListener(controller);
+        menuDebugAFSShowFloppyDisk1.addActionListener(controller);
 
         menubar.add(menuTools);
         menuTools.add(menuToolsSCPDiskTool);
         menuTools.add(menuToolsScreenshot);
+        menuTools.add(menuToolsScreenshotAs);
 
         menuToolsSCPDiskTool.addActionListener(controller);
         menuToolsScreenshot.addActionListener(controller);
+        menuToolsScreenshotAs.addActionListener(controller);
 
         menubar.add(menuHacks);
         menuHacks.add(menuHacksKeyboardReset);
@@ -448,17 +528,43 @@ public class MainView extends JFrame {
 
         menuHelpAbout.addActionListener(controller);
 
+        statusBar.setBorder(BorderFactory.createBevelBorder(BevelBorder.LOWERED));
+        statusBar.add(statusDrive0);
+        statusBar.add(statusDrive1);
+
         this.setJMenuBar(menubar);
         this.add(Screen.getInstance(), BorderLayout.CENTER);
-        //this.add(statusBar,BorderLayout.SOUTH);
+        this.add(statusBar, BorderLayout.SOUTH);
         this.setFocusTraversalKeysEnabled(false);
         this.addKeyListener(Keyboard.getInstance());
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         this.setIconImage((new ImageIcon(this.getClass().getClassLoader().getResource("Images/Icon.png"))).getImage());
         this.setResizable(true);
+    }
+
+    /**
+     * Blendet die Hauptansicht des A7100 Emulators ein und positioniert sie in
+     * der Mitte des Bildschirms.
+     */
+    public void showMainView() {
         this.setVisible(true);
         this.pack();
         this.setLocationRelativeTo(null);
+        this.setMinimumSize(this.getSize());
+    }
+
+    /**
+     * Aktualisiert die Anzeige anhand des aktuellen Emulatorzustands.
+     */
+    private void updateStatus() {
+        // TODO: Debugzustände einpflegen, Statusleiste integrieren
+
+        menuHacksKeyboardReset.setSelected(KR580WM51A.isKeyboardResetHack());
+        menuEmulatorSync.setSelected(GlobalClock.getInstance().isSynchronizedClock());
+        menuEmulatorPause.setSelected(GlobalClock.getInstance().isSuspended());
+        menuEmulatorSingle.setEnabled(GlobalClock.getInstance().isSuspended());
+        menuDevicesDrive0WriteProtect.setSelected(a7100.getKES().getAFS().getFloppy(0).isDiskInsert() && a7100.getKES().getAFS().getFloppy(0).getDisk().isWriteProtect());
+        menuDevicesDrive1WriteProtect.setSelected(a7100.getKES().getAFS().getFloppy(1).isDiskInsert() && a7100.getKES().getAFS().getFloppy(1).getDisk().isWriteProtect());
     }
 
     /**
@@ -483,14 +589,35 @@ public class MainView extends JFrame {
                 } else {
                     a7100.resume();
                 }
-                menuEmulatorSingle.setEnabled(menuEmulatorPause.isSelected());
+                updateStatus();
             } else if (e.getSource().equals(menuEmulatorSingle)) {
                 a7100.singleStep();
+            } else if (e.getSource().equals(menuEmulatorSync)) {
+                GlobalClock.getInstance().setSynchronizeClock(menuEmulatorSync.isSelected());
             } else if (e.getSource().equals(menuEmulatorSave)) {
-                a7100.saveState();
+                a7100.saveState(new File("./state/state.a7100"));
+            } else if (e.getSource().equals(menuEmulatorSaveAs)) {
+                JFileChooser saveDialog = new JFileChooser("./state/");
+                FileNameExtensionFilter filter = new FileNameExtensionFilter("A7100 Emulatorzustände", "a7100");
+                saveDialog.setFileFilter(filter);
+                if (saveDialog.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
+                    File saveFile = saveDialog.getSelectedFile();
+                    if (!saveFile.getName().toLowerCase().endsWith(".a7100")) {
+                        saveFile = new File(saveFile + ".a7100");
+                    }
+                    a7100.saveState(saveFile);
+                }
             } else if (e.getSource().equals(menuEmulatorLoad)) {
-                a7100.loadState();
-                menuHacksKeyboardReset.setSelected(KR580WM51A.isKeyboardResetHack());
+                a7100.loadState(new File("./state/state.a7100"));
+                updateStatus();
+            } else if (e.getSource().equals(menuEmulatorLoadFrom)) {
+                JFileChooser loadDialog = new JFileChooser("./state/");
+                FileNameExtensionFilter filter = new FileNameExtensionFilter("A7100 Emulatorzustände", "a7100");
+                loadDialog.setFileFilter(filter);
+                if (loadDialog.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
+                    a7100.loadState(loadDialog.getSelectedFile());
+                    updateStatus();
+                }
             } else if (e.getSource() == menuEmulatorExit) {
                 System.exit(0);
             } else if (e.getSource().equals(menuDebugGlobalDebuggerSwitch)) {
@@ -545,6 +672,10 @@ public class MainView extends JFrame {
                 a7100.getABG().dumpMemory("./debug/abg_gr1_user_dump.hex", 2);
             } else if (e.getSource() == menuDebugABGDumpGraphicsPage2) {
                 a7100.getABG().dumpMemory("./debug/abg_gr2_user_dump.hex", 3);
+            } else if (e.getSource() == menuDebugAFSShowFloppyDisk0) {
+                a7100.getKES().getAFS().showFloppy(0);
+            } else if (e.getSource() == menuDebugAFSShowFloppyDisk1) {
+                a7100.getKES().getAFS().showFloppy(1);
             } else if (e.getSource() == menuDevicesDrive0Load) {
                 loadImageFile(0);
             } else if (e.getSource() == menuDevicesDrive0Save) {
@@ -552,11 +683,14 @@ public class MainView extends JFrame {
                 if (saveDialog.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
                     File image = saveDialog.getSelectedFile();
                     a7100.getKES().getAFS().getFloppy(0).saveDiskToFile(image);
+                    statusDrive0.setText("A:" + image.getName());
                 }
             } else if (e.getSource() == menuDevicesDrive0Eject) {
                 a7100.getKES().getAFS().getFloppy(0).ejectDisk();
+                statusDrive0.setText("A:[Keine Diskette]");
             } else if (e.getSource() == menuDevicesDrive0Empty) {
                 a7100.getKES().getAFS().getFloppy(0).newDisk();
+                statusDrive0.setText("A:[Leere Diskette]");
             } else if (e.getSource() == menuDevicesDrive0WriteProtect) {
                 a7100.getKES().getAFS().getFloppy(0).setWriteProtect(menuDevicesDrive0WriteProtect.isSelected());
             } else if (e.getSource() == menuDevicesDrive1Load) {
@@ -566,11 +700,14 @@ public class MainView extends JFrame {
                 if (saveDialog.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
                     File image = saveDialog.getSelectedFile();
                     a7100.getKES().getAFS().getFloppy(1).saveDiskToFile(image);
+                    statusDrive1.setText("B:" + image.getName());
                 }
             } else if (e.getSource() == menuDevicesDrive1Eject) {
                 a7100.getKES().getAFS().getFloppy(1).ejectDisk();
+                statusDrive1.setText("B:[Keine Diskette]");
             } else if (e.getSource() == menuDevicesDrive1Empty) {
                 a7100.getKES().getAFS().getFloppy(1).newDisk();
+                statusDrive1.setText("B:[Leere Diskette]");
             } else if (e.getSource() == menuDevicesDrive1WriteProtect) {
                 a7100.getKES().getAFS().getFloppy(1).setWriteProtect(menuDevicesDrive0WriteProtect.isSelected());
             } else if (e.getSource() == menuToolsSCPDiskTool) {
@@ -592,6 +729,21 @@ public class MainView extends JFrame {
                 } catch (IOException ex) {
                     Logger.getLogger(MainView.class.getName()).log(Level.SEVERE, null, ex);
                 }
+            } else if (e.getSource() == menuToolsScreenshotAs) {
+                JFileChooser saveDialog = new JFileChooser("./screenshots/");
+                FileNameExtensionFilter filter = new FileNameExtensionFilter("PNG Dateien", "png");
+                saveDialog.setFileFilter(filter);
+                if (saveDialog.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
+                    File saveFile = saveDialog.getSelectedFile();
+                    if (!saveFile.getName().toLowerCase().endsWith(".png")) {
+                        saveFile = new File(saveFile + ".png");
+                    }
+                    try {
+                        ImageIO.write(Screen.getInstance().getImage(), "png", saveFile);
+                    } catch (IOException ex) {
+                        Logger.getLogger(MainView.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                }
             } else if (e.getSource() == menuHacksKeyboardReset) {
                 KR580WM51A.setKeyboardResetHack(menuHacksKeyboardReset.isSelected());
             } else if (e.getSource() == menuHelpAbout) {
@@ -601,7 +753,7 @@ public class MainView extends JFrame {
                 JPanel pan_desc = new JPanel();
                 pan_desc.setBorder(BorderFactory.createEmptyBorder(0, 50, 0, 10));
                 pan_desc.setLayout(new GridLayout(2, 1));
-                pan_desc.add(new JLabel("A7100 - Emulator v0.8.45"));
+                pan_desc.add(new JLabel("A7100 - Emulator v0.8.90"));
                 pan_desc.add(new JLabel("Copyright (c) 2011-2016 Dirk Bräuer"));
                 pan_about.add(pan_desc, BorderLayout.CENTER);
                 JTextArea licenseText = new JTextArea();
@@ -652,6 +804,15 @@ public class MainView extends JFrame {
             if (loadDialog.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
                 File image = loadDialog.getSelectedFile();
                 a7100.getKES().getAFS().getFloppy(drive).loadDiskFromFile(image);
+                switch (drive) {
+                    case 0:
+                        statusDrive0.setText("A:" + image.getName());
+                        break;
+                    case 1:
+                        statusDrive1.setText("B:" + image.getName());
+                        break;
+                }
+                updateStatus();
             }
         }
     }

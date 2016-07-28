@@ -27,7 +27,7 @@
  *                implementiert
  *   16.08.2015 - Parameterreihenfolge readData und writeData geändert
  *              - Laden von Binärdateien, Angabe Imagetyp entfernt
- *   02.01.2016 - Methoden und Variablen für Signale hinzugefügt
+ *   24.07.2016 - getDisk() hinzugefügt
  */
 package a7100emulator.components.system;
 
@@ -195,6 +195,16 @@ public class FloppyDrive implements StateSavable {
         } else {
             disk.format(cylinder, head, mod, data, interleave, sectorsPerTrack, bytesPerSector);
         }
+    }
+
+    /**
+     * Liefert die eingelegte Diskette zurück.
+     *
+     * @return Verweis auf eingelegte Diskette oder <code>null</code> wenn keine
+     * Diskette eingelegt ist
+     */
+    public FloppyDisk getDisk() {
+        return disk;
     }
 
     /**

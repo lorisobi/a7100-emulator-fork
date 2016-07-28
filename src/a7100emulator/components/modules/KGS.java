@@ -31,6 +31,7 @@
  *   23.07.2016 - Quartz hinzugefügt
  *   24.07.2016 - Parameter umbenannt
  *              - localClockUpdate() bis auf CTC ohne Funktion
+ *              - Speichern von Quartz-Informationen 
  */
 package a7100emulator.components.modules;
 
@@ -618,6 +619,7 @@ public final class KGS implements IOModule, ClockModule, SubsystemModule {
         sio.saveState(dos);
         ctc.saveState(dos);
         abg.saveState(dos);
+        cpuClock.saveState(dos);
     }
 
     /**
@@ -639,6 +641,7 @@ public final class KGS implements IOModule, ClockModule, SubsystemModule {
         sio.loadState(dis);
         ctc.loadState(dis);
         abg.loadState(dis);
+        cpuClock.loadState(dis);
     }
 
     /**

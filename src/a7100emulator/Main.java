@@ -19,27 +19,32 @@
  * 
  * Letzte Änderungen:
  *   05.04.2014 - Kommentare vervollständigt
+ *   27.07.2016 - Kommentare ergänzt
+ *              - Neue showMainView() Funktion aufgerufen
  */
 package a7100emulator;
 
 import a7100emulator.components.A7100;
 
 /**
- * Hauptklasse des A7100 Emulators
+ * Diese Klasse dient ausschließlich dem Start des A7100 sowie dem Erzeugen und
+ * Anzeigen der Benutzeroberfläche.
  *
  * @author Dirk Bräuer
  */
 public class Main {
 
     /**
-     * Programmeinstiegspunkt. Erstellt das A7100 Objekt und startet die
-     * grafische Benutzeroberfläche.
+     * Das ist der Programmeinstiegspunkt des A7100 Emulators. Erstellt das
+     * A7100 Objekt und startet die grafische Benutzeroberfläche. Eventuelle
+     * Kommandozeilenparameter werden von der Software ignoriert.
      *
-     * @param args Kommandozeilenparameter
+     * @param args Kommandozeilenparameter (werden ignoriert)
      */
     public static void main(String[] args) {
         A7100 a7100 = new A7100();
         MainView mainView = new MainView(a7100);
+        mainView.showMainView();
     }
 
 }

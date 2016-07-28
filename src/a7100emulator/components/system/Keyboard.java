@@ -30,6 +30,8 @@
  *   22.07.2015 - ERASE INP, ERASE EOF, FM, DUP, INS LINE, DEL LINE ergänzt
  *   24.07.2015 - RESET, CLEAR ergänzt
  *              - Fehler in Steuerfolgen behoben 0 durch O ersetzt
+ *   25.07.2016 - keyboardClock und selfTest in Reset,Laden und Speichern
+ *              - Kommentare überarbeitet
  */
 package a7100emulator.components.system;
 
@@ -43,10 +45,61 @@ import java.io.IOException;
 import java.util.LinkedList;
 
 /**
- * Klasse zur Realisierung der A7100 Tastaturen
+ * Klasse zur Realisierung einer A7100 Tastatur. Die Klasse nimmt Tastaturevents
+ * entgegen und übersetzt diese in die jeweilige Tastenfolge der A7100 Tastatur.
+ * Die Tasten der PC-tastatur werden wie folgt übersetzt:
  * <p>
- * TODO: Tastaturtyp K7672 noch nicht implementiert, wenige Tasten noch nicht
- * implementiert.
+ * 1:1 Umsetzung:
+ * <ul>
+ * <li>Alphanumerik: A-Z, a-z, 1-0</li>
+ * <li>Sondertasten: Backspace, ESC, Enter, Tabulator, DEL, Ctrl, Alt</li>
+ * <li>Navigation : Pfeile</li>
+ * <li>Symbole : ! &quot; § $ % &amp; / ( ) = &lt; &gt; , ; . : - _ # + * ? ´
+ * `</li>
+ * </ul>
+ * <p>
+ * Andere Umsetzungen:
+ * <ul>
+ * <li>^ &rarr; = (Ziffernblock)</li>
+ * <li>' &rarr; ^</li>
+ * <li>ö &rarr; \</li>
+ * <li>Ö &rarr; |</li>
+ * <li>ä &rarr; [</li>
+ * <li>Ä &rarr; {</li>
+ * <li>ü &rarr; ]</li>
+ * <li>Ü &rarr; }</li>
+ * <li>ß &rarr; Überstrich</li>
+ * <li>F1-F12 &rarr; PF1-PF12</li>
+ * <li>Pause &rarr; Break</li>
+ * <li>Shift+Insert &rarr; Insert Line</li>
+ * <li>Shift+Delete &rarr; Delete Line</li>
+ * <li>Home &rarr; PA1</li>
+ * <li>Shift+Home &rarr; PA2</li>
+ * <li>End &rarr; PA3</li>
+ * <li>Shift+End &rarr; Pfeil Links-Oben</li>
+ * <li>PageUp &rarr; Erase EOF</li>
+ * <li>Shift+PageUp &rarr; Erase INP</li>
+ * <li>PageDn &rarr; DUP</li>
+ * <li>Shift+PageDn &rarr; FM</li>
+ * <li>Print &rarr; Line Feed</li>
+ * <li>Shift+Print &rarr; Clear</li>
+ * <li>Shift+Esc &rarr; RESET</li>
+ * </ul>
+ * Fehlende Umsetzungen:
+ * <ul>
+ * <li>Insert &rarr; INS Mode</li>
+ * <li>Rollen &rarr; MOD 2</li>
+ * <li>Steuerzeichen : 1B, 1C, 1D, 1E, 1F</li>
+ * <li>Alternativzeichen : DE, DF, E0</li>
+ * <li>CAPS-LOCK</li>
+ * </ul>
+ * <p>
+ * TODO:
+ * <ul>
+ * <li>Tastaturtyp K7672 noch nicht implementiert</li>
+ * <li>Wenige Tasten noch nicht implementiert</li>
+ * <li>Selbsttest-Verzögerung überarbeitet</li>
+ * </ul>
  *
  * @author Dirk Bräuer
  */
@@ -66,42 +119,6 @@ public class Keyboard implements KeyListener, StateSavable {
          */
         K7672;
     }
-    // 1:1
-    // Alphanumerik: A-Z, a-z, 1-0
-    // Sondertasten: Backspace, ESC, Enter, Tabulator, DEL, Ctrl, Alt
-    // Navigation  : Pfeile
-    // Symbole     : ! " § $ % & / ( ) = < > , ; . : - _ # + * ? ´ `
-    // Umsetzungen:
-    // ^            --> = (Ziffernblock)
-    // '            --> ^
-    // ö            --> \
-    // Ö            --> |
-    // ä            --> [
-    // Ä            --> {
-    // ü            --> ]
-    // Ü            --> }
-    // ß            --> Überstrich
-    // F1-F12       --> PF1-PF12
-    // Pause        --> Break
-    // Shift+Insert --> Insert Line
-    // Shift+Delete --> Delete Line
-    // Home         --> PA1
-    // Shift+Home   --> PA2
-    // End          --> PA3
-    // Shift+End    --> Pfeil Links-Oben
-    // PageUp       --> Erase EOF
-    // Shift+PageUp --> Erase INP
-    // PageDn       --> DUP
-    // Shift+PageDn --> FM
-    // Print        --> Line Feed
-    // Shift+Print  --> Clear
-    // Shift+Esc    --> RESET
-    // TODO:
-    // Insert       --> INS Mode
-    // Rollen       --> MOD 2
-    // Steuerzeichen : 1B, 1C, 1D, 1E, 1F
-    // Alternativzeichen : DE, DF, E0
-    // CAPS-LOCK
     /**
      * USART Controller
      */
@@ -166,7 +183,7 @@ public class Keyboard implements KeyListener, StateSavable {
     }
 
     /**
-     * Registriert den USART Controller bei der Tastatur
+     * Registriert den USART Controller bei der Tastatur.
      *
      * @param controller USART-Controller
      */
@@ -175,36 +192,45 @@ public class Keyboard implements KeyListener, StateSavable {
     }
 
     /**
-     * Verarbeitet das Drücken einer Taste
+     * Verarbeitet das Drücken einer Taste. Dieses Event wird vom Emulator nicht
+     * ausgewertet.
      *
-     * @param e Event
+     * @param e Event für das Drücken einer Taste
      */
     @Override
     public void keyTyped(KeyEvent e) {
     }
 
     /**
-     * Verarbeitet das Drücken und loslassen einer Taste
+     * Verarbeitet das Drücken und Loslassen einer Taste. Dieses Event wird vom
+     * Emulator nicht ausgewertet.
      *
-     * @param e Event
+     * @param e Event für das Drücken und Loslassen einer Taste
      */
     @Override
     public void keyPressed(KeyEvent e) {
     }
 
     /**
-     * Verarbeitet das Loslassen einer Taste
+     * Verarbeitet das Loslassen einer Taste. Das Kommando für die gedrückte
+     * Taste wird entsprechend des ausgewählten Tastaturtyps übersetzt. Die
+     * einzelnen Tastencodes werden in den Sendepuffer übertragen und können
+     * dort vom Controller abgerufen werden.
+     * <p>
+     * TODO:
+     * <ul>
+     * <li>Grafiktasten vollständig implementieren</li>
+     * <li>MOD 2 implementieren</li>
+     * <li>INS MOD implementieren</li>
+     * <li>CAPS implementieren</li>
+     * <li>ALT als Zustand implementieren</li>
+     * <li>CTRL+ALT implementieren</li>
+     * </ul>
      *
-     * @param e Event
+     * @param e Event für das Loslassen einer Taste
      */
     @Override
     public void keyReleased(KeyEvent e) {
-        // TODO: Grafiktasten vollständig implementieren
-        // TODO: MOD 2 implementieren
-        // TODO: INS MOD implementieren
-        // TODO: CAPS implementieren
-        // TODO: ALT als Zustand implementieren
-        // TODO: CTRL+ALT implementieren
         boolean keyShift = e.isShiftDown();
         boolean keyCtrl = e.isControlDown();
         boolean keyAlt = e.isAltDown();
@@ -690,6 +716,8 @@ public class Keyboard implements KeyListener, StateSavable {
             dos.writeByte(b);
         }
         dos.writeUTF(kbdType.name());
+        dos.writeLong(keyboardClock);
+        dos.writeBoolean(selfTest);
     }
 
     /**
@@ -713,6 +741,8 @@ public class Keyboard implements KeyListener, StateSavable {
             sendBuffer.add(dis.readByte());
         }
         kbdType = KeyboardType.valueOf(dis.readUTF());
+        keyboardClock = dis.readLong();
+        selfTest = dis.readBoolean();
     }
 
     /**
@@ -726,5 +756,7 @@ public class Keyboard implements KeyListener, StateSavable {
         byteCnt = 0;
         commands = new byte[10];
         sendBuffer.clear();
+        keyboardClock = 0;
+        selfTest = false;
     }
 }

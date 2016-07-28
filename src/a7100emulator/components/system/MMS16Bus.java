@@ -23,6 +23,7 @@
  *   18.11.2014 - Speichern und Laden implementiert
  *              - Interface StateSavable implementiert
  *   28.07.2015 - Lesen von Wörtern zwischen Modulgrenzen ermöglicht
+ *   25.07.2016 - timeout bei reset hinzugefügt
  */
 package a7100emulator.components.system;
 
@@ -323,6 +324,7 @@ public class MMS16Bus implements StateSavable {
     public void reset() {
         memoryModules.clear();
         ioModules.clear();
+        timeout = false;
     }
 
     /**

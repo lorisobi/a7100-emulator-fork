@@ -1,4 +1,4 @@
-A7100 Emulator - Readme v0.8.45
+A7100 Emulator - Readme v0.8.90
 ===============================
 
 Inhaltsverzeichnis:
@@ -38,112 +38,25 @@ Inhaltsverzeichnis:
 --------------------------------------------------------------------------------
 2. Letzte Änderungen
 
-  vx.x.xx - xx.xx.xxxx
+  v0.8.90 - 28.07.2016
   Neue Features:
-    - Lesen von CopyQM Images
+    - Synchronisation mit realer Zeit
+    - Lesen von CopyQM-Images
+    - Speichern und Laden von Zuständen mit wählbarem Dateinamen
+    - Speichern von Screenshots mit beliebigem Dateinamen
+    - Statusleiste mit Image-Informationen
+    - Anzeigen von Disketteninhalten
   Neuerungen im SCP-Disketten-Tool:
+    - Lesen von CopyQM-, Teledisk-, Imagedisk- und DMK-Images
+    - Lesen unabhängig vom SCP-Hausformat 
+    - Einträge system.dbd hinzugefügt/aktualisiert (201 -> 404)
   Änderungen/Bugfixes:
+    - Fehler in UA880 Befehlen JP, BIT, CPI, CPD, CPIR und CPDR behoben
+    - UA880 Debugausgaben ergänzt
+    - Frequenzen der CPUs exakter abgebildet
   Softwarekompatibilität:
-  ----------------------------------------
-  v0.8.45 - 11.08.2015
-  Neue Features:
-    - KES verarbeitet Spurpositionierung und Lesen Sektor-ID Feld
-  Änderungen/Bugfixes:
-    - Fehler Dialog RAW Images behoben
-    - Segment-Präfixe in K1810WM86 separat von Opcodes bearbeitet
-    - Zero Flag bei SBC, ADC in UA880 richtig gesetzt 
-    - Lesen von Wörtern zwischen Modulgrenzen ermöglicht
-    - Debugausgabe wieder aktiviert
-  Softwarekompatibilität:
-    - Nicht getestet -> Läuft: CP/K 86 V2.2
-    - Läuft in Teilen -> Läuft: Gedit M/16 1.02, Gedit M/16 2.0
-    - Läuft Nicht -> Läuft: Gedit M/16 1.51
-    - Läuft mit kleinen Einschränkungen -> Läuft: Grafik M/16
-  ----------------------------------------
-  v0.8.40 - 26.07.2015
-  Neue Features:
-    - Erste Version unter GNU General Public License Version 3
-    - Direktes Schreiben in Grafikpuffer für deutlich schnellere Ausgabe
-    - Blinken implementiert
-    - Splitscreen überarbeitet
-    - Debugger KGS und ZVE zusammengefasst
-    - ALT und weitere Tasten implementiert
-    - Tasten für Grafikarbeit vervollständigt
-  Neuerungen im SCP-Disketten-Tool:
-    - MD5-Datenbank für offizielle und benutzerdefinierte Dateien
-    - Einlesen von Verzeichnissen
-    - Anzeigen von Dateien
-  Änderungen/Bugfixes:
-    - OPS Paritätsprüfung überarbeitet
-    - CMPS Befehl korrigiert
-    - Fehler in DAA,AAA und AAS behoben
-    - Falsche Tastatursteuerfolgen korrigiert
-    - Lesen von DMK Abbildern korrigiert
-  Softwarekompatibilität:
-    - Läuft mit kleinen Einschränkungen -> Läuft: BASIC 1700 1.03, Pascal 3.01
-    - Nicht getestet -> Läuft nicht: Gedit 1.51
-    - Nicht getestet -> Läuft nur in Teilen: Gedit M/16 1.02
-    - Nicht getestet -> Läuft: Meteor
-  ----------------------------------------
-  v0.7.90 - 19.12.2014
-  Neue Features:
-    - KGS/ABG neu implementiert mit Emulation des UA880 Subsystems
-    - Grafikkommandos sind ausführbar
-    - Debugger-System neu implementiert (Debuggen des UA880, Ausgabe Speicher 
-      KGS und ABG)
-    - Hinzufügen von Dateien im SCP-Disketten-Tool
-    - Hacks hinzugefügt
-  Änderungen/Bugfixes:
-    - Tastaturpuffer neu implementiert
-  Softwarekompatibilität:
-    - Läuft mit kleinen Einschränkungen -> Läuft: SCP 2.2, SCP 3.0
-    - Läuft Nicht -> Läuft: L
-    - Läuft Nicht -> Läuft mit kleinen Einschränkungen: Grafik M/16
-    - Läuft Nicht -> Funktioniert in Teilen: Gedit M/16
-  ----------------------------------------
-  v0.6.20 - 15.07.2014
-  Neue Features:
-    - Lesen von Teledisk, Imagedisk und Catweasel-Images
-    - Beliebig formatierte RAW-Images
-  Änderungen/Bugfixes:
-    - Schreiben von Wörtern auf KES-Ports implementiert
-  Softwarekompatibilität:
-    - Nicht getestet -> Absturz nach Titel: MUTOS 1700
-  ----------------------------------------
-  v0.6.00 - 31.03.2014
-  Neue Features:
-    - Erste öffentliche Version
-    - Screenshots über Menü möglich
-  ----------------------------------------
-  v0.5.39 - 30.03.2014
-  Änderungen/Bugfixes:
-    - Segment Wraparound implementiert
-    - Implementierung des SCP-Disk Tools
-  Softwarekompatibilität:
-    - Läuft nur in Teilen -> Läuft: Tabcalc 3.0, Tabcalc 2.0, Basic 1700
-  ----------------------------------------
-  v0.5.30 - 01.03.2014
-  Änderungen/Bugfixes:
-    - Zugriff auf Festplatten korrekt abgewiesen
-  Softwarekompatibilität:
-    - Läuft Nicht -> Läuft: SCP 3.1, SCP 3.2
-    - Läuft Nicht -> Läuft mit kleinen Einschränkungen: SCP 3.0
-  ----------------------------------------
-  v0.5.23 - 28.02.2014
-  Änderungen/Bugfixes:
-    - Carry-Flag-Fehler für INC, DEC behoben
-  Softwarekompatibilität:
-    - Absturz nach Titel -> Läuft: WORDSTAR
-  ----------------------------------------
-  v0.5.22 - 27.02.2014
-  Änderungen/Bugfixes:
-    - Fehler in ESC-Sequenzen behoben
-    - Standardparameter für ESC[K
-    - Tastaturbefehle für Numpad hinzugefügt
-    - Tastaturcodes PF1-PF12 aktualisiert
-    - Fehler Wraparound behoben
-  Softwarekompatibilität:
-    - Absturz nach Titel -> Läuft in Teilen: TEXT40
+    - Nicht getestet -> Läuft: Tyranopolis, Jazzy
+    - Nicht getestet -> Absturz nach Titel: Goff, Burg, CP/M-86
  
 --------------------------------------------------------------------------------
 3. Softwarekompatibilität
@@ -167,6 +80,7 @@ SCP         3.2    ***
 MUTOS              !!        Hängt in HLT Befehl / Trap
 BOS                ???
 CP/K        2.2    ***
+CP/M-86            !!        Hängt nach Auswahl RAM-Disk
 
 Grafikprogramme
 Gedit M/16  2.0    ***
@@ -196,6 +110,10 @@ Spiele
 Castle             ***
 Wall               ***
 Schach             ***
+Tyranopolis        ***
+Goff               !!        Tastaturbefehle werden nicht angenommen
+Burg               !!        Tastaturbefehle werden nicht angenommen
+Jazzy              ***
 
 Systemprogramme
 Power              ***
@@ -233,7 +151,8 @@ Andere als die angegebenen Versionen wurden bisher nicht getestet.
 Seit v0.6.20 werden beliebige RAW-Abbilder unterstützt. Dabei müssen durch den
 Benutzer beim Laden des Images die Formatparameter festgelegt werden. Als
 Standard ist hierbei das SCP-Format hinterlegt. Weiterhin wird das Lesen von 
-Teledisk- (TD0), Imagedisk- (IMD) und Catweasel- (DMK) Abbilder unterstützt.
+Teledisk- (TD0), Imagedisk- (IMD), CopyQM (CQM) und Catweasel- (DMK) Abbildern 
+unterstützt.
                                                           
 4.2.2 Speichern auf Disketten
 Veränderte Disketten werden nicht automatisch in der Binärdatei geändert. Das
@@ -242,7 +161,7 @@ Speichern muss über Geräte->Laufwerk X->Speicher Image erfolgen.
 4.2.3 SCP-Disk Tool
 Der Diskbetrachter ermöglicht das Lesen von SCP-Disketten sowie das extrahieren
 der darauf enthaltenen Dateien. Seit Version v0.7.90 können auch Dateien dem 
-Image hinzugefügt werden. Auch hier werden nur Binärdateien unterstützt.
+Image hinzugefügt werden.
 
 Seit Version v0.8.40 verfügt das SCP-Disk Tool über eine Datenbankfunktion. Mit
 deren Hilfe lassen sich Dateien auf Diskettenabbildern mit denen aus einer 
@@ -307,13 +226,14 @@ Tongeber werden nicht unterstützt.
 --------------------------------------------------------------------------------
 6. Unterstützung
 
-Die Entwicklung des Emulators ist entscheidend von der vorhandenen A7100
+Die Entwicklung des Emulators ist entscheidend von der vorhandenen A7100/A7150
 Dokumentation und Software abhängig. Hier werden die fehlenden Unterlagen und
 Programme gelistet:
 Dringend:
+  - Quellcodes zur Firmware von KES, ZVE und/oder KGS
   - Dokumentation zur KGS-Firmware Version 6 (GRAF6.FRM)
-  - AFS K 5171.20 EPROMS
 Wäre schön:
+  - AFP EPROMS
   - A7150 Rechner und Geräte Band 2/3
   - Sämtliche nicht getestete Software
 Nicht so wichtig:

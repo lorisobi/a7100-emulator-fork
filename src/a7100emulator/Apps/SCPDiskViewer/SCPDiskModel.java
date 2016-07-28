@@ -26,7 +26,9 @@
  *   09.08.2015 - Javadoc korrigiert
  *   16.08.2015 - parseImage vereinfacht
  *              - Lesen über FloppyImageParser realisiert
- *              - Andere Formate als SCP-Hausvormat möglich
+ *              - Andere Formate als SCP-Hausformat möglich
+ *   25.07.2016 - Doppelte Typdefinition in files entfernt
+ *   26.07.2016 - Spezifische Exceptions definiert
  */
 package a7100emulator.Apps.SCPDiskViewer;
 
@@ -58,7 +60,7 @@ public class SCPDiskModel {
     /**
      * Liste der Dateien
      */
-    private final ArrayList<SCPFile> files = new ArrayList<SCPFile>();
+    private final ArrayList<SCPFile> files = new ArrayList<>();
     /**
      * Refernz auf Ansicht
      */
@@ -133,6 +135,7 @@ public class SCPDiskModel {
         if (disk != null) {
             imageName = image.getAbsolutePath();
             // TODO: einseitige Disketten, andere Formatierungen
+            // Verzeichnis befindet 
             directoryOffset = disk.getSectorSize(0, 0, 1) * disk.getSectors(0, 0) + 3 * disk.getSectorSize(0, 1, 1) * disk.getSectors(0, 1);
             diskData = disk.getFlatData();
             parseImage();
@@ -200,7 +203,7 @@ public class SCPDiskModel {
                     System.out.println("Verzeichnis " + file.getName() + " wird übersprungen!");
                 }
             }
-        } catch (Exception ex) {
+        } catch (IOException ex) {
             Logger.getLogger(SCPDiskModel.class.getName()).log(Level.SEVERE, null, ex);
         }
         view.updateView();
@@ -574,7 +577,7 @@ public class SCPDiskModel {
             out.write(diskData);
             out.close();
             imageName = file.getName();
-        } catch (Exception ex) {
+        } catch (IOException ex) {
             Logger.getLogger(SCPDiskModel.class.getName()).log(Level.SEVERE, null, ex);
         } finally {
             try {

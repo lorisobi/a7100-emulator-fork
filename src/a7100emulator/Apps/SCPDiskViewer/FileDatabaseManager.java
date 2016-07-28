@@ -22,6 +22,7 @@
  *   01.01.2015 - Funktionsfähige Version
  *   02.01.2014 - Kommentare ergänzt
  *   24.07.2015 - Datenbank exportieren ergänzt
+ *   26.07.2016 - Spezifische Exceptions definiert
  */
 package a7100emulator.Apps.SCPDiskViewer;
 
@@ -111,7 +112,7 @@ public class FileDatabaseManager {
             }
             dosSystem.close();
             dosUser.close();
-        } catch (Exception ex) {
+        } catch (IOException ex) {
             Logger.getLogger(FileDatabaseManager.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
@@ -130,7 +131,7 @@ public class FileDatabaseManager {
             DataInputStream dis = new DataInputStream(new FileInputStream(systemDB));
             readDatabase(dis, false);
             dis.close();
-        } catch (Exception ex) {
+        } catch (IOException ex) {
             Logger.getLogger(FileDatabaseManager.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
@@ -149,7 +150,7 @@ public class FileDatabaseManager {
             DataInputStream dis = new DataInputStream(new FileInputStream(userDB));
             readDatabase(dis, true);
             dis.close();
-        } catch (Exception ex) {
+        } catch (IOException ex) {
             Logger.getLogger(FileDatabaseManager.class.getName()).log(Level.SEVERE, null, ex);
         }
     }

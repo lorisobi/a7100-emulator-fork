@@ -28,9 +28,11 @@
  *   27.03.2016 - Steuerregister CPT1, CPT2 hinzugefügt
  *   24.04.2016 - Lesen/Schreiben SIO Ports implementiert
  *              - Signal /ESE in CPT3 implementiert
+ *   24.07.2016 - Anzeige von Disketteninhalten im MemoryAnalyzer
  */
 package a7100emulator.components.modules;
 
+import a7100emulator.Debug.MemoryAnalyzer;
 import a7100emulator.Tools.BitTest;
 import a7100emulator.Tools.Memory;
 import a7100emulator.components.ic.UA856;
@@ -180,6 +182,17 @@ public final class AFS implements Module {
         drives[3] = new FloppyDrive(FloppyDrive.DriveType.K5600_20);
     }
 
+    /**
+     * Zeigt den Inhalt der Diskette an.
+     *
+     * @param drive Floppylaufwerk
+     */
+    public void showFloppy(int drive) {
+        if (drives[drive].isDiskInsert()) {
+            (new MemoryAnalyzer(drives[drive].getDisk().getFlatData(), "Floppy Disk " + (drive + 1))).show();
+        }
+    }
+    
     /**
      * Liest ein Byte aus den Eproms der AFS.
      *

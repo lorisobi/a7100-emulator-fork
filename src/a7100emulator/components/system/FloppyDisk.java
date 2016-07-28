@@ -34,6 +34,7 @@
  *              - Parameterreihenfolge readData und writeData geändert
  *              - Lesen von Images ausgelagert
  *              - getFlatContent hinzugefügt
+ *   25.07.2016 - Rückgabe null bei fehlendem Sektor
  */
 package a7100emulator.components.system;
 
@@ -154,40 +155,45 @@ public class FloppyDisk implements StateSavable {
      * @param head Kopfnummer
      * @param sector Sektornummer
      * @param cnt Anzahl der Bytes
-     * @return gelesene Daten
+     * @return gelesene Daten oder <code>null</code> wenn die angegebene
+     * Position auf der Diskette nicht vorhanden ist.
      */
     public byte[] readData(int cylinder, int head, int sector, int cnt) {
-        byte[] res = new byte[cnt];
-        byte[] sectorData = diskData[cylinder][head][sector - 1];
-        int byteToCopy = Math.min(cnt, sectorData.length);
-        System.arraycopy(sectorData, 0, res, 0, byteToCopy);
-        cnt -= byteToCopy;
-        if (cnt > 0) {
-            if (diskData[cylinder][head].length == sector) {
-                // Wenn letzter Sektor
-                sector = 1;
-                if (diskData[cylinder].length == (head + 1)) {
-                    // Wenn Letzter Kopf
-                    head = 0;
-                    if (diskData.length == (cylinder + 1)) {
-                        // Letzter Zylinder
-                        throw new IllegalStateException("End of Disk");
+        if (checkDiskGeometry(cylinder, head, sector)) {
+            byte[] res = new byte[cnt];
+            byte[] sectorData = diskData[cylinder][head][sector - 1];
+            int byteToCopy = Math.min(cnt, sectorData.length);
+            System.arraycopy(sectorData, 0, res, 0, byteToCopy);
+            cnt -= byteToCopy;
+            if (cnt > 0) {
+                if (diskData[cylinder][head].length == sector) {
+                    // Wenn letzter Sektor
+                    sector = 1;
+                    if (diskData[cylinder].length == (head + 1)) {
+                        // Wenn Letzter Kopf
+                        head = 0;
+                        if (diskData.length == (cylinder + 1)) {
+                            // Letzter Zylinder
+                            throw new IllegalStateException("End of Disk");
+                        } else {
+                            // Nicht letzter Zylinder
+                            cylinder++;
+                        }
                     } else {
-                        // Nicht letzter Zylinder
-                        cylinder++;
+                        // Nicht letzter Kopf
+                        head++;
                     }
                 } else {
-                    // Nicht letzter Kopf
-                    head++;
+                    // Nicht letzter Sector
+                    sector++;
                 }
-            } else {
-                // Nicht letzter Sector
-                sector++;
+                byte[] nextData = readData(cylinder, head, sector, cnt);
+                System.arraycopy(nextData, 0, res, byteToCopy, nextData.length);
             }
-            byte[] nextData = readData(cylinder, head, sector, cnt);
-            System.arraycopy(nextData, 0, res, byteToCopy, nextData.length);
+            return res;
+        } else {
+            return null;
         }
-        return res;
     }
 
     /**
@@ -264,6 +270,19 @@ public class FloppyDisk implements StateSavable {
         byte[][] newHeadData = new byte[sector][0];
         System.arraycopy(diskData[cylinder][head], 0, newHeadData, 0, diskData[cylinder][head].length);
         diskData[cylinder][head] = newHeadData;
+    }
+
+    /**
+     * Prüft ob die angegebene Position auf der Diskette verfügbar ist.
+     *
+     * @param cylinder Zylindernummer
+     * @param head Seite/Kopfnummer
+     * @param sector Sektor
+     * @return <code>true</code> wenn der Sektor vorhanden ist.
+     * <code>false</code> sonst
+     */
+    public boolean checkDiskGeometry(int cylinder, int head, int sector) {
+        return !(cylinder >= diskData.length || head >= diskData[cylinder].length || (sector - 1) >= diskData[cylinder][head].length);
     }
 
     /**
