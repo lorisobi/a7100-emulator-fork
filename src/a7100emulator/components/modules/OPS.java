@@ -24,10 +24,12 @@
  *   18.12.2014 - Parity Hack ergänzt
  *   03.01.2015 - Parität setzen durch Modulo Rechnung überarbeitet
  *              - Fehler Paritätsprüfung behoben und Parity Hack entfernt
- *   37.07.2016 - Ports für alle Module in Array zusammengefasst
+ *   31.07.2016 - Ports für alle Module in Array zusammengefasst
+ *              - Parity ausgelagert
  */
 package a7100emulator.components.modules;
 
+import a7100emulator.Tools.Parity;
 import a7100emulator.Tools.AddressSpace;
 import a7100emulator.Tools.Memory;
 import a7100emulator.components.system.MMS16Bus;
@@ -46,20 +48,6 @@ import java.io.IOException;
  */
 public final class OPS implements IOModule, MemoryModule {
 
-    /**
-     * Enum für verwendete Paritäten
-     */
-    enum Parity {
-
-        /**
-         * Gerade Parität
-         */
-        EVEN,
-        /**
-         * Ungerade Parität
-         */
-        ODD;
-    }
     /**
      * Gesamtzahl der vorhandenen OPS-Module
      */
@@ -99,6 +87,12 @@ public final class OPS implements IOModule, MemoryModule {
      * Status der OPS
      */
     private int state = 0x0F;
+
+    /**
+     * Adressen für parityHack. Diese Adressen werden beim Paritätstes vom ACT
+     * genutzt. Für die 4. OPS ist keine Adresse vorgsehen.
+     */
+    private static final int[] parityCheckAddress = new int[]{0x20000, 0x60000, 0xA0000, 0x00000};
 
     /**
      * Erstellt ein neues OPS-Modul. Die Gesamtanzahl der OPS-Module wird erhöht
@@ -216,8 +210,9 @@ public final class OPS implements IOModule, MemoryModule {
     @Override
     public int readByte(int address) {
         // Parity Hack für A C T
-        if ((address - ops_offset) == 0x20000) {
-            int par = (byte) checkParity(memory.readByte(address - ops_offset));
+        if (address == parityCheckAddress[ops_id]) {
+            //if ((address - ops_offset) == 0x20000) {
+            int par = (byte) Parity.calculateParityBit(memory.readByte(address - ops_offset), parity);
             if (par != parityBits[address - ops_offset]) {
                 state &= ~0x07;
                 MMS16Bus.getInstance().requestInterrupt(0);
@@ -235,9 +230,10 @@ public final class OPS implements IOModule, MemoryModule {
     @Override
     public int readWord(int address) {
         // Parity Hack für A C T
-        if ((address - ops_offset) == 0x20000) {
-            int par1 = (byte) checkParity(memory.readByte(address - ops_offset));
-            int par2 = (byte) checkParity(memory.readByte(address - ops_offset + 1));
+        if (address == parityCheckAddress[ops_id]) {
+            //(address - ops_offset) == 0x20000) {
+            int par1 = (byte) Parity.calculateParityBit(memory.readByte(address - ops_offset), parity);
+            int par2 = (byte) Parity.calculateParityBit(memory.readByte(address - ops_offset + 1), parity);
             if (par1 != parityBits[address - ops_offset] || par2 != parityBits[address - ops_offset + 1]) {
                 state &= ~0x07;
                 MMS16Bus.getInstance().requestInterrupt(0);
@@ -256,8 +252,9 @@ public final class OPS implements IOModule, MemoryModule {
     public void writeByte(int address, int data) {
         memory.writeByte(address - ops_offset, data);
         // Parity Hack für A C T
-        if ((address - ops_offset) == 0x20000) {
-            parityBits[address - ops_offset] = (byte) checkParity(data);
+        if (address == parityCheckAddress[ops_id]) {
+            //if ((address - ops_offset) == 0x20000) {
+            parityBits[address - ops_offset] = (byte) Parity.calculateParityBit(data, parity);
         }
     }
 
@@ -271,24 +268,11 @@ public final class OPS implements IOModule, MemoryModule {
     public void writeWord(int address, int data) {
         memory.writeWord(address - ops_offset, data);
         // Parity Hack für A C T
-        if ((address - ops_offset) == 0x20000) {
-            parityBits[address - ops_offset] = (byte) checkParity(data & 0xFF);
-            parityBits[address - ops_offset + 1] = (byte) checkParity((data >> 8) & 0xFF);
+        if (address == parityCheckAddress[ops_id]) {
+            //if ((address - ops_offset) == 0x20000) {
+            parityBits[address - ops_offset] = (byte) Parity.calculateParityBit(data & 0xFF, parity);
+            parityBits[address - ops_offset + 1] = (byte) Parity.calculateParityBit((data >> 8) & 0xFF, parity);
         }
-    }
-
-    /**
-     * Prüft die Parität eines Bytes
-     *
-     * @param data Daten
-     * @return Parität (0-gerade / 1-ungerade)
-     */
-    private int checkParity(int data) {
-        int par = (parity.equals(Parity.EVEN)) ? 0x00 : 0x01;
-        for (int i = 0; i < 8; i++) {
-            par ^= (0x01 & (data >> i));
-        }
-        return par;
     }
 
     /**

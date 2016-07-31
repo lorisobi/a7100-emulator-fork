@@ -25,6 +25,7 @@
  *   28.07.2015 - Lesen von Wörtern zwischen Modulgrenzen ermöglicht
  *   25.07.2016 - timeout bei reset hinzugefügt
  *   29.07.2016 - IOException beim Speichern des Systemspeichers hinzugefügt
+ *   31.07.2016 - Unnötige Imports entfernt
  */
 package a7100emulator.components.system;
 
@@ -37,8 +38,6 @@ import java.io.DataOutputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * Klasse zur Abbildung des MMS 16 Systembusses und zur Verwaltung der dort

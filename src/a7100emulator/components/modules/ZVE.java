@@ -25,6 +25,7 @@
  *   23.07.2016 - Methoden für CPU- Pausieren und Anhalten entfernt
  *   24.07.2016 - Speichern Quartz Zustand
  *   28.07.2016 - Methode getDecoder() hinzugefügt
+ *   31.07.2016 - Methode getPPI() hinzugefügt
  */
 package a7100emulator.components.modules;
 
@@ -278,7 +279,7 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
      */
     @Override
     public int readPortByte(int port) {
-        //System.out.println("IN Byte from port " + Integer.toHexString(port));
+//        System.out.println("IN Byte from port " + Integer.toHexString(port));
         switch (port) {
             case PORT_ZVE_8259A_1:
                 return pic.readStatus();
@@ -315,7 +316,7 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
      */
     @Override
     public int readPortWord(int port) {
-//        System.out.println("IN Byte from port " + Integer.toHexString(port));
+        //System.out.println("IN Byte from port " + Integer.toHexString(port));
         switch (port) {
             case PORT_ZVE_8259A_1:
             case PORT_ZVE_8259A_2:
@@ -373,7 +374,7 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
      * Fehler, da die ZVE EPROMS nicht beschreibbar sind.
      *
      * @param address Adresse
-     * @param data    Daten
+     * @param data Daten
      */
     @Override
     public void writeByte(int address, int data) {
@@ -386,7 +387,7 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
      * Fehler, da die ZVE EPROMS nicht beschreibbar sind.
      *
      * @param address Adresse
-     * @param data    Daten
+     * @param data Daten
      */
     @Override
     public void writeWord(int address, int data) {
@@ -517,10 +518,19 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
      * Gibt die Instanz des CPU Decoders zurück.
      *
      * @return Decoderinstanz oder <code>null</code> wenn kein Decoder
-     *         initialisiert ist.
+     * initialisiert ist.
      */
     public Decoder getDecoder() {
         return cpu.getDecoder();
     }
 
+    /**
+     * Gibt den auf dem Modul enthaltenen Parallel E/A-Schaltkreis zurück. Dies
+     * wird von dem ZPS zum setzen von Statussignalen benötigt.
+     *
+     * @return Referenz auf PPI
+     */
+    KR580WW55A getPPI() {
+        return ppi;
+    }
 }

@@ -273,7 +273,7 @@ public class A7100 {
         ZPS.zps_count = 0;
 
         zve = new ZVE();
-        zps = null;
+//        zps = new ZPS(zve);
         ops1 = new OPS();
         ops2 = new OPS();
         ops3 = new OPS();
