@@ -26,6 +26,7 @@
  *   18.11.2014 - getBit durch BitTest.getBit ersetzt
  *              - Interface IC implementiert
  *   18.12.2014 - Keyboard Reset Hack hinzugefügt
+ *   07.08.2016 - Puffer behält Wert bis er überschrieben wird
  */
 package a7100emulator.components.ic;
 
@@ -220,7 +221,7 @@ public class KR580WM51A implements IC {
         int value = receiveBuffer;
 //        System.out.println("Lese Daten von USART:" + String.format("%02X", value & 0xFF));
         // Leere Puffer
-        receiveBuffer = 0x00;
+       // receiveBuffer = 0x00;
         // Lösche RxRDY Status
         state &= ~STATE_RXRDY;
 

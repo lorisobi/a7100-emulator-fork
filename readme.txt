@@ -37,26 +37,16 @@ Inhaltsverzeichnis:
 
 --------------------------------------------------------------------------------
 2. Letzte Änderungen
-
-  v0.8.90 - 28.07.2016
+    
+  vX.X.XX - XX.XX.XXXX
   Neue Features:
-    - Synchronisation mit realer Zeit
-    - Lesen von CopyQM-Images
-    - Speichern und Laden von Zuständen mit wählbarem Dateinamen
-    - Speichern von Screenshots mit beliebigem Dateinamen
-    - Statusleiste mit Image-Informationen
-    - Anzeigen von Disketteninhalten
+
   Neuerungen im SCP-Disketten-Tool:
-    - Lesen von CopyQM-, Teledisk-, Imagedisk- und DMK-Images
-    - Lesen unabhängig vom SCP-Hausformat 
-    - Einträge system.dbd hinzugefügt/aktualisiert (201 -> 404)
+
   Änderungen/Bugfixes:
-    - Fehler in UA880 Befehlen JP, BIT, CPI, CPD, CPIR und CPDR behoben
-    - UA880 Debugausgaben ergänzt
-    - Frequenzen der CPUs exakter abgebildet
+
   Softwarekompatibilität:
-    - Nicht getestet -> Läuft: Tyranopolis, Jazzy
-    - Nicht getestet -> Absturz nach Titel: Goff, Burg, CP/M-86
+    - Absturz nach Titel -> Läuft: Burg, Goff
  
 --------------------------------------------------------------------------------
 3. Softwarekompatibilität
@@ -111,8 +101,8 @@ Castle             ***
 Wall               ***
 Schach             ***
 Tyranopolis        ***
-Goff               !!        Tastaturbefehle werden nicht angenommen
-Burg               !!        Tastaturbefehle werden nicht angenommen
+Goff               ***
+Burg               ***
 Jazzy              ***
 
 Systemprogramme

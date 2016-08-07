@@ -26,6 +26,7 @@
  *   24.07.2016 - Speichern Quartz Zustand
  *   28.07.2016 - Methode getDecoder() hinzugefügt
  *   31.07.2016 - Methode getPPI() hinzugefügt
+ *   07.08.2016 - Doppelte USART Ports hinzugefügt
  */
 package a7100emulator.components.modules;
 
@@ -104,14 +105,29 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
     private final static int PORT_ZVE_8253_INIT = 0xD6;
 
     /**
-     * Port 1 des USART-Schaltkreises
+     * Datenleitung des USART-Schaltkreises
      */
-    private final static int PORT_ZVE_8251A_DATA = 0xD8;
+    private final static int PORT_ZVE_8251A_DATA_1 = 0xD8;
 
     /**
-     * Port 2 des USART-Schaltkreises
+     * Datenleitung des USART-Schaltkreises - Diese nicht dokumentierte zweite
+     * Adresse ergibt sich daraus, dass die Leitung AB(2) auf der ZVE nicht mit
+     * dem USART verbunden ist.
      */
-    private final static int PORT_ZVE_8251A_COMMAND = 0xDA;
+    private final static int PORT_ZVE_8251A_DATA_2 = 0xDC;
+
+    /**
+     * Commandleitung des USART-Schaltkreises
+     */
+    private final static int PORT_ZVE_8251A_COMMAND_1 = 0xDA;
+
+    /**
+     * Commandleitung des USART-Schaltkreises - Diese nicht dokumentierte zweite
+     * Adresse ergibt sich daraus, dass die Leitung AB(2) auf der ZVE nicht mit
+     * dem USART verbunden ist.
+     */
+    private final static int PORT_ZVE_8251A_COMMAND_2 = 0xDE;
+
     /**
      * Interruptcontroller
      */
@@ -181,8 +197,10 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
         MMS16Bus.getInstance().registerIOPort(this, PORT_ZVE_8253_COUNTER1);
         MMS16Bus.getInstance().registerIOPort(this, PORT_ZVE_8253_COUNTER2);
         MMS16Bus.getInstance().registerIOPort(this, PORT_ZVE_8253_INIT);
-        MMS16Bus.getInstance().registerIOPort(this, PORT_ZVE_8251A_DATA);
-        MMS16Bus.getInstance().registerIOPort(this, PORT_ZVE_8251A_COMMAND);
+        MMS16Bus.getInstance().registerIOPort(this, PORT_ZVE_8251A_DATA_1);
+        MMS16Bus.getInstance().registerIOPort(this, PORT_ZVE_8251A_DATA_2);
+        MMS16Bus.getInstance().registerIOPort(this, PORT_ZVE_8251A_COMMAND_1);
+        MMS16Bus.getInstance().registerIOPort(this, PORT_ZVE_8251A_COMMAND_2);
     }
 
     /**
@@ -225,10 +243,12 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
             case PORT_ZVE_8253_INIT:
                 pti.writeInit(data);
                 break;
-            case PORT_ZVE_8251A_DATA:
+            case PORT_ZVE_8251A_DATA_1:
+            case PORT_ZVE_8251A_DATA_2:
                 usart.writeDataToDevice(data);
                 break;
-            case PORT_ZVE_8251A_COMMAND:
+            case PORT_ZVE_8251A_COMMAND_1:
+            case PORT_ZVE_8251A_COMMAND_2:
                 usart.writeCommand(data);
                 break;
         }
@@ -242,7 +262,7 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
      */
     @Override
     public void writePortWord(int port, int data) {
-//        System.out.println("OUT Word " + Integer.toHexString(data) + " to port " + Integer.toHexString(port));
+        //System.out.println("OUT Word " + Integer.toHexString(data) + " to port " + Integer.toHexString(port));
         switch (port) {
             case PORT_ZVE_8259A_1:
                 break;
@@ -264,11 +284,14 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
                 break;
             case PORT_ZVE_8253_INIT:
                 break;
-            case PORT_ZVE_8251A_DATA:
+            case PORT_ZVE_8251A_DATA_1:
+            case PORT_ZVE_8251A_DATA_2:
                 break;
-            case PORT_ZVE_8251A_COMMAND:
+            case PORT_ZVE_8251A_COMMAND_1:
+            case PORT_ZVE_8251A_COMMAND_2:
                 break;
         }
+        throw new UnsupportedOperationException("Schreiben von Wort auf ZVE Port nicht implementiert.");
     }
 
     /**
@@ -297,9 +320,11 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
                 return pti.readCounter(1);
             case PORT_ZVE_8253_COUNTER2:
                 return pti.readCounter(2);
-            case PORT_ZVE_8251A_DATA:
+            case PORT_ZVE_8251A_DATA_1:
+            case PORT_ZVE_8251A_DATA_2:
                 return usart.readFromDevice();
-            case PORT_ZVE_8251A_COMMAND:
+            case PORT_ZVE_8251A_COMMAND_1:
+            case PORT_ZVE_8251A_COMMAND_2:
                 return usart.readStatus();
             case PORT_ZVE_8255A_INIT:
             case PORT_ZVE_8253_INIT:
@@ -319,23 +344,33 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
         //System.out.println("IN Byte from port " + Integer.toHexString(port));
         switch (port) {
             case PORT_ZVE_8259A_1:
+                break;
             case PORT_ZVE_8259A_2:
+                break;
             case PORT_ZVE_8255A_PORT_A:
+                break;
             case PORT_ZVE_8255A_PORT_B:
+                break;
             case PORT_ZVE_8255A_PORT_C:
                 break;
             case PORT_ZVE_8253_COUNTER0:
+                break;
             case PORT_ZVE_8253_COUNTER1:
+                break;
             case PORT_ZVE_8253_COUNTER2:
                 break;
-            case PORT_ZVE_8251A_DATA:
-            case PORT_ZVE_8251A_COMMAND:
+            case PORT_ZVE_8251A_DATA_1:
+            case PORT_ZVE_8251A_DATA_2:
+                break;
+            case PORT_ZVE_8251A_COMMAND_1:
+            case PORT_ZVE_8251A_COMMAND_2:
                 break;
             case PORT_ZVE_8255A_INIT:
             case PORT_ZVE_8253_INIT:
                 throw new IllegalArgumentException("Cannot read from PORT:" + Integer.toHexString(port));
         }
-        return 0;
+        throw new UnsupportedOperationException("Schreiben von Wort auf ZVE Port nicht implementiert.");
+//        return 0;
     }
 
     /**
