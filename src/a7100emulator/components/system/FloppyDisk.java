@@ -36,6 +36,7 @@
  *              - getFlatContent hinzugefügt
  *   25.07.2016 - Rückgabe null bei fehlendem Sektor
  *   29.07.2016 - IOException beim Speichern von Images hinzugefügt
+ *   09.08.2016 - Logger hinzugefügt und Ausgaben umgeleitet
  */
 package a7100emulator.components.system;
 
@@ -57,6 +58,11 @@ import java.util.logging.Logger;
  */
 public class FloppyDisk implements StateSavable {
 
+    /**
+     * Logger Instanz
+     */
+    private static final Logger LOG = Logger.getLogger(FloppyDisk.class.getName());
+    
     /**
      * Daten der Diskette
      */
@@ -122,7 +128,7 @@ public class FloppyDisk implements StateSavable {
             }
             return bos.toByteArray();
         } catch (IOException ex) {
-            Logger.getLogger(FloppyDisk.class.getName()).log(Level.SEVERE, null, ex);
+            LOG.log(Level.WARNING, null, ex);
         }
         return null;
     }

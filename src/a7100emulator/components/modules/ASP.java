@@ -21,6 +21,7 @@
  *   02.04.2014 - Kommentare vervollständigt
  *   09.08.2014 - Zugriffe auf SystemPorts durch MMS16Bus ersetzt
  *   31.07.2016 - Ports für alle Module zusammengefasst
+ *   09.08.2016 - Logger hinzugefügt
  */
 package a7100emulator.components.modules;
 
@@ -28,6 +29,7 @@ import a7100emulator.components.system.MMS16Bus;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.logging.Logger;
 
 /**
  * Klasse zur Abbildung der ASP (Anschlußsteuerung seriell/parallel)
@@ -37,6 +39,11 @@ import java.io.IOException;
  * @author Dirk Bräuer
  */
 public final class ASP implements IOModule {
+
+    /**
+     * Logger Instanz
+     */
+    private static final Logger LOG = Logger.getLogger(ASP.class.getName());
 
     /**
      * Anzahl der ASP im System

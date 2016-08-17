@@ -29,6 +29,8 @@
  *              - Laden von Binärdateien, Angabe Imagetyp entfernt
  *   24.07.2016 - getDisk() hinzugefügt
  *   29.07.2016 - IOException beim Lesen und Speichern von Images hinzugefügt
+ *   09.08.2016 - Logger hinzugefügt
+
  */
 package a7100emulator.components.system;
 
@@ -39,6 +41,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.util.logging.Logger;
 
 /**
  * Klasse zur Realisierung eines Diskettenlaufwerkes.
@@ -46,6 +49,11 @@ import java.io.IOException;
  * @author Dirk Bräuer
  */
 public class FloppyDrive implements StateSavable {
+
+    /**
+     * Logger Instanz
+     */
+    private static final Logger LOG = Logger.getLogger(FloppyDrive.class.getName());
 
     /**
      * Laufwerkstyp

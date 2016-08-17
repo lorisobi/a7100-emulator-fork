@@ -24,6 +24,7 @@
  *   06.01.2015 - Globalen Debugger ergänzt
  *              - Bezeichner hinzugefügt
  *   25.07.2015 - Funktionen für Automatischen Start und Slowdown deaktiviert
+ *   07.08.2016 - Logger hinzugefügt und Ausgaben umgeleitet
  */
 package a7100emulator.Debug;
 
@@ -40,10 +41,15 @@ import java.util.logging.Logger;
 public class Debugger {
 
     /**
+     * Logger Instanz
+     */
+    private static final Logger LOG = Logger.getLogger(Debugger.class.getName());
+
+    /**
      * Globaler Debugger
      */
     private static final Debugger globalDebugger = new Debugger("a7100", false, "");
- 
+
     /**
      * Ausgabedatei
      */
@@ -98,7 +104,7 @@ public class Debugger {
             try {
                 debugFile = new FileWriter("./debug/" + filename + ".log");
             } catch (IOException ex) {
-                Logger.getLogger(Debugger.class.getName()).log(Level.SEVERE, null, ex);
+                LOG.log(Level.WARNING, "Fehler beim Erzeugen der Debug-Ausgabe!", ex);
             }
         }
         this.debug = debug;
@@ -129,7 +135,7 @@ public class Debugger {
                 debugFile.flush();
             }
         } catch (IOException ex) {
-            Logger.getLogger(Debugger.class.getName()).log(Level.SEVERE, null, ex);
+            LOG.log(Level.WARNING, "Fehler beim Schreiben der Debug-Ausgabe!", ex);
         }
     }
 
@@ -143,7 +149,7 @@ public class Debugger {
             debugFile.write(comment + "\n");
             debugFile.flush();
         } catch (IOException ex) {
-            Logger.getLogger(Debugger.class.getName()).log(Level.SEVERE, null, ex);
+            LOG.log(Level.WARNING, "Fehler beim Schreiben der Debug-Ausgabe!", ex);
         }
     }
 

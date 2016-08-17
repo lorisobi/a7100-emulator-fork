@@ -21,6 +21,8 @@
  *   05.04.2014 - Kommentare vervollständigt
  *   01.01.2015 - Konstruktor mit Byte Array hinzugefügt
  *   26.03.2016 - Methode clear() ergänzt
+ *   09.08.2016 - Logger hinzugefügt
+ *              - Exception beim Laden von Datei ausgeben
  */
 package a7100emulator.Tools;
 
@@ -30,7 +32,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
@@ -39,6 +40,11 @@ import java.util.logging.Logger;
  * @author Dirk Bräuer
  */
 public class Memory {
+
+    /**
+     * Logger Instanz
+     */
+    private static final Logger LOG = Logger.getLogger(Memory.class.getName());
 
     /**
      * Speichertyp
@@ -103,8 +109,9 @@ public class Memory {
      * @param baseAddress Basisadresse
      * @param file Datei mit Speicherinhalt
      * @param loadMode Lademodus
+     * @throws java.io.IOException Wenn das Laden nicht erfolgreich war
      */
-    public void loadFile(int baseAddress, File file, FileLoadMode loadMode) {
+    public void loadFile(int baseAddress, File file, FileLoadMode loadMode) throws IOException {
         InputStream in = null;
         try {
             byte[] buffer = new byte[(int) file.length()];
@@ -119,14 +126,8 @@ public class Memory {
                     address++;
                 }
             }
-        } catch (IOException ex) {
-            Logger.getLogger(Memory.class.getName()).log(Level.SEVERE, null, ex);
         } finally {
-            try {
-                in.close();
-            } catch (IOException ex) {
-                Logger.getLogger(Memory.class.getName()).log(Level.SEVERE, null, ex);
-            }
+            in.close();
         }
     }
 

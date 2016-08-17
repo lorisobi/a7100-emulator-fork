@@ -20,6 +20,7 @@
  * Letzte Änderungen:
  *   05.04.2014 - Kommentare vervollständigt
  *   18.11.2014 - Interface StateSavable implementiert
+ *   09.08.2016 - Logger hinzugefügt
  */
 package a7100emulator.components.system;
 
@@ -27,6 +28,7 @@ import a7100emulator.Tools.StateSavable;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.logging.Logger;
 
 /**
  * Klasse zur Abbildung einer Festplatte
@@ -37,6 +39,11 @@ import java.io.IOException;
  * @author Dirk Bräuer
  */
 public class HardDisk implements StateSavable {
+
+    /**
+     * Logger Instanz
+     */
+    private static final Logger LOG = Logger.getLogger(HardDisk.class.getName());
 
     /**
      * Speichert den Zustand der Festplatte in einer Datei

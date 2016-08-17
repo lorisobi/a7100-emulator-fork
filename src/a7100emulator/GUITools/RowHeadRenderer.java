@@ -20,8 +20,9 @@
  * Letzte Änderungen:
  *   05.04.2014 - Kommentare vervollständigt
  *   28.07.2016 - Kommentare erweitert
+ *   07.08.2016 - Paket in a7100emulator verschoben
  */
-package GUITools;
+package a7100emulator.GUITools;
 
 import java.awt.Component;
 import javax.swing.JLabel;

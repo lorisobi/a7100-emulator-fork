@@ -22,6 +22,7 @@
  *   09.08.2014 - Zugriff auf SystemMemory durch MMS16Bus ersetzt
  *   31.07.2016 - Parity Hack hinzugefügt
  *              - Zugriff auf ZVE ergänzt
+ *   09.08.2016 - Logger hinzugefügt
  */
 package a7100emulator.components.modules;
 
@@ -33,6 +34,7 @@ import a7100emulator.components.system.MMS16Bus;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.logging.Logger;
 
 /**
  * Klasse zur Abbildung der ZPS (Zweiportspeicher).
@@ -43,6 +45,11 @@ import java.io.IOException;
  * @author Dirk Bräuer
  */
 public final class ZPS implements MemoryModule {
+
+    /**
+     * Logger Instanz
+     */
+    private static final Logger LOG = Logger.getLogger(ZPS.class.getName());
 
     /**
      * Anzahl der ZPS Module im System

@@ -20,6 +20,7 @@
  * Letzte Änderungen:
  *   01.04.2014 - Kommentare vervollständigt
  *   24.07.2016 - Anzeige von Disketteninhalten im MemoryAnalyzer
+ *   09.08.2016 - Logger hinzugefügt
  */
 package a7100emulator.components.modules;
 
@@ -28,6 +29,7 @@ import a7100emulator.components.system.FloppyDrive;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.logging.Logger;
 
 /**
  * Klasse zur Abbildung der AFS (Anschluß für Folienspeicher)
@@ -35,6 +37,11 @@ import java.io.IOException;
  * @author Dirk Bräuer
  */
 public final class AFS implements Module {
+
+    /**
+     * Logger Instanz
+     */
+    private static final Logger LOG = Logger.getLogger(AFS.class.getName());
 
     /**
      * Array der angeschlossenen Laufwerke

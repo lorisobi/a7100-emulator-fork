@@ -23,6 +23,7 @@
  *   28.07.2016 - Singleton entfernt
  *              - Parameter für Namen und Segment-Verwendung hinzugefügt
  *              - Fehler beim Speichern behoben
+ *   09.08.2016 - Logger hinzugefügt und Ausgaben umgeleitet
  */
 package a7100emulator.Debug;
 
@@ -48,6 +49,11 @@ import javax.swing.table.AbstractTableModel;
  * @author Dirk Bräuer
  */
 public class Decoder {
+
+    /**
+     * Logger Instanz
+     */
+    private static final Logger LOG = Logger.getLogger(Decoder.class.getName());
 
     /**
      * Decoder Informationen mit Adresse: Befehl, Operanden
@@ -100,7 +106,7 @@ public class Decoder {
         try {
             Thread.sleep(100);
         } catch (InterruptedException ex) {
-            Logger.getLogger(Decoder.class.getName()).log(Level.SEVERE, null, ex);
+            LOG.log(Level.FINEST, null, ex);
         }
     }
 

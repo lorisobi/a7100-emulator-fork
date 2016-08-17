@@ -25,6 +25,7 @@
  *   30.07.2015 - Spurpositionierung und Lesen Sektor Identifikationsfeld
  *                implementiert
  *   25.07.2016 - Erkennen von fehlerhafter Diskettenposition beim Daten lesen
+ *   07.08.2016 - Logger hinzugefügt und Ausgaben umgeleitet
  */
 package a7100emulator.components.modules;
 
@@ -36,6 +37,8 @@ import a7100emulator.components.system.MMS16Bus;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Klasse zur Abbildung des KES (Kontroller für Externspeicher)
@@ -45,6 +48,11 @@ import java.io.IOException;
  * @author Dirk Bräuer
  */
 public final class KES implements IOModule, ClockModule {
+
+    /**
+     * Logger Instanz
+     */
+    private static final Logger LOG = Logger.getLogger(KES.class.getName());
 
     /**
      * Anzahl der im System vorhandenen KES-Module
@@ -164,7 +172,9 @@ public final class KES implements IOModule, ClockModule {
                     throw new IllegalArgumentException("Illegal Command:" + Integer.toHexString(data));
             }
         } else if (port == PORT_KES_WAKEUP_2[kes_id]) {
+            LOG.log(Level.FINE, "Schreiben auf Kanal 2 nicht implementiert!", String.format("0x%02X", port));
         } else {
+            LOG.log(Level.FINE, "Schreiben auf nicht definiertem Port {0}!", String.format("0x%02X", port));
         }
     }
 
@@ -188,8 +198,9 @@ public final class KES implements IOModule, ClockModule {
     @Override
     public int readPortWord(int port) {
         if (port == PORT_KES_WAKEUP_1[kes_id] || port == PORT_KES_WAKEUP_2[kes_id]) {
-            throw new IllegalArgumentException("Cannot read from PORT:" + Integer.toHexString(port));
+            LOG.log(Level.FINE, "Lesen von Port {0} nicht erlaubt!", String.format("0x%02X", port));
         } else {
+            LOG.log(Level.FINE, "Lesen von undefiniertem Port {0}!", String.format("0x%02X", port));
         }
         return 0;
     }
@@ -440,7 +451,7 @@ public final class KES implements IOModule, ClockModule {
             break;
             case 0x05:
                 // Daten zum KES-Puffer lesen
-                System.out.println("Daten zum KES-Puffer noch nicht implementiert");
+                LOG.log(Level.FINE, "Daten zum KES-Puffer noch nicht implementiert");
                 break;
             case 0x06: {
                 // Daten schreiben
@@ -464,7 +475,7 @@ public final class KES implements IOModule, ClockModule {
             break;
             case 0x07:
                 // Daten aus KES-Puffer Schreiben
-                System.out.println("Daten von KES-Puffer noch nicht implementiert");
+                LOG.log(Level.FINE, "Daten von KES-Puffer noch nicht implementiert");
                 break;
             case 0x08: {
                 // Spurpositionierung einschalten
@@ -495,11 +506,11 @@ public final class KES implements IOModule, ClockModule {
             break;
             case 0x0C:
                 // Start UA880-Programm
-                System.out.println("UA880 noch nicht implementiert");
+                LOG.log(Level.FINE, "UA880 noch nicht implementiert");
                 break;
             case 0x0D:
                 // DMA-Transfer zwischen Systemspeicher und UA-880-Subsystem Port
-                System.out.println("DMA-Transfer noch nicht implementiert");
+                LOG.log(Level.FINE, "DMA-Transfer noch nicht implementiert");
                 break;
             case 0x0E: {
                 // KES-Puffer Ein-/Ausgabe

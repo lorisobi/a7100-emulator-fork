@@ -20,12 +20,14 @@
  * Letzte Änderungen:
  *   01.04.2014 - Kommentare vervollständigt
  *   18.11.2014 - Interface Modul hinzugefügt
+ *   09.08.2016 - Logger hinzugefügt
  */
 package a7100emulator.components.modules;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.logging.Logger;
 
 /**
  * Klasse zur Abbildung der AFP (Adapter für Festplatten)
@@ -36,6 +38,11 @@ import java.io.IOException;
  * @author Dirk Bräuer
  */
 public class AFP implements Module {
+
+    /**
+     * Logger Instanz
+     */
+    private static final Logger LOG = Logger.getLogger(AFP.class.getName());
 
     @Override
     public void init() {

@@ -27,6 +27,7 @@
  *              - Interface IC implementiert
  *   18.12.2014 - Keyboard Reset Hack hinzugefügt
  *   07.08.2016 - Puffer behält Wert bis er überschrieben wird
+ *   09.08.2016 - Logger hinzugefügt
  */
 package a7100emulator.components.ic;
 
@@ -36,6 +37,7 @@ import a7100emulator.components.system.MMS16Bus;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.logging.Logger;
 
 /**
  * Klasse zur Abbildung des USART-Schaltkreises
@@ -45,6 +47,11 @@ import java.io.IOException;
  * @author Dirk Bräuer
  */
 public class KR580WM51A implements IC {
+
+    /**
+     * Logger Instanz
+     */
+    private static final Logger LOG = Logger.getLogger(KR580WM51A.class.getName());
 
     /**
      * Statusbit Transmitter Ready
@@ -221,7 +228,7 @@ public class KR580WM51A implements IC {
         int value = receiveBuffer;
 //        System.out.println("Lese Daten von USART:" + String.format("%02X", value & 0xFF));
         // Leere Puffer
-       // receiveBuffer = 0x00;
+        // receiveBuffer = 0x00;
         // Lösche RxRDY Status
         state &= ~STATE_RXRDY;
 

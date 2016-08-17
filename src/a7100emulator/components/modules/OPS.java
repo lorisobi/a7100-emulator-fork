@@ -26,6 +26,7 @@
  *              - Fehler Paritätsprüfung behoben und Parity Hack entfernt
  *   31.07.2016 - Ports für alle Module in Array zusammengefasst
  *              - Parity ausgelagert
+ *   07.08.2016 - Logger hinzugefügt und Ausgaben umgeleitet
  */
 package a7100emulator.components.modules;
 
@@ -36,6 +37,8 @@ import a7100emulator.components.system.MMS16Bus;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Klasse zur Abbildung der OPS (Operativspeicher).
@@ -47,6 +50,11 @@ import java.io.IOException;
  * @author Dirk Bräuer
  */
 public final class OPS implements IOModule, MemoryModule {
+
+    /**
+     * Logger Instanz
+     */
+    private static final Logger LOG = Logger.getLogger(OPS.class.getName());
 
     /**
      * Gesamtzahl der vorhandenen OPS-Module
@@ -128,6 +136,8 @@ public final class OPS implements IOModule, MemoryModule {
                 parity = Parity.ODD;
             }
             state = 0x0F;
+        } else {
+            LOG.log(Level.FINE, "Schreiben auf nicht definiertem Port {0}!", String.format("0x%02X", port));
         }
     }
 
@@ -139,7 +149,7 @@ public final class OPS implements IOModule, MemoryModule {
      */
     @Override
     public void writePortWord(int port, int data) {
-        //System.out.println("write Word auf OPS Port nicht implementiert");
+        LOG.log(Level.FINE, "Schreiben von Wörtern auf Port {0} noch nicht implementiert!", String.format("0x%02X", port));
     }
 
     /**
@@ -152,6 +162,8 @@ public final class OPS implements IOModule, MemoryModule {
     public int readPortByte(int port) {
         if (port == PORT_OPS_PES[ops_id]) {
             return state;
+        } else {
+            LOG.log(Level.FINE, "Lesen von nicht definiertem Port {0}!", String.format("0x%02X", port));
         }
         return 0;
     }
@@ -164,7 +176,7 @@ public final class OPS implements IOModule, MemoryModule {
      */
     @Override
     public int readPortWord(int port) {
-        //System.out.println("read Word auf OPS Port nicht implementiert");
+        LOG.log(Level.FINE, "Lesen von Wörtern von Port {0} noch nicht implementiert!", String.format("0x%02X", port));
         return 0;
     }
 

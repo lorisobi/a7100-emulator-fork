@@ -30,6 +30,7 @@
  *              - Methoden zum Pausieren ergänzt
  *   24.07.2016 - Synchronisation mit Systemzeit ermöglicht
  *   28.07.2016 - Synchronisieren beim Start deaktiviert
+ *   09.08.2016 - Logger hinzugefügt und Ausgaben umgeleitet
  */
 package a7100emulator.components.system;
 
@@ -52,6 +53,11 @@ import java.util.logging.Logger;
  * @author Dirk Bräuer
  */
 public class GlobalClock implements Runnable, StateSavable {
+
+    /**
+     * Logger Instanz
+     */
+    private static final Logger LOG = Logger.getLogger(GlobalClock.class.getName());
 
     /**
      * Zyklendauer in Mikrosekunden
@@ -178,7 +184,9 @@ public class GlobalClock implements Runnable, StateSavable {
                 if (suspended) {
                     // Wenn Emulator pausiert ist
                     synchronized (this) {
+                        LOG.log(Level.INFO, "Globaler Zeitgeber angehalten!");
                         wait();
+                        LOG.log(Level.INFO, "Globaler Zeitgeber fortgesetzt!");
                         // Setze nächste Ausführungszeit auf jetzt
                         nextExecutionTime = System.currentTimeMillis();
                     }
@@ -209,7 +217,7 @@ public class GlobalClock implements Runnable, StateSavable {
 //                    System.out.println("Systemzeit: "+(clock/1000000)+"s");
 //                }
             } catch (InterruptedException ex) {
-                Logger.getLogger(GlobalClock.class.getName()).log(Level.SEVERE, null, ex);
+                LOG.log(Level.FINE, null, ex);
             }
         }
     }

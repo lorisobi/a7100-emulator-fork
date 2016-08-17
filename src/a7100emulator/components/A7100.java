@@ -23,6 +23,7 @@
  *   23.07.2016 - Methoden für Pausieren und Einzelschritt überarbeitet
  *   24.07.2016 - Laden und Speichern des Zustands in beliebige Dateien
  *   29.07.2016 - Exceptions beim Laden und Speichern von Zuständen
+ *   09.08.2016 - Logger hinzugefügt und Ausgaben umgeleitet
  */
 package a7100emulator.components;
 
@@ -52,6 +53,11 @@ import java.util.logging.Logger;
  * @author Dirk Bräuer
  */
 public class A7100 {
+
+    /**
+     * Logger Instanz
+     */
+    private static final Logger LOG = Logger.getLogger(A7100.class.getName());
 
     /**
      * ZVE-Modul
@@ -147,7 +153,7 @@ public class A7100 {
             // Warte 100ms um das Anhalten des Systems zu garantieren
             Thread.sleep(100);
         } catch (InterruptedException ex) {
-            Logger.getLogger(A7100.class.getName()).log(Level.SEVERE, null, ex);
+            LOG.log(Level.FINEST, null, ex);
         }
 
         try {
@@ -189,7 +195,7 @@ public class A7100 {
             // Warte 100ms um das Anhalten des Systems zu garantieren
             Thread.sleep(100);
         } catch (InterruptedException ex) {
-            Logger.getLogger(A7100.class.getName()).log(Level.SEVERE, null, ex);
+            LOG.log(Level.FINEST, null, ex);
         }
 
         try {
@@ -225,7 +231,7 @@ public class A7100 {
             // Warte 100ms um das Anhalten des Systems zu garantieren
             Thread.sleep(100);
         } catch (InterruptedException ex) {
-            Logger.getLogger(A7100.class.getName()).log(Level.SEVERE, null, ex);
+            LOG.log(Level.FINEST, null, ex);
         }
 
         MMS16Bus.getInstance().reset();

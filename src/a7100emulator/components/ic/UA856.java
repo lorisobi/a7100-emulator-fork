@@ -24,6 +24,7 @@
  *              - Interface IC implementiert
  *   01.12.2015 - Doppelte Typdefinition in LinkedList entfernt
  *   24.04.2016 - Abfrage von RTS/DTR implementiert
+ *   09.08.2016 - Logger hinzugefügt
  */
 package a7100emulator.components.ic;
 
@@ -33,6 +34,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.LinkedList;
+import java.util.logging.Logger;
 
 /**
  * Klasse zur Realisierung des U856 SIO
@@ -42,6 +44,11 @@ import java.util.LinkedList;
  * @author Dirk Bräuer
  */
 public class UA856 implements IC {
+
+    /**
+     * Logger Instanz
+     */
+    private static final Logger LOG = Logger.getLogger(UA856.class.getName());
 
     /**
      * Serielle Ein-/Ausgabekanäle

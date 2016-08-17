@@ -29,6 +29,7 @@
  *              - enum CursorMode entfernt
  *   09.08.2015 - Javadoc korrigiert
  *   24.07.2016 - updateClock() in clockUpdate() umbenannt
+ *   07.08.2016 - Logger hizugefügt und Systemausgaben umgeleitet
  */
 package a7100emulator.components.modules;
 
@@ -58,6 +59,11 @@ import javax.swing.JFrame;
  */
 public final class ABG implements Module {
 
+    /**
+     * Logger Instanz
+     */
+    private static final Logger LOG = Logger.getLogger(ABG.class.getName());
+    
     /**
      * Port Funktionsregister
      */
@@ -249,7 +255,6 @@ public final class ABG implements Module {
         if (localClock > 160000) {
             localClock = 0;
             updateScreen();
-            //kgs.requestNMI();
         }
     }
 
@@ -289,7 +294,7 @@ public final class ABG implements Module {
                 alphanumericMemory[1].writeWord(address, data);
                 break;
             default:
-                System.out.println("Nicht definiertes MSEL Register Schreiben " + Integer.toBinaryString(msel) + " für ABG");
+                LOG.log(Level.FINE, "Schreiben in nicht definiertes MSEL Register {0}", Integer.toBinaryString(msel));
                 break;
         }
     }
@@ -330,7 +335,7 @@ public final class ABG implements Module {
                 alphanumericMemory[1].writeByte(address, data);
                 break;
             default:
-                System.out.println("Nicht definiertes MSEL Register Schreiben " + Integer.toBinaryString(msel) + " für ABG");
+                LOG.log(Level.FINE, "Schreiben in nicht definiertes MSEL Register {0}", Integer.toBinaryString(msel));
                 break;
         }
     }
@@ -357,7 +362,7 @@ public final class ABG implements Module {
                 // Alphanumerik 2
                 return alphanumericMemory[1].readWord(address);
             default:
-                System.out.println("Nicht definiertes MSEL Register Lesen " + Integer.toBinaryString(msel) + " für ABG");
+                LOG.log(Level.FINE, "Lesen aus nicht definiertem MSEL Register {0}", Integer.toBinaryString(msel));
                 break;
         }
         return 0;
@@ -385,7 +390,7 @@ public final class ABG implements Module {
                 // Alphanumerik 2
                 return alphanumericMemory[1].readByte(address);
             default:
-                System.out.println("Nicht definiertes MSEL Register Lesen " + Integer.toBinaryString(msel) + " für ABG");
+                LOG.log(Level.FINE, "Lesen aus nicht definiertem MSEL Register {0}", Integer.toBinaryString(msel));
                 break;
         }
         return 0;
@@ -400,12 +405,15 @@ public final class ABG implements Module {
     public int readLocalPort(int port) {
         switch (port) {
             case LOCAL_PORT_FUNCTION_REGISTER:
-                throw new IllegalArgumentException("Lesen Funktionsregister nicht erlaubt!");
+                LOG.log(Level.FINER, "Lesen Funktionsregister (Port {0}) nicht erlaubt!", String.format("0x%02X", port));
+                break;
             case LOCAL_PORT_SPLIT_REGISTER:
-                throw new IllegalArgumentException("Lesen Splitregister nicht erlaubt!");
+                LOG.log(Level.FINER, "Lesen Splitregister (Port {0}) nicht erlaubt!", String.format("0x%02X", port));
+                break;
             case LOCAL_PORT_ADDRESS_COUNTER_LOW:
             case LOCAL_PORT_ADDRESS_COUNTER_HIGH:
-                throw new IllegalArgumentException("Lesen Adresszähler nicht erlaubt!");
+                LOG.log(Level.FINER, "Lesen Adresszähler (Port {0}) nicht erlaubt!", String.format("0x%02X", port));
+                break;
             case LOCAL_PORT_PALETTE_0:
             case LOCAL_PORT_PALETTE_1:
             case LOCAL_PORT_PALETTE_2:
@@ -422,7 +430,11 @@ public final class ABG implements Module {
             case LOCAL_PORT_PALETTE_D:
             case LOCAL_PORT_PALETTE_E:
             case LOCAL_PORT_PALETTE_F:
-                throw new IllegalArgumentException("Lesen Palettenregister nicht erlaubt!");
+                LOG.log(Level.FINER, "Lesen Palettenregister (Port {0}) nicht erlaubt!", String.format("0x%02X", port));
+                break;
+            default:
+                LOG.log(Level.FINE, "Lesen von nicht definiertem Port {0}!", String.format("0x%02X", port));
+                break;
         }
         return 0;
     }
@@ -437,17 +449,12 @@ public final class ABG implements Module {
         switch (port) {
             case LOCAL_PORT_FUNCTION_REGISTER:
                 function_register = data & 0xFF;
-                //System.out.println("Function Register:" + String.format("%02X", function_register) + " " + Integer.toBinaryString(data));
                 break;
             case LOCAL_PORT_SPLIT_REGISTER:
                 split_register = data & 0xFF;
-//                if (split_register != 0xFF) {
-//                    System.out.println("Split Register:" + String.format("%02X", split_register));
-//                }
                 break;
             case LOCAL_PORT_ADDRESS_COUNTER_LOW:
                 address_counter = (address_counter & 0x00FF) | ((data & 0xFF) << 8);
-//                System.out.println("address_counter: " + String.format("%04X", address_counter));
                 break;
             case LOCAL_PORT_ADDRESS_COUNTER_HIGH:
                 address_counter = (address_counter & 0xFF00) | (data & 0xFF);
@@ -469,7 +476,10 @@ public final class ABG implements Module {
             case LOCAL_PORT_PALETTE_E:
             case LOCAL_PORT_PALETTE_F:
                 palette_register[port - 0x30] = data & 0xFF;
-                System.out.println("Palettenregister noch ohne Funktion!");
+                LOG.log(Level.FINE, "Palettenregister (Port {0}) noch nicht implementiert!", String.format("0x%02X", port));
+                break;
+            default:
+                LOG.log(Level.FINE, "Schreiben auf nicht definiertem Port {0}!", String.format("0x%02X", port));
                 break;
         }
     }
@@ -482,7 +492,6 @@ public final class ABG implements Module {
     private void updateScreen() {
         // Adresszähler
         int address = ~address_counter & 0x7FFF;
-        //int address_gr = ~address_counter & 0x7FFF;
 
         if (split_register == 0xFF) {
             //Wenn Splitregister=0xFF: Volles Alphanumerikbild
@@ -643,7 +652,7 @@ public final class ABG implements Module {
         try {
             Thread.sleep(100);
         } catch (InterruptedException ex) {
-            Logger.getLogger(ABG.class.getName()).log(Level.SEVERE, null, ex);
+            LOG.log(Level.FINEST, null, ex);
         }
         frame.setVisible(true);
         frame.pack();
@@ -680,7 +689,7 @@ public final class ABG implements Module {
         try {
             Thread.sleep(100);
         } catch (InterruptedException ex) {
-            Logger.getLogger(ABG.class.getName()).log(Level.SEVERE, null, ex);
+            LOG.log(Level.FINEST, null, ex);
         }
         frame.setVisible(true);
         frame.pack();
@@ -704,6 +713,9 @@ public final class ABG implements Module {
                 break;
             case 3:
                 (new MemoryAnalyzer(graphicMemory[1], "Grafikspeicher Ebene 2")).show();
+                break;
+            default:
+                LOG.log(Level.FINE, "Ungültige Speicherebene {0} für Anzeige.", Integer.toString(page));
                 break;
         }
     }
@@ -732,6 +744,9 @@ public final class ABG implements Module {
                 break;
             case 3:
                 graphicMemory[1].saveMemory(dos);
+                break;
+            default:
+                LOG.log(Level.FINE, "Ungültige Speicherebene {0} für Speichern.", Integer.toString(page));
                 break;
         }
         dos.close();

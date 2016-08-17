@@ -26,8 +26,6 @@ package a7100emulator.Apps.SCPDiskViewer;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * Klasse zur Verarbeitung einer SCP-Datei

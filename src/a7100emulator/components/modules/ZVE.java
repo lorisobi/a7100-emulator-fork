@@ -27,6 +27,8 @@
  *   28.07.2016 - Methode getDecoder() hinzugefügt
  *   31.07.2016 - Methode getPPI() hinzugefügt
  *   07.08.2016 - Doppelte USART Ports hinzugefügt
+ *              - Logger hinzugefügt und Ausgaben umgeleitet
+ *   09.08.2016 - Fehler beim Laden der EPROMS abgefangen
  */
 package a7100emulator.components.modules;
 
@@ -45,6 +47,8 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.swing.JOptionPane;
 
 /**
@@ -53,6 +57,11 @@ import javax.swing.JOptionPane;
  * @author Dirk Bräuer
  */
 public final class ZVE implements IOModule, MemoryModule, ClockModule {
+
+    /**
+     * Logger Instanz
+     */
+    private static final Logger LOG = Logger.getLogger(ZVE.class.getName());
 
     /**
      * Port 1 des Interruptcontrollers
@@ -251,6 +260,9 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
             case PORT_ZVE_8251A_COMMAND_2:
                 usart.writeCommand(data);
                 break;
+            default:
+                LOG.log(Level.FINE, "Schreiben auf nicht definiertem Port {0}!", String.format("0x%02X", port));
+                break;
         }
     }
 
@@ -291,7 +303,7 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
             case PORT_ZVE_8251A_COMMAND_2:
                 break;
         }
-        throw new UnsupportedOperationException("Schreiben von Wort auf ZVE Port nicht implementiert.");
+        LOG.log(Level.FINE, "Schreiben von Wörtern auf Port {0} noch nicht implementiert!", String.format("0x%02X", port));
     }
 
     /**
@@ -327,8 +339,11 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
             case PORT_ZVE_8251A_COMMAND_2:
                 return usart.readStatus();
             case PORT_ZVE_8255A_INIT:
+                LOG.log(Level.FINER, "Lesen 8255A-INIT (Port {0}) nicht erlaubt!", String.format("0x%02X", port));
+                break;
             case PORT_ZVE_8253_INIT:
-                throw new IllegalArgumentException("Cannot read from PORT:" + Integer.toHexString(port));
+                LOG.log(Level.FINER, "Lesen 8253-INIT (Port {0}) nicht erlaubt!", String.format("0x%02X", port));
+                break;
         }
         return 0;
     }
@@ -366,11 +381,14 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
             case PORT_ZVE_8251A_COMMAND_2:
                 break;
             case PORT_ZVE_8255A_INIT:
+                LOG.log(Level.FINER, "Lesen 8255A-INIT (Port {0}) nicht erlaubt!", String.format("0x%02X", port));
+                break;
             case PORT_ZVE_8253_INIT:
-                throw new IllegalArgumentException("Cannot read from PORT:" + Integer.toHexString(port));
+                LOG.log(Level.FINER, "Lesen 8253-INIT (Port {0}) nicht erlaubt!", String.format("0x%02X", port));
+                break;
         }
-        throw new UnsupportedOperationException("Schreiben von Wort auf ZVE Port nicht implementiert.");
-//        return 0;
+        LOG.log(Level.FINE, "Lesen von Wörtern auf Port {0} noch nicht implementiert!", String.format("0x%02X", port));
+        return 0;
     }
 
     /**
@@ -414,7 +432,7 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
     @Override
     public void writeByte(int address, int data) {
         // TODO: Diese Exceptions durch richtige Fehlerbehandlung ersetzen
-        throw new IllegalArgumentException("Cannot Write to ZVE-ROM");
+        LOG.log(Level.FINE, "Schreiben auf ZVE-ROM-Bereich (Adresse {0}) nicht erlaubt!", String.format("0x%05X", address));
     }
 
     /**
@@ -427,7 +445,7 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
     @Override
     public void writeWord(int address, int data) {
         // TODO: Diese Exceptions durch richtige Fehlerbehandlung ersetzen
-        throw new IllegalArgumentException("Cannot Write to ZVE-ROM");
+        LOG.log(Level.FINE, "Schreiben auf ZVE-ROM-Bereich (Adresse {0}) nicht erlaubt!", String.format("0x%05X", address));
     }
 
     /**
@@ -435,7 +453,7 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
      * Festplatte
      */
     private void initEPROMS() {
-        // A7150
+            // A7150
         // ACT 2.1
 //        File AHCL = new File("./eproms/265.bin");
 //        File AWCL = new File("./eproms/266.bin");
@@ -455,29 +473,38 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
         // A7100
         File AHCL = new File("./eproms/ZVE-K2771.10-259.rom");
         if (!AHCL.exists()) {
+            LOG.log(Level.SEVERE, "ZVE-EPROM {0} nicht gefunden!", AHCL.getPath());
             JOptionPane.showMessageDialog(null, "Eprom: " + AHCL.getName() + " nicht gefunden!", "Eprom nicht gefunden", JOptionPane.ERROR_MESSAGE);
             System.exit(0);
         }
         File AWCL = new File("./eproms/ZVE-K2771.10-260.rom");
         if (!AWCL.exists()) {
+            LOG.log(Level.SEVERE, "ZVE-EPROM {0} nicht gefunden!", AWCL.getPath());
             JOptionPane.showMessageDialog(null, "Eprom: " + AWCL.getName() + " nicht gefunden!", "Eprom nicht gefunden", JOptionPane.ERROR_MESSAGE);
             System.exit(0);
         }
         File BOCL = new File("./eproms/ZVE-K2771.10-261.rom");
         if (!BOCL.exists()) {
+            LOG.log(Level.SEVERE, "ZVE-EPROM {0} nicht gefunden!", BOCL.getPath());
             JOptionPane.showMessageDialog(null, "Eprom: " + BOCL.getName() + " nicht gefunden!", "Eprom nicht gefunden", JOptionPane.ERROR_MESSAGE);
             System.exit(0);
         }
         File CGCL = new File("./eproms/ZVE-K2771.10-262.rom");
         if (!CGCL.exists()) {
+            LOG.log(Level.SEVERE, "ZVE-EPROM {0} nicht gefunden!", CGCL.getPath());
             JOptionPane.showMessageDialog(null, "Eprom: " + CGCL.getName() + " nicht gefunden!", "Eprom nicht gefunden", JOptionPane.ERROR_MESSAGE);
             System.exit(0);
         }
 
-        memory.loadFile(0xF8000 - 0xF8000, CGCL, Memory.FileLoadMode.LOW_BYTE_ONLY);
-        memory.loadFile(0xF8000 - 0xF8000, AWCL, Memory.FileLoadMode.HIGH_BYTE_ONLY);
-        memory.loadFile(0xFC000 - 0xF8000, BOCL, Memory.FileLoadMode.LOW_BYTE_ONLY);
-        memory.loadFile(0xFC000 - 0xF8000, AHCL, Memory.FileLoadMode.HIGH_BYTE_ONLY);
+        try {
+            memory.loadFile(0xF8000 - 0xF8000, CGCL, Memory.FileLoadMode.LOW_BYTE_ONLY);
+            memory.loadFile(0xF8000 - 0xF8000, AWCL, Memory.FileLoadMode.HIGH_BYTE_ONLY);
+            memory.loadFile(0xFC000 - 0xF8000, BOCL, Memory.FileLoadMode.LOW_BYTE_ONLY);
+            memory.loadFile(0xFC000 - 0xF8000, AHCL, Memory.FileLoadMode.HIGH_BYTE_ONLY);
+        } catch (IOException ex) {
+            LOG.log(Level.SEVERE, "Fehler beim Laden der ZVE-EPROMS!", ex);
+            System.exit(0);
+        }
     }
 
     /**

@@ -24,6 +24,7 @@
  *   23.07.2016 - Runnable entfernt, executeCycles() hinzugefügt
  *   24.07.2016 - Neue Methoden aus Interface CPU hinzugefügt
  *   28.07.2016 - Methode getDecoder() hinzugefügt
+ *   09.08.2016 - Logger hinzugefügt
  */
 package a7100emulator.components.ic;
 
@@ -32,6 +33,7 @@ import a7100emulator.components.system.MMS16Bus;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.logging.Logger;
 
 /**
  * Klasse zur Realisierung des numerischen Coprozessors K1810WM87
@@ -42,6 +44,11 @@ import java.io.IOException;
  * @author Dirk Bräuer
  */
 public class K1810WM87 implements CPU {
+
+    /**
+     * Logger Instanz
+     */
+    private static final Logger LOG = Logger.getLogger(K1810WM87.class.getName());
 
     /**
      * Klasse zur Abbildung eines Stack-Registers
@@ -124,7 +131,7 @@ public class K1810WM87 implements CPU {
     public void setDebug(boolean debug) {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
-    
+
     @Override
     public Decoder getDecoder() {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.

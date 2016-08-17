@@ -20,6 +20,7 @@
  * Letzte Änderungen:
  *   16.08.2014 - Erstellt aus FloppyDisk
  *   26.07.2016 - Doppelte Typecasts entfernt
+ *   09.08.2016 - Logger hinzugefügt
  */
 package a7100emulator.Tools;
 
@@ -31,6 +32,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.text.NumberFormat;
 import java.util.Arrays;
+import java.util.logging.Logger;
 import javax.swing.JFormattedTextField;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
@@ -42,6 +44,11 @@ import javax.swing.JPanel;
  * @author Dirk Bräuer
  */
 public class FloppyImageParser {
+
+    /**
+     * Logger Instanz
+     */
+    private static final Logger LOG = Logger.getLogger(FloppyImageParser.class.getName());
 
     /**
      * Privater Konstruktor, da nur statische Funktionen verwendet werden.

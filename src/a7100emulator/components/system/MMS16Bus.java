@@ -38,6 +38,8 @@ import java.io.DataOutputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Klasse zur Abbildung des MMS 16 Systembusses und zur Verwaltung der dort
@@ -46,6 +48,11 @@ import java.util.HashMap;
  * @author Dirk Bräuer
  */
 public class MMS16Bus implements StateSavable {
+
+    /**
+     * Logger Instanz
+     */
+    private static final Logger LOG = Logger.getLogger(MMS16Bus.class.getName());
 
     /**
      * Liste mit Modulen, welche Speicher bereitstellen
@@ -147,7 +154,7 @@ public class MMS16Bus implements StateSavable {
     public void writeMemoryByte(int address, int data) {
         MemoryModule module = getModuleForAddress(address, false);
         if (module == null) {
-            //System.out.println("Zugriff auf nicht vorhandenen Speicher");            
+            LOG.log(Level.FINER, "Zugriff auf nicht vorhandenen Speicher an Adresse {0}!", String.format("0x%05X", address));
             return;
         }
         module.writeByte(address, data);
@@ -167,6 +174,7 @@ public class MMS16Bus implements StateSavable {
             module = getModuleForAddress(address + 1, false);
             if (module == null) {
                 //System.out.println("Zugriff auf nicht vorhandenen Speicher");
+                LOG.log(Level.FINER, "Zugriff auf nicht vorhandenen Speicher an Adresse {0}!", String.format("0x%05X", address + 1));
                 return;
             }
             module.writeByte(address + 1, data >> 8);
@@ -175,6 +183,7 @@ public class MMS16Bus implements StateSavable {
             module = getModuleForAddress(address, false);
             if (module == null) {
                 //System.out.println("Zugriff auf nicht vorhandenen Speicher");
+                LOG.log(Level.FINER, "Zugriff auf nicht vorhandenen Speicher an Adresse {0}!", String.format("0x%05X", address));
                 return;
             }
             module.writeByte(address, data);
@@ -195,7 +204,7 @@ public class MMS16Bus implements StateSavable {
     public int readMemoryByte(int address) {
         MemoryModule module = getModuleForAddress(address, false);
         if (module == null) {
-            //System.out.println("Zugriff auf nicht vorhandenen Speicher");
+            LOG.log(Level.FINER, "Zugriff auf nicht vorhandenen Speicher an Adresse {0}!", String.format("0x%05X", address));
             return 0;
         }
         return module.readByte(address);
@@ -214,7 +223,7 @@ public class MMS16Bus implements StateSavable {
             // Modul für erstes Byte holen
             module = getModuleForAddress(address, false);
             if (module == null) {
-                //System.out.println("Zugriff auf nicht vorhandenen Speicher");
+                LOG.log(Level.FINER, "Zugriff auf nicht vorhandenen Speicher an Adresse {0}!", String.format("0x%05X", address));
                 return 0;
             }
             int lb = module.readByte(address);
@@ -222,7 +231,7 @@ public class MMS16Bus implements StateSavable {
             // Modul für zweites Byte holen
             module = getModuleForAddress(address + 1, false);
             if (module == null) {
-                //System.out.println("Zugriff auf nicht vorhandenen Speicher");
+                LOG.log(Level.FINER, "Zugriff auf nicht vorhandenen Speicher an Adresse {0}!", String.format("0x%05X", address + 1));
                 return 0;
             }
             int hb = module.readByte(address + 1);
@@ -259,6 +268,7 @@ public class MMS16Bus implements StateSavable {
     public void writeIOByte(int port, int value) {
         IOModule module = ioModules.get(port);
         if (module == null) {
+            LOG.log(Level.FINER, "Zugriff auf nicht vorhandenen IO-Port {0}!",String.format("0x%02X",port));
             timeout = true;
         } else {
             module.writePortByte(port, 0xFF & value);
@@ -274,6 +284,7 @@ public class MMS16Bus implements StateSavable {
     public int readIOByte(int port) {
         IOModule module = ioModules.get(port);
         if (module == null) {
+            LOG.log(Level.FINER, "Zugriff auf nicht vorhandenen IO-Port {0}!",String.format("0x%02X",port));
             timeout = true;
             return 0x00;
         } else {
@@ -290,6 +301,7 @@ public class MMS16Bus implements StateSavable {
     public void writeIOWord(int port, int value) {
         IOModule module = ioModules.get(port);
         if (module == null) {
+            LOG.log(Level.FINER, "Zugriff auf nicht vorhandenen IO-Port {0}!",String.format("0x%02X",port));
             timeout = true;
         } else {
             module.writePortWord(port, 0xFFFF & value);
@@ -305,6 +317,7 @@ public class MMS16Bus implements StateSavable {
     public int readIOWord(int port) {
         IOModule module = ioModules.get(port);
         if (module == null) {
+            LOG.log(Level.FINER, "Zugriff auf nicht vorhandenen IO-Port {0}!",String.format("0x%02X",port));
             timeout = true;
             return 0xFF;
         }
