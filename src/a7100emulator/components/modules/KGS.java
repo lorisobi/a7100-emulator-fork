@@ -36,6 +36,7 @@
  *   29.07.2016 - IOException beim Speichern des KGS-Rams hinzugefügt
  *   07.08.2016 - Logger hinzugefügt und Ausgaben umgeleitet
  *   09.08.2016 - Fehler beim Laden der EPROMS abgefangen
+ *   18.08.2016 - Kommentare überarbeitet
  */
 package a7100emulator.components.modules;
 
@@ -573,8 +574,8 @@ public final class KGS implements IOModule, ClockModule, SubsystemModule {
     /**
      * Verarbeitet Änderungen der Systemzeit. Diese Funktion lässt den UA880
      * Prozessor Befehle abarbeiten. Die Anzahl der Befehle hängt von der
-     * übergebenen Anzahl an Mikrosekunden ab. Andere Komponenten des Systems
-     * werden nicht benachrichtigt.
+     * übergebenen Anzahl an Mikrosekunden ab. Die Anderen vom Taktgeber
+     * abhängigen Komponenten werden ebenfalls benachrichtigt.
      *
      * @param micros Zeitdauer in Mikrosekunden
      */

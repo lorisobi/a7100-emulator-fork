@@ -21,9 +21,12 @@
  *   02.04.2014 - Kommentare vervollständigt
  *   09.08.2014 - Zugriffe auf SystemPorts durch MMS16Bus ersetzt
  *   09.08.2016 - Logger hinzugefügt
+ *   19.08.2016 - Speicher, Ports und Methoden ergänzt
  */
 package a7100emulator.components.modules;
 
+import a7100emulator.Tools.Memory;
+import a7100emulator.components.system.GlobalClock;
 import a7100emulator.components.system.MMS16Bus;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -37,7 +40,7 @@ import java.util.logging.Logger;
  *
  * @author Dirk Bräuer
  */
-public class ABS implements IOModule {
+public final class ABS implements IOModule, ClockModule, SubsystemModule {
 
     /**
      * Logger Instanz
@@ -54,12 +57,110 @@ public class ABS implements IOModule {
     private final static int PORT_ABS_DATA = 0x202;
 
     /**
+     * Lokaler Port DMA
+     */
+    private final static int LOCAL_PORT_DMA = 0x00;
+    /**
+     * Lokaler Port CRT
+     */
+    private final static int LOCAL_PORT_CRT = 0x20;
+    /**
+     * Lokaler Port Matrixregister
+     */
+    private final static int LOCAL_PORT_MATRIX = 0x30;
+    /**
+     * Lokaler Port Zeilenzähler
+     */
+    private final static int LOCAL_PORT_LINE = 0x40;
+    /**
+     * Lokaler Port INT-FF
+     */
+    private final static int LOCAL_PORT_INT = 0x50;
+    /**
+     * Lokaler Port ERR-FF
+     */
+    private final static int LOCAL_PORT_ERR = 0x60;
+    /**
+     * Lokaler Port Status
+     */
+    private final static int LOCAL_PORT_STATUS = 0x70;
+    /**
+     * Lokaler Port E/A Register
+     */
+    private final static int LOCAL_PORT_EA = 0x71;
+
+    /**
+     * Statusregister
+     */
+    private int status = 0x00;
+    /**
+     * Datenregister für Eingabe
+     */
+    private int dataIn = 0x00;
+    /**
+     * Datenregister für Ausgabe
+     */
+    private int dataOut = 0x00;
+
+    /**
+     * Programmspeicher + Arbeitsspeicher
+     */
+    private Memory ram = new Memory(0x1C00);
+    /**
+     * Zeichensatz - Rom
+     */
+    private Memory charRom = new Memory(0x1000);
+    
+
+    /**
+     * Erstellt eine neue ABS
+     */
+    public ABS() {
+        init();
+    }
+
+    /**
+     * Initialisiert die ABS
+     */
+    @Override
+    public void init() {
+        registerPorts();
+        registerClocks();
+        initEPROMS();
+    }
+
+    /**
      * Registriert die Ports am Systembus
      */
     @Override
     public void registerPorts() {
         MMS16Bus.getInstance().registerIOPort(this, PORT_ABS_STATE);
         MMS16Bus.getInstance().registerIOPort(this, PORT_ABS_DATA);
+    }
+
+    /**
+     * Registriert das Modul für Änderungen der Systemzeit
+     */
+    @Override
+    public void registerClocks() {
+        GlobalClock.getInstance().registerModule(this);
+    }
+
+    /**
+     * Verarbeitet Änderungen der Systemzeit. Diese Funktion lässt den UA880
+     * Prozessor Befehle abarbeiten. Die Anzahl der Befehle hängt von der
+     * übergebenen Anzahl an Mikrosekunden ab. Die Anderen vom Taktgeber
+     * abhängigen Komponenten werden ebenfalls benachrichtigt.
+     *
+     * @param micros Zeitdauer in Mikrosekunden
+     */
+    @Override
+    public void clockUpdate(int micros) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    private void initEPROMS() {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
     /**
@@ -129,14 +230,6 @@ public class ABS implements IOModule {
     }
 
     /**
-     * Initialisiert die ABS
-     */
-    @Override
-    public void init() {
-        registerPorts();
-    }
-
-    /**
      * Schreibt den Zustand der ABS in eine Datei
      *
      * @param dos Stream zur Datei
@@ -156,5 +249,45 @@ public class ABS implements IOModule {
     @Override
     public void loadState(DataInputStream dis) throws IOException {
         throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    @Override
+    public int readLocalPort(int port) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public void writeLocalPort(int port, int data) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public int readLocalByte(int address) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public int readLocalWord(int address) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public void writeLocalByte(int address, int data) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public void writeLocalWord(int address, int data) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public void localClockUpdate(int cycles) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public void requestInterrupt(int i) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 }
