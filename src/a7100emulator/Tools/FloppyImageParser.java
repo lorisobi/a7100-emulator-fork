@@ -21,6 +21,7 @@
  *   16.08.2014 - Erstellt aus FloppyDisk
  *   26.07.2016 - Doppelte Typecasts entfernt
  *   09.08.2016 - Logger hinzugefügt
+ *   25.09.2016 - Kommentare Lesen bei Teledisk ergänzt
  */
 package a7100emulator.Tools;
 
@@ -288,6 +289,20 @@ public class FloppyImageParser {
         int sides = buffer[pos++];
         int crc = buffer[pos++] | buffer[pos++] << 8;
 
+        if (BitTest.getBit(stepping, 7)) {
+            int commentCRC =buffer[pos++] | buffer[pos++] << 8;
+            int commentLength=buffer[pos++] | buffer[pos++] << 8;
+            int commentYear=buffer[pos++];
+            int commentMonth =buffer[pos++];
+            int commentDay=buffer[pos++];
+            int commentHour=buffer[pos++];
+            int commentMinute=buffer[pos++];
+            int commentSecond=buffer[pos++];
+            byte[] commentData= new byte[commentLength];
+            System.arraycopy(buffer, pos, commentData, 0, commentLength);
+            pos+=commentLength;           
+        }        
+        
         int sectorCount;
         do {
             sectorCount = buffer[pos++];
