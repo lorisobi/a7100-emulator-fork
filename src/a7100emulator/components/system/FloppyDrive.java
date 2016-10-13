@@ -30,7 +30,7 @@
  *   24.07.2016 - getDisk() hinzugefügt
  *   29.07.2016 - IOException beim Lesen und Speichern von Images hinzugefügt
  *   09.08.2016 - Logger hinzugefügt
-
+ *   13.10.2016 - Name für leere Disketten ergänzt
  */
 package a7100emulator.components.system;
 
@@ -196,7 +196,7 @@ public class FloppyDrive implements StateSavable {
      * Erzeugt eine leere Diskette
      */
     public void newDisk() {
-        disk = new FloppyDisk();
+        disk = new FloppyDisk("[Leere Diskette]");
     }
 
     /**

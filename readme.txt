@@ -44,7 +44,8 @@ Inhaltsverzeichnis:
   Neuerungen im SCP-Disketten-Tool:
 
   Änderungen/Bugfixes:
-
+    - Diskettennamen in Statusleiste werden nach Reset aktualisiert
+    - Teledisk Images mit Kommentaren implementiert
   Softwarekompatibilität:
     - Absturz nach Titel -> Läuft: Burg, Goff
  
@@ -172,9 +173,9 @@ In der aktuellen Version ist der A7100 mit folgenden Moduln bestückt:
     - 3xOPS
 
  4.4 Tastatur
- Vom Emulator wird aktuell die Tastatur K7637 verwendet. Darstellbare Zeichen
+ Vom Emulator wird aktuell die Tastatur K7637.9x verwendet. Darstellbare Zeichen
  entsprechen weitestgehend denen der PC-Tastatur. Die Sondertasten sind wie
- folgt zugeordnet, wobei noch nicht alle Tasten der K7637 verwendet werden
+ folgt zugeordnet, wobei noch nicht alle Tasten der K7637.9x verwendet werden
  können:
     - F1-F12           ->    PF1-PF12
     - Alt              ->    ALT (Funktioniert noch nicht für alle Tasten)
@@ -223,11 +224,9 @@ Dringend:
   - Quellcodes zur Firmware von KES, ZVE und/oder KGS
   - Dokumentation zur KGS-Firmware Version 6 (GRAF6.FRM)
 Wäre schön:
-  - AFP EPROMS
   - A7150 Rechner und Geräte Band 2/3
   - Sämtliche nicht getestete Software
 Nicht so wichtig:
-  - Tastatur EPROMS
   - Andere Versionen (wenn vorhanden) der ZVE EPROMS
   
 --------------------------------------------------------------------------------
