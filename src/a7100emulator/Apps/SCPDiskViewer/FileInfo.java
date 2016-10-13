@@ -21,18 +21,19 @@
  *   30.12.2014 - Erste Version
  *   01.01.2015 - FileType gelöscht und durch String ersetzt
  *   02.01.2015 - Kommentare ergänzt
+ *   29.07.2016 - Kommentare ergänzt
  */
 package a7100emulator.Apps.SCPDiskViewer;
 
 /**
- * Klasse zum Speichern von Dateiinformationen.
+ * Klasse zum Speichern von Dateiinformationen für das SCP-Disk Tool.
  *
  * @author Dirk Bräuer
  */
 public class FileInfo {
 
     /**
-     * Gewöhnlicher Name
+     * Gewöhnlicher Name der Datei wie er in Dokumentationen angegeben ist
      */
     private final String name;
     /**
@@ -65,7 +66,8 @@ public class FileInfo {
      * @param softwarePackage Software-Paket
      * @param version Versionsnummer
      * @param description Beschreibung
-     * @param user Benutzerdefinierter Eintrag
+     * @param user            <code>true</code> wenn es sich um einen Benutzerdefinierten
+     * Eintrag handelt, <code>false</code> bei Systemdateien
      */
     FileInfo(String name, String fileType, String softwarePackage, String version, String description, boolean user) {
         this.name = name;

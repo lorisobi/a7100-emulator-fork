@@ -24,6 +24,8 @@
  *              - Interface StateSavable implementiert
  *   28.07.2015 - Lesen von Wörtern zwischen Modulgrenzen ermöglicht
  *   25.07.2016 - timeout bei reset hinzugefügt
+ *   29.07.2016 - IOException beim Speichern des Systemspeichers hinzugefügt
+ *   31.07.2016 - Unnötige Imports entfernt
  */
 package a7100emulator.components.system;
 
@@ -46,6 +48,11 @@ import java.util.logging.Logger;
  * @author Dirk Bräuer
  */
 public class MMS16Bus implements StateSavable {
+
+    /**
+     * Logger Instanz
+     */
+    private static final Logger LOG = Logger.getLogger(MMS16Bus.class.getName());
 
     /**
      * Liste mit Modulen, welche Speicher bereitstellen
@@ -151,7 +158,7 @@ public class MMS16Bus implements StateSavable {
     public void writeMemoryByte(int address, int data) {
         MemoryModule module = getModuleForAddress(address, false);
         if (module == null) {
-            //System.out.println("Zugriff auf nicht vorhandenen Speicher");            
+            LOG.log(Level.FINER, "Zugriff auf nicht vorhandenen Speicher an Adresse {0}!", String.format("0x%05X", address));
             return;
         }
         module.writeByte(address, data);
@@ -171,6 +178,7 @@ public class MMS16Bus implements StateSavable {
             module = getModuleForAddress(address + 1, false);
             if (module == null) {
                 //System.out.println("Zugriff auf nicht vorhandenen Speicher");
+                LOG.log(Level.FINER, "Zugriff auf nicht vorhandenen Speicher an Adresse {0}!", String.format("0x%05X", address + 1));
                 return;
             }
             module.writeByte(address + 1, data >> 8);
@@ -179,6 +187,7 @@ public class MMS16Bus implements StateSavable {
             module = getModuleForAddress(address, false);
             if (module == null) {
                 //System.out.println("Zugriff auf nicht vorhandenen Speicher");
+                LOG.log(Level.FINER, "Zugriff auf nicht vorhandenen Speicher an Adresse {0}!", String.format("0x%05X", address));
                 return;
             }
             module.writeByte(address, data);
@@ -199,7 +208,7 @@ public class MMS16Bus implements StateSavable {
     public int readMemoryByte(int address) {
         MemoryModule module = getModuleForAddress(address, false);
         if (module == null) {
-            //System.out.println("Zugriff auf nicht vorhandenen Speicher");
+            LOG.log(Level.FINER, "Zugriff auf nicht vorhandenen Speicher an Adresse {0}!", String.format("0x%05X", address));
             return 0;
         }
         return module.readByte(address);
@@ -218,7 +227,7 @@ public class MMS16Bus implements StateSavable {
             // Modul für erstes Byte holen
             module = getModuleForAddress(address, false);
             if (module == null) {
-                //System.out.println("Zugriff auf nicht vorhandenen Speicher");
+                LOG.log(Level.FINER, "Zugriff auf nicht vorhandenen Speicher an Adresse {0}!", String.format("0x%05X", address));
                 return 0;
             }
             int lb = module.readByte(address);
@@ -226,7 +235,7 @@ public class MMS16Bus implements StateSavable {
             // Modul für zweites Byte holen
             module = getModuleForAddress(address + 1, false);
             if (module == null) {
-                //System.out.println("Zugriff auf nicht vorhandenen Speicher");
+                LOG.log(Level.FINER, "Zugriff auf nicht vorhandenen Speicher an Adresse {0}!", String.format("0x%05X", address + 1));
                 return 0;
             }
             int hb = module.readByte(address + 1);
@@ -243,19 +252,16 @@ public class MMS16Bus implements StateSavable {
      * Schreibt den Inhalt des Speichers in eine Datei.
      *
      * @param filename Dateiname
+     * @throws IOException Wenn das Speichern des Speicherinhalts auf dem
+     * Datenträger nicht erfolgreich war
      */
-    public void dumpSystemMemory(String filename) {
-        FileOutputStream fos;
-        try {
-            fos = new FileOutputStream(filename);
+    public void dumpSystemMemory(String filename) throws IOException {
+        FileOutputStream fos = new FileOutputStream(filename);
             for (int i = 0; i <= MAX_ADDRESS; i++) {
                 fos.write(readMemoryByte(i));
             }
             fos.close();
-        } catch (IOException ex) {
-            Logger.getLogger(MMS16Bus.class.getName()).log(Level.SEVERE, null, ex);
         }
-    }
 
     /**
      * Gibt ein Byte auf einem Port aus
@@ -266,6 +272,7 @@ public class MMS16Bus implements StateSavable {
     public void writeIOByte(int port, int value) {
         IOModule module = ioModules.get(port);
         if (module == null) {
+            LOG.log(Level.FINER, "Zugriff auf nicht vorhandenen IO-Port {0}!",String.format("0x%02X",port));
             timeout = true;
         } else {
             module.writePortByte(port, 0xFF & value);
@@ -281,6 +288,7 @@ public class MMS16Bus implements StateSavable {
     public int readIOByte(int port) {
         IOModule module = ioModules.get(port);
         if (module == null) {
+            LOG.log(Level.FINER, "Zugriff auf nicht vorhandenen IO-Port {0}!",String.format("0x%02X",port));
             timeout = true;
             return 0x00;
         } else {
@@ -297,6 +305,7 @@ public class MMS16Bus implements StateSavable {
     public void writeIOWord(int port, int value) {
         IOModule module = ioModules.get(port);
         if (module == null) {
+            LOG.log(Level.FINER, "Zugriff auf nicht vorhandenen IO-Port {0}!",String.format("0x%02X",port));
             timeout = true;
         } else {
             module.writePortWord(port, 0xFFFF & value);
@@ -312,6 +321,7 @@ public class MMS16Bus implements StateSavable {
     public int readIOWord(int port) {
         IOModule module = ioModules.get(port);
         if (module == null) {
+            LOG.log(Level.FINER, "Zugriff auf nicht vorhandenen IO-Port {0}!",String.format("0x%02X",port));
             timeout = true;
             return 0xFF;
         }

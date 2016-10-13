@@ -29,6 +29,8 @@
  *              - Andere Formate als SCP-Hausformat möglich
  *   25.07.2016 - Doppelte Typdefinition in files entfernt
  *   26.07.2016 - Spezifische Exceptions definiert
+ *   28.07.2016 - Konstruktor hinzugefügt
+ *              - throws für Methoden mit Datenträgerzugriff hinzugefügt
  */
 package a7100emulator.Apps.SCPDiskViewer;
 
@@ -36,10 +38,12 @@ import a7100emulator.Tools.FloppyImageParser;
 import a7100emulator.components.system.FloppyDisk;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.logging.Level;
@@ -104,7 +108,19 @@ public class SCPDiskModel {
     /**
      * Verweis auf Datenbank
      */
-    FileDatabaseManager databaseManager = new FileDatabaseManager();
+    private final FileDatabaseManager databaseManager;
+
+    /**
+     * Erstellt ein neues SCP-Disk Modell. Dabei wird auch ein neuer
+     * <code>FileDatabaseManager</code> angelegt und die Datenbank wird vom
+     * Datenträger geladen oder erzeugt.
+     *
+     * @throws IOException Wenn beim Laden oder Erzeugen der Datenbank ein
+     * Fehler auftritt
+     */
+    public SCPDiskModel() throws IOException {
+        databaseManager = new FileDatabaseManager();
+    }
 
     /**
      * Gibt die Liste der SCP-Dateien zurück
@@ -129,8 +145,11 @@ public class SCPDiskModel {
      * Liest ein Diskettenabbild in den Speicher.
      *
      * @param image Datei
+     * @throws java.security.NoSuchAlgorithmException Wenn beim Erzeugen der
+     * MD5-Hashwerte ein Fehler auftritt
+     * @throws java.io.IOException Wenn beim Lesen der Datei ein Fehler auftritt
      */
-    void readImage(File image) {
+    void readImage(File image) throws NoSuchAlgorithmException, IOException {
         FloppyDisk disk = FloppyImageParser.loadDiskFromImageFile(image);
         if (disk != null) {
             imageName = image.getAbsolutePath();
@@ -146,8 +165,11 @@ public class SCPDiskModel {
      * Liest ein Verzeichnis als neue Diskette ein.
      *
      * @param folder Verzeichnis
+     * @throws java.security.NoSuchAlgorithmException Wenn beim Erzeugen der
+     * MD5-Hashwerte ein Fehler auftritt
+     * @throws java.io.IOException Wenn beim Lesen der Datei ein Fehler auftritt
      */
-    void readFolder(File folder) {
+    void readFolder(File folder) throws NoSuchAlgorithmException, IOException {
         // Daten für SCP-Diskette
         int diskSize = 0x9F800;
         diskData = new byte[diskSize];
@@ -180,39 +202,42 @@ public class SCPDiskModel {
         files.clear();
         File[] inputFiles = folder.listFiles();
 
-        try {
-            for (File file : inputFiles) {
-                if (file.isFile()) {
-                    int startExtension = file.getName().lastIndexOf('.');
-                    String extension = (startExtension == -1 ? "" : file.getName().substring(startExtension + 1)).toUpperCase();
-                    if (extension.length() > 3) {
-                        extension = extension.substring(0, 3);
-                    }
-                    String filename = (startExtension == -1 ? file.getName() : file.getName().substring(0, startExtension)).toUpperCase();
-                    if (filename.length() > 8) {
-                        filename = filename.substring(0, 8);
-                    }
-
-                    byte[] data = new byte[(int) file.length()];
-                    InputStream in = new FileInputStream(file);
-                    in.read(data);
-                    in.close();
-
-                    insertFile(filename, extension, false, false, false, 0, data);
-                } else {
-                    System.out.println("Verzeichnis " + file.getName() + " wird übersprungen!");
+        for (File file : inputFiles) {
+            if (file.isFile()) {
+                int startExtension = file.getName().lastIndexOf('.');
+                String extension = (startExtension == -1 ? "" : file.getName().substring(startExtension + 1)).toUpperCase();
+                if (extension.length() > 3) {
+                    extension = extension.substring(0, 3);
                 }
+                String filename = (startExtension == -1 ? file.getName() : file.getName().substring(0, startExtension)).toUpperCase();
+                if (filename.length() > 8) {
+                    filename = filename.substring(0, 8);
+                }
+
+                byte[] data = new byte[(int) file.length()];
+                InputStream in = new FileInputStream(file);
+                in.read(data);
+                in.close();
+
+                insertFile(filename, extension, false, false, false, 0, data);
+            } else {
+                System.out.println("Verzeichnis " + file.getName() + " wird übersprungen!");
             }
-        } catch (IOException ex) {
-            Logger.getLogger(SCPDiskModel.class.getName()).log(Level.SEVERE, null, ex);
         }
+
         view.updateView();
     }
 
     /**
-     * Liest ein Diskettenabbild ein.
+     * Liest ein Diskettenabbild ein und extrahiert die Informationen über die
+     * einzelnen Datein. Die in <code>diskData</code> hinterlegten Rohdaten
+     * werden analysiert und die Informationen über die einzelnen Dateien
+     * extrahiert.
+     *
+     * @throws java.security.NoSuchAlgorithmException wenn beim Erzeugen der
+     * MD5-Hashwerte ein Fehler auftritt
      */
-    private void parseImage() {
+    private void parseImage() throws NoSuchAlgorithmException {
         // Daten für SCP-Diskette
         int diskSize = diskData.length;
 
@@ -340,8 +365,10 @@ public class SCPDiskModel {
      * @param extra Attribut Extra
      * @param user Nutzernummer
      * @param fileData Daten
+     * @throws java.security.NoSuchAlgorithmException Wenn beim Erzeugen der
+     * MD5-Hashwerte ein Fehler auftritt
      */
-    void insertFile(String filename, String extension, boolean readOnly, boolean system, boolean extra, int user, byte[] fileData) {
+    void insertFile(String filename, String extension, boolean readOnly, boolean system, boolean extra, int user, byte[] fileData) throws NoSuchAlgorithmException {
         int requiredFCBs = fileData.length == 0 ? 1 : ((fileData.length / (8 * BLOCK_SIZE)) + (fileData.length % (8 * BLOCK_SIZE) == 0 ? 0 : 1));
         int requiredBlocks = (fileData.length / BLOCK_SIZE) + (fileData.length % BLOCK_SIZE == 0 ? 0 : 1);
         int requiredSectors = (fileData.length / UNIT_SIZE) + (fileData.length % UNIT_SIZE == 0 ? 0 : 1);
@@ -620,10 +647,12 @@ public class SCPDiskModel {
     /**
      * Aktualisiert Informationen in der Datenbank.
      *
-     * @param md5 MD5 Hash
+     * @param md5 MD5-Hashwert
      * @param info Aktualisierte Datenbankinformationen
+     * @throws java.io.IOException Wenn beim Speichern der Informationen in der
+     * Datenbank ein Fehler auftritt
      */
-    void updateDBInfo(String md5, FileInfo info) {
+    void updateDBInfo(String md5, FileInfo info) throws IOException {
         databaseManager.updateFileInfo(md5, info);
         databaseManager.saveDatabase();
     }
@@ -631,11 +660,26 @@ public class SCPDiskModel {
     /**
      * Entfernt Informationen aus der Datenbank.
      *
-     * @param md5 MD5 Hash
+     * @param md5 MD5-Hashwert
+     * @throws java.io.IOException Wenn beim Speichern der Informationen in der
+     * Datenbank ein Fehler auftritt
      */
-    void removeDBInfo(String md5) {
+    void removeDBInfo(String md5) throws IOException {
         databaseManager.removeFileInfo(md5);
         databaseManager.saveDatabase();
+    }
+
+    /**
+     * Speichert den Inhalt der Datenbank in ein CSV File.
+     *
+     * @param saveFile Export Datei
+     * @param user     <code>true</code> wenn Benutzereinträge exportiert werden
+     * sollen, <code>false</code> für Systemeinträge
+     * @throws java.io.FileNotFoundException Wenn die angegebene Datei ungültig
+     * ist oder nicht erzeugt werden kann
+     */
+    void exportDB(File saveFile, boolean user) throws FileNotFoundException {
+        databaseManager.exportDB(saveFile, user);
     }
 
     /**
@@ -644,19 +688,12 @@ public class SCPDiskModel {
      * @param args Kommandozeilenparameter
      */
     public static void main(String args[]) {
-        SCPDiskModel model = new SCPDiskModel();
-        SCPDiskViewer view = new SCPDiskViewer(model);
-        model.setView(view);
-    }
-
-    /**
-     * Speichert den Inhalt der Datenbank in ein CSV File.
-     *
-     * @param saveFile Export Datei
-     * @param user <code>true</code> wenn Benutzereinträge exportiert werden
-     * sollen, <code>false</code> für Systemeinträge
-     */
-    void exportDB(File saveFile, boolean user) {
-        databaseManager.exportDB(saveFile, user);
+        try {
+            SCPDiskModel model = new SCPDiskModel();
+            SCPDiskViewer view = new SCPDiskViewer(model);
+            model.setView(view);
+        } catch (IOException ex) {
+            Logger.getLogger(SCPDiskModel.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }
 }

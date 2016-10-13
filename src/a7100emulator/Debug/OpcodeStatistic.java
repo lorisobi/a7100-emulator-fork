@@ -19,12 +19,15 @@
  * 
  * Letzte Änderungen:
  *   05.04.2014 - Kommentare vervollständigt
+ *   09.08.2016 - Logger hinzugefügt
+ *              - IOException bei Speicherfehler ausgeben
  */
 package a7100emulator.Debug;
 
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.PrintStream;
+import java.util.logging.Logger;
 
 /**
  * Singleton-Klasse zum Sammeln der Opcode Statistik
@@ -32,6 +35,11 @@ import java.io.PrintStream;
  * @author Dirk Bräuer
  */
 public class OpcodeStatistic {
+
+    /**
+     * Logger Instanz
+     */
+    private static final Logger LOG = Logger.getLogger(OpcodeStatistic.class.getName());
 
     /**
      * Instanz
@@ -71,16 +79,15 @@ public class OpcodeStatistic {
 
     /**
      * Speichert die Statistik in der Datei ./debug/OpcodeStatistic.log
+     *
+     * @throws java.io.IOException Wenn beim Speichern ein Fehler auftritt
      */
-    public void dump() {
-        try {
+    public void dump() throws IOException {
             PrintStream opcodeFile = new PrintStream(new FileOutputStream("./debug/OpcodeStatistic.log"));
             for (int i = 0; i < 256; i++) {
                 opcodeFile.println("" + opCodeStatistic[i]);
             }
             opcodeFile.flush();
             opcodeFile.close();
-        } catch (FileNotFoundException e) {
         }
     }
-}

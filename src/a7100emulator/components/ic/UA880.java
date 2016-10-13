@@ -57,11 +57,14 @@
  *   24.07.2016 - TICK_RATIO entfernt
  *              - Methoden push(),pop() und executeCPUCycle() private gesetzt
  *   28.07.2016 - Kommentare erweitert
+ *              - Decoder ergänzt
+ *   08.08.2016 - Logger hinzugefügt und Ausgaben umgeleitet
  */
 package a7100emulator.components.ic;
 
 import a7100emulator.Debug.Debugger;
 import a7100emulator.Debug.DebuggerInfo;
+import a7100emulator.Debug.Decoder;
 import a7100emulator.Tools.BitTest;
 import a7100emulator.components.modules.KES;
 import a7100emulator.components.modules.SubsystemModule;
@@ -69,16 +72,23 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.LinkedList;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Klasse zur Realisierung eines UA880 Prozessors für A7100 Subsysteme.
  * <p>
- * TODO: - Prüfen ob 16 Bit checkSignFlag immer verwendet wird<p>
- * - HalfCarryFlag bei 16 Bit implementieren
+ * TODO: - Prüfen ob 16 Bit checkSignFlag immer verwendet wird, HalfCarryFlag
+ * bei 16 Bit implementieren
  *
  * @author Dirk Bräuer
  */
 public class UA880 implements CPU {
+
+    /**
+     * Logger Instanz
+     */
+    private static final Logger LOG = Logger.getLogger(UA880.class.getName());
 
     /**
      * Hauptregistersatz: Akkumulator
@@ -2013,6 +2023,10 @@ public class UA880 implements CPU {
      */
     private final Debugger debugger;
     /**
+     * Zeiger auf Decoder Instanz
+     */
+    private final Decoder decoder;
+    /**
      * Zeiger auf Debugger Informationen
      */
     private final DebuggerInfo debugInfo = new DebuggerInfo();
@@ -2063,12 +2077,13 @@ public class UA880 implements CPU {
     /**
      * Erstellt einen neuen Prozessor.
      *
-     * @param module      Referenz auf KGS Modul
+     * @param module Referenz auf KGS Modul
      * @param debug_ident Kürzel, welches die Debug-Ausgaben beinhalten
      */
     public UA880(SubsystemModule module, String debug_ident) {
         this.module = module;
         debugger = new Debugger("UA880_" + debug_ident, false, debug_ident);
+        decoder = new Decoder("UA880_" + debug_ident, false, debug_ident);
         debugger.setDebug(false);
     }
 
@@ -3526,7 +3541,7 @@ public class UA880 implements CPU {
             break;
             case HALT: {
                 // TODO: HALT
-                System.out.println("UA880: Befehl HALT noch nicht implementiert");
+                LOG.log(Level.INFO, "Befehl HALT an Adresse {0} noch nicht implementiert", String.format("%04X", pc - 1));
                 updateTicks(4);
                 if (debug) {
                     debugInfo.setCode("HALT");
@@ -3809,7 +3824,7 @@ public class UA880 implements CPU {
                     }
                     break;
                     case _CB_SLL: {
-                        System.out.println("Unoffizieller Opcode SLS");
+                        LOG.log(Level.SEVERE, "Unoffizieller Opcode SLS an Adresse {0} noch nicht implementiert!", String.format("%04X", pc - 1));
                     }
                     break;
                     case _CB_SRL: {
@@ -3963,15 +3978,15 @@ public class UA880 implements CPU {
                     }
                     break;
                     case _DD_FD_INC_IH: {
-                        System.out.println("Unoffizieller Opcode INC IH");
+                        LOG.log(Level.FINE, "Unoffizieller Opcode INC IH an Adresse {0} noch nicht implementiert!", String.format("%04X", pc - 1));
                     }
                     break;
                     case _DD_FD_DEC_IH: {
-                        System.out.println("Unoffizieller Opcode DEC IH");
+                        LOG.log(Level.FINE, "Unoffizieller Opcode DEC IH an Adresse {0} noch nicht implementiert!", String.format("%04X", pc - 1));
                     }
                     break;
                     case _DD_FD_LD_IMM_IH: {
-                        System.out.println("Unoffizieller Opcode LD IH,imm");
+                        LOG.log(Level.FINE, "Unoffizieller Opcode LD IH,imm an Adresse {0} noch nicht implementiert!", String.format("%04X", pc - 1));
                     }
                     break;
                     case _DD_FD_LD_MEM_I: {
@@ -3995,15 +4010,15 @@ public class UA880 implements CPU {
                     }
                     break;
                     case _DD_FD_INC_IL: {
-                        System.out.println("Unoffizieller Opcode INC IL");
+                        LOG.log(Level.FINE, "Unoffizieller Opcode INC IL an Adresse {0} noch nicht implementiert!", String.format("%04X", pc - 1));
                     }
                     break;
                     case _DD_FD_DEC_IL: {
-                        System.out.println("Unoffizieller Opcode DEC IL");
+                        LOG.log(Level.FINE, "Unoffizieller Opcode DEC IL an Adresse {0} noch nicht implementiert!", String.format("%04X", pc - 1));
                     }
                     break;
                     case _DD_FD_LD_IMM_IL: {
-                        System.out.println("Unoffizieller Opcode LD IL,imm");
+                        LOG.log(Level.FINE, "Unoffizieller Opcode LD IL,imm an Adresse {0} noch nicht implementiert!", String.format("%04X", pc - 1));
                     }
                     break;
                     case _DD_FD_INC_I_0: {
@@ -4045,7 +4060,7 @@ public class UA880 implements CPU {
                     case _DD_FD_LD_IH_D:
                     case _DD_FD_LD_IH_E:
                     case _DD_FD_LD_IH_A: {
-                        System.out.println("Unoffizieller Opcode LD r,IH");
+                        LOG.log(Level.FINE, "Unoffizieller Opcode LD r,IH an Adresse {0} noch nicht implementiert!", String.format("%04X", pc - 1));
                     }
                     break;
                     case _DD_FD_LD_IL_B:
@@ -4053,7 +4068,7 @@ public class UA880 implements CPU {
                     case _DD_FD_LD_IL_D:
                     case _DD_FD_LD_IL_E:
                     case _DD_FD_LD_IL_A: {
-                        System.out.println("Unoffizieller Opcode LD r,IL");
+                        LOG.log(Level.FINE, "Unoffizieller Opcode LD r,IL an Adresse {0} noch nicht implementiert!", String.format("%04X", pc - 1));
                     }
                     break;
                     case _DD_FD_LD_I_0_B:
@@ -4077,15 +4092,15 @@ public class UA880 implements CPU {
                     case _DD_FD_LD_D_IH:
                     case _DD_FD_LD_E_IH:
                     case _DD_FD_LD_A_IH: {
-                        System.out.println("Unoffizieller Opcode LD IH,r");
+                        LOG.log(Level.FINE, "Unoffizieller Opcode LD IH,r an Adresse {0} noch nicht implementiert!", String.format("%04X", pc - 1));
                     }
                     break;
                     case _DD_FD_LD_IH_IH: {
-                        System.out.println("Unoffizieller Opcode LD IH,IH");
+                        LOG.log(Level.FINE, "Unoffizieller Opcode LD IH,IH an Adresse {0} noch nicht implementiert!", String.format("%04X", pc - 1));
                     }
                     break;
                     case _DD_FD_LD_IL_IH: {
-                        System.out.println("Unoffizieller Opcode LD IH,IL");
+                        LOG.log(Level.FINE, "Unoffizieller Opcode LD IH,IL an Adresse {0} noch nicht implementiert!", String.format("%04X", pc - 1));
                     }
                     break;
                     case _DD_FD_LD_B_IL:
@@ -4093,15 +4108,15 @@ public class UA880 implements CPU {
                     case _DD_FD_LD_D_IL:
                     case _DD_FD_LD_E_IL:
                     case _DD_FD_LD_A_IL: {
-                        System.out.println("Unoffizieller Opcode LD IL,r");
+                        LOG.log(Level.FINE, "Unoffizieller Opcode LD IL,r an Adresse {0} noch nicht implementiert!", String.format("%04X", pc - 1));
                     }
                     break;
                     case _DD_FD_LD_IH_IL: {
-                        System.out.println("Unoffizieller Opcode LD IL,IH");
+                        LOG.log(Level.FINE, "Unoffizieller Opcode LD IL,IH an Adresse {0} noch nicht implementiert!", String.format("%04X", pc - 1));
                     }
                     break;
                     case _DD_FD_LD_IL_IL: {
-                        System.out.println("Unoffizieller Opcode LD IL,IL");
+                        LOG.log(Level.FINE, "Unoffizieller Opcode LD IL,IL an Adresse {0} noch nicht implementiert!", String.format("%04X", pc - 1));
                     }
                     break;
                     case _DD_FD_LD_B_I_0:
@@ -4121,11 +4136,11 @@ public class UA880 implements CPU {
                     }
                     break;
                     case _DD_FD_ADD_IH_A: {
-                        System.out.println("Unoffizieller Opcode ADD A,IH");
+                        LOG.log(Level.FINE, "Unoffizieller Opcode ADD A,IH an Adresse {0} noch nicht implementiert!", String.format("%04X", pc - 1));
                     }
                     break;
                     case _DD_FD_ADD_IL_A: {
-                        System.out.println("Unoffizieller Opcode ADD A,IL");
+                        LOG.log(Level.FINE, "Unoffizieller Opcode ADD A,IL an Adresse {0} noch nicht implementiert!", String.format("%04X", pc - 1));
                     }
                     break;
                     case _DD_FD_ADD_I_0_A: {
@@ -4142,11 +4157,11 @@ public class UA880 implements CPU {
                     }
                     break;
                     case _DD_FD_ADC_IH_A: {
-                        System.out.println("Unoffizieller Opcode ADC A,IXH");
+                        LOG.log(Level.FINE, "Unoffizieller Opcode ADC A,IH an Adresse {0} noch nicht implementiert!", String.format("%04X", pc - 1));
                     }
                     break;
                     case _DD_FD_ADC_IL_A: {
-                        System.out.println("Unoffizieller Opcode ADC A,IXL");
+                        LOG.log(Level.FINE, "Unoffizieller Opcode ADC A,IL an Adresse {0} noch nicht implementiert!", String.format("%04X", pc - 1));
                     }
                     break;
                     case _DD_FD_ADC_I_0_A: {
@@ -4163,11 +4178,11 @@ public class UA880 implements CPU {
                     }
                     break;
                     case _DD_FD_SUB_IH_A: {
-                        System.out.println("Unoffizieller Opcode SUB A,IH");
+                        LOG.log(Level.FINE, "Unoffizieller Opcode SUB A,IH an Adresse {0} noch nicht implementiert!", String.format("%04X", pc - 1));
                     }
                     break;
                     case _DD_FD_SUB_IL_A: {
-                        System.out.println("Unoffizieller Opcode SUB A,IL");
+                        LOG.log(Level.FINE, "Unoffizieller Opcode SUB A,IL an Adresse {0} noch nicht implementiert!", String.format("%04X", pc - 1));
                     }
                     break;
                     case _DD_FD_SUB_I_0_A: {
@@ -4184,11 +4199,11 @@ public class UA880 implements CPU {
                     }
                     break;
                     case _DD_FD_SBC_IH_A: {
-                        System.out.println("Unoffizieller Opcode SBC A,IH");
+                        LOG.log(Level.FINE, "Unoffizieller Opcode SBC A,IH an Adresse {0} noch nicht implementiert!", String.format("%04X", pc - 1));
                     }
                     break;
                     case _DD_FD_SBC_IL_A: {
-                        System.out.println("Unoffizieller Opcode SBC A,IL");
+                        LOG.log(Level.FINE, "Unoffizieller Opcode SBC A,IL an Adresse {0} noch nicht implementiert!", String.format("%04X", pc - 1));
                     }
                     break;
                     case _DD_FD_SBC_I_0_A: {
@@ -4205,11 +4220,11 @@ public class UA880 implements CPU {
                     }
                     break;
                     case _DD_FD_AND_IH: {
-                        System.out.println("Unoffizieller Opcode AND IH");
+                        LOG.log(Level.FINE, "Unoffizieller Opcode AND IH an Adresse {0} noch nicht implementiert!", String.format("%04X", pc - 1));
                     }
                     break;
                     case _DD_FD_AND_IL: {
-                        System.out.println("Unoffizieller Opcode AND IL");
+                        LOG.log(Level.FINE, "Unoffizieller Opcode AND IL an Adresse {0} noch nicht implementiert!", String.format("%04X", pc - 1));
                     }
                     break;
                     case _DD_FD_AND_I_0: {
@@ -4226,11 +4241,11 @@ public class UA880 implements CPU {
                     }
                     break;
                     case _DD_FD_XOR_IH: {
-                        System.out.println("Unoffizieller Opcode XOR IH");
+                        LOG.log(Level.FINE, "Unoffizieller Opcode XOR IH an Adresse {0} noch nicht implementiert!", String.format("%04X", pc - 1));
                     }
                     break;
                     case _DD_FD_XOR_IL: {
-                        System.out.println("Unoffizieller Opcode XOR IL");
+                        LOG.log(Level.FINE, "Unoffizieller Opcode XOR IL an Adresse {0} noch nicht implementiert!", String.format("%04X", pc - 1));
                     }
                     break;
                     case _DD_FD_XOR_I_0: {
@@ -4247,11 +4262,11 @@ public class UA880 implements CPU {
                     }
                     break;
                     case _DD_FD_OR_IH: {
-                        System.out.println("Unoffizieller Opcode OR IH");
+                        LOG.log(Level.FINE, "Unoffizieller Opcode OR IH an Adresse {0} noch nicht implementiert!", String.format("%04X", pc - 1));
                     }
                     break;
                     case _DD_FD_OR_IL: {
-                        System.out.println("Unoffizieller Opcode OR IL");
+                        LOG.log(Level.FINE, "Unoffizieller Opcode OR IL an Adresse {0} noch nicht implementiert!", String.format("%04X", pc - 1));
                     }
                     break;
                     case _DD_FD_OR_I_0: {
@@ -4268,11 +4283,11 @@ public class UA880 implements CPU {
                     }
                     break;
                     case _DD_FD_CP_IH: {
-                        System.out.println("Unoffizieller Opcode CP IH");
+                        LOG.log(Level.FINE, "Unoffizieller Opcode CP IH an Adresse {0} noch nicht implementiert!", String.format("%04X", pc - 1));
                     }
                     break;
                     case _DD_FD_CP_IL: {
-                        System.out.println("Unoffizieller Opcode CP IL");
+                        LOG.log(Level.FINE, "Unoffizieller Opcode CP IL an Adresse {0} noch nicht implementiert!", String.format("%04X", pc - 1));
                     }
                     break;
                     case _DD_FD_CP_I_0: {
@@ -4356,7 +4371,7 @@ public class UA880 implements CPU {
                                         debugInfo.setOperands(Integer.toBinaryString(op) + "b->" + Integer.toBinaryString(res) + "b");
                                     }
                                 } else {
-                                    System.out.println("Unoffizieller Opcode RCL (IX/IY+d)->r");
+                                    LOG.log(Level.FINE, "Unoffizieller Opcode RCL (IX/IY+d)->r an Adresse {0} noch nicht implementiert!", String.format("%04X", pc - 1));
                                 }
                             }
                             break;
@@ -4382,7 +4397,7 @@ public class UA880 implements CPU {
                                         debugInfo.setOperands(Integer.toBinaryString(op) + "b->" + Integer.toBinaryString(res) + "b");
                                     }
                                 } else {
-                                    System.out.println("Unoffizieller Opcode RRC (IX/IY+d)->r");
+                                    LOG.log(Level.FINE, "Unoffizieller Opcode RRC (IX/IY+d)->r an Adresse {0} noch nicht implementiert!", String.format("%04X", pc - 1));
                                 }
                             }
                             break;
@@ -4410,7 +4425,7 @@ public class UA880 implements CPU {
                                         debugInfo.setOperands(Integer.toBinaryString(op) + "b->" + Integer.toBinaryString(res) + "b");
                                     }
                                 } else {
-                                    System.out.println("Unoffizieller Opcode RL (IX/IY+d)->r");
+                                    LOG.log(Level.FINE, "Unoffizieller Opcode RL (IX/IY+d)->r an Adresse {0} noch nicht implementiert!", String.format("%04X", pc - 1));
                                 }
                             }
                             break;
@@ -4438,7 +4453,7 @@ public class UA880 implements CPU {
                                         debugInfo.setOperands(Integer.toBinaryString(op) + "b->" + Integer.toBinaryString(res) + "b");
                                     }
                                 } else {
-                                    System.out.println("Unoffizieller Opcode RR (IX/IY+d)->r");
+                                    LOG.log(Level.FINE, "Unoffizieller Opcode RR (IX/IY+d)->r an Adresse {0} noch nicht implementiert!", String.format("%04X", pc - 1));
                                 }
                             }
                             break;
@@ -4463,7 +4478,7 @@ public class UA880 implements CPU {
                                         debugInfo.setOperands(Integer.toBinaryString(op) + "b->" + Integer.toBinaryString(res) + "b");
                                     }
                                 } else {
-                                    System.out.println("Unoffizieller Opcode SLA (IX/IY+d)->r");
+                                    LOG.log(Level.FINE, "Unoffizieller Opcode SLA (IX/IY+d)->r an Adresse {0} noch nicht implementiert!", String.format("%04X", pc - 1));
                                 }
                             }
                             break;
@@ -4491,12 +4506,12 @@ public class UA880 implements CPU {
                                         debugInfo.setOperands(Integer.toBinaryString(op) + "b->" + Integer.toBinaryString(res) + "b");
                                     }
                                 } else {
-                                    System.out.println("Unoffizieller Opcode SRA (IX/IY+d)->r");
+                                    LOG.log(Level.FINE, "Unoffizieller Opcode SRA (IX/IY+d)->r an Adresse {0} noch nicht implementiert!", String.format("%04X", pc - 1));
                                 }
                             }
                             break;
                             case _CB_SLL: {
-                                System.out.println("Unoffizieller Opcode SLS");
+                                LOG.log(Level.FINE, "Unoffizieller Opcode SLS an Adresse {0} noch nicht implementiert!", String.format("%04X", pc - 1));
                             }
                             break;
                             case _CB_SRL: {
@@ -4520,7 +4535,7 @@ public class UA880 implements CPU {
                                         debugInfo.setOperands(Integer.toBinaryString(op) + "b->" + Integer.toBinaryString(res) + "b");
                                     }
                                 } else {
-                                    System.out.println("Unoffizieller Opcode SRL (IX/IY+d)->r");
+                                    LOG.log(Level.FINE, "Unoffizieller Opcode SRL (IX/IY+d)->r an Adresse {0} noch nicht implementiert!", String.format("%04X", pc - 1));
                                 }
                             }
                             break;
@@ -4548,7 +4563,7 @@ public class UA880 implements CPU {
                                         debugInfo.setOperands(BitTest.getBit(op, bit) ? "1" : "0");
                                     }
                                 } else {
-                                    System.out.println("Unoffizieller Opcode BIT (IX/IY+d)->r");
+                                    LOG.log(Level.FINE, "Unoffizieller Opcode BIT (IX/IY+d)->r an Adresse {0} noch nicht implementiert!", String.format("%04X", pc - 1));
                                 }
                             }
                             break;
@@ -4569,9 +4584,8 @@ public class UA880 implements CPU {
                                         debugInfo.setCode("RES " + bit + ",(" + ((useIY) ? "IY" : "IX") + "+" + String.format("%02Xh", offset) + ")");
                                         debugInfo.setOperands(null);
                                     }
-
                                 } else {
-                                    System.out.println("Unoffizieller Opcode RES (IX/IY+d)->r");
+                                    LOG.log(Level.FINE, "Unoffizieller Opcode RES (IX/IY+d)->r an Adresse {0} noch nicht implementiert!", String.format("%04X", pc - 1));
                                 }
                             }
                             break;
@@ -4593,12 +4607,12 @@ public class UA880 implements CPU {
                                         debugInfo.setOperands(null);
                                     }
                                 } else {
-                                    System.out.println("Unoffizieller Opcode SET (IX/IY+d)->r");
+                                    LOG.log(Level.FINE, "Unoffizieller Opcode SET (IX/IY+d)->r an Adresse {0} noch nicht implementiert!", String.format("%04X", pc - 1));
                                 }
                             }
                             break;
                             default:
-                                System.out.println("Ungültiger OPCODE " + String.format("%02X %02X", opcode, opcode2));
+                                LOG.log(Level.SEVERE, "Ungültiger oder nicht implementierter OPcode {0} an Adresse {1}!", new String[]{String.format("0x%02X,0x%02X", opcode, opcode2), String.format("%04X", pc - 1)});
                                 System.exit(0);
                                 break;
                         }
@@ -4844,11 +4858,11 @@ public class UA880 implements CPU {
                     }
                     break;
                     case _ED_IN_C_F: {
-                        System.out.println("Unoffizieller Opcode IN F,(C)");
+                        LOG.log(Level.FINE, "Unoffizieller Opcode IN F,(C) an Adresse {0} noch nicht implementiert!", String.format("%04X", pc - 1));
                     }
                     break;
                     case _ED_OUT_F_C: {
-                        System.out.println("Unoffizieller Opcode OUT (C),F");
+                        LOG.log(Level.FINE, "Unoffizieller Opcode OUT (C),F an Adresse {0} noch nicht implementiert!", String.format("%04X", pc - 1));
                     }
                     break;
                     case _ED_LDI: {
@@ -5176,20 +5190,21 @@ public class UA880 implements CPU {
                     }
                     break;
                     default:
-                        System.out.println("Ungültiger OPCODE " + String.format("%02X %02X", opcode, opcode2));
+                        LOG.log(Level.SEVERE, "Ungültiger oder nicht implementierter OPcode {0} an Adresse {1}!", new String[]{String.format("0x%02X,0x%02X", opcode, opcode2), String.format("%04X", pc - 1)});
                         System.exit(0);
                         break;
                 }
             }
             break;
             default:
-                System.out.println("Ungültiger OPCODE " + String.format("%02X", opcode));
+                LOG.log(Level.SEVERE, "Ungültiger oder nicht implementierter OPcode {0} an Adresse {1}!", new String[]{String.format("%0x02X", opcode), String.format("%04X", pc - 1)});
                 System.exit(0);
                 break;
         }
         if (debug) {
             if (debugInfo.getCode() != null) {
                 debugger.addLine(debugInfo);
+                decoder.addItem(debugInfo);
             }
         }
     }
@@ -5198,7 +5213,7 @@ public class UA880 implements CPU {
      * Setzt den Wert eines Registers
      *
      * @param register Register
-     * @param value    Wert
+     * @param value Wert
      */
     private void setRegister(int register, int value) {
         switch (register) {
@@ -5338,7 +5353,7 @@ public class UA880 implements CPU {
      * (BC,DE,HL,SP)
      *
      * @param registerPair Registerpaar
-     * @param value        Wert
+     * @param value Wert
      */
     private void setRegisterPairHLSP(int registerPair, int value) {
         switch (registerPair) {
@@ -5367,7 +5382,7 @@ public class UA880 implements CPU {
      * Indexregisters (BC,DE,SP,IX/IY) als 16-bit Wert zurück
      *
      * @param registerPair Registerpaar
-     * @param useIY        true - IndexRegister IY, false - Indexregister IX
+     * @param useIY true - IndexRegister IY, false - Indexregister IX
      * @return Inhalt des Registerpaars
      */
     private int getRegisterPairISP(int registerPair, boolean useIY) {
@@ -5388,7 +5403,7 @@ public class UA880 implements CPU {
      * ein Indexregister (BC,DE,HL,IX/IY) repräsentiert
      *
      * @param registerPair Registerpaar
-     * @param useIY        true - IndexRegister IY, false - Indexregister IX
+     * @param useIY true - IndexRegister IY, false - Indexregister IX
      * @return Inhalt des Registerpaars
      */
     private String getRegisterPairISPString(int registerPair, boolean useIY) {
@@ -5409,8 +5424,8 @@ public class UA880 implements CPU {
      * Indexregisters (BC,DE,SP,IX/IY)
      *
      * @param registerPair Registerpaar
-     * @param useIY        true - IndexRegister IY, false - Indexregister IX
-     * @param value        Wert
+     * @param useIY true - IndexRegister IY, false - Indexregister IX
+     * @param value Wert
      */
     private void setRegisterPairISP(int registerPair, int value, boolean useIY) {
         switch (registerPair) {
@@ -5474,7 +5489,7 @@ public class UA880 implements CPU {
      * Setzt den Inhalt eines Registerpaares (BC,DE,HL,AF)
      *
      * @param registerPair Registerpaar
-     * @param value        Wert
+     * @param value Wert
      */
     private void setRegisterPairAF(int registerPair, int value) {
         switch (registerPair) {
@@ -5570,10 +5585,10 @@ public class UA880 implements CPU {
     /**
      * Addiert zwei Bytes und setzt die entsprechenden Flags
      *
-     * @param op1      1. Operand
-     * @param op2      2. Operand
+     * @param op1 1. Operand
+     * @param op2 2. Operand
      * @param useCarry gibt an, ob ein Carry Flag berücksichtigt werden soll
-     *                 (ADC)
+     * (ADC)
      * @return Ergebnis
      */
     private int add8(int op1, int op2, boolean useCarry) {
@@ -5593,10 +5608,10 @@ public class UA880 implements CPU {
     /**
      * Addiert zwei Wörter und setzt die entsprechenden Flags
      *
-     * @param op1      1. Operand
-     * @param op2      2. Operand
+     * @param op1 1. Operand
+     * @param op2 2. Operand
      * @param useCarry gibt an, ob ein Carry Flag berücksichtigt werden soll
-     *                 (ADC)
+     * (ADC)
      * @return Ergebnis
      */
     private int add16(int op1, int op2, boolean useCarry) {
@@ -5618,10 +5633,10 @@ public class UA880 implements CPU {
     /**
      * Subtrahiert zwei Bytes und setzt die entsprechenden Flags
      *
-     * @param op1      1. Operand
-     * @param op2      2. Operand
+     * @param op1 1. Operand
+     * @param op2 2. Operand
      * @param useCarry gibt an, ob ein Carry Flag berücksichtigt werden soll
-     *                 (SBC)
+     * (SBC)
      * @return Ergebnis
      */
     private int sub8(int op1, int op2, boolean useCarry) {
@@ -5641,10 +5656,10 @@ public class UA880 implements CPU {
     /**
      * Subtrahiert zwei Wörter und setzt die entsprechenden Flags
      *
-     * @param op1      1. Operand
-     * @param op2      2. Operand
+     * @param op1 1. Operand
+     * @param op2 2. Operand
      * @param useCarry gibt an, ob ein Carry Flag berücksichtigt werden soll
-     *                 (SBC)
+     * (SBC)
      * @return Ergebnis
      */
     private int sub16(int op1, int op2, boolean useCarry) {
@@ -5890,7 +5905,7 @@ public class UA880 implements CPU {
      *
      * @param flag Zu prüfendes Flag
      * @return <code>true</code> - wenn das entsprechende Flag gesetzt ist,
-     *         <code>false</code> - sonst
+     * <code>false</code> - sonst
      */
     private boolean getFlag(int flag) {
         return (f & flag) != 0;
@@ -6152,7 +6167,7 @@ public class UA880 implements CPU {
      * Gibt an, ob noch ein NMI ansteht bzw. gerade ein NMI bearbeitet wird.
      *
      * @return <code>true</code> wenn ein NMI in Bearbeitung ist oder ansteht,
-     *         <code>false</code> sonst
+     * <code>false</code> sonst
      */
     public boolean isNmiInProgress() {
         return nmiInProgress;
@@ -6166,4 +6181,15 @@ public class UA880 implements CPU {
         interruptMode = 0;
         pc = 0x0000;
     }
+
+    /**
+     * Gibt die Instanz des Decoders zurück.
+     *
+     * @return Decoderinstanz oder <code>null</code> wenn kein Decoder
+     * initialisiert ist.
+     */
+    @Override
+    public Decoder getDecoder() {
+        return decoder;
+}
 }

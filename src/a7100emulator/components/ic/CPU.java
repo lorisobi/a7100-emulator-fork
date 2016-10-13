@@ -23,6 +23,8 @@
  */
 package a7100emulator.components.ic;
 
+import a7100emulator.Debug.Decoder;
+
 /**
  * Interface für alle CPU Schlatkreise, welche basierend auf einem externen Takt
  * Befehle aus einem Speicherbereich decodieren und abarbeiten.
@@ -50,4 +52,12 @@ public interface CPU extends IC {
      * Deaktivieren
      */
     void setDebug(boolean debug);
+
+    /**
+     * Gibt die Instanz des Decoders zurück.
+     *
+     * @return Decoderinstanz oder <code>null</code> wenn kein Decoder
+     *         initialisiert ist.
+     */
+    Decoder getDecoder();
 }

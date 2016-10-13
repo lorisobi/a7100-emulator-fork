@@ -21,6 +21,8 @@
  *   03.04.2014 - Kommentare vervollständigt
  *   18.11.2014 - getBit durch BitTest.getBit ersetzt
  *              - Interface IC implementiert
+ *   31.07.2016 - Daten Port A hinzugefügt
+ *   09.08.2016 - Logger hinzugefügt
  */
 package a7100emulator.components.ic;
 
@@ -29,6 +31,7 @@ import a7100emulator.components.system.InterruptSystem;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.logging.Logger;
 
 /**
  * Klasse zur Abbildung des Parallel-E/A-Schaltkreises PPI
@@ -36,6 +39,11 @@ import java.io.IOException;
  * @author Dirk Bräuer
  */
 public class KR580WW55A implements IC {
+
+    /**
+     * Logger Instanz
+     */
+    private static final Logger LOG = Logger.getLogger(KR580WW55A.class.getName());
 
     /**
      * Aktueller Modus des jeweiligen Ports
@@ -86,6 +94,11 @@ public class KR580WW55A implements IC {
      * Aktuelle Bitkonfiguration
      */
     private int bits = 0;
+
+    /**
+     * Daten des Ports A
+     */
+    private int dataA = 0xC0;
 
     /**
      * Daten des Ports B
@@ -165,6 +178,9 @@ public class KR580WW55A implements IC {
      * @param data Daten
      */
     public void writePortA(int data) {
+        if (port_a_in_out.equals(In_Out.INPUT)) {
+            dataA = data;
+        }
     }
 
     /**
@@ -190,7 +206,8 @@ public class KR580WW55A implements IC {
      * @return Daten
      */
     public int readPortA() {
-        return 0xC0;
+        //return 0xC0;
+        return dataA;
     }
 
     /**

@@ -23,6 +23,7 @@
  *   27.07.2014 - Puffer für kleine Aktualisierungszeiten hinzugefügt
  *              - Implementierung Mode 0, 2 und 3
  *              - Interface IC implementiert
+ *   09.08.2016 - Logger hinzugefügt
  */
 package a7100emulator.components.ic;
 
@@ -31,6 +32,7 @@ import a7100emulator.components.system.MMS16Bus;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.logging.Logger;
 
 /**
  * Klasse zur Realisierung des Timer-Schaltkreises PIT
@@ -38,6 +40,11 @@ import java.io.IOException;
  * @author Dirk Bräuer
  */
 public class KR580WI53 implements IC {
+
+    /**
+     * Logger Instanz
+     */
+    private static final Logger LOG = Logger.getLogger(KR580WI53.class.getName());
 
     /**
      * Bitmaske zum Prüfen des angesprochenen Timers
@@ -292,7 +299,7 @@ public class KR580WI53 implements IC {
                     running = true;
                     break;
                 case 3:
-              //      System.out.println("Counter " + id + " RW-State:" + readWriteState + " Wert:" + val);
+                    //      System.out.println("Counter " + id + " RW-State:" + readWriteState + " Wert:" + val);
                     if (readWriteState == 0) {
                         value = val & 0xFF;
                         readWriteState++;
@@ -394,7 +401,7 @@ public class KR580WI53 implements IC {
                         }
                         if (value <= 0) {
                             value += initialValue;
-                            outp=true;
+                            outp = true;
                             //running=false;
                         }
                         break;

@@ -23,6 +23,7 @@
  *              - IRR und OCW1 zurückgesetzt beim Empfang von ICW1
  *   18.11.2014 - getBit durch BitTest.getBit ersetzt
  *              - Interface IC implementiert
+ *   09.08.2016 - Logger hinzugefügt
  */
 package a7100emulator.components.ic;
 
@@ -31,6 +32,7 @@ import a7100emulator.components.system.InterruptSystem;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.logging.Logger;
 
 /**
  * Klasse zur Realisierung des Interruptcontrollers PIC
@@ -38,6 +40,11 @@ import java.io.IOException;
  * @author Dirk Bräuer
  */
 public class K580WN59A implements IC {
+
+    /**
+     * Logger Instanz
+     */
+    private static final Logger LOG = Logger.getLogger(K580WN59A.class.getName());
 
     /**
      * Status des PIC
@@ -48,8 +55,7 @@ public class K580WN59A implements IC {
      */
     private int irr = 0;
     /**
-     * Interrupt-Service Routine
-     * TODO: implementieren
+     * Interrupt-Service Routine TODO: implementieren
      */
     private int isr = 0;
     /**

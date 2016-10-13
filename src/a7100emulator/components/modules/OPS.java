@@ -24,15 +24,21 @@
  *   18.12.2014 - Parity Hack ergänzt
  *   03.01.2015 - Parität setzen durch Modulo Rechnung überarbeitet
  *              - Fehler Paritätsprüfung behoben und Parity Hack entfernt
+ *   31.07.2016 - Ports für alle Module in Array zusammengefasst
+ *              - Parity ausgelagert
+ *   07.08.2016 - Logger hinzugefügt und Ausgaben umgeleitet
  */
 package a7100emulator.components.modules;
 
+import a7100emulator.Tools.Parity;
 import a7100emulator.Tools.AddressSpace;
 import a7100emulator.Tools.Memory;
 import a7100emulator.components.system.MMS16Bus;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Klasse zur Abbildung der OPS (Operativspeicher).
@@ -46,43 +52,19 @@ import java.io.IOException;
 public final class OPS implements IOModule, MemoryModule {
 
     /**
-     * Enum für verwendete Paritäten
+     * Logger Instanz
      */
-    enum Parity {
+    private static final Logger LOG = Logger.getLogger(OPS.class.getName());
 
-        /**
-         * Gerade Parität
-         */
-        EVEN,
-        /**
-         * Ungerade Parität
-         */
-        ODD;
-    }
     /**
      * Gesamtzahl der vorhandenen OPS-Module
      */
     public static int ops_count = 0;
 
     /**
-     * Port der 1. OPS
+     * Ports für die vier möglichen OPS-Module
      */
-    private final static int PORT_OPS_1_PES = 0x00;
-
-    /**
-     * Port der 2. OPS
-     */
-    private final static int PORT_OPS_2_PES = 0x02;
-
-    /**
-     * Port der 3. OPS
-     */
-    private final static int PORT_OPS_3_PES = 0x40;
-
-    /**
-     * Port der 4. OPS
-     */
-    private final static int PORT_OPS_4_PES = 0x42;
+    private final static int[] PORT_OPS_PES = new int[]{0x00, 0x02, 0x40, 0x42};
 
     /**
      * Nummer der OPS
@@ -115,7 +97,14 @@ public final class OPS implements IOModule, MemoryModule {
     private int state = 0x0F;
 
     /**
-     * Erstellt eine neue OPS
+     * Adressen für parityHack. Diese Adressen werden beim Paritätstes vom ACT
+     * genutzt. Für die 4. OPS ist keine Adresse vorgsehen.
+     */
+    private static final int[] parityCheckAddress = new int[]{0x20000, 0x60000, 0xA0000, 0x00000};
+
+    /**
+     * Erstellt ein neues OPS-Modul. Die Gesamtanzahl der OPS-Module wird erhöht
+     * und das entsprechende Modul angelegt.
      */
     public OPS() {
         ops_id = ops_count++;
@@ -123,40 +112,31 @@ public final class OPS implements IOModule, MemoryModule {
     }
 
     /**
-     * Registriert die Ports im System
+     * Registriert die Ports des OPS im System. Für jede OPS wird im
+     * E/A-Adressraum nur ein Port registriert. Über diesen Port kann die
+     * Parität des Moduls festgelegt werden.
      */
     @Override
     public void registerPorts() {
-        switch (ops_id) {
-            case 0:
-                MMS16Bus.getInstance().registerIOPort(this, PORT_OPS_1_PES);
-                break;
-            case 1:
-                MMS16Bus.getInstance().registerIOPort(this, PORT_OPS_2_PES);
-                break;
-            case 2:
-                MMS16Bus.getInstance().registerIOPort(this, PORT_OPS_3_PES);
-                break;
-            case 3:
-                MMS16Bus.getInstance().registerIOPort(this, PORT_OPS_4_PES);
-                break;
-        }
+        MMS16Bus.getInstance().registerIOPort(this, PORT_OPS_PES[ops_id]);
     }
 
     /**
-     * Gibt ein Byte auf einem Port aus
+     * Gibt ein Byte auf einem Port des OPS aus.
      *
      * @param port Port
      * @param data Daten
      */
     @Override
     public void writePortByte(int port, int data) {
-        if ((data % 2) == 0) {
-            parity = Parity.EVEN;
-        } else {
-            parity = Parity.ODD;
+        if (port == PORT_OPS_PES[ops_id]) {
+            if ((data % 2) == 0) {
+                parity = Parity.EVEN;
+            } else {
+                parity = Parity.ODD;
+            }
+            state = 0x0F;
         }
-        state = 0x0F;
     }
 
     /**
@@ -167,7 +147,7 @@ public final class OPS implements IOModule, MemoryModule {
      */
     @Override
     public void writePortWord(int port, int data) {
-        //System.out.println("write Word auf OPS Port nicht implementiert");
+        LOG.log(Level.FINE, "Schreiben von Wörtern auf Port {0} noch nicht implementiert!", String.format("0x%02X", port));
     }
 
     /**
@@ -178,7 +158,12 @@ public final class OPS implements IOModule, MemoryModule {
      */
     @Override
     public int readPortByte(int port) {
-        return state;
+        if (port == PORT_OPS_PES[ops_id]) {
+            return state;
+        } else {
+            LOG.log(Level.FINE, "Lesen von nicht definiertem Port {0}!", String.format("0x%02X", port));
+        }
+        return 0;
     }
 
     /**
@@ -189,7 +174,7 @@ public final class OPS implements IOModule, MemoryModule {
      */
     @Override
     public int readPortWord(int port) {
-        //System.out.println("read Word auf OPS Port nicht implementiert");
+        LOG.log(Level.FINE, "Lesen von Wörtern von Port {0} noch nicht implementiert!", String.format("0x%02X", port));
         return 0;
     }
 
@@ -235,8 +220,9 @@ public final class OPS implements IOModule, MemoryModule {
     @Override
     public int readByte(int address) {
         // Parity Hack für A C T
-        if ((address - ops_offset) == 0x20000) {
-            int par = (byte) checkParity(memory.readByte(address - ops_offset));
+        if (address == parityCheckAddress[ops_id]) {
+            //if ((address - ops_offset) == 0x20000) {
+            int par = (byte) Parity.calculateParityBit(memory.readByte(address - ops_offset), parity);
             if (par != parityBits[address - ops_offset]) {
                 state &= ~0x07;
                 MMS16Bus.getInstance().requestInterrupt(0);
@@ -254,9 +240,10 @@ public final class OPS implements IOModule, MemoryModule {
     @Override
     public int readWord(int address) {
         // Parity Hack für A C T
-        if ((address - ops_offset) == 0x20000) {
-            int par1 = (byte) checkParity(memory.readByte(address - ops_offset));
-            int par2 = (byte) checkParity(memory.readByte(address - ops_offset + 1));
+        if (address == parityCheckAddress[ops_id]) {
+            //(address - ops_offset) == 0x20000) {
+            int par1 = (byte) Parity.calculateParityBit(memory.readByte(address - ops_offset), parity);
+            int par2 = (byte) Parity.calculateParityBit(memory.readByte(address - ops_offset + 1), parity);
             if (par1 != parityBits[address - ops_offset] || par2 != parityBits[address - ops_offset + 1]) {
                 state &= ~0x07;
                 MMS16Bus.getInstance().requestInterrupt(0);
@@ -275,8 +262,9 @@ public final class OPS implements IOModule, MemoryModule {
     public void writeByte(int address, int data) {
         memory.writeByte(address - ops_offset, data);
         // Parity Hack für A C T
-        if ((address - ops_offset) == 0x20000) {
-            parityBits[address - ops_offset] = (byte) checkParity(data);
+        if (address == parityCheckAddress[ops_id]) {
+            //if ((address - ops_offset) == 0x20000) {
+            parityBits[address - ops_offset] = (byte) Parity.calculateParityBit(data, parity);
         }
     }
 
@@ -290,24 +278,11 @@ public final class OPS implements IOModule, MemoryModule {
     public void writeWord(int address, int data) {
         memory.writeWord(address - ops_offset, data);
         // Parity Hack für A C T
-        if ((address - ops_offset) == 0x20000) {
-            parityBits[address - ops_offset] = (byte) checkParity(data & 0xFF);
-            parityBits[address - ops_offset + 1] = (byte) checkParity((data >> 8) & 0xFF);
+        if (address == parityCheckAddress[ops_id]) {
+            //if ((address - ops_offset) == 0x20000) {
+            parityBits[address - ops_offset] = (byte) Parity.calculateParityBit(data & 0xFF, parity);
+            parityBits[address - ops_offset + 1] = (byte) Parity.calculateParityBit((data >> 8) & 0xFF, parity);
         }
-    }
-
-    /**
-     * Prüft die Parität eines Bytes
-     *
-     * @param data Daten
-     * @return Parität (0-gerade / 1-ungerade)
-     */
-    private int checkParity(int data) {
-        int par = (parity.equals(Parity.EVEN)) ? 0x00 : 0x01;
-        for (int i = 0; i < 8; i++) {
-            par ^= (0x01 & (data >> i));
-        }
-        return par;
     }
 
     /**

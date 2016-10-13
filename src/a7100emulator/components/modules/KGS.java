@@ -32,9 +32,14 @@
  *   24.07.2016 - Parameter umbenannt
  *              - localClockUpdate() bis auf CTC ohne Funktion
  *              - Speichern von Quartz-Informationen 
+ *   28.07.2016 - Methode getDecoder() hinzugefügt
+ *   29.07.2016 - IOException beim Speichern des KGS-Rams hinzugefügt
+ *   07.08.2016 - Logger hinzugefügt und Ausgaben umgeleitet
+ *   09.08.2016 - Fehler beim Laden der EPROMS abgefangen
  */
 package a7100emulator.components.modules;
 
+import a7100emulator.Debug.Decoder;
 import a7100emulator.Debug.MemoryAnalyzer;
 import a7100emulator.Tools.BitmapGenerator;
 import a7100emulator.Tools.Memory;
@@ -64,6 +69,11 @@ import javax.swing.JOptionPane;
  * @author Dirk Bräuer
  */
 public final class KGS implements IOModule, ClockModule, SubsystemModule {
+
+    /**
+     * Logger Instanz
+     */
+    private static final Logger LOG = Logger.getLogger(KGS.class.getName());
 
     /**
      * Arbeitspeicher des KGS
@@ -238,6 +248,9 @@ public final class KGS implements IOModule, ClockModule, SubsystemModule {
                 dataIn = data;
                 setBit(IBF_BIT);
                 break;
+            default:
+                LOG.log(Level.FINE, "Schreiben auf nicht definiertem Port {0}!", String.format("0x%02X", port));
+                break;
         }
     }
 
@@ -269,6 +282,9 @@ public final class KGS implements IOModule, ClockModule, SubsystemModule {
                 result = dataOut;
                 clearBit(OBF_BIT);
                 clearBit(INT_BIT);
+                break;
+            default:
+                LOG.log(Level.FINE, "Lesen von nicht definiertem Port {0}!", String.format("0x%02X", port));
                 break;
         }
         return result;
@@ -314,21 +330,26 @@ public final class KGS implements IOModule, ClockModule, SubsystemModule {
                 clearBit(IBF_BIT);
                 return dataIn;
             case LOCAL_PORT_OUTPUT:
-                throw new IllegalArgumentException("Lesen von OUTPUT Port nicht erlaubt");
+                LOG.log(Level.FINER, "Lesen OUTPUT (Port {0}) nicht erlaubt!", String.format("0x%02X", port));
+                break;
             case LOCAL_PORT_STATE:
                 return state;
             case LOCAL_PORT_INT_FLAG:
-                System.out.println("Lesen von INT-Flag noch nicht implementiert");
+                LOG.log(Level.FINE, "Lesen INT-Flag (Port {0}) nicht implementiert!", String.format("0x%02X", port));
                 break;
             case LOCAL_PORT_ERR_FLAG:
-                System.out.println("Lesen von ERR-Flag noch nicht implementiert");
+                LOG.log(Level.FINE, "Lesen ERR-Flag (Port {0}) nicht implementiert!", String.format("0x%02X", port));
                 break;
             case LOCAL_PORT_MSEL:
-                throw new IllegalArgumentException("Lesen von MSEL Port nicht erlaubt");
+                LOG.log(Level.FINER, "Lesen MSEL (Port {0}) nicht erlaubt!", String.format("0x%02X", port));
+                break;
             case LOCAL_PORT_SELECT_BYTE_0:
                 return selectByte0;
             case LOCAL_PORT_SELECT_BYTE_1:
                 return selectByte1;
+            default:
+                LOG.log(Level.FINE, "Lesen von nicht definiertem Port {0}!", String.format("0x%02X", port));
+                break;
         }
         return 0;
     }
@@ -356,26 +377,26 @@ public final class KGS implements IOModule, ClockModule, SubsystemModule {
                 break;
             case LOCAL_PORT_SIO_DATA_A:
                 sio.writeData(0, data);
-                //System.out.println("Schreibe Kanal A:" + String.format("%02X", data));
                 break;
             case LOCAL_PORT_SIO_CONTROL_A:
                 sio.writeControl(0, data);
                 break;
             case LOCAL_PORT_SIO_DATA_B:
                 sio.writeData(1, data);
-                //System.out.println("Schreibe Kanal B:" + String.format("%02X", data));
                 break;
             case LOCAL_PORT_SIO_CONTROL_B:
                 sio.writeControl(1, data);
                 break;
             case LOCAL_PORT_INPUT:
-                throw new IllegalArgumentException("Schreiben auf INPUT Port nicht erlaubt");
+                LOG.log(Level.FINER, "Schreiben auf INPUT (Port {0}) nicht erlaubt!", String.format("0x%02X", port));
+                break;
             case LOCAL_PORT_OUTPUT:
                 dataOut = data;
                 setBit(OBF_BIT);
                 break;
             case LOCAL_PORT_STATE:
-                throw new IllegalArgumentException("Schreiben auf STATUS Port nicht erlaubt");
+                LOG.log(Level.FINER, "Schreiben auf STATUS (Port {0}) nicht erlaubt!", String.format("0x%02X", port));
+                break;
             case LOCAL_PORT_INT_FLAG:
                 setBit(INT_BIT);
                 MMS16Bus.getInstance().requestInterrupt(7);
@@ -387,14 +408,19 @@ public final class KGS implements IOModule, ClockModule, SubsystemModule {
                 msel = data;
                 break;
             case LOCAL_PORT_SELECT_BYTE_0:
-                throw new IllegalArgumentException("Schreiben von DSEL0 Port nicht erlaubt");
+                LOG.log(Level.FINER, "Schreiben auf DSEL0 (Port {0}) nicht erlaubt!", String.format("0x%02X", port));
+                break;
             case LOCAL_PORT_SELECT_BYTE_1:
-                throw new IllegalArgumentException("Schreiben von DSEL1 Port nicht erlaubt");
+                LOG.log(Level.FINER, "Schreiben auf DSEL1 (Port {0}) nicht erlaubt!", String.format("0x%02X", port));
+                break;
             case 0x20:
             case 0x21:
             case 0x22:
             case 0x23:
                 abg.writeLocalPort(port, data);
+                break;
+            default:
+                LOG.log(Level.FINE, "Schreiben auf nicht definiertem Port {0}!", String.format("0x%02X", port));
                 break;
         }
     }
@@ -472,20 +498,17 @@ public final class KGS implements IOModule, ClockModule, SubsystemModule {
     }
 
     /**
-     * Schreibt den Inhalt des KGS-RAM in eine Datei
+     * Schreibt den Inhalt des KGS-RAM in eine Datei.
      *
      * @param filename Dateiname
+     * @throws java.io.IOException Wenn das Speichern des Speicherninhaltes auf
+     * dem Datenträger nicht erfolgreich war
      */
-    public void dumpLocalMemory(String filename) {
-        DataOutputStream dos;
-        try {
-            dos = new DataOutputStream(new FileOutputStream(filename));
+    public void dumpLocalMemory(String filename) throws IOException {
+        DataOutputStream dos = new DataOutputStream(new FileOutputStream(filename));
             ram.saveMemory(dos);
             dos.close();
-        } catch (IOException ex) {
-            Logger.getLogger(KGS.class.getName()).log(Level.SEVERE, null, ex);
         }
-    }
 
     /**
      * Reicht die Anforderung einen nichtmaskierbaren Interrupt zu verarbeiten
@@ -504,11 +527,18 @@ public final class KGS implements IOModule, ClockModule, SubsystemModule {
     public void init() {
         final File kgsRom = new File("./eproms/KGS-K7070-152.rom");
         if (!kgsRom.exists()) {
+            LOG.log(Level.SEVERE, "KGS-EPROM {0} nicht gefunden!", kgsRom.getPath());
             JOptionPane.showMessageDialog(null, "Eprom: " + kgsRom.getName() + " nicht gefunden!", "Eprom nicht gefunden", JOptionPane.ERROR_MESSAGE);
             System.exit(0);
         }
 
+        try {
         ram.loadFile(0x00, kgsRom, Memory.FileLoadMode.LOW_AND_HIGH_BYTE);
+        } catch (IOException ex) {
+            LOG.log(Level.SEVERE, "Fehler beim Laden des KGS-EPROMS!", ex);
+            System.exit(0);
+        }
+
         abg = new ABG(this);
         registerPorts();
         registerClocks();
@@ -594,7 +624,7 @@ public final class KGS implements IOModule, ClockModule, SubsystemModule {
         try {
             Thread.sleep(100);
         } catch (InterruptedException ex) {
-            Logger.getLogger(KGS.class.getName()).log(Level.SEVERE, null, ex);
+            LOG.log(Level.FINEST, null, ex);
         }
         frame.setVisible(true);
         frame.pack();
@@ -711,5 +741,15 @@ public final class KGS implements IOModule, ClockModule, SubsystemModule {
     @Override
     public void requestBus(boolean request) {
         cpu.requestBus(request);
+    }
+    
+    /**
+     * Gibt die Instanz des CPU Decoders zurück.
+     *
+     * @return Decoderinstanz oder <code>null</code> wenn kein Decoder
+     * initialisiert ist.
+     */
+    public Decoder getDecoder() {
+        return cpu.getDecoder();
     }
 }

@@ -1,5 +1,5 @@
 /*
- * IC.java
+ * Parity.java
  * 
  * Diese Datei gehört zum Projekt A7100 Emulator 
  * Copyright (c) 2011-2016 Dirk Bräuer
@@ -18,17 +18,38 @@
  * Programm erhalten haben. Wenn nicht, siehe <http://www.gnu.org/licenses/>.
  * 
  * Letzte Änderungen:
- *   18.11.2014 - Erstellt
+ *   31.07.2016 - Erstellt aus interner OPS-Klasse
  */
-package a7100emulator.components.ic;
-
-import a7100emulator.Tools.StateSavable;
+package a7100emulator.Tools;
 
 /**
- * Interface für alle Schaltkreise.
+ * Enum für verwendete Paritäten.
  *
  * @author Dirk Bräuer
  */
-public interface IC extends StateSavable {
-    
+public enum Parity {
+
+    /**
+     * gerade Parität
+     */
+    EVEN,
+    /**
+     * ungerade Parität
+     */
+    ODD;
+
+    /**
+     * Prüft die Parität eines Bytes
+     *
+     * @param data Daten
+     * @param parity Gewünschte Parität
+     * @return Parität (0-gerade / 1-ungerade)
+     */
+    public static int calculateParityBit(int data, Parity parity) {
+        int par = (parity.equals(Parity.EVEN)) ? 0x00 : 0x01;
+        for (int i = 0; i < 8; i++) {
+            par ^= (0x01 & (data >> i));
+        }
+        return par;
+    }
 }

@@ -24,9 +24,15 @@
  *                MMS16Bus ersetzt
  *   23.07.2016 - Methoden für CPU- Pausieren und Anhalten entfernt
  *   24.07.2016 - Speichern Quartz Zustand
+ *   28.07.2016 - Methode getDecoder() hinzugefügt
+ *   31.07.2016 - Methode getPPI() hinzugefügt
+ *   07.08.2016 - Doppelte USART Ports hinzugefügt
+ *              - Logger hinzugefügt und Ausgaben umgeleitet
+ *   09.08.2016 - Fehler beim Laden der EPROMS abgefangen
  */
 package a7100emulator.components.modules;
 
+import a7100emulator.Debug.Decoder;
 import a7100emulator.Tools.AddressSpace;
 import a7100emulator.Tools.Memory;
 import a7100emulator.components.ic.K1810WM86;
@@ -41,14 +47,21 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.swing.JOptionPane;
 
 /**
- * Klasse zur Abbildung der ZVE (Zentrale Verarbeitungeinheit)
+ * Klasse zur Abbildung der ZVE (Zentrale Verarbeitungeinheit).
  *
- * @author Dirk
+ * @author Dirk Bräuer
  */
 public final class ZVE implements IOModule, MemoryModule, ClockModule {
+
+    /**
+     * Logger Instanz
+     */
+    private static final Logger LOG = Logger.getLogger(ZVE.class.getName());
 
     /**
      * Port 1 des Interruptcontrollers
@@ -101,14 +114,29 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
     private final static int PORT_ZVE_8253_INIT = 0xD6;
 
     /**
-     * Port 1 des USART-Schaltkreises
+     * Datenleitung des USART-Schaltkreises
      */
-    private final static int PORT_ZVE_8251A_DATA = 0xD8;
+    private final static int PORT_ZVE_8251A_DATA_1 = 0xD8;
 
     /**
-     * Port 2 des USART-Schaltkreises
+     * Datenleitung des USART-Schaltkreises - Diese nicht dokumentierte zweite
+     * Adresse ergibt sich daraus, dass die Leitung AB(2) auf der ZVE nicht mit
+     * dem USART verbunden ist.
      */
-    private final static int PORT_ZVE_8251A_COMMAND = 0xDA;
+    private final static int PORT_ZVE_8251A_DATA_2 = 0xDC;
+
+    /**
+     * Commandleitung des USART-Schaltkreises
+     */
+    private final static int PORT_ZVE_8251A_COMMAND_1 = 0xDA;
+
+    /**
+     * Commandleitung des USART-Schaltkreises - Diese nicht dokumentierte zweite
+     * Adresse ergibt sich daraus, dass die Leitung AB(2) auf der ZVE nicht mit
+     * dem USART verbunden ist.
+     */
+    private final static int PORT_ZVE_8251A_COMMAND_2 = 0xDE;
+
     /**
      * Interruptcontroller
      */
@@ -142,7 +170,7 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
     /**
      * Quartz CPU-Takt
      */
-    private final QuartzCrystal cpuClock=new QuartzCrystal(4.9152);
+    private final QuartzCrystal cpuClock = new QuartzCrystal(4.9152);
 
     /**
      * Erstellt eine neue ZVE
@@ -178,8 +206,10 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
         MMS16Bus.getInstance().registerIOPort(this, PORT_ZVE_8253_COUNTER1);
         MMS16Bus.getInstance().registerIOPort(this, PORT_ZVE_8253_COUNTER2);
         MMS16Bus.getInstance().registerIOPort(this, PORT_ZVE_8253_INIT);
-        MMS16Bus.getInstance().registerIOPort(this, PORT_ZVE_8251A_DATA);
-        MMS16Bus.getInstance().registerIOPort(this, PORT_ZVE_8251A_COMMAND);
+        MMS16Bus.getInstance().registerIOPort(this, PORT_ZVE_8251A_DATA_1);
+        MMS16Bus.getInstance().registerIOPort(this, PORT_ZVE_8251A_DATA_2);
+        MMS16Bus.getInstance().registerIOPort(this, PORT_ZVE_8251A_COMMAND_1);
+        MMS16Bus.getInstance().registerIOPort(this, PORT_ZVE_8251A_COMMAND_2);
     }
 
     /**
@@ -222,11 +252,16 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
             case PORT_ZVE_8253_INIT:
                 pti.writeInit(data);
                 break;
-            case PORT_ZVE_8251A_DATA:
+            case PORT_ZVE_8251A_DATA_1:
+            case PORT_ZVE_8251A_DATA_2:
                 usart.writeDataToDevice(data);
                 break;
-            case PORT_ZVE_8251A_COMMAND:
+            case PORT_ZVE_8251A_COMMAND_1:
+            case PORT_ZVE_8251A_COMMAND_2:
                 usart.writeCommand(data);
+                break;
+            default:
+                LOG.log(Level.FINE, "Schreiben auf nicht definiertem Port {0}!", String.format("0x%02X", port));
                 break;
         }
     }
@@ -239,7 +274,7 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
      */
     @Override
     public void writePortWord(int port, int data) {
-//        System.out.println("OUT Word " + Integer.toHexString(data) + " to port " + Integer.toHexString(port));
+        //System.out.println("OUT Word " + Integer.toHexString(data) + " to port " + Integer.toHexString(port));
         switch (port) {
             case PORT_ZVE_8259A_1:
                 break;
@@ -261,11 +296,14 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
                 break;
             case PORT_ZVE_8253_INIT:
                 break;
-            case PORT_ZVE_8251A_DATA:
+            case PORT_ZVE_8251A_DATA_1:
+            case PORT_ZVE_8251A_DATA_2:
                 break;
-            case PORT_ZVE_8251A_COMMAND:
+            case PORT_ZVE_8251A_COMMAND_1:
+            case PORT_ZVE_8251A_COMMAND_2:
                 break;
         }
+        LOG.log(Level.FINE, "Schreiben von Wörtern auf Port {0} noch nicht implementiert!", String.format("0x%02X", port));
     }
 
     /**
@@ -276,7 +314,7 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
      */
     @Override
     public int readPortByte(int port) {
-        //System.out.println("IN Byte from port " + Integer.toHexString(port));
+//        System.out.println("IN Byte from port " + Integer.toHexString(port));
         switch (port) {
             case PORT_ZVE_8259A_1:
                 return pic.readStatus();
@@ -294,13 +332,18 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
                 return pti.readCounter(1);
             case PORT_ZVE_8253_COUNTER2:
                 return pti.readCounter(2);
-            case PORT_ZVE_8251A_DATA:
+            case PORT_ZVE_8251A_DATA_1:
+            case PORT_ZVE_8251A_DATA_2:
                 return usart.readFromDevice();
-            case PORT_ZVE_8251A_COMMAND:
+            case PORT_ZVE_8251A_COMMAND_1:
+            case PORT_ZVE_8251A_COMMAND_2:
                 return usart.readStatus();
             case PORT_ZVE_8255A_INIT:
+                LOG.log(Level.FINER, "Lesen 8255A-INIT (Port {0}) nicht erlaubt!", String.format("0x%02X", port));
+                break;
             case PORT_ZVE_8253_INIT:
-                throw new IllegalArgumentException("Cannot read from PORT:" + Integer.toHexString(port));
+                LOG.log(Level.FINER, "Lesen 8253-INIT (Port {0}) nicht erlaubt!", String.format("0x%02X", port));
+                break;
         }
         return 0;
     }
@@ -313,25 +356,38 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
      */
     @Override
     public int readPortWord(int port) {
-//        System.out.println("IN Byte from port " + Integer.toHexString(port));
+        //System.out.println("IN Byte from port " + Integer.toHexString(port));
         switch (port) {
             case PORT_ZVE_8259A_1:
+                break;
             case PORT_ZVE_8259A_2:
+                break;
             case PORT_ZVE_8255A_PORT_A:
+                break;
             case PORT_ZVE_8255A_PORT_B:
+                break;
             case PORT_ZVE_8255A_PORT_C:
                 break;
             case PORT_ZVE_8253_COUNTER0:
+                break;
             case PORT_ZVE_8253_COUNTER1:
+                break;
             case PORT_ZVE_8253_COUNTER2:
                 break;
-            case PORT_ZVE_8251A_DATA:
-            case PORT_ZVE_8251A_COMMAND:
+            case PORT_ZVE_8251A_DATA_1:
+            case PORT_ZVE_8251A_DATA_2:
+                break;
+            case PORT_ZVE_8251A_COMMAND_1:
+            case PORT_ZVE_8251A_COMMAND_2:
                 break;
             case PORT_ZVE_8255A_INIT:
+                LOG.log(Level.FINER, "Lesen 8255A-INIT (Port {0}) nicht erlaubt!", String.format("0x%02X", port));
+                break;
             case PORT_ZVE_8253_INIT:
-                throw new IllegalArgumentException("Cannot read from PORT:" + Integer.toHexString(port));
+                LOG.log(Level.FINER, "Lesen 8253-INIT (Port {0}) nicht erlaubt!", String.format("0x%02X", port));
+                break;
         }
+        LOG.log(Level.FINE, "Lesen von Wörtern auf Port {0} noch nicht implementiert!", String.format("0x%02X", port));
         return 0;
     }
 
@@ -375,7 +431,8 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
      */
     @Override
     public void writeByte(int address, int data) {
-        throw new IllegalArgumentException("Cannot Write to ZVE-ROM");
+        // TODO: Diese Exceptions durch richtige Fehlerbehandlung ersetzen
+        LOG.log(Level.FINE, "Schreiben auf ZVE-ROM-Bereich (Adresse {0}) nicht erlaubt!", String.format("0x%05X", address));
     }
 
     /**
@@ -387,7 +444,8 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
      */
     @Override
     public void writeWord(int address, int data) {
-        throw new IllegalArgumentException("Cannot Write to ZVE-ROM");
+        // TODO: Diese Exceptions durch richtige Fehlerbehandlung ersetzen
+        LOG.log(Level.FINE, "Schreiben auf ZVE-ROM-Bereich (Adresse {0}) nicht erlaubt!", String.format("0x%05X", address));
     }
 
     /**
@@ -415,29 +473,38 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
         // A7100
         File AHCL = new File("./eproms/ZVE-K2771.10-259.rom");
         if (!AHCL.exists()) {
+            LOG.log(Level.SEVERE, "ZVE-EPROM {0} nicht gefunden!", AHCL.getPath());
             JOptionPane.showMessageDialog(null, "Eprom: " + AHCL.getName() + " nicht gefunden!", "Eprom nicht gefunden", JOptionPane.ERROR_MESSAGE);
             System.exit(0);
         }
         File AWCL = new File("./eproms/ZVE-K2771.10-260.rom");
         if (!AWCL.exists()) {
+            LOG.log(Level.SEVERE, "ZVE-EPROM {0} nicht gefunden!", AWCL.getPath());
             JOptionPane.showMessageDialog(null, "Eprom: " + AWCL.getName() + " nicht gefunden!", "Eprom nicht gefunden", JOptionPane.ERROR_MESSAGE);
             System.exit(0);
         }
         File BOCL = new File("./eproms/ZVE-K2771.10-261.rom");
         if (!BOCL.exists()) {
+            LOG.log(Level.SEVERE, "ZVE-EPROM {0} nicht gefunden!", BOCL.getPath());
             JOptionPane.showMessageDialog(null, "Eprom: " + BOCL.getName() + " nicht gefunden!", "Eprom nicht gefunden", JOptionPane.ERROR_MESSAGE);
             System.exit(0);
         }
         File CGCL = new File("./eproms/ZVE-K2771.10-262.rom");
         if (!CGCL.exists()) {
+            LOG.log(Level.SEVERE, "ZVE-EPROM {0} nicht gefunden!", CGCL.getPath());
             JOptionPane.showMessageDialog(null, "Eprom: " + CGCL.getName() + " nicht gefunden!", "Eprom nicht gefunden", JOptionPane.ERROR_MESSAGE);
             System.exit(0);
         }
 
+        try {
         memory.loadFile(0xF8000 - 0xF8000, CGCL, Memory.FileLoadMode.LOW_BYTE_ONLY);
         memory.loadFile(0xF8000 - 0xF8000, AWCL, Memory.FileLoadMode.HIGH_BYTE_ONLY);
         memory.loadFile(0xFC000 - 0xF8000, BOCL, Memory.FileLoadMode.LOW_BYTE_ONLY);
         memory.loadFile(0xFC000 - 0xF8000, AHCL, Memory.FileLoadMode.HIGH_BYTE_ONLY);
+        } catch (IOException ex) {
+            LOG.log(Level.SEVERE, "Fehler beim Laden der ZVE-EPROMS!", ex);
+            System.exit(0);
+    }
     }
 
     /**
@@ -455,7 +522,7 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
      */
     @Override
     public void clockUpdate(int micros) {
-       int cycles=cpuClock.getCycles(micros);
+        int cycles = cpuClock.getCycles(micros);
 
         //TODO: Ein und Ausgabe zwischen Bausteinen synchronisieren
         cpu.executeCycles(cycles);
@@ -504,5 +571,28 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
      */
     public void setDebug(boolean debug) {
         cpu.setDebug(debug);
+        if (debug) {
+            getDecoder().clear();
     }
+}
+
+    /**
+     * Gibt die Instanz des CPU Decoders zurück.
+     *
+     * @return Decoderinstanz oder <code>null</code> wenn kein Decoder
+     * initialisiert ist.
+     */
+    public Decoder getDecoder() {
+        return cpu.getDecoder();
+    }
+
+    /**
+     * Gibt den auf dem Modul enthaltenen Parallel E/A-Schaltkreis zurück. Dies
+     * wird von dem ZPS zum setzen von Statussignalen benötigt.
+     *
+     * @return Referenz auf PPI
+     */
+    KR580WW55A getPPI() {
+        return ppi;
+}
 }

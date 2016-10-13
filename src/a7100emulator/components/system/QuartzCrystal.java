@@ -21,6 +21,7 @@
  *   15.06.2016 - Erste Version
  *   23.07.2016 - Kommentare ergänzt
  *   24.07.2016 - Parameter umbenannt
+ *   09.08.2016 - Logger hinzugefügt
  */
 package a7100emulator.components.system;
 
@@ -28,6 +29,7 @@ import a7100emulator.Tools.StateSavable;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.logging.Logger;
 
 /**
  * Klasse zur Realisierung eines Schwingquartzes.
@@ -35,6 +37,11 @@ import java.io.IOException;
  * @author Dirk Bräuer
  */
 public class QuartzCrystal implements StateSavable {
+
+    /**
+     * Logger Instanz
+     */
+    private static final Logger LOG = Logger.getLogger(QuartzCrystal.class.getName());
 
     /**
      * Frequenz des Quartzes

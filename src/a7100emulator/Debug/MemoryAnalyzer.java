@@ -23,10 +23,11 @@
  *   14.12.2014 - Fehler bei ASCII Darstellung behoben
  *   01.01.2015 - Speicheranzeige mit Byte-Array hinzugefügt
  *   26.03.2016 - Anzeige von UA880 Subsystemen implementiert
+ *   09.08.2016 - Logger hinzugefügt und Ausgaben umgeleitet
  */
 package a7100emulator.Debug;
 
-import GUITools.RowHeadRenderer;
+import a7100emulator.GUITools.RowHeadRenderer;
 import a7100emulator.Tools.Memory;
 import a7100emulator.components.modules.SubsystemModule;
 import a7100emulator.components.system.MMS16Bus;
@@ -46,6 +47,11 @@ import javax.swing.table.AbstractTableModel;
  * @author Dirk Bräuer
  */
 public class MemoryAnalyzer {
+
+    /**
+     * Logger Instanz
+     */
+    private static final Logger LOG = Logger.getLogger(MemoryAnalyzer.class.getName());
 
     /**
      * Anzuzeigender Speicher
@@ -122,7 +128,7 @@ public class MemoryAnalyzer {
         try {
             Thread.sleep(100);
         } catch (InterruptedException ex) {
-            Logger.getLogger(MemoryAnalyzer.class.getName()).log(Level.SEVERE, null, ex);
+            LOG.log(Level.FINEST, null, ex);
         }
         frame.setLocationRelativeTo(null);
     }

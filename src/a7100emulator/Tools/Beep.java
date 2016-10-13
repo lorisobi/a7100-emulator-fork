@@ -20,6 +20,7 @@
  * Letzte Änderungen:
  *   05.04.2014 - Kommentare vervollständigt
  *   26.07.2016 - Spezifische Exceptions definiert
+ *   09.08.2016 - Logger hinzugefügt und Ausgaben umgeleitet
  */
 package a7100emulator.Tools;
 
@@ -41,6 +42,11 @@ import javax.sound.sampled.LineUnavailableException;
 public class Beep {
 
     /**
+     * Logger Instanz
+     */
+    private static final Logger LOG = Logger.getLogger(Beep.class.getName());
+
+    /**
      * Abzuspielendes Sample
      */
     private Clip c = null;
@@ -55,11 +61,13 @@ public class Beep {
             c = (Clip) AudioSystem.getLine(new Line.Info(Clip.class));
             c.open(af, soundData, 0, soundData.length);
         } catch (LineUnavailableException ex) {
+            LOG.log(Level.FINE, null, ex);
         }
     }
 
     /**
      * Erzeugt einen Ton mit den angegebenen Parametern
+     *
      * @param frequency Frequenz
      * @param af Audioformat
      * @return Byte-Array mit Samples
@@ -69,7 +77,7 @@ public class Beep {
         byte[] data = new byte[(int) af.getSampleRate() * sample_size];
         double step_width = (2 * Math.PI) / af.getSampleRate();
         double x = 0;
-
+        
         for (int i = 0; i < data.length; i += sample_size) {
             int sample_max_value = (int) Math.pow(2, af.getSampleSizeInBits()) / 2 - 1;
             int value = (int) (sample_max_value * Math.sin(frequency * x));
@@ -90,13 +98,13 @@ public class Beep {
         try {
             Thread.sleep(50);
         } catch (InterruptedException ex) {
-            Logger.getLogger(Beep.class.getName()).log(Level.SEVERE, null, ex);
+            LOG.log(Level.FINEST, null, ex);
         }
         c.stop();
         try {
             Thread.sleep(300);
         } catch (InterruptedException ex) {
-            Logger.getLogger(Beep.class.getName()).log(Level.SEVERE, null, ex);
+            LOG.log(Level.FINEST, null, ex);
         }
     }
 }

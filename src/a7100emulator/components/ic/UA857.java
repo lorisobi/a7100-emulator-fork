@@ -31,6 +31,7 @@
  *              - Von IC abgeleitet
  *   02.02.2016 - Override Annotation hinzugefügt
  *   26.07.2016 - Klasse Counter private gesetzt
+ *   09.08.2016 - Logger hinzugefügt
  */
 package a7100emulator.components.ic;
 
@@ -40,6 +41,7 @@ import a7100emulator.components.modules.SubsystemModule;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.logging.Logger;
 
 /**
  * Klasse zur Realisierung des U857 CTC.
@@ -47,6 +49,11 @@ import java.io.IOException;
  * @author Dirk Bräuer
  */
 public class UA857 implements IC {
+
+    /**
+     * Logger Instanz
+     */
+    private static final Logger LOG = Logger.getLogger(UA857.class.getName());
 
     /**
      * Zähler
@@ -194,7 +201,7 @@ public class UA857 implements IC {
             if (timeConstantFollowing) {
                 timeConstant = (data == 0) ? 256 : data;
                 if (!running) {
-                value = data;
+                    value = data;
                 }
                 timeConstantFollowing = false;
                 if (!BitTest.getBit(controlWord, 3)) {
@@ -244,9 +251,9 @@ public class UA857 implements IC {
                     buffer -= amount;
                 } else {
                     // TIMER
-                int prescaler = BitTest.getBit(controlWord, 5) ? 8 : 4;
-                value -= buffer >> prescaler;
-                buffer -= (buffer >> prescaler) << prescaler;
+                    int prescaler = BitTest.getBit(controlWord, 5) ? 8 : 4;
+                    value -= buffer >> prescaler;
+                    buffer -= (buffer >> prescaler) << prescaler;
                 }
 
                 if (value <= 0) {

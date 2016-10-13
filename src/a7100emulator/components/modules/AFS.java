@@ -29,6 +29,8 @@
  *   24.04.2016 - Lesen/Schreiben SIO Ports implementiert
  *              - Signal /ESE in CPT3 implementiert
  *   24.07.2016 - Anzeige von Disketteninhalten im MemoryAnalyzer
+ *   09.08.2016 - Logger hinzugefügt
+ *   13.10.2016 - Prüfen auf Fehler beim Laden der AFS Eproms 
  */
 package a7100emulator.components.modules;
 
@@ -41,7 +43,9 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.util.logging.Level;
 import javax.swing.JOptionPane;
+import java.util.logging.Logger;
 
 /**
  * Klasse zur Abbildung der AFS (Anschluß für Folienspeicher)
@@ -49,6 +53,11 @@ import javax.swing.JOptionPane;
  * @author Dirk Bräuer
  */
 public final class AFS implements Module {
+
+    /**
+     * Logger Instanz
+     */
+    private static final Logger LOG = Logger.getLogger(AFS.class.getName());
 
     /**
      * Lokaler Port SIO Daten Kanal A
@@ -164,17 +173,24 @@ public final class AFS implements Module {
     public void init() {
         final File afsRom1 = new File("./eproms/AFS-K5171-P873.rom");
         if (!afsRom1.exists()) {
+            LOG.log(Level.SEVERE, "AFS-EPROM {0} nicht gefunden!", afsRom1.getPath());
             JOptionPane.showMessageDialog(null, "Eprom: " + afsRom1.getName() + " nicht gefunden!", "Eprom nicht gefunden", JOptionPane.ERROR_MESSAGE);
             System.exit(0);
         }
         final File afsRom2 = new File("./eproms/AFS-K5171-P872.rom");
         if (!afsRom2.exists()) {
+            LOG.log(Level.SEVERE, "AFS-EPROM {0} nicht gefunden!", afsRom2.getPath());
             JOptionPane.showMessageDialog(null, "Eprom: " + afsRom2.getName() + " nicht gefunden!", "Eprom nicht gefunden", JOptionPane.ERROR_MESSAGE);
             System.exit(0);
         }
 
-        eproms.loadFile(0x0000, afsRom1, Memory.FileLoadMode.LOW_AND_HIGH_BYTE);
-        eproms.loadFile(0x0800, afsRom2, Memory.FileLoadMode.LOW_AND_HIGH_BYTE);
+        try {
+            eproms.loadFile(0x0000, afsRom1, Memory.FileLoadMode.LOW_AND_HIGH_BYTE);
+            eproms.loadFile(0x0800, afsRom2, Memory.FileLoadMode.LOW_AND_HIGH_BYTE);
+        } catch (IOException ex) {
+            LOG.log(Level.SEVERE, "Fehler beim Laden der AFS-EPROMS!", ex);
+            System.exit(0);
+        }
 
         drives[0] = new FloppyDrive(FloppyDrive.DriveType.K5601);
         drives[1] = new FloppyDrive(FloppyDrive.DriveType.K5601);
@@ -192,7 +208,7 @@ public final class AFS implements Module {
             (new MemoryAnalyzer(drives[drive].getDisk().getFlatData(), "Floppy Disk " + (drive + 1))).show();
         }
     }
-    
+
     /**
      * Liest ein Byte aus den Eproms der AFS.
      *

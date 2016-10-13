@@ -42,6 +42,8 @@
  *   23.07.2016 - Quartz hinzugefügt
  *   24.07.2016 - Parameter umbenannt
  *              - localClockUpdate() ohne Funktion
+ *   07.08.2016 - Logger hinzugefügt und Ausgaben umgeleitet
+ *   13.10.2016 - Prüfen auf Fehler beim Laden der KES Eproms 
  */
 package a7100emulator.components.modules;
 
@@ -73,6 +75,11 @@ import javax.swing.JOptionPane;
 public final class KES implements IOModule, ClockModule, SubsystemModule {
 
     /**
+     * Logger Instanz
+     */
+    private static final Logger LOG = Logger.getLogger(KES.class.getName());
+
+    /**
      * Anzahl der im System vorhandenen KES-Module
      */
     public static int kes_count = 0;
@@ -91,22 +98,13 @@ public final class KES implements IOModule, ClockModule, SubsystemModule {
     private final Memory sram = new Memory(0x4000);
 
     /**
-     * Adresse des 1. Wake-Up E/A-Ports 1. KES
+     * Adresse des 1. Wake-Up E/A-Ports
      */
-    private final static int PORT_KES_1_WAKEUP_1 = 0x100;
+    private final static int[] PORT_KES_WAKEUP_1 = new int[]{0x100, 0x102};
     /**
-     * Adresse des 2. Wake-Up E/A-Ports 1. KES
+     * Adresse des 2. Wake-Up E/A-Ports
      */
-    private final static int PORT_KES_1_WAKEUP_2 = 0x101;
-    /**
-     * Adresse des 1. Wake-Up E/A-Ports 2. KES
-     */
-    private final static int PORT_KES_2_WAKEUP_1 = 0x102;
-    /**
-     * Adresse des 2. Wake-Up E/A-Ports 2. KES
-     */
-    private final static int PORT_KES_2_WAKEUP_2 = 0x103;
-
+    private final static int[] PORT_KES_WAKEUP_2 = new int[]{0x101, 0x103};
     /**
      * Lokaler Ports DMA
      */
@@ -244,16 +242,8 @@ public final class KES implements IOModule, ClockModule, SubsystemModule {
      */
     @Override
     public void registerPorts() {
-        switch (kes_id) {
-            case 0:
-                MMS16Bus.getInstance().registerIOPort(this, PORT_KES_1_WAKEUP_1);
-                MMS16Bus.getInstance().registerIOPort(this, PORT_KES_1_WAKEUP_2);
-                break;
-            case 1:
-                MMS16Bus.getInstance().registerIOPort(this, PORT_KES_2_WAKEUP_1);
-                MMS16Bus.getInstance().registerIOPort(this, PORT_KES_2_WAKEUP_2);
-                break;
-        }
+        MMS16Bus.getInstance().registerIOPort(this, PORT_KES_WAKEUP_1[kes_id]);
+        MMS16Bus.getInstance().registerIOPort(this, PORT_KES_WAKEUP_2[kes_id]);
     }
 
     /**
@@ -264,32 +254,32 @@ public final class KES implements IOModule, ClockModule, SubsystemModule {
      */
     @Override
     public void writePortByte(int port, int data) {
-        switch (port) {
-            case PORT_KES_1_WAKEUP_1:
-                switch (data) {
-                    case 0x00:
-                        // RESET_OFF
-                        System.out.println("RESET OFF");
-                        // TODO:
-                        break;
-                    case 0x01:
-                        // START_OPERATION
-                        System.out.println("START OPERATION");
-                        ca1ff = true;
-                        nmiRequest = true;
-                        break;
-                    case 0x02:
-                        // RESET
-                        System.out.println("RESET ON");
-                        cpu.reset();
-                        dnmi_map = 0x80;
-                        break;
-                    default:
-                        throw new IllegalArgumentException("Illegal Command:" + Integer.toHexString(data));
-                }
-                break;
-            case PORT_KES_1_WAKEUP_2:
-                break;
+        if (port == PORT_KES_WAKEUP_1[kes_id]) {
+            switch (data) {
+                case 0x00:
+                    // RESET_OFF
+                    System.out.println("RESET OFF");
+                    // TODO:
+                    break;
+                case 0x01:
+                    // START_OPERATION
+                    System.out.println("START OPERATION");
+                    ca1ff = true;
+                    nmiRequest = true;
+                    break;
+                case 0x02:
+                    // RESET
+                    System.out.println("RESET ON");
+                    cpu.reset();
+                    dnmi_map = 0x80;
+                    break;
+                default:
+                    throw new IllegalArgumentException("Illegal Command:" + Integer.toHexString(data));
+            }
+        } else if (port == PORT_KES_WAKEUP_2[kes_id]) {
+            LOG.log(Level.FINE, "Schreiben auf Kanal 2 nicht implementiert!", String.format("0x%02X", port));
+        } else {
+            LOG.log(Level.FINE, "Schreiben auf nicht definiertem Port {0}!", String.format("0x%02X", port));
         }
     }
 
@@ -312,12 +302,7 @@ public final class KES implements IOModule, ClockModule, SubsystemModule {
      */
     @Override
     public int readPortByte(int port) {
-        switch (port) {
-            case PORT_KES_1_WAKEUP_1:
-            case PORT_KES_1_WAKEUP_2:
-                throw new IllegalArgumentException("Cannot read from PORT:" + Integer.toHexString(port));
-        }
-        return 0;
+        return readPortWord(port);
     }
 
     /**
@@ -328,27 +313,39 @@ public final class KES implements IOModule, ClockModule, SubsystemModule {
      */
     @Override
     public int readPortWord(int port) {
-        return readPortByte(port);
+        if (port == PORT_KES_WAKEUP_1[kes_id] || port == PORT_KES_WAKEUP_2[kes_id]) {
+            LOG.log(Level.FINE, "Lesen von Port {0} nicht erlaubt!", String.format("0x%02X", port));
+        } else {
+            LOG.log(Level.FINE, "Lesen von undefiniertem Port {0}!", String.format("0x%02X", port));
+        }
+        return 0;
     }
 
     /**
-     * Initialisiert den KES
+     * Initialisiert die KES
      */
     @Override
     public void init() {
         final File kesRom1 = new File("./eproms/KES-K5170.10-P854.rom");
         if (!kesRom1.exists()) {
+            LOG.log(Level.SEVERE, "KES-EPROM {0} nicht gefunden!", kesRom1.getPath());
             JOptionPane.showMessageDialog(null, "Eprom: " + kesRom1.getName() + " nicht gefunden!", "Eprom nicht gefunden", JOptionPane.ERROR_MESSAGE);
             System.exit(0);
         }
         final File kesRom2 = new File("./eproms/KES-K5170.10-P855.rom");
         if (!kesRom2.exists()) {
+            LOG.log(Level.SEVERE, "KES-EPROM {0} nicht gefunden!", kesRom2.getPath());
             JOptionPane.showMessageDialog(null, "Eprom: " + kesRom2.getName() + " nicht gefunden!", "Eprom nicht gefunden", JOptionPane.ERROR_MESSAGE);
             System.exit(0);
         }
 
-        eprom.loadFile(0x0000, kesRom1, Memory.FileLoadMode.LOW_AND_HIGH_BYTE);
-        eprom.loadFile(0x0800, kesRom2, Memory.FileLoadMode.LOW_AND_HIGH_BYTE);
+        try {
+            eprom.loadFile(0x0000, kesRom1, Memory.FileLoadMode.LOW_AND_HIGH_BYTE);
+            eprom.loadFile(0x0800, kesRom2, Memory.FileLoadMode.LOW_AND_HIGH_BYTE);
+        } catch (IOException ex) {
+            LOG.log(Level.SEVERE, "Fehler beim Laden der KES-EPROMS!", ex);
+            System.exit(0);
+        }
 
         afs = new AFS();
         // afp=new AFP();
@@ -385,7 +382,7 @@ public final class KES implements IOModule, ClockModule, SubsystemModule {
             cpu.requestNMI();
         }
         cpu.executeCycles(cycles);
-        
+
         ctc.updateClock(cycles);
         dma.updateClock(cycles);
         afs.updateClock(cycles);

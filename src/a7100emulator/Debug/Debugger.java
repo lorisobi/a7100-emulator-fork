@@ -24,6 +24,7 @@
  *   06.01.2015 - Globalen Debugger ergänzt
  *              - Bezeichner hinzugefügt
  *   25.07.2015 - Funktionen für Automatischen Start und Slowdown deaktiviert
+ *   07.08.2016 - Logger hinzugefügt und Ausgaben umgeleitet
  */
 package a7100emulator.Debug;
 
@@ -33,16 +34,22 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Singleton-Klasse für Debugger der CPU
+ * Klasse für Debugger der CPUs und den globalen Debugger.
  *
  * @author Dirk Bräuer
  */
 public class Debugger {
 
     /**
+     * Logger Instanz
+     */
+    private static final Logger LOG = Logger.getLogger(Debugger.class.getName());
+
+    /**
      * Globaler Debugger
      */
     private static final Debugger globalDebugger = new Debugger("a7100", false, "");
+ 
     /**
      * Ausgabedatei
      */
@@ -51,16 +58,6 @@ public class Debugger {
      * Gibt an ob der Debugger aktiviert ist
      */
     private boolean debug = false;
-    /**
-     * Verzögerung im Debug-Modus in ms
-     */
-    // TODO: Slowdown gegenwärtig deaktiviert
-    //private int slowdown = 0;
-    /**
-     * Adresse für automatischen Start des Debuggers
-     */
-    // TODO: Automatischer Start gegenwärtig deaktiviert
-    //private final int debugStart = 0;//(0x1000<<4)+0x4E0F;
     /**
      * Dateiname für Debug-Ausgaben
      */
@@ -107,7 +104,7 @@ public class Debugger {
             try {
                 debugFile = new FileWriter("./debug/" + filename + ".log");
             } catch (IOException ex) {
-                Logger.getLogger(Debugger.class.getName()).log(Level.SEVERE, null, ex);
+                LOG.log(Level.WARNING, "Fehler beim Erzeugen der Debug-Ausgabe!", ex);
             }
         }
         this.debug = debug;
@@ -138,12 +135,12 @@ public class Debugger {
                 debugFile.flush();
             }
         } catch (IOException ex) {
-            Logger.getLogger(Debugger.class.getName()).log(Level.SEVERE, null, ex);
+            LOG.log(Level.WARNING, "Fehler beim Schreiben der Debug-Ausgabe!", ex);
         }
     }
 
     /**
-     * Fügt einen Kommentar zur Debug-Ausgabe hinzu
+     * Fügt einen Kommentar zur Debug-Ausgabe hinzu.
      *
      * @param comment Kommentar
      */
@@ -152,39 +149,12 @@ public class Debugger {
             debugFile.write(comment + "\n");
             debugFile.flush();
         } catch (IOException ex) {
-            Logger.getLogger(Debugger.class.getName()).log(Level.SEVERE, null, ex);
+            LOG.log(Level.WARNING, "Fehler beim Schreiben der Debug-Ausgabe!", ex);
         }
     }
 
     /**
-     * Liefert die aktuelle Verzögerung des Debuggers in ms
-     *
-     * @return Verzögerung
-     */
-    // TODO: Slowdown gegenwärtig deaktiviert
-//    public int getSlowdown() {
-//        return slowdown;
-//    }
-    /**
-     * Setzt die aktuelle Verzögerung des Debuggers
-     *
-     * @param slowdown Verzögerung in ma
-     */
-    // TODO: Slowdown gegenwärtig deaktiviert
-//    public void setSlowdown(int slowdown) {
-//        this.slowdown = slowdown;
-//    }
-    /**
-     * Liefert die Adresse für automatischen Start des Debuggers
-     *
-     * @return Startadresse
-     */
-    // TODO: Automatischer Start gegenwärtig deaktiviert
-//    public int getDebugStart() {
-//        return debugStart;
-//    }
-    /**
-     * Gibt die globale DebuggerInstanz zurück
+     * Gibt die globale DebuggerInstanz zurück.
      *
      * @return globale Debugger Instanz
      */

@@ -21,6 +21,7 @@
  *   05.04.2014 - Kommentare vervollständigt
  *   18.11.2014 - Interface StateSavable implementiert
  *   25.07.2016 - parityNMIEnable=true in reset()
+ *   09.08.2016 - Logger hinzugefügt
  */
 package a7100emulator.components.system;
 
@@ -29,6 +30,7 @@ import a7100emulator.components.ic.K580WN59A;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.logging.Logger;
 
 /**
  * Singleton-Klasse zur Realisierung des Interrupt-Systems
@@ -36,6 +38,11 @@ import java.io.IOException;
  * @author Dirk Bräuer
  */
 public class InterruptSystem implements StateSavable {
+
+    /**
+     * Logger Instanz
+     */
+    private static final Logger LOG = Logger.getLogger(InterruptSystem.class.getName());
 
     /**
      * Gibt an ob der Parity NMI aktiv ist

@@ -20,11 +20,13 @@
  * Letzte Änderungen:
  *   05.04.2014 - Kommentare vervollständigt
  *   18.11.2014 - getBit durch BitTest ersetzt
+ *   09.08.2016 - Logger hinzugefügt
  */
 package a7100emulator.Tools;
 
 import java.awt.Color;
 import java.awt.image.BufferedImage;
+import java.util.logging.Logger;
 
 /**
  * Klasse zum Erzeugen von Zeichen für die Alphanumerische Bildschirmdarstellung
@@ -32,6 +34,11 @@ import java.awt.image.BufferedImage;
  * @author Dirk Bräuer
  */
 public class BitmapGenerator {
+
+    /**
+     * Logger Instanz
+     */
+    private static final Logger LOG = Logger.getLogger(BitmapGenerator.class.getName());
 
     /**
      * Farbe normales Grün

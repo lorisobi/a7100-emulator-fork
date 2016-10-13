@@ -20,6 +20,7 @@
  * Letzte Änderungen:
  *   02.04.2014 - Kommentare vervollständigt
  *   09.08.2014 - Zugriffe auf SystemPorts durch MMS16Bus ersetzt
+ *   09.08.2016 - Logger hinzugefügt
  */
 package a7100emulator.components.modules;
 
@@ -27,6 +28,7 @@ import a7100emulator.components.system.MMS16Bus;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.logging.Logger;
 
 /**
  * Klasse zur Abbildung der ABS (Alphanumerische Bildschirmsteuerung)
@@ -36,6 +38,11 @@ import java.io.IOException;
  * @author Dirk Bräuer
  */
 public class ABS implements IOModule {
+
+    /**
+     * Logger Instanz
+     */
+    private static final Logger LOG = Logger.getLogger(ABS.class.getName());
 
     /**
      * Port ABS-Zustand

@@ -23,6 +23,8 @@
  *   05.06.2016 - Verweise auf alten KES entfernt
  *   23.07.2016 - Methoden für Pausieren und Einzelschritt überarbeitet
  *   24.07.2016 - Laden und Speichern des Zustands in beliebige Dateien
+ *   29.07.2016 - Exceptions beim Laden und Speichern von Zuständen
+ *   09.08.2016 - Logger hinzugefügt und Ausgaben umgeleitet
  */
 package a7100emulator.components;
 
@@ -52,6 +54,11 @@ import java.util.logging.Logger;
  * @author Dirk Bräuer
  */
 public class A7100 {
+
+    /**
+     * Logger Instanz
+     */
+    private static final Logger LOG = Logger.getLogger(A7100.class.getName());
 
     /**
      * ZVE-Modul
@@ -98,7 +105,7 @@ public class A7100 {
      * Startet die Systemzeit
      */
     private void startClock() {
-        Thread clock = new Thread(GlobalClock.getInstance(),"Clock");
+        Thread clock = new Thread(GlobalClock.getInstance(), "Clock");
         clock.start();
     }
 
@@ -138,15 +145,18 @@ public class A7100 {
      * Peripherie aufgerufen.
      * 
      * @param stateFile Datei zum Speichern des Emulatorzustands
+     * @throws java.io.IOException Wenn beim Speichern des Zustands ein Fehler
+     * auftritt.
      */
-    public void saveState(File stateFile) {
+    public void saveState(File stateFile) throws IOException {
         pause();
         try {
             // Warte 100ms um das Anhalten des Systems zu garantieren
             Thread.sleep(100);
         } catch (InterruptedException ex) {
-            Logger.getLogger(A7100.class.getName()).log(Level.SEVERE, null, ex);
+            LOG.log(Level.FINEST, null, ex);
         }
+
         try {
             DataOutputStream dos = new DataOutputStream(new FileOutputStream(stateFile));
 
@@ -165,27 +175,30 @@ public class A7100 {
 
             dos.flush();
             dos.close();
-        } catch (IOException ex) {
-            Logger.getLogger(A7100.class.getName()).log(Level.SEVERE, null, ex);
-        }
+        } finally {
+            // Weiterlaufen des Emulators sicherstellen aber Exception dennoch nach oben weiterleiten
         resume();
+    }
     }
 
     /**
-     * Lädt den aktuellen Zustand des Emulators aus der angegebenen Datei.
-     * Dabei werden die loadState Methoden der Module sowie der verwendeten
-     * Peripherie aufgerufen.
+     * Lädt den aktuellen Zustand des Emulators aus der angegebenen Datei. Dabei
+     * werden die loadState Methoden der Module sowie der verwendeten Peripherie
+     * aufgerufen.
      * 
      * @param stateFile Datei zum Laden des Emulatorzustands
+     * @throws java.io.IOException Wenn beim Laden des Zustands ein Fehler
+     * auftritt
      */
-    public void loadState(File stateFile) {
+    public void loadState(File stateFile) throws IOException {
         pause();
         try {
             // Warte 100ms um das Anhalten des Systems zu garantieren
             Thread.sleep(100);
         } catch (InterruptedException ex) {
-            Logger.getLogger(A7100.class.getName()).log(Level.SEVERE, null, ex);
+            LOG.log(Level.FINEST, null, ex);
         }
+
         try {
             DataInputStream dis = new DataInputStream(new FileInputStream(stateFile));
 
@@ -203,10 +216,10 @@ public class A7100 {
             GlobalClock.getInstance().loadState(dis);
 
             dis.close();
-        } catch (IOException ex) {
-            Logger.getLogger(A7100.class.getName()).log(Level.SEVERE, null, ex);
-        }
+        } finally {
+            // Weiterlaufen des Emulators sicherstellen aber Exception dennoch nach oben weiterleiten
         resume();
+    }
     }
 
     /**
@@ -219,7 +232,7 @@ public class A7100 {
             // Warte 100ms um das Anhalten des Systems zu garantieren
             Thread.sleep(100);
         } catch (InterruptedException ex) {
-            Logger.getLogger(A7100.class.getName()).log(Level.SEVERE, null, ex);
+            LOG.log(Level.FINEST, null, ex);
         }
 
         MMS16Bus.getInstance().reset();
@@ -267,7 +280,7 @@ public class A7100 {
         ZPS.zps_count = 0;
 
         zve = new ZVE();
-        zps = null;
+//        zps = new ZPS(zve);
         ops1 = new OPS();
         ops2 = new OPS();
         ops3 = new OPS();

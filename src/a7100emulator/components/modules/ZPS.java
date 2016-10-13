@@ -20,23 +20,36 @@
  * Letzte Änderungen:
  *   02.04.2014 - Kommentare vervollständigt
  *   09.08.2014 - Zugriff auf SystemMemory durch MMS16Bus ersetzt
+ *   31.07.2016 - Parity Hack hinzugefügt
+ *              - Zugriff auf ZVE ergänzt
+ *   09.08.2016 - Logger hinzugefügt
  */
 package a7100emulator.components.modules;
 
+import a7100emulator.Tools.Parity;
 import a7100emulator.Tools.AddressSpace;
+import a7100emulator.Tools.BitTest;
 import a7100emulator.Tools.Memory;
 import a7100emulator.components.system.MMS16Bus;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.logging.Logger;
 
 /**
  * Klasse zur Abbildung der ZPS (Zweiportspeicher).
- * <p> TODO: Einbindung verursacht Fehler im ACT
+ * <p>
+ * TODO: - Zugriff auf ZVE ggf. neu gestalten, Control Byte vollständig
+ * implementieren
  *
  * @author Dirk Bräuer
  */
 public final class ZPS implements MemoryModule {
+
+    /**
+     * Logger Instanz
+     */
+    private static final Logger LOG = Logger.getLogger(ZPS.class.getName());
 
     /**
      * Anzahl der ZPS Module im System
@@ -46,12 +59,27 @@ public final class ZPS implements MemoryModule {
      * Speicher der ZPS
      */
     private final Memory memory = new Memory(131072);
+    /**
+     * Array mit Paritäts-Bits
+     */
+    private final byte[] parityBits = new byte[131072];
+    /**
+     * Aktuell gesetzte Parität
+     */
+    private Parity parity = Parity.ODD;
+    /**
+     * Verweis auf ZVE zum setzen der Staussignale
+     */
+    private final ZVE zve;
 
     /**
      * Erstellt eine neue ZPS
+     *
+     * @param zve
      */
-    public ZPS() {
+    public ZPS(ZVE zve) {
         zps_count++;
+        this.zve = zve;
         init();
     }
 
@@ -90,6 +118,15 @@ public final class ZPS implements MemoryModule {
      */
     @Override
     public int readWord(int address) {
+        if (address == 0x10000) {
+            // Parity Hack für A C T
+            int par1 = (byte) Parity.calculateParityBit(memory.readByte(address), parity);
+            int par2 = (byte) Parity.calculateParityBit(memory.readByte(address + 1), parity);
+            if (par1 != parityBits[address] || par2 != parityBits[address + 1]) {
+                zve.getPPI().writePortA(((par2 != parityBits[address + 1]) ? 0x00 : 0x40) | ((par1 != parityBits[address]) ? 0x00 : 0x40));
+                MMS16Bus.getInstance().requestInterrupt(0);
+            }
+        }
         return memory.readWord(address);
     }
 
@@ -101,6 +138,18 @@ public final class ZPS implements MemoryModule {
      */
     @Override
     public void writeByte(int address, int data) {
+        if (address == 0x400) {
+            // Control-Byte wird geschrieben
+            parity = BitTest.getBit(data, 0) ? Parity.EVEN : Parity.ODD;
+            if (!BitTest.getBit(data, 1)) {
+                zve.getPPI().writePortA(0xC0);
+            }
+        }
+        if (address == 0x10000) {
+            // Parity Hack für A C T
+            parityBits[address] = (byte) Parity.calculateParityBit(data & 0xFF, parity);
+            parityBits[address + 1] = (byte) Parity.calculateParityBit((data >> 8) & 0xFF, parity);
+        }
         memory.writeByte(address, data);
     }
 
@@ -124,6 +173,8 @@ public final class ZPS implements MemoryModule {
     @Override
     public void saveState(DataOutputStream dos) throws IOException {
         memory.saveMemory(dos);
+        dos.write(parityBits);
+        dos.writeUTF(parity.name());
     }
 
     /**
@@ -135,5 +186,7 @@ public final class ZPS implements MemoryModule {
     @Override
     public void loadState(DataInputStream dis) throws IOException {
         memory.loadMemory(dis);
+        dis.read(parityBits);
+        parity = Parity.valueOf(dis.readUTF());
     }
 }

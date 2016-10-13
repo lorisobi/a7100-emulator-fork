@@ -19,12 +19,14 @@
  * 
  * Letzte Änderungen:
  *   05.04.2014 - Kommentare vervollständigt
+ *   09.08.2016 - Logger hinzugefügt
  */
 package a7100emulator.components.system;
 
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.image.BufferedImage;
+import java.util.logging.Logger;
 import javax.swing.JComponent;
 
 /**
@@ -33,6 +35,11 @@ import javax.swing.JComponent;
  * @author Dirk Bräuer
  */
 public class Screen extends JComponent {
+
+    /**
+     * Logger Instanz
+     */
+    private static final Logger LOG = Logger.getLogger(Screen.class.getName());
 
     /**
      * Instanz

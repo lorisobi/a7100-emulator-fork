@@ -19,8 +19,10 @@
  * 
  * Letzte Änderungen:
  *   05.04.2014 - Kommentare vervollständigt
+ *   28.07.2016 - Kommentare erweitert
+ *   07.08.2016 - Paket in a7100emulator verschoben
  */
-package GUITools;
+package a7100emulator.GUITools;
 
 import java.awt.Component;
 import javax.swing.JLabel;
@@ -29,29 +31,32 @@ import javax.swing.SwingConstants;
 import javax.swing.table.TableCellRenderer;
 
 /**
- * Renderer für Spaltenheader
+ * Renderer für Spaltenheader. Dieser Renderer formatiert eine Spalte einer
+ * JTable, damit sie im Aussehen einer Kopfzeile gleicht. Die Elemente innerhalb
+ * der Spalte werden rechtsbündig dargestellt. Dies kann beispielsweise für die
+ * Darstellung von Speicherbereiten effektiv verwendet werden.
  *
  * @author Dirk Bräuer
  */
 public class RowHeadRenderer implements TableCellRenderer {
 
     /**
-     * Gibt die Darzustellende Komponente zurück
+     * Gibt die darzustellende Komponente zurück.
      *
      * @param table Tabelle
-     * @param value Wert
-     * @param isSelected wahr, wenn Selektiert
-     * @param hasFocus wahr, wenn Fokus
+     * @param value Zellwert
+     * @param isSelected <code>true</code>, wenn die Zelle ausgewählt ist
+     * @param hasFocus <code>true</code> wenn die Komponente den Fokus besitzt
      * @param row Zeile
      * @param column Spalte
      * @return Komponente
      */
     @Override
     public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
-        JLabel lab = new JLabel(value.toString());
-        lab.setOpaque(true);
-        lab.setFont(table.getFont());
-        lab.setHorizontalAlignment(SwingConstants.RIGHT);
-        return lab;
+        JLabel cellLabel = new JLabel(value.toString());
+        cellLabel.setOpaque(true);
+        cellLabel.setFont(table.getFont());
+        cellLabel.setHorizontalAlignment(SwingConstants.RIGHT);
+        return cellLabel;
     }
 }

@@ -32,6 +32,7 @@
  *              - Fehler in Steuerfolgen behoben 0 durch O ersetzt
  *   25.07.2016 - keyboardClock und selfTest in Reset,Laden und Speichern
  *              - Kommentare überarbeitet
+ *   09.08.2016 - Logger hinzugefügt
  */
 package a7100emulator.components.system;
 
@@ -43,6 +44,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.LinkedList;
+import java.util.logging.Logger;
 
 /**
  * Klasse zur Realisierung einer A7100 Tastatur. Die Klasse nimmt Tastaturevents
@@ -98,12 +100,18 @@ import java.util.LinkedList;
  * <ul>
  * <li>Tastaturtyp K7672 noch nicht implementiert</li>
  * <li>Wenige Tasten noch nicht implementiert</li>
- * <li>Selbsttest-Verzögerung überarbeitet</li>
+ * <li>Selbsttest-Verzögerung überarbeiten</li>
+ * <li>Break funktioniert im SCP nicht</li>
  * </ul>
  *
  * @author Dirk Bräuer
  */
 public class Keyboard implements KeyListener, StateSavable {
+
+    /**
+     * Logger Instanz
+     */
+    private static final Logger LOG = Logger.getLogger(Keyboard.class.getName());
 
     /**
      * Enum der Tastaturtypen
@@ -425,7 +433,7 @@ public class Keyboard implements KeyListener, StateSavable {
                 sendBytes(keyShift ? new byte[]{0x1B, 0x5B, 0x4D} : new byte[]{0x7F});
                 break;
             case KeyEvent.VK_PAUSE:
-                System.out.println("Break");
+                //System.out.println("Break");
                 MMS16Bus.getInstance().requestInterrupt(1);
                 break;
             case KeyEvent.VK_PRINTSCREEN:
