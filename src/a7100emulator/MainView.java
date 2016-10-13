@@ -49,6 +49,7 @@
  *              - Anzeige Datenbankfehler SCP-Disk Tool ergänzt
  *   29.07.2016 - Abfangen und Anzeigen von Fehlern bei Laden/Speichern
  *   09.08.2016 - Logger hinzugefügt und Ausgaben umgeleitet
+ *   13.10.2016 - Diskettennamen werden aus Images geladen
  */
 package a7100emulator;
 
@@ -555,14 +556,20 @@ public class MainView extends JFrame {
      * Aktualisiert die Anzeige anhand des aktuellen Emulatorzustands.
      */
     private void updateStatus() {
-        // TODO: Debugzustände einpflegen, Statusleiste integrieren
+        // TODO: Debugzustände einpflegen
 
         menuHacksKeyboardReset.setSelected(KR580WM51A.isKeyboardResetHack());
         menuEmulatorSync.setSelected(GlobalClock.getInstance().isSynchronizedClock());
         menuEmulatorPause.setSelected(GlobalClock.getInstance().isSuspended());
         menuEmulatorSingle.setEnabled(GlobalClock.getInstance().isSuspended());
-        menuDevicesDrive0WriteProtect.setSelected(a7100.getKES().getAFS().getFloppy(0).isDiskInsert() && a7100.getKES().getAFS().getFloppy(0).getDisk().isWriteProtect());
-        menuDevicesDrive1WriteProtect.setSelected(a7100.getKES().getAFS().getFloppy(1).isDiskInsert() && a7100.getKES().getAFS().getFloppy(1).getDisk().isWriteProtect());
+
+        boolean disk0Insert = a7100.getKES().getAFS().getFloppy(0).isDiskInsert();
+        boolean disk1Insert = a7100.getKES().getAFS().getFloppy(1).isDiskInsert();
+
+        menuDevicesDrive0WriteProtect.setSelected(disk0Insert && a7100.getKES().getAFS().getFloppy(0).getDisk().isWriteProtect());
+        menuDevicesDrive1WriteProtect.setSelected(disk1Insert && a7100.getKES().getAFS().getFloppy(1).getDisk().isWriteProtect());
+        statusDrive0.setText("A:" + (disk0Insert ? a7100.getKES().getAFS().getFloppy(0).getDisk().getDiskName() : "[Keine Diskette]"));
+        statusDrive1.setText("B:" + (disk1Insert ? a7100.getKES().getAFS().getFloppy(1).getDisk().getDiskName() : "[Keine Diskette]"));
     }
 
     /**
@@ -587,7 +594,6 @@ public class MainView extends JFrame {
                 } else {
                     a7100.resume();
                 }
-                updateStatus();
             } else if (e.getSource().equals(menuEmulatorSingle)) {
                 a7100.singleStep();
             } else if (e.getSource().equals(menuEmulatorSync)) {
@@ -622,7 +628,6 @@ public class MainView extends JFrame {
                     LOG.log(Level.WARNING, "Fehler beim Laden des Emulatorzustands aus der Datei ./state/state.a7100!", ex);
                     JOptionPane.showMessageDialog(null, "Fehler beim Laden der Datei ./state/state.a7100!", "Ladefehler", JOptionPane.ERROR_MESSAGE);
                 }
-                updateStatus();
             } else if (e.getSource().equals(menuEmulatorLoadFrom)) {
                 JFileChooser loadDialog = new JFileChooser("./state/");
                 FileNameExtensionFilter filter = new FileNameExtensionFilter("A7100 Emulatorzustände", "a7100");
@@ -634,7 +639,6 @@ public class MainView extends JFrame {
                         LOG.log(Level.WARNING, "Fehler beim Laden des Emulatorzustands aus der Datei " + loadDialog.getSelectedFile().getName() + "!", ex);
                         JOptionPane.showMessageDialog(null, "Fehler beim Laden der Datei " + loadDialog.getSelectedFile().getName() + "!", "Ladefehler", JOptionPane.ERROR_MESSAGE);
                     }
-                    updateStatus();
                 }
             } else if (e.getSource() == menuEmulatorExit) {
                 System.exit(0);
@@ -734,14 +738,22 @@ public class MainView extends JFrame {
             } else if (e.getSource() == menuDebugAFSShowFloppyDisk1) {
                 a7100.getKES().getAFS().showFloppy(1);
             } else if (e.getSource() == menuDevicesDrive0Load) {
-                loadImageFile(0);
+                JFileChooser loadDialog = new JFileChooser("./disks/");
+                if (loadDialog.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
+                    File image = loadDialog.getSelectedFile();
+                    try {
+                        a7100.getKES().getAFS().getFloppy(0).loadDiskFromFile(image);
+                    } catch (IOException ex) {
+                        LOG.log(Level.WARNING, "Fehler beim Lesen des Diskettenabbildes aus der Datei " + image.getName() + "!", ex);
+                        JOptionPane.showMessageDialog(null, "Fehler beim Lesen der Datei " + image.getName() + "!", "Image-Lesefehler", JOptionPane.ERROR_MESSAGE);
+                    }
+                }
             } else if (e.getSource() == menuDevicesDrive0Save) {
                 JFileChooser saveDialog = new JFileChooser("./disks/");
                 if (saveDialog.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
                     File image = saveDialog.getSelectedFile();
                     try {
                         a7100.getKES().getAFS().getFloppy(0).saveDiskToFile(image);
-                        statusDrive0.setText("A:" + image.getName());
                     } catch (IOException ex) {
                         LOG.log(Level.WARNING, "Fehler beim Speichern des Diskettenabbildes in die Datei " + image.getName() + "!", ex);
                         JOptionPane.showMessageDialog(null, "Fehler beim Speichern der Datei " + image.getName() + "!", "Image-Speicherfehler", JOptionPane.ERROR_MESSAGE);
@@ -749,21 +761,27 @@ public class MainView extends JFrame {
                 }
             } else if (e.getSource() == menuDevicesDrive0Eject) {
                 a7100.getKES().getAFS().getFloppy(0).ejectDisk();
-                statusDrive0.setText("A:[Keine Diskette]");
             } else if (e.getSource() == menuDevicesDrive0Empty) {
                 a7100.getKES().getAFS().getFloppy(0).newDisk();
-                statusDrive0.setText("A:[Leere Diskette]");
             } else if (e.getSource() == menuDevicesDrive0WriteProtect) {
                 a7100.getKES().getAFS().getFloppy(0).setWriteProtect(menuDevicesDrive0WriteProtect.isSelected());
             } else if (e.getSource() == menuDevicesDrive1Load) {
-                loadImageFile(1);
+                JFileChooser loadDialog = new JFileChooser("./disks/");
+                if (loadDialog.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
+                    File image = loadDialog.getSelectedFile();
+                    try {
+                        a7100.getKES().getAFS().getFloppy(1).loadDiskFromFile(image);
+                    } catch (IOException ex) {
+                        LOG.log(Level.WARNING, "Fehler beim Lesen des Diskettenabbildes aus der Datei " + image.getName() + "!", ex);
+                        JOptionPane.showMessageDialog(null, "Fehler beim Lesen der Datei " + image.getName() + "!", "Image-Lesefehler", JOptionPane.ERROR_MESSAGE);
+                    }
+                }
             } else if (e.getSource() == menuDevicesDrive1Save) {
                 JFileChooser saveDialog = new JFileChooser("./disks/");
                 if (saveDialog.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
                     File image = saveDialog.getSelectedFile();
                     try {
                         a7100.getKES().getAFS().getFloppy(1).saveDiskToFile(image);
-                        statusDrive1.setText("B:" + image.getName());
                     } catch (IOException ex) {
                         LOG.log(Level.WARNING, "Fehler beim Speichern des Diskettenabbildes in die Datei " + image.getName() + "!", ex);
                         JOptionPane.showMessageDialog(null, "Fehler beim Speichern der Datei " + image.getName() + "!", "Image-Speicherfehler", JOptionPane.ERROR_MESSAGE);
@@ -771,10 +789,8 @@ public class MainView extends JFrame {
                 }
             } else if (e.getSource() == menuDevicesDrive1Eject) {
                 a7100.getKES().getAFS().getFloppy(1).ejectDisk();
-                statusDrive1.setText("B:[Keine Diskette]");
             } else if (e.getSource() == menuDevicesDrive1Empty) {
                 a7100.getKES().getAFS().getFloppy(1).newDisk();
-                statusDrive1.setText("B:[Leere Diskette]");
             } else if (e.getSource() == menuDevicesDrive1WriteProtect) {
                 a7100.getKES().getAFS().getFloppy(1).setWriteProtect(menuDevicesDrive0WriteProtect.isSelected());
             } else if (e.getSource() == menuToolsSCPDiskTool) {
@@ -865,34 +881,9 @@ public class MainView extends JFrame {
 
                 JOptionPane.showMessageDialog(MainView.this, pan_about, "Über", JOptionPane.PLAIN_MESSAGE);
             }
-        }
-
-        /**
-         * Öffnet ein Diskettenabbild von der Festplatte, bietet dem Benutzer
-         * ggf. zusätzliche Einstellungsmöglichkeiten zur Disketten-Geometrie
-         *
-         * @param drive Nummer des Laufwerks
-         */
-        private void loadImageFile(int drive) {
-            JFileChooser loadDialog = new JFileChooser("./disks/");
-            if (loadDialog.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
-                File image = loadDialog.getSelectedFile();
-                try {
-                    a7100.getKES().getAFS().getFloppy(drive).loadDiskFromFile(image);
-                    switch (drive) {
-                        case 0:
-                            statusDrive0.setText("A:" + image.getName());
-                            break;
-                        case 1:
-                            statusDrive1.setText("B:" + image.getName());
-                            break;
-                    }
-                    updateStatus();
-                } catch (IOException ex) {
-                    LOG.log(Level.WARNING, "Fehler beim Lesen des Diskettenabbildes aus der Datei " + image.getName() + "!", ex);
-                    JOptionPane.showMessageDialog(null, "Fehler beim Lesen der Datei " + image.getName() + "!", "Image-Lesefehler", JOptionPane.ERROR_MESSAGE);
-                }
-            }
+            
+            // Anzeigen aktualisieren
+            updateStatus();
         }
     }
 }

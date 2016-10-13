@@ -22,6 +22,7 @@
  *   26.07.2016 - Doppelte Typecasts entfernt
  *   09.08.2016 - Logger hinzugefügt
  *   25.09.2016 - Kommentare Lesen bei Teledisk ergänzt
+ *   13.10.2016 - Diskettennamen setzen hinzugefügt
  */
 package a7100emulator.Tools;
 
@@ -79,15 +80,26 @@ public class FloppyImageParser {
         // Versuche anhand der Dateierweiterung Imagetyp zu erkennen
         String extension = image.getName().substring(image.getName().length() - 3, image.getName().length()).toLowerCase();
 
+        // Diskette auslesen
+        FloppyDisk disk = null;
+
         switch (extension) {
-            case "imd":
-                return readImagediskFile(buffer);
-            case "td0":
-                return readTelediskFile(buffer);
-            case "dmk":
-                return readDMKFile(buffer);
-            case "cqm":
-                return readCopyQMFile(buffer);
+            case "imd": {
+                disk = readImagediskFile(buffer);
+            }
+            break;
+            case "td0": {
+                disk = readTelediskFile(buffer);
+            }
+            break;
+            case "dmk": {
+                disk = readDMKFile(buffer);
+            }
+            break;
+            case "cqm": {
+                disk = readCopyQMFile(buffer);
+            }
+            break;
             default: {
                 NumberFormat integerFormat = NumberFormat.getIntegerInstance();
                 integerFormat.setGroupingUsed(false);
@@ -123,11 +135,18 @@ public class FloppyImageParser {
                     int bytesPerSector = ((Number) editBytesPerSector.getValue()).intValue();
                     int sectorsInTrack0 = ((Number) editSectorsInTrack0.getValue()).intValue();
                     int bytesPerSectorTrack0 = ((Number) editBytesPerSectorTrack0.getValue()).intValue();
-                    return parseBinaryFile(buffer, cylinder, heads, sectorsPerTrack, bytesPerSector, sectorsInTrack0, bytesPerSectorTrack0);
+                    disk = parseBinaryFile(buffer, cylinder, heads, sectorsPerTrack, bytesPerSector, sectorsInTrack0, bytesPerSectorTrack0);
                 }
-                return null;
             }
+            break;
         }
+
+        // Name der Datei als Diskettenname setzen
+        if (disk != null) {
+            disk.setDiskName(image.getName());
+        }
+
+        return disk;
     }
 
     /**
@@ -290,19 +309,19 @@ public class FloppyImageParser {
         int crc = buffer[pos++] | buffer[pos++] << 8;
 
         if (BitTest.getBit(stepping, 7)) {
-            int commentCRC =buffer[pos++] | buffer[pos++] << 8;
-            int commentLength=buffer[pos++] | buffer[pos++] << 8;
-            int commentYear=buffer[pos++];
-            int commentMonth =buffer[pos++];
-            int commentDay=buffer[pos++];
-            int commentHour=buffer[pos++];
-            int commentMinute=buffer[pos++];
-            int commentSecond=buffer[pos++];
-            byte[] commentData= new byte[commentLength];
+            int commentCRC = buffer[pos++] | buffer[pos++] << 8;
+            int commentLength = buffer[pos++] | buffer[pos++] << 8;
+            int commentYear = buffer[pos++];
+            int commentMonth = buffer[pos++];
+            int commentDay = buffer[pos++];
+            int commentHour = buffer[pos++];
+            int commentMinute = buffer[pos++];
+            int commentSecond = buffer[pos++];
+            byte[] commentData = new byte[commentLength];
             System.arraycopy(buffer, pos, commentData, 0, commentLength);
-            pos+=commentLength;           
-        }        
-        
+            pos += commentLength;
+        }
+
         int sectorCount;
         do {
             sectorCount = buffer[pos++];

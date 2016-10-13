@@ -37,6 +37,7 @@
  *   25.07.2016 - Rückgabe null bei fehlendem Sektor
  *   29.07.2016 - IOException beim Speichern von Images hinzugefügt
  *   09.08.2016 - Logger hinzugefügt und Ausgaben umgeleitet
+ *   13.10.2016 - Diskettennamen hinzugefügt
  */
 package a7100emulator.components.system;
 
@@ -62,7 +63,7 @@ public class FloppyDisk implements StateSavable {
      * Logger Instanz
      */
     private static final Logger LOG = Logger.getLogger(FloppyDisk.class.getName());
-    
+
     /**
      * Daten der Diskette
      */
@@ -74,9 +75,24 @@ public class FloppyDisk implements StateSavable {
     private boolean writeProtect = false;
 
     /**
+     * Name der Diskette - wird für das Anzeigen der Status-Informationen
+     * genutzt
+     */
+    private String diskName = "";
+
+    /**
      * Erstellt eine leere Diskette
      */
     public FloppyDisk() {
+    }
+
+    /**
+     * Erstellt eine leere Diskette
+     *
+     * @param diskName Name der Diskette
+     */
+    public FloppyDisk(String diskName) {
+        this.diskName = diskName;
     }
 
     /**
@@ -109,6 +125,7 @@ public class FloppyDisk implements StateSavable {
         FileOutputStream fos = new FileOutputStream(image);
         fos.write(getFlatData());
         fos.close();
+        diskName = image.getName();
     }
 
     /**
@@ -399,6 +416,7 @@ public class FloppyDisk implements StateSavable {
             }
         }
         dos.writeBoolean(writeProtect);
+        dos.writeUTF(diskName);
     }
 
     /**
@@ -423,5 +441,24 @@ public class FloppyDisk implements StateSavable {
             }
         }
         writeProtect = dis.readBoolean();
+        diskName = dis.readUTF();
+    }
+
+    /**
+     * Gibt den Namen der Diskette zurück.
+     *
+     * @return Name der Diskette
+     */
+    public String getDiskName() {
+        return diskName;
+    }
+
+    /**
+     * Setzt den Namen der Diskette.
+     *
+     * @param diskName Name der Diskette
+     */
+    public void setDiskName(String diskName) {
+        this.diskName = diskName;
     }
 }
