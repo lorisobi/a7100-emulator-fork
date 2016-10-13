@@ -6191,5 +6191,5 @@ public class UA880 implements CPU {
     @Override
     public Decoder getDecoder() {
         return decoder;
-}
+    }
 }

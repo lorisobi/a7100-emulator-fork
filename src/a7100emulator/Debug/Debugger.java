@@ -49,7 +49,7 @@ public class Debugger {
      * Globaler Debugger
      */
     private static final Debugger globalDebugger = new Debugger("a7100", false, "");
- 
+
     /**
      * Ausgabedatei
      */

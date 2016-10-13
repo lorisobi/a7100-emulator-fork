@@ -127,9 +127,9 @@ public class Memory {
                 }
             }
         } finally {
-                in.close();
-            }
+            in.close();
         }
+    }
 
     /**
      * Schreibt ein Byte in den Speicher

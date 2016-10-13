@@ -453,7 +453,7 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
      * Festplatte
      */
     private void initEPROMS() {
-        // A7150
+            // A7150
         // ACT 2.1
 //        File AHCL = new File("./eproms/265.bin");
 //        File AWCL = new File("./eproms/266.bin");
@@ -497,14 +497,14 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
         }
 
         try {
-        memory.loadFile(0xF8000 - 0xF8000, CGCL, Memory.FileLoadMode.LOW_BYTE_ONLY);
-        memory.loadFile(0xF8000 - 0xF8000, AWCL, Memory.FileLoadMode.HIGH_BYTE_ONLY);
-        memory.loadFile(0xFC000 - 0xF8000, BOCL, Memory.FileLoadMode.LOW_BYTE_ONLY);
-        memory.loadFile(0xFC000 - 0xF8000, AHCL, Memory.FileLoadMode.HIGH_BYTE_ONLY);
+            memory.loadFile(0xF8000 - 0xF8000, CGCL, Memory.FileLoadMode.LOW_BYTE_ONLY);
+            memory.loadFile(0xF8000 - 0xF8000, AWCL, Memory.FileLoadMode.HIGH_BYTE_ONLY);
+            memory.loadFile(0xFC000 - 0xF8000, BOCL, Memory.FileLoadMode.LOW_BYTE_ONLY);
+            memory.loadFile(0xFC000 - 0xF8000, AHCL, Memory.FileLoadMode.HIGH_BYTE_ONLY);
         } catch (IOException ex) {
             LOG.log(Level.SEVERE, "Fehler beim Laden der ZVE-EPROMS!", ex);
             System.exit(0);
-    }
+        }
     }
 
     /**
@@ -573,8 +573,8 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
         cpu.setDebug(debug);
         if (debug) {
             getDecoder().clear();
+        }
     }
-}
 
     /**
      * Gibt die Instanz des CPU Decoders zurück.
@@ -594,5 +594,5 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
      */
     KR580WW55A getPPI() {
         return ppi;
-}
+    }
 }

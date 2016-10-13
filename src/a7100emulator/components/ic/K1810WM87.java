@@ -131,7 +131,7 @@ public class K1810WM87 implements CPU {
     public void setDebug(boolean debug) {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
-    
+
     @Override
     public Decoder getDecoder() {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.

@@ -257,11 +257,11 @@ public class MMS16Bus implements StateSavable {
      */
     public void dumpSystemMemory(String filename) throws IOException {
         FileOutputStream fos = new FileOutputStream(filename);
-            for (int i = 0; i <= MAX_ADDRESS; i++) {
-                fos.write(readMemoryByte(i));
-            }
-            fos.close();
+        for (int i = 0; i <= MAX_ADDRESS; i++) {
+            fos.write(readMemoryByte(i));
         }
+        fos.close();
+    }
 
     /**
      * Gibt ein Byte auf einem Port aus

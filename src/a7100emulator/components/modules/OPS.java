@@ -136,6 +136,8 @@ public final class OPS implements IOModule, MemoryModule {
                 parity = Parity.ODD;
             }
             state = 0x0F;
+        } else {
+            LOG.log(Level.FINE, "Schreiben auf nicht definiertem Port {0}!", String.format("0x%02X", port));
         }
     }
 

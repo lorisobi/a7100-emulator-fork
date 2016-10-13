@@ -506,9 +506,9 @@ public final class KGS implements IOModule, ClockModule, SubsystemModule {
      */
     public void dumpLocalMemory(String filename) throws IOException {
         DataOutputStream dos = new DataOutputStream(new FileOutputStream(filename));
-            ram.saveMemory(dos);
-            dos.close();
-        }
+        ram.saveMemory(dos);
+        dos.close();
+    }
 
     /**
      * Reicht die Anforderung einen nichtmaskierbaren Interrupt zu verarbeiten
@@ -533,7 +533,7 @@ public final class KGS implements IOModule, ClockModule, SubsystemModule {
         }
 
         try {
-        ram.loadFile(0x00, kgsRom, Memory.FileLoadMode.LOW_AND_HIGH_BYTE);
+            ram.loadFile(0x00, kgsRom, Memory.FileLoadMode.LOW_AND_HIGH_BYTE);
         } catch (IOException ex) {
             LOG.log(Level.SEVERE, "Fehler beim Laden des KGS-EPROMS!", ex);
             System.exit(0);

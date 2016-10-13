@@ -20,7 +20,6 @@
  * Letzte Änderungen:
  *   01.04.2014 - Kommentare vervollständigt
  *   17.11.2014 - Starten der Systemzeit implementiert
- *   05.06.2016 - Verweise auf alten KES entfernt
  *   23.07.2016 - Methoden für Pausieren und Einzelschritt überarbeitet
  *   24.07.2016 - Laden und Speichern des Zustands in beliebige Dateien
  *   29.07.2016 - Exceptions beim Laden und Speichern von Zuständen
@@ -141,9 +140,9 @@ public class A7100 {
 
     /**
      * Speichert den aktuellen Zustand des Emulators in der angegebenen Datei.
-     * Dabei werden die saveState Methoden der Module sowie der verwendeten 
+     * Dabei werden die saveState Methoden der Module sowie der verwendeten
      * Peripherie aufgerufen.
-     * 
+     *
      * @param stateFile Datei zum Speichern des Emulatorzustands
      * @throws java.io.IOException Wenn beim Speichern des Zustands ein Fehler
      * auftritt.
@@ -177,15 +176,15 @@ public class A7100 {
             dos.close();
         } finally {
             // Weiterlaufen des Emulators sicherstellen aber Exception dennoch nach oben weiterleiten
-        resume();
-    }
+            resume();
+        }
     }
 
     /**
      * Lädt den aktuellen Zustand des Emulators aus der angegebenen Datei. Dabei
      * werden die loadState Methoden der Module sowie der verwendeten Peripherie
      * aufgerufen.
-     * 
+     *
      * @param stateFile Datei zum Laden des Emulatorzustands
      * @throws java.io.IOException Wenn beim Laden des Zustands ein Fehler
      * auftritt
@@ -218,8 +217,8 @@ public class A7100 {
             dis.close();
         } finally {
             // Weiterlaufen des Emulators sicherstellen aber Exception dennoch nach oben weiterleiten
-        resume();
-    }
+            resume();
+        }
     }
 
     /**

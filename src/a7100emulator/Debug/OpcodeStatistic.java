@@ -83,11 +83,11 @@ public class OpcodeStatistic {
      * @throws java.io.IOException Wenn beim Speichern ein Fehler auftritt
      */
     public void dump() throws IOException {
-            PrintStream opcodeFile = new PrintStream(new FileOutputStream("./debug/OpcodeStatistic.log"));
-            for (int i = 0; i < 256; i++) {
-                opcodeFile.println("" + opCodeStatistic[i]);
-            }
-            opcodeFile.flush();
-            opcodeFile.close();
+        PrintStream opcodeFile = new PrintStream(new FileOutputStream("./debug/OpcodeStatistic.log"));
+        for (int i = 0; i < 256; i++) {
+            opcodeFile.println("" + opCodeStatistic[i]);
         }
+        opcodeFile.flush();
+        opcodeFile.close();
     }
+}
