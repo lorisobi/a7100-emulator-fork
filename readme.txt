@@ -40,7 +40,7 @@ Inhaltsverzeichnis:
     
   vX.X.XX - XX.XX.XXXX
   Neue Features:
-
+    - Decoder für UA880 ergänzt
   Neuerungen im SCP-Disketten-Tool:
 
   Änderungen/Bugfixes:
