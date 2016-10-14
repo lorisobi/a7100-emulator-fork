@@ -44,9 +44,12 @@
  *              - localClockUpdate() ohne Funktion
  *   07.08.2016 - Logger hinzugefügt und Ausgaben umgeleitet
  *   13.10.2016 - Prüfen auf Fehler beim Laden der KES Eproms 
+ *   14.10.2016 - Ausgaben auf Logger umgeleitet
+ *              - getDecoder ergänzt
  */
 package a7100emulator.components.modules;
 
+import a7100emulator.Debug.Decoder;
 import a7100emulator.Debug.MemoryAnalyzer;
 import a7100emulator.Tools.BitTest;
 import a7100emulator.Tools.Memory;
@@ -274,10 +277,11 @@ public final class KES implements IOModule, ClockModule, SubsystemModule {
                     dnmi_map = 0x80;
                     break;
                 default:
-                    throw new IllegalArgumentException("Illegal Command:" + Integer.toHexString(data));
+                    LOG.log(Level.FINE, "Unbekanntes KES Kommando {0} auf Port {1}!", new String[]{String.format("0x%02X", data), String.format("0x%02X", port)});
+                    break;
             }
         } else if (port == PORT_KES_WAKEUP_2[kes_id]) {
-            LOG.log(Level.FINE, "Schreiben auf Kanal 2 nicht implementiert!", String.format("0x%02X", port));
+            LOG.log(Level.FINE, "Schreiben auf Kanal 2 nicht implementiert!");
         } else {
             LOG.log(Level.FINE, "Schreiben auf nicht definiertem Port {0}!", String.format("0x%02X", port));
         }
@@ -339,6 +343,7 @@ public final class KES implements IOModule, ClockModule, SubsystemModule {
             System.exit(0);
         }
 
+        // TODO: Für AFP weitere EPROMS laden
         try {
             eprom.loadFile(0x0000, kesRom1, Memory.FileLoadMode.LOW_AND_HIGH_BYTE);
             eprom.loadFile(0x0800, kesRom2, Memory.FileLoadMode.LOW_AND_HIGH_BYTE);
@@ -417,12 +422,14 @@ public final class KES implements IOModule, ClockModule, SubsystemModule {
             case LOCAL_PORT_RESETCA1_1:
             case LOCAL_PORT_RESETCA1_2:
             case LOCAL_PORT_RESETCA1_3:
-                throw new IllegalArgumentException("Lesen von RESETCA1 Port nicht erlaubt");
+                LOG.log(Level.FINER, "Lesen RESET CA1 (Port {0}) nicht erlaubt!", String.format("0x%02X", port));
+                break;
             case LOCAL_PORT_RESETCA2_0:
             case LOCAL_PORT_RESETCA2_1:
             case LOCAL_PORT_RESETCA2_2:
             case LOCAL_PORT_RESETCA2_3:
-                throw new IllegalArgumentException("Lesen von RESETCA2 Port nicht erlaubt");
+                LOG.log(Level.FINER, "Lesen RESET CA2 (Port {0}) nicht erlaubt!", String.format("0x%02X", port));
+                break;
             case LOCAL_PORT_WAKEUPL_0:
             case LOCAL_PORT_WAKEUPL_1:
             case LOCAL_PORT_WAKEUPL_2:
@@ -435,15 +442,18 @@ public final class KES implements IOModule, ClockModule, SubsystemModule {
                 return (WAKEUP_ADDRESS >> 8) & 0xFF;
             case LOCAL_PORT_SETINT1_0:
             case LOCAL_PORT_SETINT1_1:
-                throw new IllegalArgumentException("Lesen von SETINT1 Port nicht erlaubt");
+                LOG.log(Level.FINER, "Lesen SETINT1 (Port {0}) nicht erlaubt!", String.format("0x%02X", port));
+                break;
             case LOCAL_PORT_SETINT2_0:
             case LOCAL_PORT_SETINT2_1:
-                throw new IllegalArgumentException("Lesen von SETINT2 Port nicht erlaubt");
+                LOG.log(Level.FINER, "Lesen SETINT2 (Port {0}) nicht erlaubt!", String.format("0x%02X", port));
+                break;
             case LOCAL_PORT_NMI_MAP_0:
             case LOCAL_PORT_NMI_MAP_1:
             case LOCAL_PORT_NMI_MAP_2:
             case LOCAL_PORT_NMI_MAP_3:
-                throw new IllegalArgumentException("Lesen von DNMI/MAP Port nicht erlaubt");
+                LOG.log(Level.FINER, "Lesen DNMI/MAP (Port {0}) nicht erlaubt!", String.format("0x%02X", port));
+                break;
             case 0x90:
             case 0x91:
             case 0x92:
@@ -513,12 +523,14 @@ public final class KES implements IOModule, ClockModule, SubsystemModule {
             case LOCAL_PORT_WAKEUPL_1:
             case LOCAL_PORT_WAKEUPL_2:
             case LOCAL_PORT_WAKEUPL_3:
-                throw new IllegalArgumentException("Schreiben von WAKEUPL Port nicht erlaubt");
+                LOG.log(Level.FINER, "Schreiben auf WAKEUP LOW (Port {0}) nicht erlaubt!", String.format("0x%02X", port));
+                break;
             case LOCAL_PORT_WAKEUPH_0:
             case LOCAL_PORT_WAKEUPH_1:
             case LOCAL_PORT_WAKEUPH_2:
             case LOCAL_PORT_WAKEUPH_3:
-                throw new IllegalArgumentException("Schreiben von WAKEUPH Port nicht erlaubt");
+                LOG.log(Level.FINER, "Schreiben auf WAKEUP HIGH (Port {0}) nicht erlaubt!", String.format("0x%02X", port));
+                break;
             case LOCAL_PORT_SETINT1_0:
             case LOCAL_PORT_SETINT1_1:
                 mms16.requestInterrupt(5);
@@ -571,13 +583,10 @@ public final class KES implements IOModule, ClockModule, SubsystemModule {
         } else if (address < 0x5000) {
             return afs.readByte(address);
         } else if (address < 0x6000) {
-            if (afp != null) {
-                return afp.readByte(address);
-            } else {
-                return 0;
-            }
+            // TODO Eproms 3 und 4 implementieren
+            return 0;
         } else if (address < 0xC000) {
-            System.out.println("Lesen aus nichtgenutzem KES Adressraum!");
+            LOG.log(Level.FINER, "Lesen aus nicht genutzem KES Adressraum (Adresse {0})!", String.format("0x%04X", address));
             return 0;
         } else {
             return mms16.readMemoryByte(((dnmi_map & 0x3F) << 14) | (address & 0x3FFF));
@@ -601,13 +610,10 @@ public final class KES implements IOModule, ClockModule, SubsystemModule {
         } else if (address < 0x5000) {
             return afs.readWord(address);
         } else if (address < 0x6000) {
-            if (afp != null) {
-                return afp.readWord(address);
-            } else {
-                return 0;
-            }
+            // TODO: Eproms 3 und 4 implementieren
+            return 0;
         } else if (address < 0xC000) {
-            System.out.println("Lesen aus nichtgenutzem KES Adressraum!");
+            LOG.log(Level.FINER, "Lesen aus nicht genutzem KES Adressraum (Adresse {0})!", String.format("0x%04X", address));
             return 0;
         } else {
             return mms16.readMemoryWord(((dnmi_map & 0x3F) << 14) | (address & 0x3FFF));
@@ -623,15 +629,15 @@ public final class KES implements IOModule, ClockModule, SubsystemModule {
     @Override
     public void writeLocalByte(int address, int data) {
         if (address < 0x2000) {
-            System.out.println("Schreiben auf KES Eproms nicht erlaubt!");
+            LOG.log(Level.FINER, "Schreiben in KES Eproms (Adresse {0}) nicht erlaubt!", String.format("0x%04X", address));
         } else if (address < 0x4000) {
             sram.writeByte(address - 0x2000, data);
         } else if (address < 0x5000) {
-            System.out.println("Schreiben auf AFS Eproms nicht erlaubt!");
+            LOG.log(Level.FINER, "Schreiben in AFS Eproms (Adresse {0}) nicht erlaubt!", String.format("0x%04X", address));
         } else if (address < 0x6000) {
-            System.out.println("Schreiben auf AFP Eproms nicht erlaubt!");
+            LOG.log(Level.FINER, "Schreiben in AFP Eproms (Adresse {0}) nicht erlaubt!", String.format("0x%04X", address));
         } else if (address < 0xC000) {
-            System.out.println("Schreiben in nicht belegten KES Adressraum!");
+            LOG.log(Level.FINER, "Schreiben in nichtgenutzten KES Adressraum (Adresse {0}) nicht erlaubt!", String.format("0x%04X", address));
         } else {
             mms16.writeMemoryByte(((dnmi_map & 0x3F) << 14) | (address & 0x3FFF), data);
         }
@@ -646,15 +652,15 @@ public final class KES implements IOModule, ClockModule, SubsystemModule {
     @Override
     public void writeLocalWord(int address, int data) {
         if (address < 0x2000) {
-            System.out.println("Schreiben auf KES Eproms nicht erlaubt!");
+            LOG.log(Level.FINER, "Schreiben in KES Eproms (Adresse {0}) nicht erlaubt!", String.format("0x%04X", address));
         } else if (address < 0x4000) {
             sram.writeWord(address - 0x2000, data);
         } else if (address < 0x5000) {
-            System.out.println("Schreiben auf AFS Eproms nicht erlaubt!");
+            LOG.log(Level.FINER, "Schreiben in AFS Eproms (Adresse {0}) nicht erlaubt!", String.format("0x%04X", address));
         } else if (address < 0x6000) {
-            System.out.println("Schreiben auf AFP Eproms nicht erlaubt!");
+            LOG.log(Level.FINER, "Schreiben in AFP Eproms (Adresse {0}) nicht erlaubt!", String.format("0x%04X", address));
         } else if (address < 0xC000) {
-            System.out.println("Schreiben in nicht belegten KES Adressraum!");
+            LOG.log(Level.FINER, "Schreiben in nichtgenutzten KES Adressraum (Adresse {0}) nicht erlaubt!", String.format("0x%04X", address));
         } else {
             mms16.writeMemoryWord(((dnmi_map & 0x3F) << 14) | (address & 0x3FFF), data);
         }
@@ -726,17 +732,13 @@ public final class KES implements IOModule, ClockModule, SubsystemModule {
      * TODO: Auch Submodule einbeziehen
      *
      * @param filename Dateiname
+     * @throws java.io.IOException Wenn beim Speichern ein Fehler auftritt
      */
-    public void dumpLocalMemory(String filename) {
-        DataOutputStream dos;
-        try {
-            dos = new DataOutputStream(new FileOutputStream(filename));
-            eprom.saveMemory(dos);
-            sram.saveMemory(dos);
-            dos.close();
-        } catch (IOException ex) {
-            Logger.getLogger(KES.class.getName()).log(Level.SEVERE, null, ex);
-        }
+    public void dumpLocalMemory(String filename) throws IOException {
+        DataOutputStream dos = new DataOutputStream(new FileOutputStream(filename));
+        eprom.saveMemory(dos);
+        sram.saveMemory(dos);
+        dos.close();
     }
 
     /**
@@ -797,5 +799,15 @@ public final class KES implements IOModule, ClockModule, SubsystemModule {
         ca2ff = dis.readBoolean();
         dnmi_map = dis.readInt();
         nmiRequest = dis.readBoolean();
+    }
+    
+    /**
+     * Gibt die Instanz des CPU Decoders zurück.
+     *
+     * @return Decoderinstanz oder <code>null</code> wenn kein Decoder
+     * initialisiert ist.
+     */
+    public Decoder getDecoder() {
+        return cpu.getDecoder();
     }
 }

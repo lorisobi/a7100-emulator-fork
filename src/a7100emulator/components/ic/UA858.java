@@ -26,11 +26,14 @@
 package a7100emulator.components.ic;
 
 import a7100emulator.Tools.BitTest;
+import a7100emulator.components.modules.AFS;
 import a7100emulator.components.modules.SubsystemModule;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.LinkedList;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Klasse zur Realisierung des UA858 DMA
@@ -38,6 +41,11 @@ import java.util.LinkedList;
  * @author Dirk Bräuer
  */
 public class UA858 implements IC {
+
+    /**
+     * Logger Instanz
+     */
+    private static final Logger LOG = Logger.getLogger(UA858.class.getName());
 
     /**
      * Registersatz Schreiben Haupt Register: WR0:0, WR1:5, WR2:7, WR3:9,
@@ -377,7 +385,8 @@ public class UA858 implements IC {
         if (nextReadRegister.isEmpty()) {
             return status;
         } else {
-            switch (nextReadRegister.remove()) {
+            int readRegister = nextReadRegister.remove();
+            switch (readRegister) {
                 case 0:
                     return status;
                 case 1:
@@ -393,7 +402,8 @@ public class UA858 implements IC {
                 case 6:
                     return (addressPortB >> 8) & (0xFF);
                 default:
-                    throw new IllegalStateException("Unbekanntes Leseregister in UA858");
+                    LOG.log(Level.FINE, "Unbekanntes Leseregister {0} in UA858!", String.format("0x02X", readRegister));
+                    return 0;
             }
         }
     }

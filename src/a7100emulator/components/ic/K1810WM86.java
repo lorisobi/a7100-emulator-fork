@@ -4393,7 +4393,7 @@ public final class K1810WM86 implements CPU {
                 }
                 LOG.log(Level.SEVERE, "Befehl WAIT an Adresse {0} noch nicht implementiert!", String.format("%04X:%04X", cs, ip - 1));
                 try {
-                mms16.dumpSystemMemory("./debug/dump_wait.hex");
+                    mms16.dumpSystemMemory("./debug/dump_wait.hex");
                 } catch (IOException ex) {
                     Logger.getLogger(K1810WM86.class.getName()).log(Level.SEVERE, null, ex);
                 }
@@ -4408,7 +4408,7 @@ public final class K1810WM86 implements CPU {
                 }
                 LOG.log(Level.SEVERE, "Befehl LOCK an Adresse {0} noch nicht implementiert!", String.format("%04X:%04X", cs, ip - 1));
                 try {
-                mms16.dumpSystemMemory("./debug/dump_lock.hex");
+                    mms16.dumpSystemMemory("./debug/dump_lock.hex");
                 } catch (IOException ex) {
                     Logger.getLogger(K1810WM86.class.getName()).log(Level.SEVERE, null, ex);
                 }
@@ -4616,9 +4616,9 @@ public final class K1810WM86 implements CPU {
                     break;
                     default: {
                         LOG.log(Level.FINE, "Nicht implementierter oder ungültiger OPCode 0x80,{0} an Adresse {1}!", new String[]{String.format("0x%02X", opcode2), String.format("%04X:%04X", cs, ip - 1)});
-                }
+                    }
                     break;
-            }
+                }
             }
             break;
             case 0x81: {
@@ -4729,9 +4729,9 @@ public final class K1810WM86 implements CPU {
                     break;
                     default: {
                         LOG.log(Level.FINE, "Nicht implementierter oder ungültiger OPCode 0x81,{0} an Adresse {1}!", new String[]{String.format("0x%02X", opcode2), String.format("%04X:%04X", cs, ip - 1)});
-                }
+                    }
                     break;
-            }
+                }
             }
             break;
             case 0x82: {
@@ -4803,9 +4803,9 @@ public final class K1810WM86 implements CPU {
                     break;
                     default: {
                         LOG.log(Level.FINE, "Nicht implementierter oder ungültiger OPCode 0x82,{0} an Adresse {1}!", new String[]{String.format("0x%02X", opcode2), String.format("%04X:%04X", cs, ip - 1)});
-                }
+                    }
                     break;
-            }
+                }
             }
             break;
             case 0x83: {
@@ -4877,9 +4877,9 @@ public final class K1810WM86 implements CPU {
                     break;
                     default: {
                         LOG.log(Level.FINE, "Nicht implementierter oder ungültiger OPCode 0x83,{0} an Adresse {1}!", new String[]{String.format("0x%02X", opcode2), String.format("%04X:%04X", cs, ip - 1)});
-                }
+                    }
                     break;
-            }
+                }
             }
             break;
             case 0x8C: {
@@ -4923,9 +4923,9 @@ public final class K1810WM86 implements CPU {
                     break;
                     default: {
                         LOG.log(Level.FINE, "Nicht implementierter oder ungültiger OPCode 0x8C,{0} an Adresse {1}!", new String[]{String.format("0x%02X", opcode2), String.format("%04X:%04X", cs, ip - 1)});
-                }
+                    }
                     break;
-            }
+                }
             }
             break;
             case 0x8E: {
@@ -4969,9 +4969,9 @@ public final class K1810WM86 implements CPU {
                     break;
                     default: {
                         LOG.log(Level.FINE, "Nicht implementierter oder ungültiger OPCode 0x8E,{0} an Adresse {1}!", new String[]{String.format("0x%02X", opcode2), String.format("%04X:%04X", cs, ip - 1)});
-                }
+                    }
                     break;
-            }
+                }
             }
             break;
             case 0x8F: {
@@ -4990,9 +4990,9 @@ public final class K1810WM86 implements CPU {
                     break;
                     default: {
                         LOG.log(Level.FINE, "Nicht implementierter oder ungültiger OPCode 0x8F,{0} an Adresse {1}!", new String[]{String.format("0x%02X", opcode2), String.format("%04X:%04X", cs, ip - 1)});
-                }
+                    }
                     break;
-            }
+                }
             }
             break;
             case 0xC6: {
@@ -5011,9 +5011,9 @@ public final class K1810WM86 implements CPU {
                     break;
                     default: {
                         LOG.log(Level.FINE, "Nicht implementierter oder ungültiger OPCode 0xC6,{0} an Adresse {1}!", new String[]{String.format("0x%02X", opcode2), String.format("%04X:%04X", cs, ip - 1)});
-                }
+                    }
                     break;
-            }
+                }
             }
             break;
             case 0xC7: {
@@ -5032,9 +5032,9 @@ public final class K1810WM86 implements CPU {
                     break;
                     default: {
                         LOG.log(Level.FINE, "Nicht implementierter oder ungültiger OPCode 0xC7,{0} an Adresse {1}!", new String[]{String.format("0x%02X", opcode2), String.format("%04X:%04X", cs, ip - 1)});
-                }
+                    }
                     break;
-            }
+                }
             }
             break;
             case 0xD0: {
@@ -5205,9 +5205,9 @@ public final class K1810WM86 implements CPU {
                     break;
                     default: {
                         LOG.log(Level.FINE, "Nicht implementierter oder ungültiger OPCode 0xD0,{0} an Adresse {1}!", new String[]{String.format("0x%02X", opcode2), String.format("%04X:%04X", cs, ip - 1)});
-                }
+                    }
                     break;
-            }
+                }
             }
             break;
             case 0xD1: {
@@ -5378,9 +5378,9 @@ public final class K1810WM86 implements CPU {
                     break;
                     default: {
                         LOG.log(Level.FINE, "Nicht implementierter oder ungültiger OPCode 0xD1,{0} an Adresse {1}!", new String[]{String.format("0x%02X", opcode2), String.format("%04X:%04X", cs, ip - 1)});
-                }
+                    }
                     break;
-            }
+                }
             }
             break;
             case 0xD2: {
@@ -5546,9 +5546,9 @@ public final class K1810WM86 implements CPU {
                     break;
                     default: {
                         LOG.log(Level.FINE, "Nicht implementierter oder ungültiger OPCode 0xD2,{0} an Adresse {1}!", new String[]{String.format("0x%02X", opcode2), String.format("%04X:%04X", cs, ip - 1)});
-                }
+                    }
                     break;
-            }
+                }
             }
             break;
             case 0xD3: {
@@ -5714,9 +5714,9 @@ public final class K1810WM86 implements CPU {
                     break;
                     default: {
                         LOG.log(Level.FINE, "Nicht implementierter oder ungültiger OPCode 0xD3,{0} an Adresse {1}!", new String[]{String.format("0x%02X", opcode2), String.format("%04X:%04X", cs, ip - 1)});
-                }
+                    }
                     break;
-            }
+                }
             }
             break;
             case 0xF6: {
@@ -5843,9 +5843,9 @@ public final class K1810WM86 implements CPU {
                     break;
                     default: {
                         LOG.log(Level.FINE, "Nicht implementierter oder ungültiger OPCode 0xF6,{0} an Adresse {1}!", new String[]{String.format("0x%02X", opcode2), String.format("%04X:%04X", cs, ip - 1)});
-                }
+                    }
                     break;
-            }
+                }
             }
             break;
             case 0xF7: {
@@ -5973,9 +5973,9 @@ public final class K1810WM86 implements CPU {
                     break;
                     default: {
                         LOG.log(Level.FINE, "Nicht implementierter oder ungültiger OPCode 0xF7,{0} an Adresse {1}!", new String[]{String.format("0x%02X", opcode2), String.format("%04X:%04X", cs, ip - 1)});
-                }
+                    }
                     break;
-            }
+                }
             }
             break;
             case 0xFE: {
@@ -6005,9 +6005,9 @@ public final class K1810WM86 implements CPU {
                     break;
                     default: {
                         LOG.log(Level.FINE, "Nicht implementierter oder ungültiger OPCode 0xFE,{0} an Adresse {1}!", new String[]{String.format("0x%02X", opcode2), String.format("%04X:%04X", cs, ip - 1)});
-                }
+                    }
                     break;
-            }
+                }
             }
             break;
             case 0xFF: {
@@ -6099,18 +6099,18 @@ public final class K1810WM86 implements CPU {
                     break;
                     default: {
                         LOG.log(Level.FINE, "Nicht implementierter oder ungültiger OPCode 0xFF,{0} an Adresse {1}!", new String[]{String.format("0x%02X", opcode2), String.format("%04X:%04X", cs, ip - 1)});
-                }
+                    }
                     break;
-            }
+                }
             }
             break;
             default:
                 // TODO: Ungültige opcodes ignorieren
                 LOG.log(Level.SEVERE, "Nicht implementierter oder ungültiger OPCode {0} an Adresse {1}!", new String[]{String.format("0x%02X", opcode1), String.format("%04X:%04X", cs, ip - 1)});
                 try {
-                mms16.dumpSystemMemory("./debug/dump_unknown_opcode.hex");
+                    mms16.dumpSystemMemory("./debug/dump_unknown_opcode.hex");
                     if (debug) {
-                decoder.save();
+                        decoder.save();
                     }
                 } catch (IOException ex) {
                     LOG.log(Level.WARNING, null, ex);
@@ -7468,7 +7468,7 @@ public final class K1810WM86 implements CPU {
     @Override
     public void executeCycles(int ticks) {
         this.tickBuffer += ticks;
-        
+
         // Mindestens 5 Takte sind für den kürzesten Befehl nötig
         while (tickBuffer >= 5) {
             executeCPUCycle();
@@ -7574,5 +7574,5 @@ public final class K1810WM86 implements CPU {
     @Override
     public Decoder getDecoder() {
         return decoder;
-}
+    }
 }

@@ -52,6 +52,8 @@
  *   29.07.2016 - Abfangen und Anzeigen von Fehlern bei Laden/Speichern
  *   09.08.2016 - Logger hinzugefügt und Ausgaben umgeleitet
  *   13.10.2016 - Diskettennamen werden aus Images geladen
+ *   14.10.2016 - Fehler beim Speichern von KES Speicher abgefangen
+ *              - Decodermenüpunkte für KES ergänzt
  */
 package a7100emulator;
 
@@ -276,23 +278,17 @@ public class MainView extends JFrame {
      */
     private final JCheckBoxMenuItem menuDebugKGSDebuggerSwitch = new JCheckBoxMenuItem("Debugger");
     /**
-     * Menüeintrag ZVE-Decoder anzeigen
+     * Menüeintrag KES-Decoder anzeigen
      */
     private final JMenuItem menuDebugKGSDecoderShow = new JMenuItem("Zeige Decoder");
     /**
-     * Menüeintrag ZVE-Decoderinformationen speichern
+     * Menüeintrag KES-Decoderinformationen speichern
      */
     private final JMenuItem menuDebugKGSDecoderDump = new JMenuItem("Dump Decoder");
     /**
      * Menüeintrag Zeichensatz anzeigen
      */
     private final JMenuItem menuDebugKGSCharacters = new JMenuItem("KGS Zeichensatz");
-    /**
-     * Menüeintrag Debugger aktivieren
-     * <p>
-     * TODO: Weitere KES Debug Funktionen
-     */
-    private final JCheckBoxMenuItem menuDebugKESDebuggerSwitch = new JCheckBoxMenuItem("Debugger");
     /**
      * Menüeintrag Zeige KGS Speicher
      */
@@ -301,7 +297,18 @@ public class MainView extends JFrame {
      * Menüeintrag KES Speicher in Datei schreiben
      */
     private final JMenuItem menuDebugKESMemoryDump = new JMenuItem("Dump KES Speicher");
-
+    /**
+     * Menüeintrag Debugger aktivieren
+     */
+    private final JCheckBoxMenuItem menuDebugKESDebuggerSwitch = new JCheckBoxMenuItem("Debugger");
+    /**
+     * Menüeintrag KES-Decoder anzeigen
+     */
+    private final JMenuItem menuDebugKESDecoderShow = new JMenuItem("Zeige Decoder");
+    /**
+     * Menüeintrag KES-Decoderinformationen speichern
+     */
+    private final JMenuItem menuDebugKESDecoderDump = new JMenuItem("Dump Decoder");
     /**
      * Menüeintrag ABG Zeige Alphanumerik
      */
@@ -487,6 +494,8 @@ public class MainView extends JFrame {
         menuDebugKES.add(menuDebugKESDebuggerSwitch);
         menuDebugKES.add(menuDebugKESMemoryShow);
         menuDebugKES.add(menuDebugKESMemoryDump);
+        menuDebugKES.add(menuDebugKESDecoderShow);
+        menuDebugKES.add(menuDebugKESDecoderDump);
         menuDebug.add(menuDebugABG);
         menuDebugABG.add(menuDebugABGAlphanumerics);
         menuDebugABG.add(menuDebugABGGraphics);
@@ -518,6 +527,8 @@ public class MainView extends JFrame {
         menuDebugKESDebuggerSwitch.addActionListener(controller);
         menuDebugKESMemoryShow.addActionListener(controller);
         menuDebugKESMemoryDump.addActionListener(controller);
+        menuDebugKESDecoderShow.addActionListener(controller);
+        menuDebugKESDecoderDump.addActionListener(controller);
         menuDebugABGAlphanumerics.addActionListener(controller);
         menuDebugABGGraphics.addActionListener(controller);
         menuDebugABGAlphanumericsPage1.addActionListener(controller);
@@ -703,7 +714,22 @@ public class MainView extends JFrame {
             } else if (e.getSource() == menuDebugKESMemoryShow) {
                 a7100.getKES().showMemory();
             } else if (e.getSource() == menuDebugKESMemoryDump) {
-                a7100.getKES().dumpLocalMemory("./debug/kes_user_dump.hex");
+                try {
+                    a7100.getKES().dumpLocalMemory("./debug/kes_user_dump.hex");
+                } catch (IOException ex) {
+                    LOG.log(Level.WARNING, "Fehler beim Speichern des Speicherabbilds in die Datei ./debug/kes_user_dump.hex!", ex);
+                    JOptionPane.showMessageDialog(null, "Fehler beim Speichern der Datei ./debug/kes_user_dump.hex!", "Speicherfehler", JOptionPane.ERROR_MESSAGE);
+                }
+            } else if (e.getSource() == menuDebugKESDecoderShow) {
+                a7100.getKES().getDecoder().show();
+            } else if (e.getSource() == menuDebugKESDecoderDump) {
+                try {
+                    a7100.getKES().getDecoder().save();
+                } catch (FileNotFoundException ex) {
+                    LOG.log(Level.WARNING, "Fehler beim Speichern der KES-Decoderinformationen!", ex);
+                    JOptionPane.showMessageDialog(null, "Fehler beim Speichern der KES-Decoderinformationen!", "Speicherfehler", JOptionPane.ERROR_MESSAGE);
+                }
+
             } else if (e.getSource() == menuDebugZVEDecoderDump) {
                 try {
                     a7100.getZVE().getDecoder().save();
@@ -910,10 +936,9 @@ public class MainView extends JFrame {
 
                 JOptionPane.showMessageDialog(MainView.this, pan_about, "Über", JOptionPane.PLAIN_MESSAGE);
             }
-            
+
             // Anzeigen aktualisieren
             updateStatus();
         }
     }
 }
-

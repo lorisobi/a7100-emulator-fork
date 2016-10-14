@@ -31,6 +31,7 @@
  *   24.07.2016 - Anzeige von Disketteninhalten im MemoryAnalyzer
  *   09.08.2016 - Logger hinzugefügt
  *   13.10.2016 - Prüfen auf Fehler beim Laden der AFS Eproms 
+ *   14.10.2016 - Ausgaben in Logger umgeleitet
  */
 package a7100emulator.components.modules;
 
@@ -265,7 +266,8 @@ public final class AFS implements Module {
             case LOCAL_PORT_CPT3_1:
             case LOCAL_PORT_CPT3_2:
             case LOCAL_PORT_CPT3_3:
-                throw new IllegalArgumentException("Schreiben von CPT3 Port nicht erlaubt");
+                LOG.log(Level.FINER, "Schreiben CPT3 (Port {0}) nicht erlaubt!", String.format("0x%02X", port));
+                break;
             case LOCAL_PORT_CPT1_0:
             case LOCAL_PORT_CPT1_1:
             case LOCAL_PORT_CPT1_2:
@@ -297,6 +299,9 @@ public final class AFS implements Module {
                 }
                 break;
             }
+            default:
+                LOG.log(Level.FINE, "Schreiben auf nicht definiertem Port {0}!", String.format("0x%02X", port));
+                break;
         }
     }
 
@@ -349,12 +354,17 @@ public final class AFS implements Module {
             case LOCAL_PORT_CPT1_1:
             case LOCAL_PORT_CPT1_2:
             case LOCAL_PORT_CPT1_3:
-                throw new IllegalArgumentException("Lesen von CPT1 Port nicht erlaubt");
+                LOG.log(Level.FINER, "Lesen CPT1 (Port {0}) nicht erlaubt!", String.format("0x%02X", port));
+                break;
             case LOCAL_PORT_CPT2_0:
             case LOCAL_PORT_CPT2_1:
             case LOCAL_PORT_CPT2_2:
             case LOCAL_PORT_CPT2_3:
-                throw new IllegalArgumentException("Lesen von CPT2 Port nicht erlaubt");
+                LOG.log(Level.FINER, "Lesen CPT2 (Port {0}) nicht erlaubt!", String.format("0x%02X", port));
+                break;
+            default:
+                LOG.log(Level.FINE, "Lesen von nicht definiertem Port {0}!", String.format("0x%02X", port));
+                break;
         }
         return 0;
     }

@@ -20,13 +20,17 @@
  * Letzte Änderungen:
  *   01.04.2014 - Kommentare vervollständigt
  *   18.11.2014 - Interface Modul hinzugefügt
+ *   05.12.2015 - Methoden für lesen Eproms hinzugefügt
  *   09.08.2016 - Logger hinzugefügt
+ *   14.10.2016 - Eproms Lesen entfernt
+ *              - Ausgaben für Logger umgeleitet
  */
 package a7100emulator.components.modules;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
@@ -44,27 +48,36 @@ public class AFP implements Module {
      */
     private static final Logger LOG = Logger.getLogger(AFP.class.getName());
 
+    /**
+     * Initialisiert die AFP
+     */
     @Override
     public void init() {
+        LOG.log(Level.SEVERE, "Methode init() in Klasse AFP noch nicht implementiert!");
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
-    
+
+    /**
+     * Speichert den Zusand der AFP in einer Datei.
+     *
+     * @param dos Stream zur Datei
+     * @throws IOException Wenn Schreiben nicht erfolgreich war
+     */
     @Override
     public void saveState(DataOutputStream dos) throws IOException {
+        LOG.log(Level.SEVERE, "Methode saveState() in Klasse AFP noch nicht implementiert!");
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
+    /**
+     * Lädt den Zustand der AFP aus einer Datei.
+     *
+     * @param dis Stream zur Datei
+     * @throws IOException Wenn Laden nicht erfolgreich war
+     */
     @Override
     public void loadState(DataInputStream dis) throws IOException {
+        LOG.log(Level.SEVERE, "Methode loadState() in Klasse AFP noch nicht implementiert!");
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
-
-    int readByte(int address) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-
-    int readWord(int address) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-
 }
