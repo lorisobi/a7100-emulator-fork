@@ -22,11 +22,12 @@
  *   06.03.2016 - Lesen Register und Zähler ergänzt
  *   14.03.2016 - Implementierung der Übertragung
  *   25.03.2016 - Speichern und Lesen des Zustands implementiert
+ *   14.10.2016 - Logger Hinzugefügt und Ausgaben umgeleitet
+ *              - Variable Zyklenzeiten implementiert
  */
 package a7100emulator.components.ic;
 
 import a7100emulator.Tools.BitTest;
-import a7100emulator.components.modules.AFS;
 import a7100emulator.components.modules.SubsystemModule;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -350,7 +351,6 @@ public class UA858 implements IC {
                     break;
                 case 15:
                     System.out.print(String.format("INT CTRL: %02X ", data));
-                    System.out.print(((data & 0x03) == 0x00) ? "CLEN=4 - " : (((data & 0x03) == 0x01) ? "CLEN=3 - " : "CLEN=2 - "));
                     System.out.print(BitTest.getBit(data, 0) ? "INT ON MATCH - " : "NO INT ON MATCH - ");
                     System.out.print(BitTest.getBit(data, 1) ? "INT ON EOB - " : "NO INT ON EOB - ");
                     System.out.print(BitTest.getBit(data, 2) ? "PULSE - " : "NO PULSE - ");
@@ -420,9 +420,11 @@ public class UA858 implements IC {
             // TODO: Maschinentakte, Takte
             //buffer += cycles * 1000;
             buffer += cycles;
-            do {
-                startOperation();
-            } while (buffer > 0 && enableDMA);
+            if (buffer > 0) {
+                do {
+                    startOperation();
+                } while (buffer > 0 && enableDMA);
+            }
         }
     }
 
@@ -466,7 +468,7 @@ public class UA858 implements IC {
                     case 0x20:
                         // Continous Mode
                         // TODO: Prüfe Ready
-                        System.out.println("Mode: Continous");
+                        //                      System.out.println("Mode: Continous");
                         break;
                     case 0x40:
                         // Burst
@@ -514,48 +516,48 @@ public class UA858 implements IC {
             if (BitTest.getBit(writeRegister[5], 3)) {
                 // PortA ist I/O
                 source = module.readLocalPort(addressPortA);
-                System.out.println(String.format("Lese Port A I/O %04X", addressPortA));
-                buffer -= 4;
+//                System.out.println(String.format("Lese Port A I/O %04X", addressPortA));
+                buffer -= getCyclesPortA(false);
             } else {
                 // PortA ist Speicher
                 source = module.readLocalByte(addressPortA);
-                System.out.println(String.format("Lese Port A Speicher %04X", addressPortA));
-                buffer -= 3;
+//                System.out.println(String.format("Lese Port A Speicher %04X", addressPortA));
+                buffer -= getCyclesPortA(true);
             }
             if (BitTest.getBit(writeRegister[7], 3)) {
                 // PortB ist I/O
                 module.writeLocalPort(addressPortB, source);
-                System.out.println(String.format("Schreibe Port B I/O %04X", addressPortB));
-                buffer -= 4;
+//                System.out.println(String.format("Schreibe Port B I/O %04X", addressPortB));
+                buffer -= getCyclesPortB(false);
             } else {
                 // PortB ist Speicher
                 module.writeLocalByte(addressPortB, source);
-                System.out.println(String.format("Schreibe Port B Speicher %04X", addressPortB));
-                buffer -= 3;
+//                System.out.println(String.format("Schreibe Port B Speicher %04X", addressPortB));
+                buffer -= getCyclesPortB(true);
             }
         } else {
             // PortB->PortA
             if (BitTest.getBit(writeRegister[7], 3)) {
                 // PortB ist I/O
                 source = module.readLocalPort(addressPortB);
-                System.out.println(String.format("Lese Port B I/O %04X", addressPortB));
-                buffer -= 4;
+//                System.out.println(String.format("Lese Port B I/O %04X", addressPortB));
+                buffer -= getCyclesPortB(false);
             } else {
                 // PortB ist Speicher
                 source = module.readLocalByte(addressPortB);
-                System.out.println(String.format("Lese Port B Speicher %04X", addressPortB));
-                buffer -= 3;
+//                System.out.println(String.format("Lese Port B Speicher %04X", addressPortB));
+                buffer -= getCyclesPortB(true);
             }
             if (BitTest.getBit(writeRegister[5], 3)) {
                 // PortA ist I/O
                 module.writeLocalPort(addressPortA, source);
-                System.out.println(String.format("Schreibe Port A I/O %04X", addressPortA));
-                buffer -= 4;
+//                System.out.println(String.format("Schreibe Port A I/O %04X", addressPortA));
+                buffer -= getCyclesPortA(false);
             } else {
                 // PortA ist Speicher
                 module.writeLocalByte(addressPortA, source);
-                System.out.println(String.format("Schreibe Port A Speicher %04X", addressPortA));
-                buffer -= 3;
+//                System.out.println(String.format("Schreibe Port A Speicher %04X", addressPortA));
+                buffer -= getCyclesPortA(true);
             }
         }
         if (BitTest.getBit(writeRegister[0], 1)) {
@@ -593,6 +595,54 @@ public class UA858 implements IC {
      */
     public void setBAI(boolean bai) {
         this.bai = bai;
+    }
+
+    /**
+     * Gibt die Anzahl der Takte für Port A zurück
+     *
+     * @param mem <code>true</code> wenn Speicherzugriff erfolgt,
+     * <code>false</code> für I/O Zugriffe
+     */
+    private int getCyclesPortA(boolean mem) {
+        if (BitTest.getBit(writeRegister[5], 6)) {
+            switch (writeRegister[6] & 0x03) {
+                case 0x00:
+                    return 4;
+                case 0x01:
+                    return 3;
+                case 0x02:
+                    return 2;
+                default:
+                    LOG.log(Level.FINE, "Unbekanntes Timing {0} in Port A!", String.format("0x%02X", writeRegister[6] & 0x03));
+                    break;
+            }
+        }
+        // Standardtiming
+        return (mem) ? 3 : 4;
+    }
+    
+        /**
+     * Gibt die Anzahl der Takte für Port A zurück
+     *
+     * @param mem <code>true</code> wenn Speicherzugriff erfolgt,
+     * <code>false</code> für I/O Zugriffe
+     */
+    private int getCyclesPortB(boolean mem) {
+        if (BitTest.getBit(writeRegister[7], 6)) {
+            switch (writeRegister[8] & 0x03) {
+                case 0x00:
+                    return 4;
+                case 0x01:
+                    return 3;
+                case 0x02:
+                    return 2;
+                default:
+                    LOG.log(Level.FINE, "Unbekanntes Timing {0} in Port B!", String.format("0x%02X", writeRegister[8] & 0x03));
+                    break;
+            }
+        }
+        // Standardtiming
+        return (mem) ? 3 : 4;
     }
 
     /**

@@ -59,6 +59,7 @@
  *   28.07.2016 - Kommentare erweitert
  *              - Decoder ergänzt
  *   08.08.2016 - Logger hinzugefügt und Ausgaben umgeleitet
+ *   14.10.2016 - Fehler Debugausgabe Behoben
  */
 package a7100emulator.components.ic;
 
@@ -2124,7 +2125,7 @@ public class UA880 implements CPU {
             this.debugger.setDebug(true);
             debug = true;
         }
-
+        
 //        if (pc == 0x6E && (module instanceof KES)) {
 //            System.out.println("Prüfe auf laufenden NMI:" + !getFlag(ZERO_FLAG));
 //        }
@@ -2140,13 +2141,7 @@ public class UA880 implements CPU {
 //        if (pc == 0x0316) {
 //            System.out.println("Ende DMA Copy 1");
 //        }
-        // HACK - HACK - HACK - HACK
-        // TODO: So bald als möglich entfernen
-        // Diese Anweisung täuscht dem ACT einen erfolgreichen DMA Test vor!
-//        if ((pc == 0x037B) && module instanceof KES) {
-//            a = 0;
-//            System.out.println("HACK: Erfolgreicher DMA Test!");
-//        }
+
         int opcode = module.readLocalByte(pc++);
         if (debug) {
             debugInfo.setIp(pc - 1);
@@ -4130,7 +4125,7 @@ public class UA880 implements CPU {
                         module.writeLocalByte(getRegisterPairISP(REGP_IX_IY, useIY) + offset, getRegister(opcode2 & 0x07));
                         updateTicks(19);
                         if (debug) {
-                            debugInfo.setCode("LD " + ",(" + ((useIY) ? "IY" : "IX") + "+" + String.format("%02Xh", offset) + ")," + getRegisterString(opcode2 & 0x07));
+                            debugInfo.setCode("LD " + "(" + ((useIY) ? "IY" : "IX") + "+" + String.format("%02Xh", offset) + ")," + getRegisterString(opcode2 & 0x07));
                             debugInfo.setOperands(String.format("%02Xh", getRegister(opcode2 & 0x07)));
                         }
                     }

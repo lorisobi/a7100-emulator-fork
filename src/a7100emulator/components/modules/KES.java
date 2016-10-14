@@ -46,6 +46,7 @@
  *   13.10.2016 - Prüfen auf Fehler beim Laden der KES Eproms 
  *   14.10.2016 - Ausgaben auf Logger umgeleitet
  *              - getDecoder ergänzt
+ *              - Komponenten führen einzelne Taktzyklen durch
  */
 package a7100emulator.components.modules;
 
@@ -381,17 +382,20 @@ public final class KES implements IOModule, ClockModule, SubsystemModule {
     public void clockUpdate(int micros) {
         int cycles = cpuClock.getCycles(micros);
 
-        // Prüfe ob NMI erlaubt und Anfrage besteht
-        if (nmiRequest && !BitTest.getBit(dnmi_map, 7)) {
-            nmiRequest = false;
-            cpu.requestNMI();
+        // Für CTC/CPU Zusammenspiel werden Zyklen weiter aufgeteilt
+        // TODO: ggf. überarbeiten
+        for (int i = 0; i < cycles; i++) {
+            // Prüfe ob NMI erlaubt und Anfrage besteht
+            if (nmiRequest && !BitTest.getBit(dnmi_map, 7)) {
+                nmiRequest = false;
+                cpu.requestNMI();
+            }
+            cpu.executeCycles(1);
+
+            ctc.updateClock(1);
+            dma.updateClock(1);
+            afs.updateClock(1);
         }
-        cpu.executeCycles(cycles);
-
-        ctc.updateClock(cycles);
-        dma.updateClock(cycles);
-        afs.updateClock(cycles);
-
     }
 
     /**
@@ -415,8 +419,8 @@ public final class KES implements IOModule, ClockModule, SubsystemModule {
             case LOCAL_PORT_CTC_CHANNEL_2:
                 return ctc.readChannel(2);
             case LOCAL_PORT_CTC_CHANNEL_3:
-                int result = ctc.readChannel(3);
-                System.out.println("Lese von Zähler 3:" + result);
+//                int result = ctc.readChannel(3);
+//                System.out.println("Lese von Zähler 3:" + result);
                 return ctc.readChannel(3);
             case LOCAL_PORT_RESETCA1_0:
             case LOCAL_PORT_RESETCA1_1:
@@ -584,6 +588,7 @@ public final class KES implements IOModule, ClockModule, SubsystemModule {
             return afs.readByte(address);
         } else if (address < 0x6000) {
             // TODO Eproms 3 und 4 implementieren
+            
             return 0;
         } else if (address < 0xC000) {
             LOG.log(Level.FINER, "Lesen aus nicht genutzem KES Adressraum (Adresse {0})!", String.format("0x%04X", address));
@@ -674,10 +679,6 @@ public final class KES implements IOModule, ClockModule, SubsystemModule {
      */
     @Override
     public void localClockUpdate(int cycles) {
-//        ctc.updateClock(cycles);
-//        dma.updateClock(cycles);
-//        afs.updateClock(cycles);
-        //afp.clockUpdate(cycles);
     }
 
     /**
@@ -800,7 +801,7 @@ public final class KES implements IOModule, ClockModule, SubsystemModule {
         dnmi_map = dis.readInt();
         nmiRequest = dis.readBoolean();
     }
-    
+
     /**
      * Gibt die Instanz des CPU Decoders zurück.
      *
