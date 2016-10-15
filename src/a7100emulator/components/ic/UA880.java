@@ -2122,8 +2122,8 @@ public class UA880 implements CPU {
 
         if (pc == 0x4414 && (module instanceof KES)) {
             System.out.println("Starte Debugger an Adresse 0x4414");
-            this.debugger.setDebug(true);
-            debug = true;
+//            this.debugger.setDebug(true);
+//            debug = true;
         }
         
 //        if (pc == 0x6E && (module instanceof KES)) {

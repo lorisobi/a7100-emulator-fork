@@ -395,6 +395,11 @@ public final class KES implements IOModule, ClockModule, SubsystemModule {
             ctc.updateClock(1);
             dma.updateClock(1);
             afs.updateClock(1);
+            
+            // Abfrage CTC Verbidnung zwischen ZC0 und CLK/TRG 1
+            if (ctc.isZeroCount(0)) {
+                ctc.triggerInput(1);
+            }
         }
     }
 

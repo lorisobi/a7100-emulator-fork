@@ -32,6 +32,7 @@
  *   02.02.2016 - Override Annotation hinzugefügt
  *   26.07.2016 - Klasse Counter private gesetzt
  *   09.08.2016 - Logger hinzugefügt
+ *   15.10.2016 - Counter Modus über CLK/TRG Eingang implementiert
  */
 package a7100emulator.components.ic;
 
@@ -106,6 +107,17 @@ public class UA857 implements IC {
     }
 
     /**
+     * Gibt den Zustand des ZeroCount Ausgangs zurück.
+     *
+     * @param channel
+     * @return <code>true</code> wenn ZeroCount gesetzt ist, <code>false</code>
+     * sonst.
+     */
+    public boolean isZeroCount(int channel) {
+        return counter[channel].zeroCount;
+    }
+
+    /**
      * Aktualisiert die Zähler basierend auf den Änderungen des Taktes.
      *
      * @param amount Anzahl der Taktzyklen
@@ -114,6 +126,17 @@ public class UA857 implements IC {
         for (Counter cnt : counter) {
             cnt.updateClock(amount);
         }
+    }
+
+    /**
+     * Aktualisiert die Zähler basierend auf dem CLK/TRG Eingang. Dabei wird
+     * eine Flanke am Eingang angenommen und der entsprechende Zähler im COUNTER
+     * Modus um 1 dekrementiert.
+     *
+     * @param channel Kanalnummer
+     */
+    public void triggerInput(int channel) {
+        counter[channel].triggerInput();
     }
 
     /**
@@ -182,6 +205,10 @@ public class UA857 implements IC {
          * Gibt an, ob ein Interrupt des Zählers aussteht
          */
         private boolean interruptPending = false;
+        /**
+         * Gibt an, ob der Zähler im letzten Durchlauf 0 erreicht hat
+         */
+        private boolean zeroCount = false;
 
         /**
          * Erzeugt einen neuen Counter
@@ -242,27 +269,56 @@ public class UA857 implements IC {
          * @param amount Anzahl der Ticks
          */
         private void updateClock(int amount) {
+// TODO: Alte Fragmente entfernen
             if (running) {
-                buffer += amount;
+//                buffer += amount;
 
                 if (BitTest.getBit(controlWord, 6)) {
                     // COUNTER
-                    value -= amount;
-                    buffer -= amount;
+//                    value -= amount;
+//                    buffer -= amount;
                 } else {
+                    buffer+=amount;
                     // TIMER
                     int prescaler = BitTest.getBit(controlWord, 5) ? 8 : 4;
                     value -= buffer >> prescaler;
                     buffer -= (buffer >> prescaler) << prescaler;
                 }
+                checkZeroCount();
+            }
+        }
 
-                if (value <= 0) {
-                    value += timeConstant;
-                    if (BitTest.getBit(controlWord, 7)) {
-                        // Interrupt
-                        module.requestInterrupt((interruptVector & 0xF8) | (id << 1));
-                    }
+        /**
+         * Simuliert eine Flanke am CLK/TRG Eingang und dekrementiert den Zähler
+         * im COUNTER Modus.
+         */
+        private void triggerInput() {
+            if (running) {
+                if (BitTest.getBit(controlWord, 6)) {
+                    
+                    // COUNTER Modus
+                    value--;
+                    checkZeroCount();
                 }
+            }
+        }
+
+        /**
+         * Prüft, ob der Zähler den Wert 0 erreicht hat, setzt Ihn ggf. zurück
+         * und löst einen Interrupt aus.
+         * <p>
+         * TODO: Sofortiges Rücksetzen ohne Puffer nochmal prüfen
+         */
+        private void checkZeroCount() {
+            if (value <= 0) {
+                zeroCount = true;
+                value += timeConstant;
+                if (BitTest.getBit(controlWord, 7)) {
+                    // Interrupt
+                    module.requestInterrupt((interruptVector & 0xF8) | (id << 1));
+                }
+            } else {
+                zeroCount = false;
             }
         }
 
@@ -281,6 +337,7 @@ public class UA857 implements IC {
             dos.writeBoolean(timeConstantFollowing);
             dos.writeBoolean(running);
             dos.writeBoolean(interruptPending);
+            dos.writeBoolean(zeroCount);
         }
 
         /**
@@ -298,6 +355,7 @@ public class UA857 implements IC {
             timeConstantFollowing = dis.readBoolean();
             running = dis.readBoolean();
             interruptPending = dis.readBoolean();
+            zeroCount = dis.readBoolean();
         }
     }
 }

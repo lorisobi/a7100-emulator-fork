@@ -223,6 +223,7 @@ Programme gelistet:
 Dringend:
   - Quellcodes zur Firmware von KES, ZVE und/oder KGS
   - Dokumentation zur KGS-Firmware Version 6 (GRAF6.FRM)
+  - Stromlaufpläne der KGS
 Wäre schön:
   - A7150 Rechner und Geräte Band 2/3
   - Sämtliche nicht getestete Software

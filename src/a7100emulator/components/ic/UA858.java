@@ -540,7 +540,7 @@ public class UA858 implements IC {
             if (BitTest.getBit(writeRegister[7], 3)) {
                 // PortB ist I/O
                 source = module.readLocalPort(addressPortB);
-//                System.out.println(String.format("Lese Port B I/O %04X", addressPortB));
+                System.out.println(String.format("Lese Port B I/O %04X", addressPortB));
                 buffer -= getCyclesPortB(false);
             } else {
                 // PortB ist Speicher
