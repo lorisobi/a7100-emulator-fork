@@ -47,6 +47,7 @@
  *   14.10.2016 - Ausgaben auf Logger umgeleitet
  *              - getDecoder ergänzt
  *              - Komponenten führen einzelne Taktzyklen durch
+ *   15.10.2016 - Verschaltung ZC0 TRG1 für CTC hinzugefügt
  */
 package a7100emulator.components.modules;
 
@@ -395,10 +396,14 @@ public final class KES implements IOModule, ClockModule, SubsystemModule {
             ctc.updateClock(1);
             dma.updateClock(1);
             afs.updateClock(1);
-            
+
             // Abfrage CTC Verbidnung zwischen ZC0 und CLK/TRG 1
             if (ctc.isZeroCount(0)) {
                 ctc.triggerInput(1);
+            }
+            if (cpu.isRetiExceuted()) {
+                System.out.println("-----------RETI-------------");
+                ctc.retiExceuted();
             }
         }
     }
@@ -411,6 +416,10 @@ public final class KES implements IOModule, ClockModule, SubsystemModule {
      */
     @Override
     public int readLocalPort(int port) {
+        // Obere 8 Bit werden abgeschnitten
+        // TODO: Prüfen ob dies zulässig ist
+        port = port & 0xFF;
+
         switch (port) {
             case LOCAL_PORT_DMA_0:
             case LOCAL_PORT_DMA_1:
@@ -593,7 +602,7 @@ public final class KES implements IOModule, ClockModule, SubsystemModule {
             return afs.readByte(address);
         } else if (address < 0x6000) {
             // TODO Eproms 3 und 4 implementieren
-            
+
             return 0;
         } else if (address < 0xC000) {
             LOG.log(Level.FINER, "Lesen aus nicht genutzem KES Adressraum (Adresse {0})!", String.format("0x%04X", address));
@@ -639,15 +648,15 @@ public final class KES implements IOModule, ClockModule, SubsystemModule {
     @Override
     public void writeLocalByte(int address, int data) {
         if (address < 0x2000) {
-            LOG.log(Level.FINER, "Schreiben in KES Eproms (Adresse {0}) nicht erlaubt!", String.format("0x%04X", address));
+            LOG.log(Level.SEVERE, "Schreiben in KES Eproms (Adresse {0}) nicht erlaubt!", String.format("0x%04X", address));
         } else if (address < 0x4000) {
             sram.writeByte(address - 0x2000, data);
         } else if (address < 0x5000) {
-            LOG.log(Level.FINER, "Schreiben in AFS Eproms (Adresse {0}) nicht erlaubt!", String.format("0x%04X", address));
+            LOG.log(Level.SEVERE, "Schreiben in AFS Eproms (Adresse {0}) nicht erlaubt!", String.format("0x%04X", address));
         } else if (address < 0x6000) {
             LOG.log(Level.FINER, "Schreiben in AFP Eproms (Adresse {0}) nicht erlaubt!", String.format("0x%04X", address));
         } else if (address < 0xC000) {
-            LOG.log(Level.FINER, "Schreiben in nichtgenutzten KES Adressraum (Adresse {0}) nicht erlaubt!", String.format("0x%04X", address));
+            LOG.log(Level.SEVERE, "Schreiben in nichtgenutzten KES Adressraum (Adresse {0}) nicht erlaubt!", String.format("0x%04X", address));
         } else {
             mms16.writeMemoryByte(((dnmi_map & 0x3F) << 14) | (address & 0x3FFF), data);
         }
@@ -662,15 +671,15 @@ public final class KES implements IOModule, ClockModule, SubsystemModule {
     @Override
     public void writeLocalWord(int address, int data) {
         if (address < 0x2000) {
-            LOG.log(Level.FINER, "Schreiben in KES Eproms (Adresse {0}) nicht erlaubt!", String.format("0x%04X", address));
+            LOG.log(Level.SEVERE, "Schreiben in KES Eproms (Adresse {0}) nicht erlaubt!", String.format("0x%04X", address));
         } else if (address < 0x4000) {
             sram.writeWord(address - 0x2000, data);
         } else if (address < 0x5000) {
-            LOG.log(Level.FINER, "Schreiben in AFS Eproms (Adresse {0}) nicht erlaubt!", String.format("0x%04X", address));
+            LOG.log(Level.SEVERE, "Schreiben in AFS Eproms (Adresse {0}) nicht erlaubt!", String.format("0x%04X", address));
         } else if (address < 0x6000) {
             LOG.log(Level.FINER, "Schreiben in AFP Eproms (Adresse {0}) nicht erlaubt!", String.format("0x%04X", address));
         } else if (address < 0xC000) {
-            LOG.log(Level.FINER, "Schreiben in nichtgenutzten KES Adressraum (Adresse {0}) nicht erlaubt!", String.format("0x%04X", address));
+            LOG.log(Level.SEVERE, "Schreiben in nichtgenutzten KES Adressraum (Adresse {0}) nicht erlaubt!", String.format("0x%04X", address));
         } else {
             mms16.writeMemoryWord(((dnmi_map & 0x3F) << 14) | (address & 0x3FFF), data);
         }

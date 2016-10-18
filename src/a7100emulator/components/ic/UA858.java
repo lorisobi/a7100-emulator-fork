@@ -417,13 +417,12 @@ public class UA858 implements IC {
         // Prüfe ob DMA aktiv ist
         if (enableDMA) {
             // Addiere Anzahl der Takte
-            // TODO: Maschinentakte, Takte
-            //buffer += cycles * 1000;
+            // TODO: Puffer zurücksetzen wenn rdy nicht gesetzt
             buffer += cycles;
             if (buffer > 0) {
                 do {
                     startOperation();
-                } while (buffer > 0 && enableDMA);
+                } while (buffer > 0 && enableDMA && (rdy ||forceReady));
             }
         }
     }
@@ -432,11 +431,14 @@ public class UA858 implements IC {
      * Führt die DMA-Operationen aus.
      */
     private void startOperation() {
+        // TODO: Abfrage wieder implementieren
         if (rdy || forceReady) {
+        //if (true) {
             // RDY Line aktiv gesetzt
             busRequest = true;
             module.requestBus(true);
             // Übertrage ein Byte
+            System.out.println("Übertrage 1 Byte");
             transferOneByte();
             if (bytecounter > ((writeRegister[4] << 8) | writeRegister[3])) {
                 System.out.println("End of Block");
@@ -444,7 +446,8 @@ public class UA858 implements IC {
                 // Status Bit 5 löschen
                 status &= 0xDF;
                 if (BitTest.getBit(writeRegister[15], 1)) {
-                    module.requestInterrupt(writeRegister[17]);
+                    System.out.println("DMA Interrupt "+writeRegister[17]);
+                    module.requestInterrupt(writeRegister[17]);                    
                 }
                 if (autoRestart) {
                     System.out.println("Auto Repeat");
@@ -463,6 +466,7 @@ public class UA858 implements IC {
                     case 0x00:
                         // Byte
                         busRequest = false;
+                        module.requestBus(false);
                         System.out.println("Mode: Byte");
                         break;
                     case 0x20:

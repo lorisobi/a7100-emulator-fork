@@ -36,6 +36,7 @@
  *   29.07.2016 - IOException beim Speichern des KGS-Rams hinzugefügt
  *   07.08.2016 - Logger hinzugefügt und Ausgaben umgeleitet
  *   09.08.2016 - Fehler beim Laden der EPROMS abgefangen
+ *   16.10.2016 - RETI an CTC weitergeben
  */
 package a7100emulator.components.modules;
 
@@ -588,6 +589,9 @@ public final class KGS implements IOModule, ClockModule, SubsystemModule {
 //        ctc.updateClock(cycles);
         sio.updateClock(cycles);
         abg.updateClock(cycles);
+        if (cpu.isRetiExceuted()) {
+            ctc.retiExceuted();
+        }
     }
 
     /**
@@ -742,7 +746,7 @@ public final class KGS implements IOModule, ClockModule, SubsystemModule {
     public void requestBus(boolean request) {
         cpu.requestBus(request);
     }
-    
+
     /**
      * Gibt die Instanz des CPU Decoders zurück.
      *

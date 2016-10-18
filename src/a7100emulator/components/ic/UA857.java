@@ -33,6 +33,7 @@
  *   26.07.2016 - Klasse Counter private gesetzt
  *   09.08.2016 - Logger hinzugefügt
  *   15.10.2016 - Counter Modus über CLK/TRG Eingang implementiert
+ *   16.10.2016 - InterruptEnable Pins ergänzt
  */
 package a7100emulator.components.ic;
 
@@ -140,6 +141,41 @@ public class UA857 implements IC {
     }
 
     /**
+     * Setzt den InterruptEnableIn (IEI) Eingang des CTC.
+     *
+     * @param iei <code>true</code> Wenn der Eingang gesetzt werden soll,
+     * <code>false</code>sonst
+     */
+    public void setInterruptEnableIn(boolean iei) {
+        counter[0].setInterruptEnableIn(iei);
+    }
+
+    /**
+     * Liefert den InterruptEnableOut (IEO) Ausgang des CTC.
+     *
+     * @return <code>true</code> Wenn der Ausgang gesetzt ist,
+     * <code>false</code>sonst
+     */
+    public boolean getInterruptEnableOut() {
+        // IEO am Ausgang ist gesetzt, wenn IEI am Eingang des letzten Zählers
+        // gesetzt ist und der letzte Zähler gerade keine Interrupt Anfrage laufen hat
+        return counter[3].interruptEnableIn && !counter[3].interruptService;
+    }
+
+    /**
+     * Signalisiert dem CTC das ein Return From Interrupt durch die CPU
+     * ausgeführt wurde.
+     */
+    public void retiExceuted() {
+        for (Counter cnt : counter) {
+            if (cnt.interruptService) {
+                cnt.endService();
+                return;
+            }
+        }
+    }
+
+    /**
      * Speichert den Zustand des CTC in einer Datei.
      *
      * @param dos Stream zur Datei
@@ -202,13 +238,17 @@ public class UA857 implements IC {
          */
         private boolean running = false;
         /**
-         * Gibt an, ob ein Interrupt des Zählers aussteht
+         * Gibt an, ob ein Interrupt des Zählers bearbeitet wird oder aussteht
          */
-        private boolean interruptPending = false;
+        private boolean interruptService = false;
         /**
          * Gibt an, ob der Zähler im letzten Durchlauf 0 erreicht hat
          */
         private boolean zeroCount = false;
+        /**
+         * Zustand der InterruptEnableIn Leitung
+         */
+        private boolean interruptEnableIn = true;
 
         /**
          * Erzeugt einen neuen Counter
@@ -269,22 +309,15 @@ public class UA857 implements IC {
          * @param amount Anzahl der Ticks
          */
         private void updateClock(int amount) {
-// TODO: Alte Fragmente entfernen
             if (running) {
-//                buffer += amount;
-
-                if (BitTest.getBit(controlWord, 6)) {
-                    // COUNTER
-//                    value -= amount;
-//                    buffer -= amount;
-                } else {
-                    buffer+=amount;
+                if (!BitTest.getBit(controlWord, 6)) {
                     // TIMER
+                    buffer += amount;
                     int prescaler = BitTest.getBit(controlWord, 5) ? 8 : 4;
                     value -= buffer >> prescaler;
                     buffer -= (buffer >> prescaler) << prescaler;
+                    checkZeroCount();
                 }
-                checkZeroCount();
             }
         }
 
@@ -295,7 +328,6 @@ public class UA857 implements IC {
         private void triggerInput() {
             if (running) {
                 if (BitTest.getBit(controlWord, 6)) {
-                    
                     // COUNTER Modus
                     value--;
                     checkZeroCount();
@@ -313,13 +345,37 @@ public class UA857 implements IC {
             if (value <= 0) {
                 zeroCount = true;
                 value += timeConstant;
+                // TODO: Abfrage pending ergänzen und mit RETI koppeln
                 if (BitTest.getBit(controlWord, 7)) {
-                    // Interrupt
-                    module.requestInterrupt((interruptVector & 0xF8) | (id << 1));
+                    if (interruptEnableIn && !interruptService) {
+                        // Interrupt
+                        System.out.println("Interrupt Timer " + id + " " + ((interruptVector & 0xF8) | (id << 1)));
+                        module.requestInterrupt((interruptVector & 0xF8) | (id << 1));
+                    }
+                    // Verbiete Interrupts für nachfolgende Zähler
+                    interruptService = true;
+                    updateInterruptPin();
                 }
             } else {
                 zeroCount = false;
             }
+        }
+
+        /**
+         * Setzt den InterruptEnableIn Eingang des Zählers und den aller
+         * nachgeschalteten Zähler.
+         *
+         * @param iei <code>true</code> Wenn der Eingang gesetzt werden soll,
+         * <code>false</code>sonst
+         */
+        private void setInterruptEnableIn(boolean iei) {
+            interruptEnableIn = iei;
+            if (interruptEnableIn && interruptService) {
+                        // Interrupt
+                        System.out.println("Interrupt Timer " + id + " " + ((interruptVector & 0xF8) | (id << 1)));
+                        module.requestInterrupt((interruptVector & 0xF8) | (id << 1));
+                    }
+            updateInterruptPin();
         }
 
         /**
@@ -336,8 +392,9 @@ public class UA857 implements IC {
             dos.writeInt(value);
             dos.writeBoolean(timeConstantFollowing);
             dos.writeBoolean(running);
-            dos.writeBoolean(interruptPending);
+            dos.writeBoolean(interruptService);
             dos.writeBoolean(zeroCount);
+            dos.writeBoolean(interruptEnableIn);
         }
 
         /**
@@ -354,8 +411,29 @@ public class UA857 implements IC {
             value = dis.readInt();
             timeConstantFollowing = dis.readBoolean();
             running = dis.readBoolean();
-            interruptPending = dis.readBoolean();
+            interruptService = dis.readBoolean();
             zeroCount = dis.readBoolean();
+            interruptEnableIn = dis.readBoolean();
+        }
+
+        /**
+         * Signalisiert, dass die Behandlung des Interrupts durch die CPU
+         * abgeschlossen ist.
+         */
+        private void endService() {
+            System.out.println("End Service Timer " + id);
+            interruptService = false;
+            updateInterruptPin();
+        }
+
+        /**
+         * Setzt die Interrupt Enable Pins der nachfolgenden Zähler in
+         * Abhängigkeit des aktuellen Zählerzustands.
+         */
+        private void updateInterruptPin() {
+            if (id < 3) {
+                counter[id + 1].setInterruptEnableIn(!interruptService);
+            }
         }
     }
 }

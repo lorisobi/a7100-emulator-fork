@@ -25,6 +25,7 @@
  *   01.12.2015 - Doppelte Typdefinition in LinkedList entfernt
  *   24.04.2016 - Abfrage von RTS/DTR implementiert
  *   09.08.2016 - Logger hinzugefügt
+ *   16.10.2016 - Registeranzahl auf 8 gesetzt
  */
 package a7100emulator.components.ic;
 
@@ -135,6 +136,17 @@ public class UA856 implements IC {
     }
 
     /**
+     * Gibt an, ob der Wait/Ready Ausgang des angegebenen Kanals gesetzt ist.
+     *
+     * @param channel SIO-Kanal
+     * @return <code>true</code> wenn Wait/Ready gesetzt ist, <code>false</code>
+     * sonst
+     */
+    public boolean isWaitReady(int channel) {
+        return channels[channel].isWaitReady();
+    }
+
+    /**
      * Speichert den Zustand des SIO in einer Datei
      *
      * @param dos Stream zur Datei
@@ -180,6 +192,11 @@ public class UA856 implements IC {
          */
         private final LinkedList<Integer> receiveData = new LinkedList<>();
         /**
+         * Puffer der empfangenen Bytes
+         */
+        private final LinkedList<Integer> transmitData = new LinkedList<>();
+
+        /**
          * Datenbyte Transmit
          */
         private int outputData;
@@ -190,7 +207,7 @@ public class UA856 implements IC {
         /**
          * Registersatz
          */
-        private int[] writeRegister = new int[7];
+        private int[] writeRegister = new int[8];
         /**
          * Zeiger für nächsten Registerzugriff
          */
@@ -207,7 +224,32 @@ public class UA856 implements IC {
             if (registerPointer == 0) {
                 registerPointer = data & 0x07;
             } else {
+                switch (registerPointer) {
+                    case 01:
+                        // WR1
+                        System.out.println("Setze Register WR" + registerPointer + ":" + Integer.toBinaryString(data));
+                        break;
+                    case 02:
+                        // WR2
+                        break;
+                    case 03:
+                        // WR3
+                        break;
+                    case 04:
+                        // WR4
+                        break;
+                    case 05:
+                        // WR5
+                        break;
+                    case 06:
+                        // WR6
+                        break;
+                    case 07:
+                        // WR7
+                        break;
+                }
                 registerPointer = 0;
+
             }
         }
 
@@ -242,6 +284,19 @@ public class UA856 implements IC {
          */
         private void transmitData(int data) {
 
+        }
+
+        /**
+         * Gibt an, ob der Wait/Ready Ausgang des angegebenen Kanals gesetzt
+         * ist.
+         *
+         * @return <code>true</code> wenn Wait/Ready gesetzt ist,
+         * <code>false</code> sonst
+         */
+        private boolean isWaitReady() {
+            // Ready ist gesetzt, wenn WR1 Bit 7 = 1, Bit6 = 1 und Bit 5 = 1 und Receive-Puffer leer oder Bit 5 = 0 und Transmit-Puffer leer
+            int wr1 = writeRegister[1];
+            return BitTest.getBit(writeRegister[1], 7) && BitTest.getBit(writeRegister[1], 6) && ((BitTest.getBit(writeRegister[1], 5) && receiveData.isEmpty()) || (!BitTest.getBit(writeRegister[1], 5) && transmitData.isEmpty()));
         }
 
         /**

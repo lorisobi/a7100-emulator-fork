@@ -60,6 +60,7 @@
  *              - Decoder ergänzt
  *   08.08.2016 - Logger hinzugefügt und Ausgaben umgeleitet
  *   14.10.2016 - Fehler Debugausgabe Behoben
+ *   16.10.2016 - Abfrage nach RETI hinzugefügt
  */
 package a7100emulator.components.ic;
 
@@ -2071,6 +2072,11 @@ public class UA880 implements CPU {
      */
     private boolean eiWaiting = false;
     /**
+     * Gibt an, ob ein RETI durch die CPU ausgeführt wurde, welches von
+     * Peripherie genutzt wird um das Ende der Interruptbehandlung zu erkennen.
+     */
+    private boolean retiExceuted = false;
+    /**
      * Zählt die Takte der aktuellen Befehlsausführung
      */
     private int tickBuffer = 0;
@@ -2125,7 +2131,13 @@ public class UA880 implements CPU {
 //            this.debugger.setDebug(true);
 //            debug = true;
         }
-        
+
+        if (pc == 0x4D9B && (module instanceof KES)) {
+            System.out.println("Starte Debugger an Adresse 0x4D9B");
+            this.debugger.setDebug(true);
+            debug = true;
+        }
+
 //        if (pc == 0x6E && (module instanceof KES)) {
 //            System.out.println("Prüfe auf laufenden NMI:" + !getFlag(ZERO_FLAG));
 //        }
@@ -2141,7 +2153,6 @@ public class UA880 implements CPU {
 //        if (pc == 0x0316) {
 //            System.out.println("Ende DMA Copy 1");
 //        }
-
         int opcode = module.readLocalByte(pc++);
         if (debug) {
             debugInfo.setIp(pc - 1);
@@ -4765,6 +4776,7 @@ public class UA880 implements CPU {
                     case _ED_RETI: {
                         pc = pop();
                         updateTicks(14);
+                        retiExceuted = true;
                         if (debug) {
                             debugInfo.setCode("RETI");
                             debugInfo.setOperands(null);
@@ -4853,6 +4865,14 @@ public class UA880 implements CPU {
                     }
                     break;
                     case _ED_IN_C_F: {
+                        int port = getRegister(REG_C);
+                        f = 0xFF & module.readLocalPort(port);
+                        updateTicks(12);
+                        if (debug) {
+                            debugInfo.setCode("IN F,(C)");
+                            debugInfo.setOperands(String.format("%02Xh", port));
+                        }
+
                         LOG.log(Level.FINE, "Unoffizieller Opcode IN F,(C) an Adresse {0} noch nicht implementiert!", String.format("%04X", pc - 1));
                     }
                     break;
@@ -6112,6 +6132,7 @@ public class UA880 implements CPU {
             dos.writeInt(irw);
         }
         dos.writeDouble(ticks);
+        dos.writeBoolean(retiExceuted);
     }
 
     /**
@@ -6156,6 +6177,7 @@ public class UA880 implements CPU {
             interruptsWaiting.add(dis.readInt());
         }
         ticks = dis.readDouble();
+        retiExceuted = dis.readBoolean();
     }
 
     /**
@@ -6186,5 +6208,19 @@ public class UA880 implements CPU {
     @Override
     public Decoder getDecoder() {
         return decoder;
+    }
+
+    /**
+     * Gibt an, ob die CPU ein RETI Return From Interrupt ausgeführt hat.
+     *
+     * @return <code>true</code> wenn ein RETI ausgeführt wurde,
+     * <code>false</code> sonst.
+     */
+    public boolean isRetiExceuted() {
+        if (retiExceuted) {
+            retiExceuted = false;
+            return true;
+        }
+        return false;
     }
 }

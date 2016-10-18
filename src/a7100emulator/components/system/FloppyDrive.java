@@ -157,6 +157,10 @@ public class FloppyDrive implements StateSavable {
      * Schreiben erlaubt
      */
     private boolean writeEnabled;
+    /**
+     * Index erkannt
+     */
+    private boolean index = false;
 
     /**
      * Erstellt ein neues Diskettenlaufwerk
@@ -575,9 +579,10 @@ public class FloppyDrive implements StateSavable {
      * @return <code>true</code> für Index, <code>false</code> sonst
      */
     public boolean isIndex() {
-        // TODO
-        //return false;
-        return true;
+        // Wenn Motor aktiviert schalte Index um
+        // TODO: Besser implementieren
+        index = motor ? !index : false;
+        return index;
     }
 
     /**

@@ -323,7 +323,7 @@ public final class AFS implements Module {
                 System.out.println("Lesen von SIO-Port A Control noch nicht implementiert");
                 return (Integer.reverse(sio.readControl(0)) >> 24) & 0xFF;
             case LOCAL_PORT_SIO_CONTROL_B:
-                System.out.println("Lesen von SIO-Port B Cotrol noch nicht implementiert");
+                System.out.println("Lesen von SIO-Port B Control noch nicht implementiert");
                 return (Integer.reverse(sio.readControl(0)) >> 24) & 0xFF;
             case LOCAL_PORT_CPT3_0:
             case LOCAL_PORT_CPT3_1:
