@@ -56,11 +56,11 @@ public class Main {
      */
     public static void main(String[] args) {
         try {
-            Logger.getLogger("a7100emulator").setLevel(Level.ALL);
+            Logger.getLogger("a7100emulator").setLevel(Level.CONFIG);
             String logName = String.format("./log/%1$tF-A7100-Emulator.log", Calendar.getInstance());
             FileHandler fileHandler = new FileHandler(logName, true);
             fileHandler.setFormatter(new SimpleFormatter());
-            fileHandler.setLevel(Level.ALL);
+            fileHandler.setLevel(Level.CONFIG);
             Logger.getLogger("").addHandler(fileHandler);
         } catch (IOException ex) {
             LOG.log(Level.WARNING, "Kann FileHandler für Logger nicht erzeugen!", ex);

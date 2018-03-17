@@ -2,7 +2,7 @@
  * Keyboard.java
  * 
  * Diese Datei gehört zum Projekt A7100 Emulator 
- * Copyright (c) 2011-2016 Dirk Bräuer
+ * Copyright (c) 2011-2018 Dirk Bräuer
  *
  * Der A7100 Emulator ist Freie Software: Sie können ihn unter den Bedingungen
  * der GNU General Public License, wie von der Free Software Foundation,
@@ -33,12 +33,13 @@
  *   25.07.2016 - keyboardClock und selfTest in Reset,Laden und Speichern
  *              - Kommentare überarbeitet
  *   09.08.2016 - Logger hinzugefügt
-
+ *   16.03.2018 - CAPS-Lock implementiert
  */
 package a7100emulator.components.system;
 
 import a7100emulator.Tools.StateSavable;
 import a7100emulator.components.ic.KR580WM51A;
+import java.awt.Toolkit;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.io.DataInputStream;
@@ -243,6 +244,7 @@ public class Keyboard implements KeyListener, StateSavable {
         boolean keyShift = e.isShiftDown();
         boolean keyCtrl = e.isControlDown();
         boolean keyAlt = e.isAltDown();
+        boolean capsLock = Toolkit.getDefaultToolkit().getLockingKeyState(KeyEvent.VK_CAPS_LOCK);
 
 //        boolean keyAltGr = e.isAltGraphDown();
 //        System.out.println(Integer.toHexString(e.getKeyCode())+" "+e.getKeyChar());
@@ -284,82 +286,82 @@ public class Keyboard implements KeyListener, StateSavable {
                 sendByte(keyCtrl ? 0x85 : keyShift ? 0x29 : 0x39);
                 break;
             case KeyEvent.VK_A:
-                sendByte(keyCtrl ? 0x01 : keyShift ? (keyAlt ? 0xC1 : 0x41) : (keyAlt ? 0xE1 : 0x61));
+                sendByte(keyCtrl ? 0x01 : (keyShift | capsLock) ? (keyAlt ? 0xC1 : 0x41) : (keyAlt ? 0xE1 : 0x61));
                 break;
             case KeyEvent.VK_B:
-                sendByte(keyCtrl ? 0x02 : keyShift ? (keyAlt ? 0xC2 : 0x42) : (keyAlt ? 0xE2 : 0x62));
+                sendByte(keyCtrl ? 0x02 : (keyShift | capsLock) ? (keyAlt ? 0xC2 : 0x42) : (keyAlt ? 0xE2 : 0x62));
                 break;
             case KeyEvent.VK_C:
-                sendByte(keyCtrl ? 0x03 : keyShift ? (keyAlt ? 0xC3 : 0x43) : (keyAlt ? 0xE3 : 0x63));
+                sendByte(keyCtrl ? 0x03 : (keyShift | capsLock) ? (keyAlt ? 0xC3 : 0x43) : (keyAlt ? 0xE3 : 0x63));
                 break;
             case KeyEvent.VK_D:
-                sendByte(keyCtrl ? 0x04 : keyShift ? (keyAlt ? 0xC4 : 0x44) : (keyAlt ? 0xE4 : 0x64));
+                sendByte(keyCtrl ? 0x04 : (keyShift | capsLock) ? (keyAlt ? 0xC4 : 0x44) : (keyAlt ? 0xE4 : 0x64));
                 break;
             case KeyEvent.VK_E:
-                sendByte(keyCtrl ? 0x05 : keyShift ? (keyAlt ? 0xC5 : 0x45) : (keyAlt ? 0xE5 : 0x65));
+                sendByte(keyCtrl ? 0x05 : (keyShift | capsLock) ? (keyAlt ? 0xC5 : 0x45) : (keyAlt ? 0xE5 : 0x65));
                 break;
             case KeyEvent.VK_F:
-                sendByte(keyCtrl ? 0x06 : keyShift ? (keyAlt ? 0xC6 : 0x46) : (keyAlt ? 0xE6 : 0x66));
+                sendByte(keyCtrl ? 0x06 : (keyShift | capsLock) ? (keyAlt ? 0xC6 : 0x46) : (keyAlt ? 0xE6 : 0x66));
                 break;
             case KeyEvent.VK_G:
-                sendByte(keyCtrl ? 0x07 : keyShift ? (keyAlt ? 0xC7 : 0x47) : (keyAlt ? 0xE7 : 0x67));
+                sendByte(keyCtrl ? 0x07 : (keyShift | capsLock) ? (keyAlt ? 0xC7 : 0x47) : (keyAlt ? 0xE7 : 0x67));
                 break;
             case KeyEvent.VK_H:
-                sendByte(keyCtrl ? 0x08 : keyShift ? (keyAlt ? 0xC8 : 0x48) : (keyAlt ? 0xE8 : 0x68));
+                sendByte(keyCtrl ? 0x08 : (keyShift | capsLock) ? (keyAlt ? 0xC8 : 0x48) : (keyAlt ? 0xE8 : 0x68));
                 break;
             case KeyEvent.VK_I:
-                sendByte(keyCtrl ? 0x09 : keyShift ? (keyAlt ? 0xC9 : 0x49) : (keyAlt ? 0xE9 : 0x69));
+                sendByte(keyCtrl ? 0x09 : (keyShift | capsLock) ? (keyAlt ? 0xC9 : 0x49) : (keyAlt ? 0xE9 : 0x69));
                 break;
             case KeyEvent.VK_J:
-                sendByte(keyCtrl ? 0x0A : keyShift ? (keyAlt ? 0xCA : 0x4A) : (keyAlt ? 0xEA : 0x6A));
+                sendByte(keyCtrl ? 0x0A : (keyShift | capsLock) ? (keyAlt ? 0xCA : 0x4A) : (keyAlt ? 0xEA : 0x6A));
                 break;
             case KeyEvent.VK_K:
-                sendByte(keyCtrl ? 0x0B : keyShift ? (keyAlt ? 0xCB : 0x4B) : (keyAlt ? 0xEB : 0x6B));
+                sendByte(keyCtrl ? 0x0B : (keyShift | capsLock) ? (keyAlt ? 0xCB : 0x4B) : (keyAlt ? 0xEB : 0x6B));
                 break;
             case KeyEvent.VK_L:
-                sendByte(keyCtrl ? 0x0C : keyShift ? (keyAlt ? 0xCC : 0x4C) : (keyAlt ? 0xEC : 0x6C));
+                sendByte(keyCtrl ? 0x0C : (keyShift | capsLock) ? (keyAlt ? 0xCC : 0x4C) : (keyAlt ? 0xEC : 0x6C));
                 break;
             case KeyEvent.VK_M:
-                sendByte(keyCtrl ? 0x0D : keyShift ? (keyAlt ? 0xCD : 0x4D) : (keyAlt ? 0xED : 0x6D));
+                sendByte(keyCtrl ? 0x0D : (keyShift | capsLock) ? (keyAlt ? 0xCD : 0x4D) : (keyAlt ? 0xED : 0x6D));
                 break;
             case KeyEvent.VK_N:
-                sendByte(keyCtrl ? 0x0E : keyShift ? (keyAlt ? 0xCE : 0x4E) : (keyAlt ? 0xEE : 0x6E));
+                sendByte(keyCtrl ? 0x0E : (keyShift | capsLock) ? (keyAlt ? 0xCE : 0x4E) : (keyAlt ? 0xEE : 0x6E));
                 break;
             case KeyEvent.VK_O:
-                sendByte(keyCtrl ? 0x0F : keyShift ? (keyAlt ? 0xCF : 0x4F) : (keyAlt ? 0xEF : 0x6F));
+                sendByte(keyCtrl ? 0x0F : (keyShift | capsLock) ? (keyAlt ? 0xCF : 0x4F) : (keyAlt ? 0xEF : 0x6F));
                 break;
             case KeyEvent.VK_P:
-                sendByte(keyCtrl ? 0x10 : keyShift ? (keyAlt ? 0xD0 : 0x50) : (keyAlt ? 0xF0 : 0x70));
+                sendByte(keyCtrl ? 0x10 : (keyShift | capsLock) ? (keyAlt ? 0xD0 : 0x50) : (keyAlt ? 0xF0 : 0x70));
                 break;
             case KeyEvent.VK_Q:
-                sendByte(keyCtrl ? 0x11 : keyShift ? (keyAlt ? 0xD1 : 0x51) : (keyAlt ? 0xF1 : 0x71));
+                sendByte(keyCtrl ? 0x11 : (keyShift | capsLock) ? (keyAlt ? 0xD1 : 0x51) : (keyAlt ? 0xF1 : 0x71));
                 break;
             case KeyEvent.VK_R:
-                sendByte(keyCtrl ? 0x12 : keyShift ? (keyAlt ? 0xD2 : 0x52) : (keyAlt ? 0xF2 : 0x72));
+                sendByte(keyCtrl ? 0x12 : (keyShift | capsLock) ? (keyAlt ? 0xD2 : 0x52) : (keyAlt ? 0xF2 : 0x72));
                 break;
             case KeyEvent.VK_S:
-                sendByte(keyCtrl ? 0x13 : keyShift ? (keyAlt ? 0xD3 : 0x53) : (keyAlt ? 0xF3 : 0x73));
+                sendByte(keyCtrl ? 0x13 : (keyShift | capsLock) ? (keyAlt ? 0xD3 : 0x53) : (keyAlt ? 0xF3 : 0x73));
                 break;
             case KeyEvent.VK_T:
-                sendByte(keyCtrl ? 0x14 : keyShift ? (keyAlt ? 0xD4 : 0x54) : (keyAlt ? 0xF4 : 0x74));
+                sendByte(keyCtrl ? 0x14 : (keyShift | capsLock) ? (keyAlt ? 0xD4 : 0x54) : (keyAlt ? 0xF4 : 0x74));
                 break;
             case KeyEvent.VK_U:
-                sendByte(keyCtrl ? 0x15 : keyShift ? (keyAlt ? 0xD5 : 0x55) : (keyAlt ? 0xF5 : 0x75));
+                sendByte(keyCtrl ? 0x15 : (keyShift | capsLock) ? (keyAlt ? 0xD5 : 0x55) : (keyAlt ? 0xF5 : 0x75));
                 break;
             case KeyEvent.VK_V:
-                sendByte(keyCtrl ? 0x16 : keyShift ? (keyAlt ? 0xD6 : 0x56) : (keyAlt ? 0xF6 : 0x76));
+                sendByte(keyCtrl ? 0x16 : (keyShift | capsLock) ? (keyAlt ? 0xD6 : 0x56) : (keyAlt ? 0xF6 : 0x76));
                 break;
             case KeyEvent.VK_W:
-                sendByte(keyCtrl ? 0x17 : keyShift ? (keyAlt ? 0xD7 : 0x57) : (keyAlt ? 0xF7 : 0x77));
+                sendByte(keyCtrl ? 0x17 : (keyShift | capsLock) ? (keyAlt ? 0xD7 : 0x57) : (keyAlt ? 0xF7 : 0x77));
                 break;
             case KeyEvent.VK_X:
-                sendByte(keyCtrl ? 0x18 : keyShift ? (keyAlt ? 0xD8 : 0x58) : (keyAlt ? 0xF8 : 0x78));
+                sendByte(keyCtrl ? 0x18 : (keyShift | capsLock) ? (keyAlt ? 0xD8 : 0x58) : (keyAlt ? 0xF8 : 0x78));
                 break;
             case KeyEvent.VK_Y:
-                sendByte(keyCtrl ? 0x19 : keyShift ? (keyAlt ? 0xD9 : 0x59) : (keyAlt ? 0xF9 : 0x79));
+                sendByte(keyCtrl ? 0x19 : (keyShift | capsLock) ? (keyAlt ? 0xD9 : 0x59) : (keyAlt ? 0xF9 : 0x79));
                 break;
             case KeyEvent.VK_Z:
-                sendByte(keyCtrl ? 0x1A : keyShift ? (keyAlt ? 0xDA : 0x5A) : (keyAlt ? 0xFA : 0x7A));
+                sendByte(keyCtrl ? 0x1A : (keyShift | capsLock) ? (keyAlt ? 0xDA : 0x5A) : (keyAlt ? 0xFA : 0x7A));
                 break;
             case KeyEvent.VK_F1:    // PF1
                 sendBytes(new byte[]{0x1B, 0x4F, 0x50});
