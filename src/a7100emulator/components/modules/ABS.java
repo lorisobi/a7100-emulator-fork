@@ -2,7 +2,7 @@
  * ABS.java
  * 
  * Diese Datei gehört zum Projekt A7100 Emulator 
- * Copyright (c) 2011-2016 Dirk Bräuer
+ * Copyright (c) 2011-2018 Dirk Bräuer
  *
  * Der A7100 Emulator ist Freie Software: Sie können ihn unter den Bedingungen
  * der GNU General Public License, wie von der Free Software Foundation,
@@ -21,6 +21,8 @@
  *   02.04.2014 - Kommentare vervollständigt
  *   09.08.2014 - Zugriffe auf SystemPorts durch MMS16Bus ersetzt
  *   09.08.2016 - Logger hinzugefügt
+ *   17.03.2018 - Beenden des Emulators bei Initialisierung
+ *              - Konstruktor ergänzt
  */
 package a7100emulator.components.modules;
 
@@ -28,7 +30,9 @@ import a7100emulator.components.system.MMS16Bus;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.swing.JOptionPane;
 
 /**
  * Klasse zur Abbildung der ABS (Alphanumerische Bildschirmsteuerung)
@@ -37,7 +41,7 @@ import java.util.logging.Logger;
  *
  * @author Dirk Bräuer
  */
-public class ABS implements IOModule {
+public final class ABS implements IOModule {
 
     /**
      * Logger Instanz
@@ -53,6 +57,13 @@ public class ABS implements IOModule {
      */
     private final static int PORT_ABS_DATA = 0x202;
 
+    /**
+     * Erstellt eine neue ABS
+     */
+    public ABS() {
+        init();
+    }
+    
     /**
      * Registriert die Ports am Systembus
      */
@@ -134,6 +145,10 @@ public class ABS implements IOModule {
     @Override
     public void init() {
         registerPorts();
+        
+        LOG.log(Level.SEVERE, "Emulation der ABS noch nicht implementiert!");
+        JOptionPane.showMessageDialog(null, "Die Emulation der ABS wird gegenwärtig noch nicht unterstützt!", "ABS nicht unterstützt", JOptionPane.ERROR_MESSAGE);
+        System.exit(0);
     }
 
     /**

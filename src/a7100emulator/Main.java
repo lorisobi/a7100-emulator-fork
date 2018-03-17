@@ -25,6 +25,7 @@
  */
 package a7100emulator;
 
+import a7100emulator.Tools.ConfigurationManager;
 import a7100emulator.components.A7100;
 import java.io.IOException;
 import java.util.Calendar;
@@ -56,11 +57,29 @@ public class Main {
      */
     public static void main(String[] args) {
         try {
-            Logger.getLogger("a7100emulator").setLevel(Level.CONFIG);
+            int logging = ConfigurationManager.getInstance().readInteger("Debugger", "Logger", 1);
+
+            Level level = Level.ALL;
+            switch (logging) {
+                case 0:
+                    level = Level.OFF;
+                    break;
+                case 1:
+                    level = Level.INFO;
+                    break;
+                case 2:
+                    level = Level.CONFIG;
+                    break;
+                case 3:
+                    level = Level.ALL;
+                    break;
+            }
+;
+            Logger.getLogger("a7100emulator").setLevel(level);
             String logName = String.format("./log/%1$tF-A7100-Emulator.log", Calendar.getInstance());
             FileHandler fileHandler = new FileHandler(logName, true);
             fileHandler.setFormatter(new SimpleFormatter());
-            fileHandler.setLevel(Level.CONFIG);
+            fileHandler.setLevel(level);
             Logger.getLogger("").addHandler(fileHandler);
         } catch (IOException ex) {
             LOG.log(Level.WARNING, "Kann FileHandler für Logger nicht erzeugen!", ex);

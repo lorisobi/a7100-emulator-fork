@@ -2,7 +2,7 @@
  * ASP.java
  * 
  * Diese Datei gehört zum Projekt A7100 Emulator 
- * Copyright (c) 2011-2016 Dirk Bräuer
+ * Copyright (c) 2011-2018 Dirk Bräuer
  *
  * Der A7100 Emulator ist Freie Software: Sie können ihn unter den Bedingungen
  * der GNU General Public License, wie von der Free Software Foundation,
@@ -22,6 +22,7 @@
  *   09.08.2014 - Zugriffe auf SystemPorts durch MMS16Bus ersetzt
  *   31.07.2016 - Ports für alle Module zusammengefasst
  *   09.08.2016 - Logger hinzugefügt
+ *   17.03.2018 - Beenden des Emulators bei Initialisierung
  */
 package a7100emulator.components.modules;
 
@@ -29,7 +30,9 @@ import a7100emulator.components.system.MMS16Bus;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.swing.JOptionPane;
 
 /**
  * Klasse zur Abbildung der ASP (Anschlußsteuerung seriell/parallel)
@@ -278,6 +281,10 @@ public final class ASP implements IOModule {
     @Override
     public void init() {
         registerPorts();
+
+        LOG.log(Level.SEVERE, "Emulation der ASP noch nicht implementiert!");
+        JOptionPane.showMessageDialog(null, "Die Emulation der ASP wird gegenwärtig noch nicht unterstützt!", "ASP nicht unterstützt", JOptionPane.ERROR_MESSAGE);
+        System.exit(0);
     }
 
     /**

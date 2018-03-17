@@ -2,7 +2,7 @@
  * A7100.java
  * 
  * Diese Datei gehört zum Projekt A7100 Emulator 
- * Copyright (c) 2011-2016 Dirk Bräuer
+ * Copyright (c) 2011-2018 Dirk Bräuer
  *
  * Der A7100 Emulator ist Freie Software: Sie können ihn unter den Bedingungen
  * der GNU General Public License, wie von der Free Software Foundation,
@@ -24,10 +24,14 @@
  *   24.07.2016 - Laden und Speichern des Zustands in beliebige Dateien
  *   29.07.2016 - Exceptions beim Laden und Speichern von Zuständen
  *   09.08.2016 - Logger hinzugefügt und Ausgaben umgeleitet
+ *   18.03.2018 - Laden der Modulkonfiguration ergänzt
+ *              - Laden und Speichern der Zustände von ZPS, ABS und ASP ergänzt
  */
 package a7100emulator.components;
 
+import a7100emulator.Tools.ConfigurationManager;
 import a7100emulator.components.modules.ABG;
+import a7100emulator.components.modules.ABS;
 import a7100emulator.components.modules.ASP;
 import a7100emulator.components.modules.KES;
 import a7100emulator.components.modules.KGS;
@@ -68,17 +72,9 @@ public class A7100 {
      */
     private ZPS zps;
     /**
-     * 1. OPS-Modul
+     * OPS-Module
      */
-    private OPS ops1;
-    /**
-     * 2. OPS-Modul
-     */
-    private OPS ops2;
-    /**
-     * 3. OPS-Modul
-     */
-    private OPS ops3;
+    private OPS[] ops;
     /**
      * KGS-Modul
      */
@@ -91,6 +87,10 @@ public class A7100 {
      * ASP-Modul
      */
     private ASP asp;
+    /**
+     * ABS-Modul
+     */
+    private ABS abs;
 
     /**
      * Erstellt einen neuen virtuellen A7100 und startet ihn
@@ -159,13 +159,23 @@ public class A7100 {
         try {
             DataOutputStream dos = new DataOutputStream(new FileOutputStream(stateFile));
 
-            // TODO: Speichern der Module ZPS, ASP
             zve.saveState(dos);
-            ops1.saveState(dos);
-            ops2.saveState(dos);
-            ops3.saveState(dos);
-            kgs.saveState(dos);
+            if (zps != null) {
+                zps.saveState(dos);
+            }
+            for (OPS opsModule : ops) {
+                opsModule.saveState(dos);
+            }
+            if (kgs != null) {
+                kgs.saveState(dos);
+            }
+            if (abs != null) {
+                abs.saveState(dos);
+            }
             kes.saveState(dos);
+            if (asp != null) {
+                asp.saveState(dos);
+            }
 
             InterruptSystem.getInstance().saveState(dos);
             Keyboard.getInstance().saveState(dos);
@@ -201,13 +211,23 @@ public class A7100 {
         try {
             DataInputStream dis = new DataInputStream(new FileInputStream(stateFile));
 
-            // TODO: Laden der Module ZPS, ASP
             zve.loadState(dis);
-            ops1.loadState(dis);
-            ops2.loadState(dis);
-            ops3.loadState(dis);
-            kgs.loadState(dis);
+            if (zps != null) {
+                zps.loadState(dis);
+            }
+            for (OPS opsModule : ops) {
+                opsModule.loadState(dis);
+            }
+            if (kgs != null) {
+                kgs.loadState(dis);
+            }
+            if (abs != null) {
+                abs.loadState(dis);
+            }
             kes.loadState(dis);
+            if (asp != null) {
+                asp.loadState(dis);
+            }
 
             InterruptSystem.getInstance().loadState(dis);
             Keyboard.getInstance().loadState(dis);
@@ -279,13 +299,41 @@ public class A7100 {
         ZPS.zps_count = 0;
 
         zve = new ZVE();
-        //zps = new ZPS(zve);
-        ops1 = new OPS();
-//        ops2 = new OPS();
-//        ops3 = new OPS();
-        kgs = new KGS();
+
+        // Prüfe auf ZPS-Verwendung
+        boolean useZPS = ConfigurationManager.getInstance().readBoolean("Modules", "ZPS", false);
+        if (useZPS) {
+            zps = new ZPS(zve);
+        } else {
+            zps = null;
+        }
+
+        // Lade Anzahl der OPS
+        int opsCount = ConfigurationManager.getInstance().readInteger("Modules", "OPS", 2);
+        ops = new OPS[opsCount];
+        for (int opsID = 0; opsID < opsCount; opsID++) {
+            ops[opsID] = new OPS();
+        }
+
+        // Prüfe auf KGS+ABG-Verwendung
+        boolean useKGS = ConfigurationManager.getInstance().readBoolean("Modules", "KGS", true);
+        if (useKGS) {
+            kgs = new KGS();
+            abs = null;
+        } else {
+            abs = new ABS();
+            kgs = null;
+        }
+
         kes = new KES();
-        asp = null;
+
+        // Prüfe ASP Verwendung
+        boolean useASP = ConfigurationManager.getInstance().readBoolean("Modules", "ASP", false);
+        if (useASP) {
+            asp = new ASP();
+        } else {
+            asp = null;
+        }
     }
 
     /**
