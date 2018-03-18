@@ -306,7 +306,7 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
             case PORT_ZVE_8251A_COMMAND_2:
                 break;
         }
-        LOG.log(Level.FINE, "Schreiben von Wörtern auf Port {0} noch nicht implementiert!", String.format("0x%02X", port));
+        LOG.log(Level.WARNING, "Schreiben von Wörtern auf Port {0} noch nicht implementiert!", String.format("0x%02X", port));
     }
 
     /**
@@ -390,7 +390,7 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
                 LOG.log(Level.FINER, "Lesen 8253-INIT (Port {0}) nicht erlaubt!", String.format("0x%02X", port));
                 break;
         }
-        LOG.log(Level.FINE, "Lesen von Wörtern auf Port {0} noch nicht implementiert!", String.format("0x%02X", port));
+        LOG.log(Level.WARNING, "Lesen von Wörtern auf Port {0} noch nicht implementiert!", String.format("0x%02X", port));
         return 0;
     }
 

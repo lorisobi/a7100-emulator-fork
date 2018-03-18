@@ -2,7 +2,7 @@
  * UA856.java
  * 
  * Diese Datei gehört zum Projekt A7100 Emulator 
- * Copyright (c) 2011-2016 Dirk Bräuer
+ * Copyright (c) 2011-2018 Dirk Bräuer
  *
  * Der A7100 Emulator ist Freie Software: Sie können ihn unter den Bedingungen
  * der GNU General Public License, wie von der Free Software Foundation,
@@ -34,6 +34,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.LinkedList;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
@@ -241,7 +242,7 @@ public class UA856 implements IC {
          * @param data Daten
          */
         private void transmitData(int data) {
-
+            LOG.log(Level.WARNING, "Transmit Data im SIO UA856 noch nicht implementiert!");
         }
 
         /**
@@ -255,6 +256,7 @@ public class UA856 implements IC {
             switch (registerPointer) {
                 case 0:
                     // TODO: Lesen noch nicht implementiert
+                    LOG.log(Level.WARNING, "Lesen von Controlregister UA856 noch nicht implementiert, Standard-Rückgabewert ist 04h!");
                     return 0x04;
                 case 1:
                     return 0;

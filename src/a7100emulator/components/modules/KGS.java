@@ -338,10 +338,10 @@ public final class KGS implements IOModule, ClockModule, SubsystemModule {
             case LOCAL_PORT_STATE:
                 return state;
             case LOCAL_PORT_INT_FLAG:
-                LOG.log(Level.FINE, "Lesen INT-Flag (Port {0}) nicht implementiert!", String.format("0x%02X", port));
+                LOG.log(Level.WARNING, "Lesen INT-Flag (Port {0}) nicht implementiert!", String.format("0x%02X", port));
                 break;
             case LOCAL_PORT_ERR_FLAG:
-                LOG.log(Level.FINE, "Lesen ERR-Flag (Port {0}) nicht implementiert!", String.format("0x%02X", port));
+                LOG.log(Level.WARNING, "Lesen ERR-Flag (Port {0}) nicht implementiert!", String.format("0x%02X", port));
                 break;
             case LOCAL_PORT_MSEL:
                 LOG.log(Level.FINER, "Lesen MSEL (Port {0}) nicht erlaubt!", String.format("0x%02X", port));

@@ -172,7 +172,7 @@ public final class KES implements IOModule, ClockModule {
                     throw new IllegalArgumentException("Illegal Command:" + Integer.toHexString(data));
             }
         } else if (port == PORT_KES_WAKEUP_2[kes_id]) {
-            LOG.log(Level.FINE, "Schreiben auf Kanal 2 nicht implementiert!", String.format("0x%02X", port));
+            LOG.log(Level.WARNING, "Schreiben auf Kanal 2 nicht implementiert!", String.format("0x%02X", port));
         } else {
             LOG.log(Level.FINE, "Schreiben auf nicht definiertem Port {0}!", String.format("0x%02X", port));
         }
@@ -451,7 +451,7 @@ public final class KES implements IOModule, ClockModule {
             break;
             case 0x05:
                 // Daten zum KES-Puffer lesen
-                LOG.log(Level.FINE, "Daten zum KES-Puffer noch nicht implementiert");
+                LOG.log(Level.WARNING, "Daten zum KES-Puffer noch nicht implementiert");
                 break;
             case 0x06: {
                 // Daten schreiben
@@ -475,7 +475,7 @@ public final class KES implements IOModule, ClockModule {
             break;
             case 0x07:
                 // Daten aus KES-Puffer Schreiben
-                LOG.log(Level.FINE, "Daten von KES-Puffer noch nicht implementiert");
+                LOG.log(Level.WARNING, "Daten von KES-Puffer noch nicht implementiert");
                 break;
             case 0x08: {
                 // Spurpositionierung einschalten
@@ -506,11 +506,11 @@ public final class KES implements IOModule, ClockModule {
             break;
             case 0x0C:
                 // Start UA880-Programm
-                LOG.log(Level.FINE, "UA880 noch nicht implementiert");
+                LOG.log(Level.WARNING, "UA880 noch nicht implementiert");
                 break;
             case 0x0D:
                 // DMA-Transfer zwischen Systemspeicher und UA-880-Subsystem Port
-                LOG.log(Level.FINE, "DMA-Transfer noch nicht implementiert");
+                LOG.log(Level.WARNING, "DMA-Transfer noch nicht implementiert");
                 break;
             case 0x0E: {
                 // KES-Puffer Ein-/Ausgabe

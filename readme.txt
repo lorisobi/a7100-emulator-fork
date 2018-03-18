@@ -44,6 +44,7 @@ Inhaltsverzeichnis:
     - Loggen von Programmabläufen und Fehlern
     - Konfigurationsdatei zur Anpassung des Emulatorverhaltens und des A7100
     - Unterstützung des ZPS
+    - KGS Zeichen 24h umschaltbar
   Neuerungen im SCP-Disketten-Tool:
 
   Änderungen/Bugfixes:

@@ -867,7 +867,7 @@ public class MainView extends JFrame {
                 pan_desc.setBorder(BorderFactory.createEmptyBorder(0, 50, 0, 10));
                 pan_desc.setLayout(new GridLayout(2, 1));
                 pan_desc.add(new JLabel("A7100 - Emulator v0.8.90"));
-                pan_desc.add(new JLabel("Copyright (c) 2011-2016 Dirk Bräuer"));
+                pan_desc.add(new JLabel("Copyright (c) 2011-2018 Dirk Bräuer"));
                 pan_about.add(pan_desc, BorderLayout.CENTER);
                 JTextArea licenseText = new JTextArea();
                 licenseText.setText("Lizenzinformationen:\n\n"
