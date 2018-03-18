@@ -26,10 +26,13 @@
  *   09.08.2016 - Logger hinzugefügt und Ausgaben umgeleitet
  *   18.03.2018 - Laden der Modulkonfiguration ergänzt
  *              - Laden und Speichern der Zustände von ZPS, ABS und ASP ergänzt
+ *              - Laden der Hacks und Zeitseinstellung ergänzt
  */
 package a7100emulator.components;
 
+import a7100emulator.Debug.Debugger;
 import a7100emulator.Tools.ConfigurationManager;
+import a7100emulator.components.ic.KR580WM51A;
 import a7100emulator.components.modules.ABG;
 import a7100emulator.components.modules.ABS;
 import a7100emulator.components.modules.ASP;
@@ -96,6 +99,7 @@ public class A7100 {
      * Erstellt einen neuen virtuellen A7100 und startet ihn
      */
     public A7100() {
+        loadConfiguration();
         initModules();
         startClock();
     }
@@ -200,6 +204,8 @@ public class A7100 {
      * auftritt
      */
     public void loadState(File stateFile) throws IOException {
+        LOG.log(Level.CONFIG, "Lade Emulatorzustand aus Datei {0}", stateFile.getName());
+
         pause();
         try {
             // Warte 100ms um das Anhalten des Systems zu garantieren
@@ -246,6 +252,8 @@ public class A7100 {
      * werden die reset Funktionen der Module sowie der Peripherie aufgerufen.
      */
     public void reset() {
+        LOG.log(Level.CONFIG, "Emulator-Reset");
+        
         GlobalClock.getInstance().stop();
         try {
             // Warte 100ms um das Anhalten des Systems zu garantieren
@@ -298,10 +306,16 @@ public class A7100 {
         ASP.asp_count = 0;
         ZPS.zps_count = 0;
 
+        boolean debugGlobal = ConfigurationManager.getInstance().readBoolean("Debugger", "Global", false);
+        Debugger.getGlobalInstance().setDebug(debugGlobal);
+
         zve = new ZVE();
+        boolean debugZVE = ConfigurationManager.getInstance().readBoolean("Debugger", "ZVE", false);
+        zve.setDebug(debugZVE);
 
         // Prüfe auf ZPS-Verwendung
         boolean useZPS = ConfigurationManager.getInstance().readBoolean("Modules", "ZPS", false);
+        LOG.log(Level.CONFIG, "Verwendung der ZPS ist {0}", new String[]{(useZPS ? "aktiviert" : "deaktiviert")});
         if (useZPS) {
             zps = new ZPS(zve);
         } else {
@@ -311,6 +325,7 @@ public class A7100 {
         // Lade Anzahl der OPS
         int opsCount = ConfigurationManager.getInstance().readInteger("Modules", "OPS", 2);
         ops = new OPS[opsCount];
+        LOG.log(Level.CONFIG, "Anzahl der OPS Module: {0}", new Integer[]{opsCount});
         for (int opsID = 0; opsID < opsCount; opsID++) {
             ops[opsID] = new OPS();
         }
@@ -318,17 +333,26 @@ public class A7100 {
         // Prüfe auf KGS+ABG-Verwendung
         boolean useKGS = ConfigurationManager.getInstance().readBoolean("Modules", "KGS", true);
         if (useKGS) {
+            LOG.log(Level.CONFIG, "Grafikmodus unter Verwendung von KGS+ABG");
             kgs = new KGS();
+            boolean debugKGS = ConfigurationManager.getInstance().readBoolean("Debugger", "KGS", false);
+            kgs.setDebug(debugKGS);
             abs = null;
         } else {
+            LOG.log(Level.CONFIG, "Grafikmodus unter Verwendung der ABS");
             abs = new ABS();
             kgs = null;
         }
 
         kes = new KES();
+        boolean debugKES = ConfigurationManager.getInstance().readBoolean("Debugger", "KES", false);
+        if (debugKES) {
+            LOG.log(Level.WARNING, "Debugger für KES noch nicht implementiert");
+        }
 
         // Prüfe ASP Verwendung
         boolean useASP = ConfigurationManager.getInstance().readBoolean("Modules", "ASP", false);
+        LOG.log(Level.CONFIG, "Verwendung der ASP ist {0}", new String[]{(useASP ? "aktiviert" : "deaktiviert")});
         if (useASP) {
             asp = new ASP();
         } else {
@@ -343,5 +367,18 @@ public class A7100 {
      */
     public ABG getABG() {
         return kgs.getABG();
+    }
+
+    /**
+     * Liest die Konfigurationseinstellungen aus der Konfigurationsdatei und
+     * wendet diese an.
+     */
+    private void loadConfiguration() {
+        // TODO: Hack möglichst bald entfernen
+        boolean keyboardReset = ConfigurationManager.getInstance().readBoolean("Hacks", "DisableKeyboardReset", false);
+        KR580WM51A.setKeyboardResetHack(keyboardReset);
+
+        boolean timeSync = ConfigurationManager.getInstance().readBoolean("Emulation", "TimeSync", false);
+        GlobalClock.getInstance().setSynchronizeClock(timeSync);
     }
 }

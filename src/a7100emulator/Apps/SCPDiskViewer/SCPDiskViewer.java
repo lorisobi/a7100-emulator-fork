@@ -2,7 +2,7 @@
  * SCPFileViewer.java
  * 
  * Diese Datei gehört zum Projekt A7100 Emulator 
- * Copyright (c) 2011-2016 Dirk Bräuer
+ * Copyright (c) 2011-2018 Dirk Bräuer
  *
  * Der A7100 Emulator ist Freie Software: Sie können ihn unter den Bedingungen
  * der GNU General Public License, wie von der Free Software Foundation,
@@ -32,6 +32,7 @@
 package a7100emulator.Apps.SCPDiskViewer;
 
 import a7100emulator.Debug.MemoryAnalyzer;
+import a7100emulator.Tools.ConfigurationManager;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
@@ -432,7 +433,8 @@ public class SCPDiskViewer extends JFrame {
         @Override
         public void actionPerformed(ActionEvent e) {
             if (e.getSource() == menuOpenDisk) {
-                JFileChooser loadDialog = new JFileChooser("./disks/");
+                String directory = ConfigurationManager.getInstance().readString("directories", "disks", "./disks/");
+                JFileChooser loadDialog = new JFileChooser(directory);
                 if (loadDialog.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
                     fileTable.clearSelection();
                     File image = loadDialog.getSelectedFile();
@@ -447,7 +449,8 @@ public class SCPDiskViewer extends JFrame {
                     }
                 }
             } else if (e.getSource() == menuImportFolder) {
-                JFileChooser loadDialog = new JFileChooser("./disks/");
+                String directory = ConfigurationManager.getInstance().readString("directories", "disks", "./disks/");
+                JFileChooser loadDialog = new JFileChooser(directory);
                 loadDialog.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
                 if (loadDialog.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
                     fileTable.clearSelection();
@@ -474,26 +477,30 @@ public class SCPDiskViewer extends JFrame {
                 if (selectedRowView != -1) {
                     int selectedRowModel = fileTable.convertRowIndexToModel(selectedRowView);
                     SCPFile file = diskModel.getFiles().get(selectedRowModel);
-                    JFileChooser saveDialog = new JFileChooser("./disks/");
+                    String directory = ConfigurationManager.getInstance().readString("directories", "disks", "./disks/");
+                    JFileChooser saveDialog = new JFileChooser(directory);
                     saveDialog.setSelectedFile(new File(file.getFullName()));
                     if (saveDialog.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
                         diskModel.saveFile(selectedRowModel, saveDialog.getSelectedFile());
                     }
                 }
             } else if (e.getSource() == buttonExtractAllFiles || e.getSource() == menuExtractAllFiles) {
-                JFileChooser saveDialog = new JFileChooser("./disks/");
+                String directory = ConfigurationManager.getInstance().readString("directories", "disks", "./disks/");
+                JFileChooser saveDialog = new JFileChooser(directory);
                 saveDialog.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
                 if (saveDialog.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
                     diskModel.saveAllFiles(saveDialog.getSelectedFile());
                 }
             } else if (e.getSource() == menuExtractBootloader) {
-                JFileChooser saveDialog = new JFileChooser("./disks/");
+                String directory = ConfigurationManager.getInstance().readString("directories", "disks", "./disks/");
+                JFileChooser saveDialog = new JFileChooser(directory);
                 saveDialog.setSelectedFile(new File("bootloader.img"));
                 if (saveDialog.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
                     diskModel.saveBootloader(saveDialog.getSelectedFile());
                 }
             } else if (e.getSource() == buttonAddFile || e.getSource() == menuInsertFile) {
-                JFileChooser loadDialog = new JFileChooser(".");
+                String directory = ConfigurationManager.getInstance().readString("directories", "disks", "./disks/");
+                JFileChooser loadDialog = new JFileChooser(directory);
                 loadDialog.setFileSelectionMode(JFileChooser.FILES_ONLY);
                 if (loadDialog.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
                     try {
@@ -553,7 +560,8 @@ public class SCPDiskViewer extends JFrame {
                     }
                 }
             } else if (e.getSource() == menuSaveImage) {
-                JFileChooser saveDialog = new JFileChooser("./disks/");
+                String directory = ConfigurationManager.getInstance().readString("directories", "disks", "./disks/");
+                JFileChooser saveDialog = new JFileChooser(directory);
                 saveDialog.setFileSelectionMode(JFileChooser.FILES_ONLY);
                 if (saveDialog.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
                     File saveFile = saveDialog.getSelectedFile();

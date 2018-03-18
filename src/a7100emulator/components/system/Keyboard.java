@@ -34,6 +34,7 @@
  *              - Kommentare überarbeitet
  *   09.08.2016 - Logger hinzugefügt
  *   16.03.2018 - CAPS-Lock implementiert
+ *   18.03.2018 - Loggen von nicht unterstützten Befehlen
  */
 package a7100emulator.components.system;
 
@@ -46,6 +47,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.LinkedList;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
@@ -450,10 +452,14 @@ public class Keyboard implements KeyListener, StateSavable {
                 break;
             case KeyEvent.VK_INSERT:
                 // TODO: INS MODE
+                if (!keyShift) {
+                    LOG.log(Level.WARNING, "Tastatur INS MODE ist noch nicht implementiert");
+                }
                 sendBytes(keyShift ? new byte[]{0x1B, 0x5B, 0x4C} : new byte[]{});
                 break;
             case KeyEvent.VK_SCROLL_LOCK:
                 // TODO: MOD 2
+                LOG.log(Level.WARNING, "Tastatur MOD 2 ist noch nicht implementiert");
                 break;
             // Sonderzeichen
             case KeyEvent.VK_SPACE:

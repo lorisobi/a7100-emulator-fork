@@ -2,7 +2,7 @@
  * UA880.java
  * 
  * Diese Datei gehört zum Projekt A7100 Emulator 
- * Copyright (c) 2011-2016 Dirk Bräuer
+ * Copyright (c) 2011-2018 Dirk Bräuer
  *
  * Der A7100 Emulator ist Freie Software: Sie können ihn unter den Bedingungen
  * der GNU General Public License, wie von der Free Software Foundation,
@@ -59,6 +59,7 @@
  *   28.07.2016 - Kommentare erweitert
  *              - Decoder ergänzt
  *   08.08.2016 - Logger hinzugefügt und Ausgaben umgeleitet
+ *   18.03.2018 - Rückgabe Debugger-Status implementiert
  */
 package a7100emulator.components.ic;
 
@@ -5993,7 +5994,17 @@ public class UA880 implements CPU {
     public void setDebug(boolean debug) {
         debugger.setDebug(debug);
     }
-
+    
+    /**
+     * Gibt an ob der Debugger aktiviert ist.
+     *
+     * @return <code>true</code> - wenn Debugger aktiviert ist,
+     * <code>false</code> - sonst
+     */
+    public boolean isDebug() {
+        return debugger.isDebug();
+    }
+    
     /**
      * Speichert den Zustand der CPU in einer Datei
      *

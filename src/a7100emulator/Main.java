@@ -22,6 +22,8 @@
  *   27.07.2016 - Kommentare ergänzt
  *              - Neue showMainView() Funktion aufgerufen
  *   07.08.2016 - Logger hinzugefügt
+ *   17.03.2018 - Logger Level Konfigurierbar 
+ *   18.03.2018 - Verzeichnis zum Speichern wird aus Konfigurationsdatei geladen
  */
 package a7100emulator;
 
@@ -57,7 +59,8 @@ public class Main {
      */
     public static void main(String[] args) {
         try {
-            int logging = ConfigurationManager.getInstance().readInteger("Debugger", "Logger", 1);
+            String directory = ConfigurationManager.getInstance().readString("directories", "log", "./log/");
+            int logging = ConfigurationManager.getInstance().readInteger("Logger", "Level", 2);
 
             Level level = Level.ALL;
             switch (logging) {
@@ -74,9 +77,9 @@ public class Main {
                     level = Level.ALL;
                     break;
             }
-;
+
             Logger.getLogger("a7100emulator").setLevel(level);
-            String logName = String.format("./log/%1$tF-A7100-Emulator.log", Calendar.getInstance());
+            String logName = String.format(directory + "%1$tF-A7100-Emulator.log", Calendar.getInstance());
             FileHandler fileHandler = new FileHandler(logName, true);
             fileHandler.setFormatter(new SimpleFormatter());
             fileHandler.setLevel(level);

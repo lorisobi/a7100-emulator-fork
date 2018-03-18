@@ -2,7 +2,7 @@
  * ConfigurationManager.java
  * 
  * Diese Datei gehört zum Projekt A7100 Emulator 
- * Copyright (c) 2011-2016 Dirk Bräuer
+ * Copyright (c) 2011-2018 Dirk Bräuer
  *
  * Der A7100 Emulator ist Freie Software: Sie können ihn unter den Bedingungen
  * der GNU General Public License, wie von der Free Software Foundation,
@@ -19,6 +19,8 @@
  * 
  * Letzte Änderungen:
  *   17.03.2018 - Erste Version
+ *   18.03.2018 - Kommentare in Datei ermöglicht
+ *              - Syntaxfehler in Konfiguration abgefangen
  */
 package a7100emulator.Tools;
 
@@ -91,7 +93,7 @@ public class ConfigurationManager {
                 return defaultValue;
         }
     }
-    
+
     /**
      * Liest einen Integer-Wert aus der Konfigurationsdatei.
      *
@@ -106,7 +108,7 @@ public class ConfigurationManager {
         try {
             int value = Integer.parseInt(stringValue);
             return value;
-        }catch (NumberFormatException ex) {
+        } catch (NumberFormatException ex) {
             LOG.log(Level.WARNING, "Unbekannter Zahlenwert " + stringValue + " beim Lesen des Schlüssels " + key + " in Kategorie " + category + "!");
             return defaultValue;
         }
@@ -135,7 +137,7 @@ public class ConfigurationManager {
                     in.close();
                     return defaultValue;
                 }
-            } while (!line.trim().equalsIgnoreCase("[" + category + "]"));
+            } while (line.startsWith("#") || !line.trim().equalsIgnoreCase("[" + category + "]"));
 
             // Schlüssel suchen
             do {
@@ -146,11 +148,18 @@ public class ConfigurationManager {
                     in.close();
                     return defaultValue;
                 }
-            } while (!line.split("=")[0].trim().equalsIgnoreCase(key));
+            } while (line.startsWith("#") || !line.split("=")[0].trim().equalsIgnoreCase(key));
+
+            in.close();
 
             // Gefunden
-            in.close();
-            return line.split("=")[1].trim();
+            String[] splitLine = line.split("=");
+            if (splitLine.length == 2) {
+                return splitLine[1].trim();
+            } else {
+                LOG.log(Level.WARNING, "Syntaxfehler in Konfigurationsdatei bei Schlüssel " + key + " in Kategorie " + category + "!");
+                return defaultValue;
+            }
         } catch (FileNotFoundException ex) {
             LOG.log(Level.WARNING, "Konfigrationsdatei A7100Emulator.conf wurde nicht gefunden!", ex);
         } catch (IOException ex) {

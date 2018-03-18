@@ -2,7 +2,7 @@
  * K1810WM86.java
  * 
  * Diese Datei gehört zum Projekt A7100 Emulator 
- * Copyright (c) 2011-2016 Dirk Bräuer
+ * Copyright (c) 2011-2018 Dirk Bräuer
  *
  * Der A7100 Emulator ist Freie Software: Sie können ihn unter den Bedingungen
  * der GNU General Public License, wie von der Free Software Foundation,
@@ -52,6 +52,8 @@
  *   29.07.2016 - try{} catch {} bei Systembedingten dumps hinzugefügt
  *   08.08.2016 - Logger hinzugefügt und Ausgaben umgeleitet
  *   09.08.2016 - Ausgaben bei nicht definierten Opcodes hinzugefügt
+ *   18.03.2018 - Verzeichnis für Debugger wird aus Konfigurationsdatei geladen
+ *              - Rückgabe Debugger-Status implementiert
  */
 package a7100emulator.components.ic;
 
@@ -60,6 +62,7 @@ import a7100emulator.Debug.DebuggerInfo;
 import a7100emulator.Debug.Decoder;
 import a7100emulator.Debug.OpcodeStatistic;
 import a7100emulator.Tools.BitTest;
+import a7100emulator.Tools.ConfigurationManager;
 import a7100emulator.components.system.InterruptSystem;
 import a7100emulator.components.system.MMS16Bus;
 import java.io.DataInputStream;
@@ -4377,7 +4380,8 @@ public final class K1810WM86 implements CPU {
                 }
                 LOG.log(Level.SEVERE, "Befehl WAIT an Adresse {0} noch nicht implementiert!", String.format("%04X:%04X", cs, ip - 1));
                 try {
-                    mms16.dumpSystemMemory("./debug/dump_wait.hex");
+                    String directory = ConfigurationManager.getInstance().readString("directories", "debug", "./debug/");
+                    mms16.dumpSystemMemory(directory + "dump_wait.hex");
                 } catch (IOException ex) {
                     Logger.getLogger(K1810WM86.class.getName()).log(Level.SEVERE, null, ex);
                 }
@@ -4392,7 +4396,8 @@ public final class K1810WM86 implements CPU {
                 }
                 LOG.log(Level.SEVERE, "Befehl LOCK an Adresse {0} noch nicht implementiert!", String.format("%04X:%04X", cs, ip - 1));
                 try {
-                    mms16.dumpSystemMemory("./debug/dump_lock.hex");
+                    String directory = ConfigurationManager.getInstance().readString("directories", "debug", "./debug/");
+                    mms16.dumpSystemMemory(directory + "dump_lock.hex");
                 } catch (IOException ex) {
                     Logger.getLogger(K1810WM86.class.getName()).log(Level.SEVERE, null, ex);
                 }
@@ -6092,7 +6097,8 @@ public final class K1810WM86 implements CPU {
                 // TODO: Ungültige opcodes ignorieren
                 LOG.log(Level.SEVERE, "Nicht implementierter oder ungültiger OPCode {0} an Adresse {1}!", new String[]{String.format("0x%02X", opcode1), String.format("%04X:%04X", cs, ip - 1)});
                 try {
-                    mms16.dumpSystemMemory("./debug/dump_unknown_opcode.hex");
+                    String directory = ConfigurationManager.getInstance().readString("directories", "debug", "./debug/");
+                    mms16.dumpSystemMemory(directory + "dump_unknown_opcode.hex");
                     if (debug) {
                         decoder.save();
                     }
@@ -7534,6 +7540,16 @@ public final class K1810WM86 implements CPU {
     @Override
     public void setDebug(boolean debug) {
         debugger.setDebug(debug);
+    }
+
+    /**
+     * Gibt an ob der Debugger aktiviert ist.
+     *
+     * @return <code>true</code> - wenn Debugger aktiviert ist,
+     * <code>false</code> - sonst
+     */
+    public boolean isDebug() {
+        return debugger.isDebug();
     }
 
     /**

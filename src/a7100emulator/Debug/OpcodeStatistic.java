@@ -2,7 +2,7 @@
  * OpcodeStatistic.java
  * 
  * Diese Datei gehört zum Projekt A7100 Emulator 
- * Copyright (c) 2011-2016 Dirk Bräuer
+ * Copyright (c) 2011-2018 Dirk Bräuer
  *
  * Der A7100 Emulator ist Freie Software: Sie können ihn unter den Bedingungen
  * der GNU General Public License, wie von der Free Software Foundation,
@@ -21,9 +21,11 @@
  *   05.04.2014 - Kommentare vervollständigt
  *   09.08.2016 - Logger hinzugefügt
  *              - IOException bei Speicherfehler ausgeben
+ *   18.03.2018 - Verzeichnis zum Speichern wird aus Konfigurationsdatei geladen
  */
 package a7100emulator.Debug;
 
+import a7100emulator.Tools.ConfigurationManager;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -78,12 +80,13 @@ public class OpcodeStatistic {
     }
 
     /**
-     * Speichert die Statistik in der Datei ./debug/OpcodeStatistic.log
+     * Speichert die Statistik im Debugverzeichnis unter OpcodeStatistic.log
      *
      * @throws java.io.IOException Wenn beim Speichern ein Fehler auftritt
      */
     public void dump() throws IOException {
-        PrintStream opcodeFile = new PrintStream(new FileOutputStream("./debug/OpcodeStatistic.log"));
+        String directory = ConfigurationManager.getInstance().readString("directories", "disks", "./disks/");
+        PrintStream opcodeFile = new PrintStream(new FileOutputStream(directory + "OpcodeStatistic.log"));
         for (int i = 0; i < 256; i++) {
             opcodeFile.println("" + opCodeStatistic[i]);
         }
