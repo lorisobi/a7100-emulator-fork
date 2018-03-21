@@ -2,7 +2,7 @@
  * ZVE.java
  * 
  * Diese Datei gehört zum Projekt A7100 Emulator 
- * Copyright (c) 2011-2016 Dirk Bräuer
+ * Copyright (c) 2011-2018 Dirk Bräuer
  *
  * Der A7100 Emulator ist Freie Software: Sie können ihn unter den Bedingungen
  * der GNU General Public License, wie von der Free Software Foundation,
@@ -29,11 +29,14 @@
  *   07.08.2016 - Doppelte USART Ports hinzugefügt
  *              - Logger hinzugefügt und Ausgaben umgeleitet
  *   09.08.2016 - Fehler beim Laden der EPROMS abgefangen
+ *   18.03.2018 - EPROMS Pfad wird aus Konfiguration gelesen
+ *              - Rückgabe Debugger-Status implementiert
  */
 package a7100emulator.components.modules;
 
 import a7100emulator.Debug.Decoder;
 import a7100emulator.Tools.AddressSpace;
+import a7100emulator.Tools.ConfigurationManager;
 import a7100emulator.Tools.Memory;
 import a7100emulator.components.ic.K1810WM86;
 import a7100emulator.components.ic.K580WN59A;
@@ -303,7 +306,7 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
             case PORT_ZVE_8251A_COMMAND_2:
                 break;
         }
-        LOG.log(Level.FINE, "Schreiben von Wörtern auf Port {0} noch nicht implementiert!", String.format("0x%02X", port));
+        LOG.log(Level.WARNING, "Schreiben von Wörtern auf Port {0} noch nicht implementiert!", String.format("0x%02X", port));
     }
 
     /**
@@ -387,7 +390,7 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
                 LOG.log(Level.FINER, "Lesen 8253-INIT (Port {0}) nicht erlaubt!", String.format("0x%02X", port));
                 break;
         }
-        LOG.log(Level.FINE, "Lesen von Wörtern auf Port {0} noch nicht implementiert!", String.format("0x%02X", port));
+        LOG.log(Level.WARNING, "Lesen von Wörtern auf Port {0} noch nicht implementiert!", String.format("0x%02X", port));
         return 0;
     }
 
@@ -453,7 +456,7 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
      * Festplatte
      */
     private void initEPROMS() {
-            // A7150
+        // A7150
         // ACT 2.1
 //        File AHCL = new File("./eproms/265.bin");
 //        File AWCL = new File("./eproms/266.bin");
@@ -470,26 +473,28 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
 //        File BOCL = new File("./eproms/275.ROM");
 //        File CGCL = new File("./eproms/276.ROM");
 
+        String directory = ConfigurationManager.getInstance().readString("directories", "eproms", "./eproms/");
+
         // A7100
-        File AHCL = new File("./eproms/ZVE-K2771.10-259.rom");
+        File AHCL = new File(directory + "ZVE-K2771.10-259.rom");
         if (!AHCL.exists()) {
             LOG.log(Level.SEVERE, "ZVE-EPROM {0} nicht gefunden!", AHCL.getPath());
             JOptionPane.showMessageDialog(null, "Eprom: " + AHCL.getName() + " nicht gefunden!", "Eprom nicht gefunden", JOptionPane.ERROR_MESSAGE);
             System.exit(0);
         }
-        File AWCL = new File("./eproms/ZVE-K2771.10-260.rom");
+        File AWCL = new File(directory + "ZVE-K2771.10-260.rom");
         if (!AWCL.exists()) {
             LOG.log(Level.SEVERE, "ZVE-EPROM {0} nicht gefunden!", AWCL.getPath());
             JOptionPane.showMessageDialog(null, "Eprom: " + AWCL.getName() + " nicht gefunden!", "Eprom nicht gefunden", JOptionPane.ERROR_MESSAGE);
             System.exit(0);
         }
-        File BOCL = new File("./eproms/ZVE-K2771.10-261.rom");
+        File BOCL = new File(directory + "ZVE-K2771.10-261.rom");
         if (!BOCL.exists()) {
             LOG.log(Level.SEVERE, "ZVE-EPROM {0} nicht gefunden!", BOCL.getPath());
             JOptionPane.showMessageDialog(null, "Eprom: " + BOCL.getName() + " nicht gefunden!", "Eprom nicht gefunden", JOptionPane.ERROR_MESSAGE);
             System.exit(0);
         }
-        File CGCL = new File("./eproms/ZVE-K2771.10-262.rom");
+        File CGCL = new File(directory + "ZVE-K2771.10-262.rom");
         if (!CGCL.exists()) {
             LOG.log(Level.SEVERE, "ZVE-EPROM {0} nicht gefunden!", CGCL.getPath());
             JOptionPane.showMessageDialog(null, "Eprom: " + CGCL.getName() + " nicht gefunden!", "Eprom nicht gefunden", JOptionPane.ERROR_MESSAGE);
@@ -565,15 +570,27 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
     }
 
     /**
-     * Aktiviert oder Deaktiviert den Debugger
+     * Aktiviert oder Deaktiviert den Debugger.
      *
-     * @param debug true - wenn Debugger aktiviert wird, false - sonst
+     * @param debug <code>true</code> - wenn Debugger aktiviert wird,
+     * <code>false</code> - sonst
      */
     public void setDebug(boolean debug) {
+        LOG.log(Level.CONFIG, "Debugger der ZVE {0}", new String[]{(debug ? "aktiviert" : "deaktiviert")});
         cpu.setDebug(debug);
         if (debug) {
             getDecoder().clear();
         }
+    }
+
+    /**
+     * Gibt an ob der Debugger aktiviert ist.
+     *
+     * @return <code>true</code> - wenn Debugger aktiviert ist,
+     * <code>false</code> - sonst
+     */
+    public boolean isDebug() {
+        return cpu.isDebug();
     }
 
     /**

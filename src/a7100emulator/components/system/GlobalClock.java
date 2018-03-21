@@ -2,7 +2,7 @@
  * GlobalClock.java
  * 
  * Diese Datei gehört zum Projekt A7100 Emulator 
- * Copyright (c) 2011-2016 Dirk Bräuer
+ * Copyright (c) 2011-2018 Dirk Bräuer
  *
  * Der A7100 Emulator ist Freie Software: Sie können ihn unter den Bedingungen
  * der GNU General Public License, wie von der Free Software Foundation,
@@ -176,6 +176,8 @@ public class GlobalClock implements Runnable, StateSavable {
      */
     @Override
     public void run() {
+        LOG.log(Level.INFO, "Globaler Zeitgeber gestartet");
+        
         // Beginne mit erster Ausführung sofort
         long nextExecutionTime = System.currentTimeMillis();
 
@@ -184,9 +186,9 @@ public class GlobalClock implements Runnable, StateSavable {
                 if (suspended) {
                     // Wenn Emulator pausiert ist
                     synchronized (this) {
-                        LOG.log(Level.INFO, "Globaler Zeitgeber angehalten!");
+                        LOG.log(Level.INFO, "Globaler Zeitgeber angehalten");
                         wait();
-                        LOG.log(Level.INFO, "Globaler Zeitgeber fortgesetzt!");
+                        LOG.log(Level.INFO, "Globaler Zeitgeber fortgesetzt");
                         // Setze nächste Ausführungszeit auf jetzt
                         nextExecutionTime = System.currentTimeMillis();
                     }
@@ -226,6 +228,7 @@ public class GlobalClock implements Runnable, StateSavable {
      * Beendet den Zeitgeber
      */
     public void stop() {
+        LOG.log(Level.INFO, "Globaler Zeitgeber gestoppt");
         stopped = true;
     }
 
@@ -247,6 +250,7 @@ public class GlobalClock implements Runnable, StateSavable {
      * <code>false</code> sonst
      */
     public void setSynchronizeClock(boolean synchronizeClock) {
+        LOG.log(Level.CONFIG, "Zeitsynchronisation ist {0}", new String[]{(synchronizeClock ? "aktiviert" : "deaktiviert")});
         this.synchronizeClock = synchronizeClock;
     }
 

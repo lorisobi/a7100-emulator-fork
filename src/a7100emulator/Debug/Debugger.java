@@ -2,7 +2,7 @@
  * Debugger.java
  * 
  * Diese Datei gehört zum Projekt A7100 Emulator 
- * Copyright (c) 2011-2016 Dirk Bräuer
+ * Copyright (c) 2011-2018 Dirk Bräuer
  *
  * Der A7100 Emulator ist Freie Software: Sie können ihn unter den Bedingungen
  * der GNU General Public License, wie von der Free Software Foundation,
@@ -25,9 +25,11 @@
  *              - Bezeichner hinzugefügt
  *   25.07.2015 - Funktionen für Automatischen Start und Slowdown deaktiviert
  *   07.08.2016 - Logger hinzugefügt und Ausgaben umgeleitet
+ *   18.03.2018 - Verzeichnis zum Speichern wird aus Konfigurationsdatei geladen
  */
 package a7100emulator.Debug;
 
+import a7100emulator.Tools.ConfigurationManager;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.logging.Level;
@@ -101,8 +103,9 @@ public class Debugger {
      */
     public void setDebug(boolean debug) {
         if (debug) {
+            String directory = ConfigurationManager.getInstance().readString("directories", "debug", "./debug/");
             try {
-                debugFile = new FileWriter("./debug/" + filename + ".log");
+                debugFile = new FileWriter(directory + filename + ".log");
             } catch (IOException ex) {
                 LOG.log(Level.WARNING, "Fehler beim Erzeugen der Debug-Ausgabe!", ex);
             }

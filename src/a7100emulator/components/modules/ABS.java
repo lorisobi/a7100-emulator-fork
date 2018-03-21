@@ -2,7 +2,7 @@
  * ABS.java
  * 
  * Diese Datei gehört zum Projekt A7100 Emulator 
- * Copyright (c) 2011-2016 Dirk Bräuer
+ * Copyright (c) 2011-2018 Dirk Bräuer
  *
  * Der A7100 Emulator ist Freie Software: Sie können ihn unter den Bedingungen
  * der GNU General Public License, wie von der Free Software Foundation,
@@ -25,13 +25,17 @@
  */
 package a7100emulator.components.modules;
 
+import a7100emulator.Tools.ConfigurationManager;
 import a7100emulator.Tools.Memory;
 import a7100emulator.components.system.GlobalClock;
 import a7100emulator.components.system.MMS16Bus;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.File;
 import java.io.IOException;
+import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.swing.JOptionPane;
 
 /**
  * Klasse zur Abbildung der ABS (Alphanumerische Bildschirmsteuerung)
@@ -55,7 +59,6 @@ public final class ABS implements IOModule, ClockModule, SubsystemModule {
      * Port ABS-Daten
      */
     private final static int PORT_ABS_DATA = 0x202;
-
     /**
      * Lokaler Port DMA
      */
@@ -88,7 +91,6 @@ public final class ABS implements IOModule, ClockModule, SubsystemModule {
      * Lokaler Port E/A Register
      */
     private final static int LOCAL_PORT_EA = 0x71;
-
     /**
      * Statusregister
      */
@@ -101,7 +103,6 @@ public final class ABS implements IOModule, ClockModule, SubsystemModule {
      * Datenregister für Ausgabe
      */
     private int dataOut = 0x00;
-
     /**
      * Programmspeicher + Arbeitsspeicher
      */
@@ -124,6 +125,14 @@ public final class ABS implements IOModule, ClockModule, SubsystemModule {
      */
     @Override
     public void init() {
+        String directory = ConfigurationManager.getInstance().readString("directories", "eproms", "./eproms/");
+        final File kgsRom = new File(directory + "KGS-K7070-152.rom");
+        if (!kgsRom.exists()) {
+            LOG.log(Level.SEVERE, "KGS-EPROM {0} nicht gefunden!", kgsRom.getPath());
+            JOptionPane.showMessageDialog(null, "Eprom: " + kgsRom.getName() + " nicht gefunden!", "Eprom nicht gefunden", JOptionPane.ERROR_MESSAGE);
+            System.exit(0);
+        }
+        
         registerPorts();
         registerClocks();
         initEPROMS();
@@ -159,6 +168,9 @@ public final class ABS implements IOModule, ClockModule, SubsystemModule {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
+    /**
+     * Lädt die EPROM 
+     */
     private void initEPROMS() {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }

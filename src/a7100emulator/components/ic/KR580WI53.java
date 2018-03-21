@@ -2,7 +2,7 @@
  * KR580WI53.java
  * 
  * Diese Datei gehört zum Projekt A7100 Emulator 
- * Copyright (c) 2011-2016 Dirk Bräuer
+ * Copyright (c) 2011-2018 Dirk Bräuer
  *
  * Der A7100 Emulator ist Freie Software: Sie können ihn unter den Bedingungen
  * der GNU General Public License, wie von der Free Software Foundation,
@@ -24,6 +24,7 @@
  *              - Implementierung Mode 0, 2 und 3
  *              - Interface IC implementiert
  *   09.08.2016 - Logger hinzugefügt
+ *   18.03.2018 - Loggen von nicht implementierten Modi
  */
 package a7100emulator.components.ic;
 
@@ -32,6 +33,7 @@ import a7100emulator.components.system.MMS16Bus;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
@@ -260,6 +262,7 @@ public class KR580WI53 implements IC {
                     case 1:
                         // Mode 1
                         // TODO: Modus 1 noch nicht Implementiert
+                        LOG.log(Level.WARNING, "Initialisierung Modus 1 für Zählerbaustein KR580WI53 noch nicht implementiert!");
                         break;
                     case 2:
                     case 6:
@@ -271,10 +274,12 @@ public class KR580WI53 implements IC {
                     case 4:
                         // Mode 4
                         // TODO: Modus 4 noch nicht implementiert
+                        LOG.log(Level.WARNING, "Initialisierung Modus 4 für Zählerbaustein KR580WI53 noch nicht implementiert!");
                         break;
                     case 5:
                         // Mode 5
                         // TODO: Modus 5 noch nicht implementiert
+                        LOG.log(Level.WARNING, "Initialisierung Modus 5 für Zählerbaustein KR580WI53 noch nicht implementiert!");
                         break;
                 }
             }
@@ -387,11 +392,13 @@ public class KR580WI53 implements IC {
                     case 1:
                         // Mode 1
                         // TODO: Modus 1 noch nicht implementiert
+                        LOG.log(Level.WARNING, "Update Modus 1 für Zählerbaustein KR580WI53 noch nicht implementiert!");
                         break;
                     case 2:
                     case 6:
                         // Mode 2/6
                         // TODO: Modus 2/6 noch nicht implementiert
+                        LOG.log(Level.WARNING, "Update Modus {0} für Zählerbaustein KR580WI53 noch nicht implementiert!", new Integer[]{mode});
                         break;
                     case 3:
                     case 7:
@@ -408,10 +415,12 @@ public class KR580WI53 implements IC {
                     case 4:
                         // Mode 4
                         // TODO: Modus 4 noch nicht implementiert
+                        LOG.log(Level.WARNING, "Update Modus 4 für Zählerbaustein KR580WI53 noch nicht implementiert!");
                         break;
                     case 5:
                         // Mode 5
                         // TODO: Modus 5 noch nciht implementiert
+                        LOG.log(Level.WARNING, "Update Modus 5 für Zählerbaustein KR580WI53 noch nicht implementiert!");
                         break;
                 }
 

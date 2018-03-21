@@ -2,7 +2,7 @@
  * Decoder.java
  * 
  * Diese Datei gehört zum Projekt A7100 Emulator 
- * Copyright (c) 2011-2016 Dirk Bräuer
+ * Copyright (c) 2011-2018 Dirk Bräuer
  *
  * Der A7100 Emulator ist Freie Software: Sie können ihn unter den Bedingungen
  * der GNU General Public License, wie von der Free Software Foundation,
@@ -24,9 +24,11 @@
  *              - Parameter für Namen und Segment-Verwendung hinzugefügt
  *              - Fehler beim Speichern behoben
  *   09.08.2016 - Logger hinzugefügt und Ausgaben umgeleitet
+ *   18.03.2018 - Verzeichnis zum Speichern wird aus Konfigurationsdatei geladen
  */
 package a7100emulator.Debug;
 
+import a7100emulator.Tools.ConfigurationManager;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.io.FileNotFoundException;
@@ -117,7 +119,8 @@ public class Decoder {
      * Informationen ein Fehler auftritt
      */
     public void save() throws FileNotFoundException {
-        PrintStream decoderFile = new PrintStream(new FileOutputStream("./debug/" + filename + "_decoder.log"));
+        String directory = ConfigurationManager.getInstance().readString("directories", "debug", "./debug/");
+        PrintStream decoderFile = new PrintStream(new FileOutputStream(directory + filename + "_decoder.log"));
         for (String[] decoderLine : decoder.values()) {
             decoderFile.println(decoderLine[0] + " " + decoderLine[1] + (decoderLine[2].isEmpty() ? "" : (" (" + decoderLine[2] + ")")));
         }

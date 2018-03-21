@@ -2,7 +2,7 @@
  * KR580WW51A.java
  * 
  * Diese Datei gehört zum Projekt A7100 Emulator 
- * Copyright (c) 2011-2016 Dirk Bräuer
+ * Copyright (c) 2011-2018 Dirk Bräuer
  *
  * Der A7100 Emulator ist Freie Software: Sie können ihn unter den Bedingungen
  * der GNU General Public License, wie von der Free Software Foundation,
@@ -28,6 +28,7 @@
  *   18.12.2014 - Keyboard Reset Hack hinzugefügt
  *   07.08.2016 - Puffer behält Wert bis er überschrieben wird
  *   09.08.2016 - Logger hinzugefügt
+ *   18.03.2018 - Loggen des Reset-Hacks implementiert
  */
 package a7100emulator.components.ic;
 
@@ -37,6 +38,7 @@ import a7100emulator.components.system.MMS16Bus;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
@@ -302,6 +304,7 @@ public class KR580WM51A implements IC {
      * <code>false</code> sonst
      */
     public static void setKeyboardResetHack(boolean keyboardResetHack) {
+        LOG.log(Level.CONFIG, "Tastatur-Reset-Hack ist {0}", new String[]{(keyboardResetHack ? "aktiviert" : "deaktiviert")});
         KR580WM51A.keyboardResetHack = keyboardResetHack;
     }
 

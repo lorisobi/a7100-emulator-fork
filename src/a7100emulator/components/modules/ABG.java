@@ -2,7 +2,7 @@
  * ABG.java
  * 
  * Diese Datei gehört zum Projekt A7100 Emulator 
- * Copyright (c) 2011-2016 Dirk Bräuer
+ * Copyright (c) 2011-2018 Dirk Bräuer
  *
  * Der A7100 Emulator ist Freie Software: Sie können ihn unter den Bedingungen
  * der GNU General Public License, wie von der Free Software Foundation,
@@ -476,7 +476,7 @@ public final class ABG implements Module {
             case LOCAL_PORT_PALETTE_E:
             case LOCAL_PORT_PALETTE_F:
                 palette_register[port - 0x30] = data & 0xFF;
-                LOG.log(Level.FINE, "Palettenregister (Port {0}) noch nicht implementiert!", String.format("0x%02X", port));
+                LOG.log(Level.WARNING, "Palettenregister (Port {0}) noch nicht implementiert!", String.format("0x%02X", port));
                 break;
             default:
                 LOG.log(Level.FINE, "Schreiben auf nicht definiertem Port {0}!", String.format("0x%02X", port));

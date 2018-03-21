@@ -2,7 +2,7 @@
  * A7100.java
  * 
  * Diese Datei gehört zum Projekt A7100 Emulator 
- * Copyright (c) 2011-2016 Dirk Bräuer
+ * Copyright (c) 2011-2018 Dirk Bräuer
  *
  * Der A7100 Emulator ist Freie Software: Sie können ihn unter den Bedingungen
  * der GNU General Public License, wie von der Free Software Foundation,
@@ -24,10 +24,17 @@
  *   24.07.2016 - Laden und Speichern des Zustands in beliebige Dateien
  *   29.07.2016 - Exceptions beim Laden und Speichern von Zuständen
  *   09.08.2016 - Logger hinzugefügt und Ausgaben umgeleitet
+ *   18.03.2018 - Laden der Modulkonfiguration ergänzt
+ *              - Laden und Speichern der Zustände von ZPS, ABS und ASP ergänzt
+ *              - Laden der Hacks und Zeitseinstellung ergänzt
  */
 package a7100emulator.components;
 
+import a7100emulator.Debug.Debugger;
+import a7100emulator.Tools.ConfigurationManager;
+import a7100emulator.components.ic.KR580WM51A;
 import a7100emulator.components.modules.ABG;
+import a7100emulator.components.modules.ABS;
 import a7100emulator.components.modules.ASP;
 import a7100emulator.components.modules.KES;
 import a7100emulator.components.modules.KGS;
@@ -68,17 +75,9 @@ public class A7100 {
      */
     private ZPS zps;
     /**
-     * 1. OPS-Modul
+     * OPS-Module
      */
-    private OPS ops1;
-    /**
-     * 2. OPS-Modul
-     */
-    private OPS ops2;
-    /**
-     * 3. OPS-Modul
-     */
-    private OPS ops3;
+    private OPS[] ops;
     /**
      * KGS-Modul
      */
@@ -91,11 +90,16 @@ public class A7100 {
      * ASP-Modul
      */
     private ASP asp;
+    /**
+     * ABS-Modul
+     */
+    private ABS abs;
 
     /**
      * Erstellt einen neuen virtuellen A7100 und startet ihn
      */
     public A7100() {
+        loadConfiguration();
         initModules();
         startClock();
     }
@@ -159,13 +163,23 @@ public class A7100 {
         try {
             DataOutputStream dos = new DataOutputStream(new FileOutputStream(stateFile));
 
-            // TODO: Speichern der Module ZPS, ASP
             zve.saveState(dos);
-            ops1.saveState(dos);
-            ops2.saveState(dos);
-            ops3.saveState(dos);
-            kgs.saveState(dos);
+            if (zps != null) {
+                zps.saveState(dos);
+            }
+            for (OPS opsModule : ops) {
+                opsModule.saveState(dos);
+            }
+            if (kgs != null) {
+                kgs.saveState(dos);
+            }
+            if (abs != null) {
+                abs.saveState(dos);
+            }
             kes.saveState(dos);
+            if (asp != null) {
+                asp.saveState(dos);
+            }
 
             InterruptSystem.getInstance().saveState(dos);
             Keyboard.getInstance().saveState(dos);
@@ -190,6 +204,8 @@ public class A7100 {
      * auftritt
      */
     public void loadState(File stateFile) throws IOException {
+        LOG.log(Level.CONFIG, "Lade Emulatorzustand aus Datei {0}", stateFile.getName());
+
         pause();
         try {
             // Warte 100ms um das Anhalten des Systems zu garantieren
@@ -201,13 +217,23 @@ public class A7100 {
         try {
             DataInputStream dis = new DataInputStream(new FileInputStream(stateFile));
 
-            // TODO: Laden der Module ZPS, ASP
             zve.loadState(dis);
-            ops1.loadState(dis);
-            ops2.loadState(dis);
-            ops3.loadState(dis);
-            kgs.loadState(dis);
+            if (zps != null) {
+                zps.loadState(dis);
+            }
+            for (OPS opsModule : ops) {
+                opsModule.loadState(dis);
+            }
+            if (kgs != null) {
+                kgs.loadState(dis);
+            }
+            if (abs != null) {
+                abs.loadState(dis);
+            }
             kes.loadState(dis);
+            if (asp != null) {
+                asp.loadState(dis);
+            }
 
             InterruptSystem.getInstance().loadState(dis);
             Keyboard.getInstance().loadState(dis);
@@ -226,6 +252,8 @@ public class A7100 {
      * werden die reset Funktionen der Module sowie der Peripherie aufgerufen.
      */
     public void reset() {
+        LOG.log(Level.CONFIG, "Emulator-Reset");
+        
         GlobalClock.getInstance().stop();
         try {
             // Warte 100ms um das Anhalten des Systems zu garantieren
@@ -278,14 +306,58 @@ public class A7100 {
         ASP.asp_count = 0;
         ZPS.zps_count = 0;
 
+        boolean debugGlobal = ConfigurationManager.getInstance().readBoolean("Debugger", "Global", false);
+        Debugger.getGlobalInstance().setDebug(debugGlobal);
+
         zve = new ZVE();
-//        zps = new ZPS(zve);
-        ops1 = new OPS();
-        ops2 = new OPS();
-        ops3 = new OPS();
-        kgs = new KGS();
+        boolean debugZVE = ConfigurationManager.getInstance().readBoolean("Debugger", "ZVE", false);
+        zve.setDebug(debugZVE);
+
+        // Prüfe auf ZPS-Verwendung
+        boolean useZPS = ConfigurationManager.getInstance().readBoolean("Modules", "ZPS", false);
+        LOG.log(Level.CONFIG, "Verwendung der ZPS ist {0}", new String[]{(useZPS ? "aktiviert" : "deaktiviert")});
+        if (useZPS) {
+            zps = new ZPS(zve);
+        } else {
+            zps = null;
+        }
+
+        // Lade Anzahl der OPS
+        int opsCount = ConfigurationManager.getInstance().readInteger("Modules", "OPS", 2);
+        ops = new OPS[opsCount];
+        LOG.log(Level.CONFIG, "Anzahl der OPS Module: {0}", new Integer[]{opsCount});
+        for (int opsID = 0; opsID < opsCount; opsID++) {
+            ops[opsID] = new OPS();
+        }
+
+        // Prüfe auf KGS+ABG-Verwendung
+        boolean useKGS = ConfigurationManager.getInstance().readBoolean("Modules", "KGS", true);
+        if (useKGS) {
+            LOG.log(Level.CONFIG, "Grafikmodus unter Verwendung von KGS+ABG");
+            kgs = new KGS();
+            boolean debugKGS = ConfigurationManager.getInstance().readBoolean("Debugger", "KGS", false);
+            kgs.setDebug(debugKGS);
+            abs = null;
+        } else {
+            LOG.log(Level.CONFIG, "Grafikmodus unter Verwendung der ABS");
+            abs = new ABS();
+            kgs = null;
+        }
+
         kes = new KES();
-        asp = null;
+        boolean debugKES = ConfigurationManager.getInstance().readBoolean("Debugger", "KES", false);
+        if (debugKES) {
+            LOG.log(Level.WARNING, "Debugger für KES noch nicht implementiert");
+        }
+
+        // Prüfe ASP Verwendung
+        boolean useASP = ConfigurationManager.getInstance().readBoolean("Modules", "ASP", false);
+        LOG.log(Level.CONFIG, "Verwendung der ASP ist {0}", new String[]{(useASP ? "aktiviert" : "deaktiviert")});
+        if (useASP) {
+            asp = new ASP();
+        } else {
+            asp = null;
+        }
     }
 
     /**
@@ -295,5 +367,18 @@ public class A7100 {
      */
     public ABG getABG() {
         return kgs.getABG();
+    }
+
+    /**
+     * Liest die Konfigurationseinstellungen aus der Konfigurationsdatei und
+     * wendet diese an.
+     */
+    private void loadConfiguration() {
+        // TODO: Hack möglichst bald entfernen
+        boolean keyboardReset = ConfigurationManager.getInstance().readBoolean("Hacks", "DisableKeyboardReset", false);
+        KR580WM51A.setKeyboardResetHack(keyboardReset);
+
+        boolean timeSync = ConfigurationManager.getInstance().readBoolean("Emulation", "TimeSync", false);
+        GlobalClock.getInstance().setSynchronizeClock(timeSync);
     }
 }

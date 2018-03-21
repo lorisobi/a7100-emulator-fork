@@ -2,7 +2,7 @@
  * KGS.java
  * 
  * Diese Datei gehört zum Projekt A7100 Emulator 
- * Copyright (c) 2011-2016 Dirk Bräuer
+ * Copyright (c) 2011-2018 Dirk Bräuer
  *
  * Der A7100 Emulator ist Freie Software: Sie können ihn unter den Bedingungen
  * der GNU General Public License, wie von der Free Software Foundation,
@@ -36,13 +36,15 @@
  *   29.07.2016 - IOException beim Speichern des KGS-Rams hinzugefügt
  *   07.08.2016 - Logger hinzugefügt und Ausgaben umgeleitet
  *   09.08.2016 - Fehler beim Laden der EPROMS abgefangen
- *   18.08.2016 - Kommentare überarbeitet
+ *   18.03.2018 - EPROMS Pfad wird aus Konfiguration gelesen
+ *              - Rückgabe Debugger-Status implementiert
  */
 package a7100emulator.components.modules;
 
 import a7100emulator.Debug.Decoder;
 import a7100emulator.Debug.MemoryAnalyzer;
 import a7100emulator.Tools.BitmapGenerator;
+import a7100emulator.Tools.ConfigurationManager;
 import a7100emulator.Tools.Memory;
 import a7100emulator.components.ic.UA856;
 import a7100emulator.components.ic.UA857;
@@ -336,10 +338,10 @@ public final class KGS implements IOModule, ClockModule, SubsystemModule {
             case LOCAL_PORT_STATE:
                 return state;
             case LOCAL_PORT_INT_FLAG:
-                LOG.log(Level.FINE, "Lesen INT-Flag (Port {0}) nicht implementiert!", String.format("0x%02X", port));
+                LOG.log(Level.WARNING, "Lesen INT-Flag (Port {0}) nicht implementiert!", String.format("0x%02X", port));
                 break;
             case LOCAL_PORT_ERR_FLAG:
-                LOG.log(Level.FINE, "Lesen ERR-Flag (Port {0}) nicht implementiert!", String.format("0x%02X", port));
+                LOG.log(Level.WARNING, "Lesen ERR-Flag (Port {0}) nicht implementiert!", String.format("0x%02X", port));
                 break;
             case LOCAL_PORT_MSEL:
                 LOG.log(Level.FINER, "Lesen MSEL (Port {0}) nicht erlaubt!", String.format("0x%02X", port));
@@ -526,7 +528,8 @@ public final class KGS implements IOModule, ClockModule, SubsystemModule {
      */
     @Override
     public void init() {
-        final File kgsRom = new File("./eproms/KGS-K7070-152.rom");
+        String directory = ConfigurationManager.getInstance().readString("directories", "eproms", "./eproms/");
+        final File kgsRom = new File(directory + "KGS-K7070-152.rom");
         if (!kgsRom.exists()) {
             LOG.log(Level.SEVERE, "KGS-EPROM {0} nicht gefunden!", kgsRom.getPath());
             JOptionPane.showMessageDialog(null, "Eprom: " + kgsRom.getName() + " nicht gefunden!", "Eprom nicht gefunden", JOptionPane.ERROR_MESSAGE);
@@ -543,6 +546,7 @@ public final class KGS implements IOModule, ClockModule, SubsystemModule {
         abg = new ABG(this);
         registerPorts();
         registerClocks();
+        initializeSelectBytes();
     }
 
     /**
@@ -676,7 +680,7 @@ public final class KGS implements IOModule, ClockModule, SubsystemModule {
     }
 
     /**
-     * Leitet die Anfrage der Interruptbehandlung an die CPU weiter
+     * Leitet die Anfrage der Interruptbehandlung an die CPU weiter.
      *
      * @param i Interruptnummer
      */
@@ -687,12 +691,24 @@ public final class KGS implements IOModule, ClockModule, SubsystemModule {
     }
 
     /**
-     * Aktiviert oder deaktiviert den Debugger der CPU
+     * Aktiviert oder deaktiviert den Debugger der CPU.
      *
-     * @param debug true - Aktivieren, false - Deaktivieren
+     * @param debug <code>true</code> - zum Aktivieren des Debuggers,
+     * <code>false</code> - Zum Deaktivieren des Debuggers
      */
     public void setDebug(boolean debug) {
+        LOG.log(Level.CONFIG, "Debugger des KGS {0}", new String[]{(debug ? "aktiviert" : "deaktiviert")});
         cpu.setDebug(debug);
+    }
+
+    /**
+     * Gibt an ob der Debugger aktiviert ist.
+     *
+     * @return <code>true</code> - wenn Debugger aktiviert ist,
+     * <code>false</code> - sonst
+     */
+    public boolean isDebug() {
+        return cpu.isDebug();
     }
 
     /**
@@ -741,5 +757,49 @@ public final class KGS implements IOModule, ClockModule, SubsystemModule {
      */
     public Decoder getDecoder() {
         return cpu.getDecoder();
+    }
+
+    /**
+     * Stellt die Select-Bytes gemäß A7100 Konfiguration und den Optionen aus
+     * der Konfigurationsdatei ein.
+     */
+    private void initializeSelectBytes() {
+        // Die Schalterfelder sind invertiert zum Bit des selectRegisters
+        
+        // Schalterfeld 0 - Nur ein vom Benutzer wählbarer Schalter
+        boolean s3_0304 = ConfigurationManager.getInstance().readBoolean("KGS", "S3_0304", true);
+        selectByte0 = s3_0304 ? 0x02 : 0x03;
+
+        // Schalterfeld 1 
+        boolean s2_0102 = ConfigurationManager.getInstance().readBoolean("KGS", "S2_0102", true);
+        selectByte1 = s2_0102 ? 0x00 : 0x01;
+        boolean s2_0304 = ConfigurationManager.getInstance().readBoolean("KGS", "S2_0304", false);
+        if (!s2_0304) {
+            selectByte1 |= 0x02;
+        }
+        boolean s2_0506 = ConfigurationManager.getInstance().readBoolean("KGS", "S2_0506", true);
+        if (!s2_0506) {
+            selectByte1 |= 0x04;
+        }
+        boolean s2_0708 = ConfigurationManager.getInstance().readBoolean("KGS", "S2_0708", false);
+        if (!s2_0708) {
+            selectByte1 |= 0x08;
+        }
+        boolean s2_0910 = ConfigurationManager.getInstance().readBoolean("KGS", "S2_0910", false);
+        if (!s2_0910) {
+            selectByte1 |= 0x10;
+        }
+        boolean s2_1112 = ConfigurationManager.getInstance().readBoolean("KGS", "S2_1112", false);
+        if (!s2_1112) {
+            selectByte1 |= 0x20;
+        }
+        boolean s2_1314 = ConfigurationManager.getInstance().readBoolean("KGS", "S2_1314", false);
+        if (!s2_1314) {
+            selectByte1 |= 0x40;
+        }
+        boolean s2_1516 = ConfigurationManager.getInstance().readBoolean("KGS", "S2_1516", false);
+        if (!s2_1516) {
+            selectByte1 |= 0x80;
+        }
     }
 }

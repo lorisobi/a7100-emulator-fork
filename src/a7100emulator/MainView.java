@@ -2,7 +2,7 @@
  * MainView.java
  * 
  * Diese Datei gehört zum Projekt A7100 Emulator 
- * Copyright (c) 2011-2016 Dirk Bräuer
+ * Copyright (c) 2011-2018 Dirk Bräuer
  *
  * Der A7100 Emulator ist Freie Software: Sie können ihn unter den Bedingungen
  * der GNU General Public License, wie von der Free Software Foundation,
@@ -50,6 +50,8 @@
  *   29.07.2016 - Abfangen und Anzeigen von Fehlern bei Laden/Speichern
  *   09.08.2016 - Logger hinzugefügt und Ausgaben umgeleitet
  *   13.10.2016 - Diskettennamen werden aus Images geladen
+ *   18.03.2016 - Verzeichnisse werden aus Konfiguration geladen
+ *              - Menüs für Debugger werden durch Zustand aktualisiert 
  */
 package a7100emulator;
 
@@ -58,6 +60,7 @@ import a7100emulator.Apps.SCPDiskViewer.SCPDiskViewer;
 import a7100emulator.Debug.Debugger;
 import a7100emulator.Debug.MemoryAnalyzer;
 import a7100emulator.Debug.OpcodeStatistic;
+import a7100emulator.Tools.ConfigurationManager;
 import a7100emulator.components.A7100;
 import a7100emulator.components.ic.KR580WM51A;
 import a7100emulator.components.system.GlobalClock;
@@ -550,15 +553,19 @@ public class MainView extends JFrame {
         this.pack();
         this.setLocationRelativeTo(null);
         this.setMinimumSize(this.getSize());
+        this.updateStatus();
     }
 
     /**
      * Aktualisiert die Anzeige anhand des aktuellen Emulatorzustands.
      */
     private void updateStatus() {
-        // TODO: Debugzustände einpflegen
+        menuDebugGlobalDebuggerSwitch.setSelected(Debugger.getGlobalInstance().isDebug());
+        menuDebugZVEDebuggerSwitch.setSelected(a7100.getZVE().isDebug());
+        menuDebugKGSDebuggerSwitch.setSelected(a7100.getKGS().isDebug());
 
         menuHacksKeyboardReset.setSelected(KR580WM51A.isKeyboardResetHack());
+        
         menuEmulatorSync.setSelected(GlobalClock.getInstance().isSynchronizedClock());
         menuEmulatorPause.setSelected(GlobalClock.getInstance().isSuspended());
         menuEmulatorSingle.setEnabled(GlobalClock.getInstance().isSuspended());
@@ -599,14 +606,16 @@ public class MainView extends JFrame {
             } else if (e.getSource().equals(menuEmulatorSync)) {
                 GlobalClock.getInstance().setSynchronizeClock(menuEmulatorSync.isSelected());
             } else if (e.getSource().equals(menuEmulatorSave)) {
+                String directory = ConfigurationManager.getInstance().readString("directories", "state", "./state/");
                 try {
-                    a7100.saveState(new File("./state/state.a7100"));
+                    a7100.saveState(new File(directory + "state.a7100"));
                 } catch (IOException ex) {
-                    LOG.log(Level.WARNING, "Fehler beim Speichern des Emulatorzustands in die Datei ./state/state.a7100!", ex);
-                    JOptionPane.showMessageDialog(null, "Fehler beim Speichern der Datei ./state/state.a7100!", "Speicherfehler", JOptionPane.ERROR_MESSAGE);
+                    LOG.log(Level.WARNING, "Fehler beim Speichern des Emulatorzustands in die Datei " + directory + "state.a7100!", ex);
+                    JOptionPane.showMessageDialog(null, "Fehler beim Speichern der Datei " + directory + "state.a7100!", "Speicherfehler", JOptionPane.ERROR_MESSAGE);
                 }
             } else if (e.getSource().equals(menuEmulatorSaveAs)) {
-                JFileChooser saveDialog = new JFileChooser("./state/");
+                String directory = ConfigurationManager.getInstance().readString("directories", "state", "./state/");
+                JFileChooser saveDialog = new JFileChooser(directory);
                 FileNameExtensionFilter filter = new FileNameExtensionFilter("A7100 Emulatorzustände", "a7100");
                 saveDialog.setFileFilter(filter);
                 if (saveDialog.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
@@ -622,14 +631,16 @@ public class MainView extends JFrame {
                     }
                 }
             } else if (e.getSource().equals(menuEmulatorLoad)) {
+                String directory = ConfigurationManager.getInstance().readString("directories", "state", "./state/");
                 try {
-                    a7100.loadState(new File("./state/state.a7100"));
+                    a7100.loadState(new File(directory + "state.a7100"));
                 } catch (IOException ex) {
-                    LOG.log(Level.WARNING, "Fehler beim Laden des Emulatorzustands aus der Datei ./state/state.a7100!", ex);
-                    JOptionPane.showMessageDialog(null, "Fehler beim Laden der Datei ./state/state.a7100!", "Ladefehler", JOptionPane.ERROR_MESSAGE);
+                    LOG.log(Level.WARNING, "Fehler beim Laden des Emulatorzustands aus der Datei " + directory + "state.a7100!", ex);
+                    JOptionPane.showMessageDialog(null, "Fehler beim Laden der Datei " + directory + "state.a7100!", "Ladefehler", JOptionPane.ERROR_MESSAGE);
                 }
             } else if (e.getSource().equals(menuEmulatorLoadFrom)) {
-                JFileChooser loadDialog = new JFileChooser("./state/");
+                String directory = ConfigurationManager.getInstance().readString("directories", "state", "./state/");
+                JFileChooser loadDialog = new JFileChooser(directory);
                 FileNameExtensionFilter filter = new FileNameExtensionFilter("A7100 Emulatorzustände", "a7100");
                 loadDialog.setFileFilter(filter);
                 if (loadDialog.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
@@ -649,20 +660,22 @@ public class MainView extends JFrame {
             } else if (e.getSource() == menuDebugZVEDecoderShow) {
                 a7100.getZVE().getDecoder().show();
             } else if (e.getSource() == menuDebugSystemMemoryDump) {
+                String directory = ConfigurationManager.getInstance().readString("directories", "debug", "./debug/");
                 try {
-                    MMS16Bus.getInstance().dumpSystemMemory("./debug/system_user_dump.hex");
+                    MMS16Bus.getInstance().dumpSystemMemory(directory + "system_user_dump.hex");
                 } catch (IOException ex) {
-                    LOG.log(Level.WARNING, "Fehler beim Speichern des Speicherabbilds in die Datei ./debug/system_user_dump.hex!", ex);
-                    JOptionPane.showMessageDialog(null, "Fehler beim Speichern der Datei ./debug/system_user_dump.hex!", "Speicherfehler", JOptionPane.ERROR_MESSAGE);
+                    LOG.log(Level.WARNING, "Fehler beim Speichern des Speicherabbilds in die Datei " + directory + "system_user_dump.hex!", ex);
+                    JOptionPane.showMessageDialog(null, "Fehler beim Speichern der Datei " + directory + "system_user_dump.hex!", "Speicherfehler", JOptionPane.ERROR_MESSAGE);
                 }
             } else if (e.getSource() == menuDebugKGSMemoryShow) {
                 a7100.getKGS().showMemory();
             } else if (e.getSource() == menuDebugKGSMemoryDump) {
+                String directory = ConfigurationManager.getInstance().readString("directories", "debug", "./debug/");
                 try {
-                    a7100.getKGS().dumpLocalMemory("./debug/kgs_user_dump.hex");
+                    a7100.getKGS().dumpLocalMemory(directory + "kgs_user_dump.hex");
                 } catch (IOException ex) {
-                    LOG.log(Level.WARNING, "Fehler beim Speichern des Speicherabbilds in die Datei ./debug/kgs_user_dump.hex!", ex);
-                    JOptionPane.showMessageDialog(null, "Fehler beim Speichern der Datei ./debug/kgs_user_dump.hex!", "Speicherfehler", JOptionPane.ERROR_MESSAGE);
+                    LOG.log(Level.WARNING, "Fehler beim Speichern des Speicherabbilds in die Datei " + directory + "kgs_user_dump.hex!", ex);
+                    JOptionPane.showMessageDialog(null, "Fehler beim Speichern der Datei " + directory + "kgs_user_dump.hex!", "Speicherfehler", JOptionPane.ERROR_MESSAGE);
                 }
             } else if (e.getSource().equals(menuDebugKGSDebuggerSwitch)) {
                 a7100.getKGS().setDebug(menuDebugKGSDebuggerSwitch.isSelected());
@@ -706,39 +719,44 @@ public class MainView extends JFrame {
             } else if (e.getSource() == menuDebugABGGraphicsPage2) {
                 a7100.getABG().showMemory(3);
             } else if (e.getSource() == menuDebugABGDumpAlphanumericsPage1) {
+                String directory = ConfigurationManager.getInstance().readString("directories", "debug", "./debug/");
                 try {
-                    a7100.getABG().dumpMemory("./debug/abg_an1_user_dump.hex", 0);
+                    a7100.getABG().dumpMemory(directory + "abg_an1_user_dump.hex", 0);
                 } catch (IOException ex) {
-                    LOG.log(Level.WARNING, "Fehler beim Speichern des ABG Speicherbereichs Analog 1 in die Datei ./debug/abg_an1_user_dump.hex!", ex);
-                    JOptionPane.showMessageDialog(null, "Fehler beim Speichern der Datei ./debug/abg_an1_user_dump.hex!", "Speicherfehler", JOptionPane.ERROR_MESSAGE);
+                    LOG.log(Level.WARNING, "Fehler beim Speichern des ABG Speicherbereichs Analog 1 in die Datei " + directory + "abg_an1_user_dump.hex!", ex);
+                    JOptionPane.showMessageDialog(null, "Fehler beim Speichern der Datei " + directory + "abg_an1_user_dump.hex!", "Speicherfehler", JOptionPane.ERROR_MESSAGE);
                 }
             } else if (e.getSource() == menuDebugABGDumpAlphanumericsPage2) {
+                String directory = ConfigurationManager.getInstance().readString("directories", "debug", "./debug/");
                 try {
-                    a7100.getABG().dumpMemory("./debug/abg_an2_user_dump.hex", 1);
+                    a7100.getABG().dumpMemory(directory + "abg_an2_user_dump.hex", 1);
                 } catch (IOException ex) {
-                    LOG.log(Level.WARNING, "Fehler beim Speichern des ABG Speicherbereichs Analog 2 in die Datei ./debug/abg_an1_user_dump.hex!", ex);
-                    JOptionPane.showMessageDialog(null, "Fehler beim Speichern der Datei ./debug/abg_an2_user_dump.hex!", "Speicherfehler", JOptionPane.ERROR_MESSAGE);
+                    LOG.log(Level.WARNING, "Fehler beim Speichern des ABG Speicherbereichs Analog 2 in die Datei " + directory + "abg_an1_user_dump.hex!", ex);
+                    JOptionPane.showMessageDialog(null, "Fehler beim Speichern der Datei " + directory + "abg_an2_user_dump.hex!", "Speicherfehler", JOptionPane.ERROR_MESSAGE);
                 }
             } else if (e.getSource() == menuDebugABGDumpGraphicsPage1) {
+                String directory = ConfigurationManager.getInstance().readString("directories", "debug", "./debug/");
                 try {
-                    a7100.getABG().dumpMemory("./debug/abg_gr1_user_dump.hex", 2);
+                    a7100.getABG().dumpMemory(directory + "abg_gr1_user_dump.hex", 2);
                 } catch (IOException ex) {
-                    LOG.log(Level.WARNING, "Fehler beim Speichern des ABG Speicherbereichs Grafik 1 in die Datei ./debug/abg_gr1_user_dump.hex!", ex);
-                    JOptionPane.showMessageDialog(null, "Fehler beim Speichern der Datei ./debug/abg_gr1_user_dump.hex!", "Speicherfehler", JOptionPane.ERROR_MESSAGE);
+                    LOG.log(Level.WARNING, "Fehler beim Speichern des ABG Speicherbereichs Grafik 1 in die Datei " + directory + "abg_gr1_user_dump.hex!", ex);
+                    JOptionPane.showMessageDialog(null, "Fehler beim Speichern der Datei " + directory + "abg_gr1_user_dump.hex!", "Speicherfehler", JOptionPane.ERROR_MESSAGE);
                 }
             } else if (e.getSource() == menuDebugABGDumpGraphicsPage2) {
+                String directory = ConfigurationManager.getInstance().readString("directories", "debug", "./debug/");
                 try {
-                    a7100.getABG().dumpMemory("./debug/abg_gr2_user_dump.hex", 3);
+                    a7100.getABG().dumpMemory(directory + "abg_gr2_user_dump.hex", 3);
                 } catch (IOException ex) {
-                    LOG.log(Level.WARNING, "Fehler beim Speichern des ABG Speicherbereichs Grafik 2 in die Datei ./debug/abg_gr2_user_dump.hex!", ex);
-                    JOptionPane.showMessageDialog(null, "Fehler beim Speichern der Datei ./debug/abg_gr2_user_dump.hex!", "Speicherfehler", JOptionPane.ERROR_MESSAGE);
+                    LOG.log(Level.WARNING, "Fehler beim Speichern des ABG Speicherbereichs Grafik 2 in die Datei " + directory + "abg_gr2_user_dump.hex!", ex);
+                    JOptionPane.showMessageDialog(null, "Fehler beim Speichern der Datei " + directory + "abg_gr2_user_dump.hex!", "Speicherfehler", JOptionPane.ERROR_MESSAGE);
                 }
             } else if (e.getSource() == menuDebugAFSShowFloppyDisk0) {
                 a7100.getKES().getAFS().showFloppy(0);
             } else if (e.getSource() == menuDebugAFSShowFloppyDisk1) {
                 a7100.getKES().getAFS().showFloppy(1);
             } else if (e.getSource() == menuDevicesDrive0Load) {
-                JFileChooser loadDialog = new JFileChooser("./disks/");
+                String directory = ConfigurationManager.getInstance().readString("directories", "disks", "./disks/");
+                JFileChooser loadDialog = new JFileChooser(directory);
                 if (loadDialog.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
                     File image = loadDialog.getSelectedFile();
                     try {
@@ -749,7 +767,8 @@ public class MainView extends JFrame {
                     }
                 }
             } else if (e.getSource() == menuDevicesDrive0Save) {
-                JFileChooser saveDialog = new JFileChooser("./disks/");
+                String directory = ConfigurationManager.getInstance().readString("directories", "disks", "./disks/");
+                JFileChooser saveDialog = new JFileChooser(directory);
                 if (saveDialog.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
                     File image = saveDialog.getSelectedFile();
                     try {
@@ -766,7 +785,8 @@ public class MainView extends JFrame {
             } else if (e.getSource() == menuDevicesDrive0WriteProtect) {
                 a7100.getKES().getAFS().getFloppy(0).setWriteProtect(menuDevicesDrive0WriteProtect.isSelected());
             } else if (e.getSource() == menuDevicesDrive1Load) {
-                JFileChooser loadDialog = new JFileChooser("./disks/");
+                String directory = ConfigurationManager.getInstance().readString("directories", "disks", "./disks/");
+                JFileChooser loadDialog = new JFileChooser(directory);
                 if (loadDialog.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
                     File image = loadDialog.getSelectedFile();
                     try {
@@ -777,7 +797,8 @@ public class MainView extends JFrame {
                     }
                 }
             } else if (e.getSource() == menuDevicesDrive1Save) {
-                JFileChooser saveDialog = new JFileChooser("./disks/");
+                String directory = ConfigurationManager.getInstance().readString("directories", "disks", "./disks/");
+                JFileChooser saveDialog = new JFileChooser(directory);
                 if (saveDialog.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
                     File image = saveDialog.getSelectedFile();
                     try {
@@ -803,13 +824,14 @@ public class MainView extends JFrame {
                     JOptionPane.showMessageDialog(null, "Fehler beim Lesen oder Erzeugen der Datenbank.\nSCP-Disk Tool kann nicht gestartet werden!", "Datenbankfehler", JOptionPane.ERROR_MESSAGE);
                 }
             } else if (e.getSource() == menuToolsScreenshot) {
+                String directory = ConfigurationManager.getInstance().readString("directories", "screenshots", "./screenshots/");
                 SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH-mm-ss");
                 String dateString = sdf.format(Calendar.getInstance().getTime());
-                File snapFile = new File("./screenshots/" + dateString + " A7100.png");
+                File snapFile = new File(directory + dateString + " A7100.png");
                 if (snapFile.exists()) {
                     int i = 0;
                     do {
-                        snapFile = new File("./screenshots/" + dateString + " A7100" + i + ".png");
+                        snapFile = new File(directory + dateString + " A7100" + i + ".png");
                     } while (snapFile.exists());
                 }
                 try {
@@ -819,7 +841,8 @@ public class MainView extends JFrame {
                     JOptionPane.showMessageDialog(null, "Fehler beim Speichern des Screenshots " + snapFile.getName() + "!", "Speicherfehler", JOptionPane.ERROR_MESSAGE);
                 }
             } else if (e.getSource() == menuToolsScreenshotAs) {
-                JFileChooser saveDialog = new JFileChooser("./screenshots/");
+                String directory = ConfigurationManager.getInstance().readString("directories", "screenshots", "./screenshots/");
+                JFileChooser saveDialog = new JFileChooser(directory);
                 FileNameExtensionFilter filter = new FileNameExtensionFilter("PNG Dateien", "png");
                 saveDialog.setFileFilter(filter);
                 if (saveDialog.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
@@ -844,7 +867,7 @@ public class MainView extends JFrame {
                 pan_desc.setBorder(BorderFactory.createEmptyBorder(0, 50, 0, 10));
                 pan_desc.setLayout(new GridLayout(2, 1));
                 pan_desc.add(new JLabel("A7100 - Emulator v0.8.90"));
-                pan_desc.add(new JLabel("Copyright (c) 2011-2016 Dirk Bräuer"));
+                pan_desc.add(new JLabel("Copyright (c) 2011-2018 Dirk Bräuer"));
                 pan_about.add(pan_desc, BorderLayout.CENTER);
                 JTextArea licenseText = new JTextArea();
                 licenseText.setText("Lizenzinformationen:\n\n"
@@ -881,7 +904,7 @@ public class MainView extends JFrame {
 
                 JOptionPane.showMessageDialog(MainView.this, pan_about, "Über", JOptionPane.PLAIN_MESSAGE);
             }
-            
+
             // Anzeigen aktualisieren
             updateStatus();
         }

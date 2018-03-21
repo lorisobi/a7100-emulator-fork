@@ -2,7 +2,7 @@
  * OPS.java
  * 
  * Diese Datei gehört zum Projekt A7100 Emulator 
- * Copyright (c) 2011-2016 Dirk Bräuer
+ * Copyright (c) 2011-2018 Dirk Bräuer
  *
  * Der A7100 Emulator ist Freie Software: Sie können ihn unter den Bedingungen
  * der GNU General Public License, wie von der Free Software Foundation,
@@ -149,7 +149,7 @@ public final class OPS implements IOModule, MemoryModule {
      */
     @Override
     public void writePortWord(int port, int data) {
-        LOG.log(Level.FINE, "Schreiben von Wörtern auf Port {0} noch nicht implementiert!", String.format("0x%02X", port));
+        LOG.log(Level.WARNING, "Schreiben von Wörtern auf Port {0} noch nicht implementiert!", String.format("0x%02X", port));
     }
 
     /**
@@ -176,7 +176,7 @@ public final class OPS implements IOModule, MemoryModule {
      */
     @Override
     public int readPortWord(int port) {
-        LOG.log(Level.FINE, "Lesen von Wörtern von Port {0} noch nicht implementiert!", String.format("0x%02X", port));
+        LOG.log(Level.WARNING, "Lesen von Wörtern von Port {0} noch nicht implementiert!", String.format("0x%02X", port));
         return 0;
     }
 

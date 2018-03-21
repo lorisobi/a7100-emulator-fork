@@ -40,12 +40,17 @@ Inhaltsverzeichnis:
     
   vX.X.XX - XX.XX.XXXX
   Neue Features:
-
+    - Decoder für UA880 ergänzt
+    - Loggen von Programmabläufen und Fehlern
+    - Konfigurationsdatei zur Anpassung des Emulatorverhaltens und des A7100
+    - Unterstützung des ZPS
+    - KGS Zeichen 24h umschaltbar
   Neuerungen im SCP-Disketten-Tool:
 
   Änderungen/Bugfixes:
     - Diskettennamen in Statusleiste werden nach Reset aktualisiert
     - Teledisk Images mit Kommentaren implementiert
+    - CAPS-Lock implementiert
   Softwarekompatibilität:
     - Absturz nach Titel -> Läuft: Burg, Goff
  
@@ -127,13 +132,13 @@ Meteor             ***
 
 4.1 Benötigte EPROMS:
 Für den Betrieb des Emulators werden gegenwärtig die EPROMS der ZVE und KGS
-benötigt. Diese müssen beim Programmstart im Unterverzeichnis EPROMS wie folgt
-abgelegt werden:
-    ZVE: - AHCL     ./eproms/ZVE-K2771.10-259.rom
-         - AWCL     ./eproms/ZVE-K2771.10-260.rom
-         - BOCL     ./eproms/ZVE-K2771.10-261.rom
-         - CGCL     ./eproms/ZVE-K2771.10-262.rom
-    KGS: - KGS-ROM  ./eproms/KGS-K7070-152.rom
+benötigt. Diese müssen beim Programmstart im EPROMS Verzeichnis (Pfad über 
+Konfigurationsdatei änderbar, Standard ./eproms/) wie folgt abgelegt werden:
+    ZVE: - AHCL     ZVE-K2771.10-259.rom
+         - AWCL     ZVE-K2771.10-260.rom
+         - BOCL     ZVE-K2771.10-261.rom
+         - CGCL     ZVE-K2771.10-262.rom
+    KGS: - KGS-ROM  KGS-K7070-152.rom
     
 Andere als die angegebenen Versionen wurden bisher nicht getestet.
 

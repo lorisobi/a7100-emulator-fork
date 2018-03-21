@@ -2,7 +2,7 @@
  * FloppyDrive.java
  * 
  * Diese Datei gehört zum Projekt A7100 Emulator 
- * Copyright (c) 2011-2016 Dirk Bräuer
+ * Copyright (c) 2011-2018 Dirk Bräuer
  *
  * Der A7100 Emulator ist Freie Software: Sie können ihn unter den Bedingungen
  * der GNU General Public License, wie von der Free Software Foundation,
@@ -41,6 +41,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
@@ -196,6 +197,7 @@ public class FloppyDrive implements StateSavable {
      * Erzeugt eine leere Diskette
      */
     public void newDisk() {
+        LOG.log(Level.CONFIG, "Erzeuge leere Diskette");
         disk = new FloppyDisk("[Leere Diskette]");
     }
 
@@ -236,6 +238,7 @@ public class FloppyDrive implements StateSavable {
      * auftritt
      */
     public void loadDiskFromFile(File file) throws IOException {
+        LOG.log(Level.CONFIG, "Lade Diskettenabbild aus Datei \"{0}\"", file.getName());
         disk = FloppyImageParser.loadDiskFromImageFile(file);
     }
 
@@ -243,6 +246,7 @@ public class FloppyDrive implements StateSavable {
      * Wirft die Diskette aus
      */
     public void ejectDisk() {
+        LOG.log(Level.CONFIG, "Entferne Diskette aus Laufwerk");
         disk = null;
     }
 
