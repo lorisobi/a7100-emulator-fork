@@ -48,6 +48,8 @@ public class Memory {
 
     /**
      * Speichertyp
+     * <p>
+     * TODO: Noch notwendig?
      */
     public enum MemoryType {
 

@@ -27,6 +27,8 @@
  *   18.03.2018 - Laden der Modulkonfiguration ergänzt
  *              - Laden und Speichern der Zustände von ZPS, ABS und ASP ergänzt
  *              - Laden der Hacks und Zeitseinstellung ergänzt
+ *   23.03.2018 - Rückgabe der ABS ergänzt
+ *              - Debuggerzustand für ABS aus Konfiguration lesen
  */
 package a7100emulator.components;
 
@@ -131,6 +133,16 @@ public class A7100 {
     public KGS getKGS() {
         return kgs;
     }
+    
+    /**
+     * Gibt die Referenz auf das ABS-Modul zurück. Wird für Debug-Ausgaben
+     * verwendet
+     *
+     * @return KGS-Modul
+     */
+    public ABS getABS() {
+        return abs;
+    }    
 
     /**
      * Gitb Referenz auf das KES-Modul zurück. Wird für die Verwaltung der
@@ -341,6 +353,8 @@ public class A7100 {
         } else {
             LOG.log(Level.CONFIG, "Grafikmodus unter Verwendung der ABS");
             abs = new ABS();
+            boolean debugABS = ConfigurationManager.getInstance().readBoolean("Debugger", "ABS", false);
+            abs.setDebug(debugABS);
             kgs = null;
         }
 

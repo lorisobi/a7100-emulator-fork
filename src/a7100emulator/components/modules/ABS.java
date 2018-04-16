@@ -22,19 +22,35 @@
  *   09.08.2014 - Zugriffe auf SystemPorts durch MMS16Bus ersetzt
  *   09.08.2016 - Logger hinzugefügt
  *   19.08.2016 - Speicher, Ports und Methoden ergänzt
+ *   23.03.2018 - Zugriff auf Arbeitsspeicher implementiert
+ *              - Laden der EPROMS implentiert
+ *              - CPU hinzugefügt
+ *              - Debugging-Methoden ergänzt
  */
 package a7100emulator.components.modules;
 
+import a7100emulator.Debug.Decoder;
+import a7100emulator.Debug.MemoryAnalyzer;
+import a7100emulator.Tools.BitmapGenerator;
 import a7100emulator.Tools.ConfigurationManager;
 import a7100emulator.Tools.Memory;
+import a7100emulator.components.ic.KR580WG75;
+import a7100emulator.components.ic.UA880;
 import a7100emulator.components.system.GlobalClock;
 import a7100emulator.components.system.MMS16Bus;
+import a7100emulator.components.system.QuartzCrystal;
+import java.awt.Dimension;
+import java.awt.Graphics;
+import java.awt.image.BufferedImage;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.swing.JComponent;
+import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 
 /**
@@ -59,13 +75,49 @@ public final class ABS implements IOModule, ClockModule, SubsystemModule {
      */
     private final static int PORT_ABS_DATA = 0x202;
     /**
-     * Lokaler Port DMA
+     * Lokaler Port DMA - Kanal 0 - Adresse
      */
-    private final static int LOCAL_PORT_DMA = 0x00;
+    private final static int LOCAL_PORT_DMA_CH0_ADDRESS = 0x00;
     /**
-     * Lokaler Port CRT
+     * Lokaler Port DMA - Kanal 0 - Zähler
      */
-    private final static int LOCAL_PORT_CRT = 0x20;
+    private final static int LOCAL_PORT_DMA_CH0_COUNT = 0x01;
+    /**
+     * Lokaler Port DMA - Kanal 1 - Adresse
+     */
+    private final static int LOCAL_PORT_DMA_CH1_ADDRESS = 0x02;
+    /**
+     * Lokaler Port DMA - Kanal 1 - Zähler
+     */
+    private final static int LOCAL_PORT_DMA_CH1_COUNT = 0x03;
+    /**
+     * Lokaler Port DMA - Kanal 2 - Adresse
+     */
+    private final static int LOCAL_PORT_DMA_CH2_ADDRESS = 0x04;
+    /**
+     * Lokaler Port DMA - Kanal 2 - Zähler
+     */
+    private final static int LOCAL_PORT_DMA_CH2_COUNT = 0x05;
+    /**
+     * Lokaler Port DMA - Kanal 3 - Adresse
+     */
+    private final static int LOCAL_PORT_DMA_CH3_ADDRESS = 0x06;
+    /**
+     * Lokaler Port DMA - Kanal 3 - Zähler
+     */
+    private final static int LOCAL_PORT_DMA_CH3_COUNT = 0x07;
+    /**
+     * Lokaler Port DMA - Modus / Status
+     */
+    private final static int LOCAL_PORT_DMA_MODE_STATUS = 0x08;
+    /**
+     * Lokaler Port CRT-Parameter
+     */
+    private final static int LOCAL_PORT_CRT_PARAMETER = 0x20;
+    /**
+     * Lokaler Port CRT-Parameter
+     */
+    private final static int LOCAL_PORT_CRT_COMMAND = 0x21;
     /**
      * Lokaler Port Matrixregister
      */
@@ -122,11 +174,27 @@ public final class ABS implements IOModule, ClockModule, SubsystemModule {
     /**
      * Programmspeicher + Arbeitsspeicher
      */
-    private Memory ram = new Memory(0x1C00);
+    private Memory ram = new Memory(0x2000);
     /**
      * Zeichensatz - Rom
      */
-    private Memory charRom = new Memory(0x1000);
+    private Memory charRom = new Memory(0x800);
+    /**
+     * Steuerwerk - Rom
+     */
+    private Memory ctrlRom = new Memory(0x800);
+    /**
+     * UA880 CPU der ABS
+     */
+    private final UA880 cpu = new UA880(this, "ABS");
+    /**
+     * CRT-Controller KR580WG75
+     */
+    private final KR580WG75 crt = new KR580WG75();
+    /**
+     * Quarz-CPU Takt
+     */
+    private final QuartzCrystal cpuClock = new QuartzCrystal(2.67);
 
     /**
      * Erstellt eine neue ABS
@@ -172,7 +240,9 @@ public final class ABS implements IOModule, ClockModule, SubsystemModule {
      */
     @Override
     public void clockUpdate(int micros) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        int cycles = cpuClock.getCycles(micros);
+
+        cpu.executeCycles(cycles);
     }
 
     /**
@@ -181,39 +251,39 @@ public final class ABS implements IOModule, ClockModule, SubsystemModule {
     private void initEPROMS() {
         String directory = ConfigurationManager.getInstance().readString("directories", "eproms", "./eproms/");
 
-        final File absRom1 = new File(directory + "ABS-K7071-.rom");
+        final File ctrlRomFile = new File(directory + "ABS-K7071-Q208.rom");
+        if (!ctrlRomFile.exists()) {
+            LOG.log(Level.SEVERE, "ABS-EPROM {0} nicht gefunden!", ctrlRomFile.getPath());
+            JOptionPane.showMessageDialog(null, "Eprom: " + ctrlRomFile.getName() + " nicht gefunden!", "Eprom nicht gefunden", JOptionPane.ERROR_MESSAGE);
+            System.exit(0);
+        }
+
+        final File absRom1 = new File(directory + "ABS-K7071-Q209.rom");
         if (!absRom1.exists()) {
             LOG.log(Level.SEVERE, "ABS-EPROM {0} nicht gefunden!", absRom1.getPath());
             JOptionPane.showMessageDialog(null, "Eprom: " + absRom1.getName() + " nicht gefunden!", "Eprom nicht gefunden", JOptionPane.ERROR_MESSAGE);
             System.exit(0);
         }
 
-        final File absRom2 = new File(directory + "ABS-K7071-.rom");
+        final File absRom2 = new File(directory + "ABS-K7071-Q210.rom");
         if (!absRom1.exists()) {
             LOG.log(Level.SEVERE, "ABS-EPROM {0} nicht gefunden!", absRom1.getPath());
             JOptionPane.showMessageDialog(null, "Eprom: " + absRom1.getName() + " nicht gefunden!", "Eprom nicht gefunden", JOptionPane.ERROR_MESSAGE);
             System.exit(0);
         }
 
-        final File charRom1 = new File(directory + "ABS-K7071-.rom");
-        if (!charRom1.exists()) {
-            LOG.log(Level.SEVERE, "ABS-EPROM {0} nicht gefunden!", charRom1.getPath());
-            JOptionPane.showMessageDialog(null, "Eprom: " + charRom1.getName() + " nicht gefunden!", "Eprom nicht gefunden", JOptionPane.ERROR_MESSAGE);
-            System.exit(0);
-        }
-
-        final File charRom2 = new File(directory + "ABS-K7071-.rom");
-        if (!charRom2.exists()) {
-            LOG.log(Level.SEVERE, "ABS-EPROM {0} nicht gefunden!", charRom2.getPath());
-            JOptionPane.showMessageDialog(null, "Eprom: " + charRom2.getName() + " nicht gefunden!", "Eprom nicht gefunden", JOptionPane.ERROR_MESSAGE);
+        final File charRomFile = new File(directory + "ABS-K7071-Q211.rom");
+        if (!charRomFile.exists()) {
+            LOG.log(Level.SEVERE, "ABS-EPROM {0} nicht gefunden!", charRomFile.getPath());
+            JOptionPane.showMessageDialog(null, "Eprom: " + charRomFile.getName() + " nicht gefunden!", "Eprom nicht gefunden", JOptionPane.ERROR_MESSAGE);
             System.exit(0);
         }
 
         try {
+            ctrlRom.loadFile(0x0000, ctrlRomFile, Memory.FileLoadMode.LOW_AND_HIGH_BYTE);
             ram.loadFile(0x0000, absRom1, Memory.FileLoadMode.LOW_AND_HIGH_BYTE);
             ram.loadFile(0x0800, absRom2, Memory.FileLoadMode.LOW_AND_HIGH_BYTE);
-            charRom.loadFile(0x0000, charRom1, Memory.FileLoadMode.LOW_AND_HIGH_BYTE);
-            charRom.loadFile(0x0800, charRom2, Memory.FileLoadMode.LOW_AND_HIGH_BYTE);
+            charRom.loadFile(0x0000, charRomFile, Memory.FileLoadMode.LOW_AND_HIGH_BYTE);
         } catch (IOException ex) {
             LOG.log(Level.SEVERE, "Fehler beim Laden der ABS-ROMS!", ex);
             System.exit(0);
@@ -236,6 +306,7 @@ public final class ABS implements IOModule, ClockModule, SubsystemModule {
                 break;
             case PORT_ABS_DATA:
                 dataIn = data;
+                System.out.println("Daten zur ABS:" + String.format("%02X", data));
                 setBit(IBF_BIT);
                 break;
             default:
@@ -267,7 +338,7 @@ public final class ABS implements IOModule, ClockModule, SubsystemModule {
         int result = 0;
         switch (port) {
             case PORT_ABS_STATE:
-                result= state;
+                result = state;
                 break;
             case PORT_ABS_DATA:
                 result = dataOut;
@@ -295,9 +366,27 @@ public final class ABS implements IOModule, ClockModule, SubsystemModule {
     @Override
     public int readLocalPort(int port) {
         switch (port) {
-            case LOCAL_PORT_DMA:
+            case LOCAL_PORT_DMA_CH0_ADDRESS:
                 break;
-            case LOCAL_PORT_CRT:
+            case LOCAL_PORT_DMA_CH0_COUNT:
+                break;
+            case LOCAL_PORT_DMA_CH1_ADDRESS:
+                break;
+            case LOCAL_PORT_DMA_CH1_COUNT:
+                break;
+            case LOCAL_PORT_DMA_CH2_ADDRESS:
+                break;
+            case LOCAL_PORT_DMA_CH2_COUNT:
+                break;
+            case LOCAL_PORT_DMA_CH3_ADDRESS:
+                break;
+            case LOCAL_PORT_DMA_CH3_COUNT:
+                break;
+            case LOCAL_PORT_DMA_MODE_STATUS:
+                break;
+            case LOCAL_PORT_CRT_PARAMETER:
+                break;
+            case LOCAL_PORT_CRT_COMMAND:
                 break;
             case LOCAL_PORT_MATRIX:
                 break;
@@ -312,7 +401,7 @@ public final class ABS implements IOModule, ClockModule, SubsystemModule {
             case LOCAL_PORT_EA:
                 break;
             default:
-                LOG.log(Level.FINE, "Lesen von nicht definiertem Port {0}!", String.format("0x%02X", port));
+                LOG.log(Level.WARNING, "Lesen von nicht definiertem Port {0}!", String.format("0x%02X", port));
                 break;
         }
         return 0;
@@ -321,9 +410,27 @@ public final class ABS implements IOModule, ClockModule, SubsystemModule {
     @Override
     public void writeLocalPort(int port, int data) {
         switch (port) {
-            case LOCAL_PORT_DMA:
+            case LOCAL_PORT_DMA_CH0_ADDRESS:
                 break;
-            case LOCAL_PORT_CRT:
+            case LOCAL_PORT_DMA_CH0_COUNT:
+                break;
+            case LOCAL_PORT_DMA_CH1_ADDRESS:
+                break;
+            case LOCAL_PORT_DMA_CH1_COUNT:
+                break;
+            case LOCAL_PORT_DMA_CH2_ADDRESS:
+                break;
+            case LOCAL_PORT_DMA_CH2_COUNT:
+                break;
+            case LOCAL_PORT_DMA_CH3_ADDRESS:
+                break;
+            case LOCAL_PORT_DMA_CH3_COUNT:
+                break;
+            case LOCAL_PORT_DMA_MODE_STATUS:
+                break;
+            case LOCAL_PORT_CRT_PARAMETER:
+                break;
+            case LOCAL_PORT_CRT_COMMAND:
                 break;
             case LOCAL_PORT_MATRIX:
                 break;
@@ -338,7 +445,7 @@ public final class ABS implements IOModule, ClockModule, SubsystemModule {
             case LOCAL_PORT_EA:
                 break;
             default:
-                LOG.log(Level.FINE, "Schreiben auf nicht definiertem Port {0}!", String.format("0x%02X", port));
+                LOG.log(Level.WARNING, "Schreiben auf nicht definiertem Port {0}!", String.format("0x%02X", port));
                 break;
         }
     }
@@ -351,17 +458,8 @@ public final class ABS implements IOModule, ClockModule, SubsystemModule {
      */
     @Override
     public int readLocalByte(int address) {
-        if (address < 0x1000) {
-            // Unterer Adressbereich normal
-            return ram.readByte(address);
-        } else if (address >= 0x1400) {
-            // Überspringe Lücke zwischen 0x1000 und 0x1400
-            return ram.readByte(address - 0x400);
-        } else {
-            // Zugriff auf nicht definierten Speicher zwischen 0x1000 und 0x1400
-            LOG.log(Level.FINER, "Lesen von nicht definierter Speicheradresse {0}!", new String[]{String.format("%04X", address)});
-            return 0;
-        }
+        address &= 0x3FFF;
+        return ram.readByte(address);
     }
 
     /**
@@ -372,17 +470,8 @@ public final class ABS implements IOModule, ClockModule, SubsystemModule {
      */
     @Override
     public int readLocalWord(int address) {
-        if (address < 0x1000) {
-            // Unterer Adressbereich normal
-            return ram.readWord(address);
-        } else if (address >= 0x1400) {
-            // Überspringe Lücke zwischen 0x1000 und 0x1400
-            return ram.readWord(address - 0x400);
-        } else {
-            // Zugriff auf nicht definierten Speicher zwischen 0x1000 und 0x1400
-            LOG.log(Level.FINER, "Lesen von nicht definierter Speicheradresse {0}!", new String[]{String.format("%04X", address)});
-            return 0;
-        }
+        address &= 0x3FFF;
+        return ram.readWord(address);
     }
 
     /**
@@ -393,16 +482,8 @@ public final class ABS implements IOModule, ClockModule, SubsystemModule {
      */
     @Override
     public void writeLocalByte(int address, int data) {
-        if (address < 0x1000) {
-            // Unterer Adressbereich normal
-            ram.writeByte(address, data);
-        } else if (address >= 0x1400) {
-            // Überspringe Lücke zwischen 0x1000 und 0x1400
-            ram.writeByte(address - 0x400, data);
-        } else {
-            // Zugriff auf nicht definierten Speicher zwischen 0x1000 und 0x1400
-            LOG.log(Level.FINER, "Schreiben auf nicht definierter Speicheradresse {0}!", new String[]{String.format("%04X", address)});
-        }
+        address &= 0x3FFF;
+        ram.writeByte(address, data);
     }
 
     /**
@@ -413,16 +494,8 @@ public final class ABS implements IOModule, ClockModule, SubsystemModule {
      */
     @Override
     public void writeLocalWord(int address, int data) {
-        if (address < 0x1000) {
-            // Unterer Adressbereich normal
-            ram.writeWord(address, data);
-        } else if (address >= 0x1400) {
-            // Überspringe Lücke zwischen 0x1000 und 0x1400
-            ram.writeWord(address - 0x400, data);
-        } else {
-            // Zugriff auf nicht definierten Speicher zwischen 0x1000 und 0x1400
-            LOG.log(Level.FINER, "Schreiben auf nicht definierter Speicheradresse {0}!", new String[]{String.format("%04X", address)});
-        }
+        address &= 0x3FFF;
+        ram.writeWord(address, data);
     }
 
     /**
@@ -445,12 +518,53 @@ public final class ABS implements IOModule, ClockModule, SubsystemModule {
 
     @Override
     public void localClockUpdate(int cycles) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+
     }
 
     @Override
     public void requestInterrupt(int i) {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    /**
+     * Zeigt den aktuellen Zeichensatz in einem separaten Fenster an TODO: Auf
+     * RAM erweitern
+     */
+    public void showCharacters() {
+        final BufferedImage characterImage = new BufferedImage(512, 384, BufferedImage.TYPE_INT_RGB);
+        for (int i = 0; i < 128; i++) {
+            int x = (i / 16) * 32 + 24;
+            int y = (i % 16) * 24;
+            // Darstellbares Zeichen
+            byte[] linecode = new byte[16];
+            for (byte line = 0; line < 16; line++) {
+                linecode[line] = (byte) (charRom.readByte((i << 4) + line) & 0xFF);
+            }
+            BufferedImage character = BitmapGenerator.generateBitmapFromLineCode(linecode, false, false, false, false);
+            characterImage.getGraphics().drawImage(character, x, y, null);
+            characterImage.getGraphics().drawString(String.format("%02X", (byte) i), x - 20, y + 10);
+        }
+        JFrame frame = new JFrame("Zeichentabelle");
+        frame.setResizable(false);
+
+        JComponent component = new JComponent() {
+
+            @Override
+            public void paint(Graphics g) {
+                g.drawImage(characterImage, 0, 0, null);
+            }
+        };
+        component.setMinimumSize(new Dimension(512, 384));
+        component.setPreferredSize(new Dimension(512, 384));
+        frame.add(component);
+
+        try {
+            Thread.sleep(100);
+        } catch (InterruptedException ex) {
+            LOG.log(Level.FINEST, null, ex);
+        }
+        frame.setVisible(true);
+        frame.pack();
     }
 
     /**
@@ -465,7 +579,6 @@ public final class ABS implements IOModule, ClockModule, SubsystemModule {
         dos.writeInt(dataIn);
         dos.writeInt(dataOut);
         ram.saveMemory(dos);
-        charRom.saveMemory(dos);
     }
 
     /**
@@ -480,6 +593,56 @@ public final class ABS implements IOModule, ClockModule, SubsystemModule {
         dataIn = dis.readInt();
         dataOut = dis.readInt();
         ram.loadMemory(dis);
-        charRom.loadMemory(dis);
+    }
+
+    /**
+     * Zeigt den Speicher der ABS an.
+     */
+    public void showMemory() {
+        (new MemoryAnalyzer(ram, "ABS-Speicher")).show();
+    }
+
+    /**
+     * Schreibt den Inhalt des ABS-RAM in eine Datei.
+     *
+     * @param filename Dateiname
+     * @throws java.io.IOException Wenn das Speichern des Speicherninhaltes auf
+     * dem Datenträger nicht erfolgreich war
+     */
+    public void dumpLocalMemory(String filename) throws IOException {
+        DataOutputStream dos = new DataOutputStream(new FileOutputStream(filename));
+        ram.saveMemory(dos);
+        dos.close();
+    }
+
+    /**
+     * Aktiviert oder deaktiviert den Debugger der CPU.
+     *
+     * @param debug <code>true</code> - zum Aktivieren des Debuggers,
+     * <code>false</code> - Zum Deaktivieren des Debuggers
+     */
+    public void setDebug(boolean debug) {
+        LOG.log(Level.CONFIG, "Debugger des ABS {0}", new String[]{(debug ? "aktiviert" : "deaktiviert")});
+        cpu.setDebug(debug);
+    }
+
+    /**
+     * Gibt an ob der Debugger aktiviert ist.
+     *
+     * @return <code>true</code> - wenn Debugger aktiviert ist,
+     * <code>false</code> - sonst
+     */
+    public boolean isDebug() {
+        return cpu.isDebug();
+    }
+
+    /**
+     * Gibt die Instanz des CPU-Decoders zurück.
+     *
+     * @return Decoderinstanz oder <code>null</code> wenn kein Decoder
+     * initialisiert ist.
+     */
+    public Decoder getDecoder() {
+        return cpu.getDecoder();
     }
 }
