@@ -63,7 +63,7 @@ public final class ABG implements Module {
      * Logger Instanz
      */
     private static final Logger LOG = Logger.getLogger(ABG.class.getName());
-    
+
     /**
      * Port Funktionsregister
      */
@@ -493,47 +493,50 @@ public final class ABG implements Module {
         // Adresszähler
         int address = ~address_counter & 0x7FFF;
 
-        if (split_register == 0xFF) {
-            //Wenn Splitregister=0xFF: Volles Alphanumerikbild
-            for (int line = 0; line < 400; line++) {
-                for (int column = 0; column < 640; column += 8) {
-                    updateAlphanumericScreen(address, column, line, screenImage);
-                    address = (address - 1) & 0x7FFF;
-                }
-            }
-        } else if (split_register == 0xFE) {
-            //Wenn Splitregister=0xFF: Volles Grafikbild
-            for (int line = 0; line < 400; line++) {
-                for (int column = 0; column < 640; column += 8) {
-                    updateGraphicsScreen(address, column, line, screenImage);
-                    address = (address - 1) & 0x7FFF;
-                }
-            }
-        } else {
-            // Gemischte Darstellung
-            // Splitgrenze berechnen
-            int splitline = split_register * 2 - 1;
-
-            if (!continueSplit) {
-                // Darstellung Grafikbereich
-                for (int line = 0; line < splitline - 1; line++) {
-                    for (int column = 0; column < 640; column += 8) {
-                        updateGraphicsScreen(address, column, line, screenImage);
-                        address = (address - 1) & 0x7FFF;
-                    }
-                }
-                darkLine(splitline - 1, screenImage);
-            } else {
-                // Darstellung Alphanumerikbereich
-                darkLine(splitline, screenImage);
-                for (int line = splitline + 1; line < 400; line++) {
+        switch (split_register) {
+            case 0xFF:
+                //Wenn Splitregister=0xFF: Volles Alphanumerikbild
+                for (int line = 0; line < 400; line++) {
                     for (int column = 0; column < 640; column += 8) {
                         updateAlphanumericScreen(address, column, line, screenImage);
                         address = (address - 1) & 0x7FFF;
                     }
                 }
-            }
-            continueSplit = !continueSplit;
+                break;
+            case 0xFE:
+                //Wenn Splitregister=0xFF: Volles Grafikbild
+                for (int line = 0; line < 400; line++) {
+                    for (int column = 0; column < 640; column += 8) {
+                        updateGraphicsScreen(address, column, line, screenImage);
+                        address = (address - 1) & 0x7FFF;
+                    }
+                }
+                break;
+            default:
+                // Gemischte Darstellung
+                // Splitgrenze berechnen
+                int splitline = split_register * 2 - 1;
+
+                if (!continueSplit) {
+                    // Darstellung Grafikbereich
+                    for (int line = 0; line < splitline - 1; line++) {
+                        for (int column = 0; column < 640; column += 8) {
+                            updateGraphicsScreen(address, column, line, screenImage);
+                            address = (address - 1) & 0x7FFF;
+                        }
+                    }
+                    darkLine(splitline - 1, screenImage);
+                } else {
+                    // Darstellung Alphanumerikbereich
+                    darkLine(splitline, screenImage);
+                    for (int line = splitline + 1; line < 400; line++) {
+                        for (int column = 0; column < 640; column += 8) {
+                            updateAlphanumericScreen(address, column, line, screenImage);
+                            address = (address - 1) & 0x7FFF;
+                        }
+                    }
+                }
+                continueSplit = !continueSplit;
         }
 
         kgs.requestNMI();

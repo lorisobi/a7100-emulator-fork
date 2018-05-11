@@ -26,6 +26,7 @@
  *   28.07.2016 - Befehle zum Lesen der Datenbanken zusammengeführt
  *              - try-catch durch throw ersetzt
  *              - Kommentare überarbeitet
+ *   10.05.2018 - Logger hinzugefügt
  */
 package a7100emulator.Apps.SCPDiskViewer;
 
@@ -42,7 +43,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map.Entry;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
@@ -52,6 +52,11 @@ import java.util.logging.Logger;
  * @author Dirk Bräuer
  */
 public class FileDatabaseManager {
+
+    /**
+     * Logger Instanz
+     */
+    private static final Logger LOG = Logger.getLogger(FileDatabaseManager.class.getName());
 
     /**
      * Datenbank aller bekannten SCP-Dateien

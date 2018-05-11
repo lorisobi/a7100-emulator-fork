@@ -28,6 +28,7 @@
  *   26.07.2015 - Auswahl löschen beim Laden von Image
  *   26.07.2016 - Doppelte Typdefinition entfernt
  *   28.07.2016 - Anzeige von Fehlern
+ *   10.05.2018 - Logger hinzugefügt und Ausgaben umgeleitet
  */
 package a7100emulator.Apps.SCPDiskViewer;
 
@@ -41,6 +42,7 @@ import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.GridLayout;
+import java.awt.HeadlessException;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -51,6 +53,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.security.NoSuchAlgorithmException;
 import java.text.NumberFormat;
+import java.text.ParseException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.BorderFactory;
@@ -86,6 +89,11 @@ import javax.swing.text.MaskFormatter;
  * @author Dirk Bräuer
  */
 public class SCPDiskViewer extends JFrame {
+
+    /**
+     * Logger Instanz
+     */
+    private static final Logger LOG = Logger.getLogger(SCPDiskViewer.class.getName());
 
     /**
      * Tabelle mit Dateien
@@ -441,10 +449,10 @@ public class SCPDiskViewer extends JFrame {
                     try {
                         diskModel.readImage(image);
                     } catch (NoSuchAlgorithmException ex) {
-                        Logger.getLogger(SCPDiskViewer.class.getName()).log(Level.SEVERE, null, ex);
+                        LOG.log(Level.SEVERE, "Fehler beim Berechnen der MD5-Hashwerte!", ex);
                         JOptionPane.showMessageDialog(null, "Fehler beim Erzeugen der MD5-Hashwerte!", "MD5-Hash-Fehler", JOptionPane.ERROR_MESSAGE);
                     } catch (IOException ex) {
-                        Logger.getLogger(SCPDiskViewer.class.getName()).log(Level.SEVERE, null, ex);
+                        LOG.log(Level.WARNING, "Fehler beim Lesen des Images " + image.getName() + "!", ex);
                         JOptionPane.showMessageDialog(null, "Fehler beim Lesen der Datei " + image.getName() + "!", "Image-Lesefehler", JOptionPane.ERROR_MESSAGE);
                     }
                 }
@@ -458,10 +466,10 @@ public class SCPDiskViewer extends JFrame {
                     try {
                         diskModel.readFolder(folder);
                     } catch (NoSuchAlgorithmException ex) {
-                        Logger.getLogger(SCPDiskViewer.class.getName()).log(Level.SEVERE, null, ex);
+                        LOG.log(Level.SEVERE, "Fehler beim Berechnen der MD5-Hashwerte!", ex);
                         JOptionPane.showMessageDialog(null, "Fehler beim Erzeugen der MD5-Hashwerte!", "MD5-Hash-Fehler", JOptionPane.ERROR_MESSAGE);
                     } catch (IOException ex) {
-                        Logger.getLogger(SCPDiskViewer.class.getName()).log(Level.SEVERE, null, ex);
+                        LOG.log(Level.WARNING, "Fehler beim Lesen des Ordners " + folder.getName() + "!", ex);
                         JOptionPane.showMessageDialog(null, "Fehler beim Lesen des Verzeichnisses " + folder.getName() + "!", "Ordner-Importfehler", JOptionPane.ERROR_MESSAGE);
                     }
                 }
@@ -481,7 +489,11 @@ public class SCPDiskViewer extends JFrame {
                     JFileChooser saveDialog = new JFileChooser(directory);
                     saveDialog.setSelectedFile(new File(file.getFullName()));
                     if (saveDialog.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
-                        diskModel.saveFile(selectedRowModel, saveDialog.getSelectedFile());
+                        try {
+                            diskModel.saveFile(selectedRowModel, saveDialog.getSelectedFile());
+                        } catch (IOException ex) {
+                            LOG.log(Level.WARNING, "Fehler beim Extrahieren der Datei " + file.getFullName() + " nach " + saveDialog.getSelectedFile().getName() + "!", ex);
+                        }
                     }
                 }
             } else if (e.getSource() == buttonExtractAllFiles || e.getSource() == menuExtractAllFiles) {
@@ -489,23 +501,30 @@ public class SCPDiskViewer extends JFrame {
                 JFileChooser saveDialog = new JFileChooser(directory);
                 saveDialog.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
                 if (saveDialog.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
-                    diskModel.saveAllFiles(saveDialog.getSelectedFile());
+                    try {
+                        diskModel.saveAllFiles(saveDialog.getSelectedFile());
+                    } catch (IOException ex) {
+                        LOG.log(Level.WARNING, "Fehler beim Extrahieren der Dateien nach " + saveDialog.getSelectedFile().getName() + "!", ex);
+                    }
                 }
             } else if (e.getSource() == menuExtractBootloader) {
                 String directory = ConfigurationManager.getInstance().readString("directories", "disks", "./disks/");
                 JFileChooser saveDialog = new JFileChooser(directory);
                 saveDialog.setSelectedFile(new File("bootloader.img"));
                 if (saveDialog.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
-                    diskModel.saveBootloader(saveDialog.getSelectedFile());
+                    try {
+                        diskModel.saveBootloader(saveDialog.getSelectedFile());
+                    } catch (IOException ex) {
+                        LOG.log(Level.WARNING, "Fehler beim Extrahieren des Bootloaders nach " + saveDialog.getSelectedFile().getName() + "!", ex);
+                    }
                 }
             } else if (e.getSource() == buttonAddFile || e.getSource() == menuInsertFile) {
                 String directory = ConfigurationManager.getInstance().readString("directories", "disks", "./disks/");
                 JFileChooser loadDialog = new JFileChooser(directory);
                 loadDialog.setFileSelectionMode(JFileChooser.FILES_ONLY);
                 if (loadDialog.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
+                    File importFile = loadDialog.getSelectedFile();
                     try {
-                        File importFile = loadDialog.getSelectedFile();
-
                         int startExtension = importFile.getName().lastIndexOf('.');
                         String extension = (startExtension == -1 ? "" : importFile.getName().substring(startExtension + 1)).toUpperCase();
                         if (extension.length() > 3) {
@@ -555,8 +574,8 @@ public class SCPDiskViewer extends JFrame {
                             user = (user < 0) ? 0 : ((user > 15) ? 15 : user);
                             diskModel.insertFile(filename, extension, readOnly, system, extra, user, data);
                         }
-                    } catch (Exception ex) {
-                        Logger.getLogger(SCPDiskViewer.class.getName()).log(Level.SEVERE, null, ex);
+                    } catch (HeadlessException | IOException | NumberFormatException | NoSuchAlgorithmException | ParseException ex) {
+                        LOG.log(Level.WARNING, "Fehler beim Hinzufügen der Datei  " + importFile.getName() + "!", ex);
                     }
                 }
             } else if (e.getSource() == menuSaveImage) {
@@ -565,10 +584,12 @@ public class SCPDiskViewer extends JFrame {
                 saveDialog.setFileSelectionMode(JFileChooser.FILES_ONLY);
                 if (saveDialog.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
                     File saveFile = saveDialog.getSelectedFile();
-                    if (saveFile.exists()) {
-                        JOptionPane.showMessageDialog(null, "Datei ist bereits vorhanden!", "Fehler Image Speichern", JOptionPane.ERROR_MESSAGE);
-                    } else {
-                        diskModel.saveImage(saveFile);
+                    if (!saveFile.exists() || JOptionPane.showConfirmDialog(null, "Soll die vorhandene Datei überschrieben werden?", "Datei bereits vorhanden", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION) {
+                        try {
+                            diskModel.saveImage(saveFile);
+                        } catch (IOException ex) {
+                            LOG.log(Level.WARNING, "Fehler beim Speichern des Images nach " + saveDialog.getSelectedFile().getName() + "!", ex);
+                        }
                     }
                 }
             } else if (e.getSource() == menuExportSystemDB) {
@@ -580,7 +601,7 @@ public class SCPDiskViewer extends JFrame {
                     try {
                         diskModel.exportDB(saveFile, false);
                     } catch (FileNotFoundException ex) {
-                        Logger.getLogger(SCPDiskViewer.class.getName()).log(Level.SEVERE, null, ex);
+                        LOG.log(Level.WARNING, "Fehler beim Exportieren der System-Einträge nach " + saveFile.getName() + "!", ex);
                         JOptionPane.showMessageDialog(null, "Fehler beim Speichern der Datei " + saveFile.getName() + "!", "Exportfehler", JOptionPane.ERROR_MESSAGE);
                     }
                 }
@@ -593,7 +614,7 @@ public class SCPDiskViewer extends JFrame {
                     try {
                         diskModel.exportDB(saveFile, true);
                     } catch (FileNotFoundException ex) {
-                        Logger.getLogger(SCPDiskViewer.class.getName()).log(Level.SEVERE, null, ex);
+                        LOG.log(Level.WARNING, "Fehler beim Exportieren der Benutzer-Einträge nach " + saveFile.getName() + "!", ex);
                         JOptionPane.showMessageDialog(null, "Fehler beim Speichern der Datei " + saveFile.getName() + "!", "Exportfehler", JOptionPane.ERROR_MESSAGE);
                     }
                 }
@@ -607,7 +628,7 @@ public class SCPDiskViewer extends JFrame {
                     try {
                         diskModel.updateDBInfo(md5, info);
                     } catch (IOException ex) {
-                        Logger.getLogger(SCPDiskViewer.class.getName()).log(Level.SEVERE, null, ex);
+                        LOG.log(Level.WARNING, "Fehler beim Speichern der Informationen in der Datenbank!", ex);
                         JOptionPane.showMessageDialog(null, "Fehler beim Speichern der Informationen in der Datenbank!", "Datenbankfehler", JOptionPane.ERROR_MESSAGE);
                     }
 
@@ -626,7 +647,7 @@ public class SCPDiskViewer extends JFrame {
                     try {
                         diskModel.removeDBInfo(md5);
                     } catch (IOException ex) {
-                        Logger.getLogger(SCPDiskViewer.class.getName()).log(Level.SEVERE, null, ex);
+                        LOG.log(Level.WARNING, "Fehler beim Speichern der Informationen in der Datenbank!", ex);
                         JOptionPane.showMessageDialog(null, "Fehler beim Speichern der Informationen in der Datenbank!", "Datenbankfehler", JOptionPane.ERROR_MESSAGE);
                     }
                 }

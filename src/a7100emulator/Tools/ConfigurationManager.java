@@ -21,6 +21,7 @@
  *   17.03.2018 - Erste Version
  *   18.03.2018 - Kommentare in Datei ermöglicht
  *              - Syntaxfehler in Konfiguration abgefangen
+ *   11.05.2018 - Message Templates hinzugefügt
  */
 package a7100emulator.Tools;
 
@@ -89,7 +90,7 @@ public class ConfigurationManager {
             case "1":
                 return true;
             default:
-                LOG.log(Level.WARNING, "Unbekannter boolescher Wert " + stringValue + " beim Lesen des Schlüssels " + key + " in Kategorie " + category + "!");
+                LOG.log(Level.WARNING, "Unbekannter boolescher Wert {0} beim Lesen des Schlüssels {1} in Kategorie {2}!", new Object[]{stringValue, key, category});
                 return defaultValue;
         }
     }
@@ -109,7 +110,7 @@ public class ConfigurationManager {
             int value = Integer.parseInt(stringValue);
             return value;
         } catch (NumberFormatException ex) {
-            LOG.log(Level.WARNING, "Unbekannter Zahlenwert " + stringValue + " beim Lesen des Schlüssels " + key + " in Kategorie " + category + "!");
+            LOG.log(Level.WARNING, "Unbekannter Zahlenwert {0} beim Lesen des Schlüssels {1} in Kategorie {2}!", new Object[]{stringValue, key, category});
             return defaultValue;
         }
     }
@@ -133,7 +134,7 @@ public class ConfigurationManager {
                 line = in.readLine();
                 if (line == null) {
                     // Dateiende
-                    LOG.log(Level.WARNING, "Angeforderte Kategorie " + category + " nicht gefunden!");
+                    LOG.log(Level.WARNING, "Angeforderte Kategorie {0} nicht gefunden!", category);
                     in.close();
                     return defaultValue;
                 }
@@ -144,7 +145,7 @@ public class ConfigurationManager {
                 line = in.readLine();
                 if (line == null || (line.trim().startsWith("[") && line.trim().endsWith("]"))) {
                     // Dateiende oder nächste Kategorie
-                    LOG.log(Level.WARNING, "Angeforderter Schlüssel " + key + " in Kategorie " + category + " nicht gefunden!");
+                    LOG.log(Level.WARNING, "Angeforderter Schlüssel {0} in Kategorie {1} nicht gefunden!", new Object[]{key, category});
                     in.close();
                     return defaultValue;
                 }
@@ -157,7 +158,7 @@ public class ConfigurationManager {
             if (splitLine.length == 2) {
                 return splitLine[1].trim();
             } else {
-                LOG.log(Level.WARNING, "Syntaxfehler in Konfigurationsdatei bei Schlüssel " + key + " in Kategorie " + category + "!");
+                LOG.log(Level.WARNING, "Syntaxfehler in Konfigurationsdatei bei Schlüssel {0} in Kategorie {1}!", new Object[]{key, category});
                 return defaultValue;
             }
         } catch (FileNotFoundException ex) {

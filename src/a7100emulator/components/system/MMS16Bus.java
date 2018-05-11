@@ -31,8 +31,8 @@ package a7100emulator.components.system;
 
 import a7100emulator.Tools.AddressSpace;
 import a7100emulator.Tools.StateSavable;
-import a7100emulator.components.modules.MemoryModule;
 import a7100emulator.components.modules.IOModule;
+import a7100emulator.components.modules.MemoryModule;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.FileOutputStream;

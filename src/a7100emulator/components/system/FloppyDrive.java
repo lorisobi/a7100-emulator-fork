@@ -31,6 +31,7 @@
  *   29.07.2016 - IOException beim Lesen und Speichern von Images hinzugefügt
  *   09.08.2016 - Logger hinzugefügt
  *   13.10.2016 - Name für leere Disketten ergänzt
+ *   10.05.2018 - Setzen des Modifiziert-Status von Disketten
  */
 package a7100emulator.components.system;
 
@@ -181,6 +182,7 @@ public class FloppyDrive implements StateSavable {
         } else {
             disk.format(cylinder, head, mod, data, interleave, sectorsPerTrack, bytesPerSector);
         }
+        disk.setModified(true);
     }
 
     /**
@@ -199,6 +201,7 @@ public class FloppyDrive implements StateSavable {
     public void newDisk() {
         LOG.log(Level.CONFIG, "Erzeuge leere Diskette");
         disk = new FloppyDisk("[Leere Diskette]");
+        disk.setModified(true);
     }
 
     /**
@@ -214,6 +217,7 @@ public class FloppyDrive implements StateSavable {
             return;
         }
         disk.writeData(cylinder, head, sector, data);
+        disk.setModified(true);
     }
 
     /**
@@ -228,6 +232,7 @@ public class FloppyDrive implements StateSavable {
             return;
         }
         disk.saveDisk(image);
+        disk.setModified(false);
     }
 
     /**
@@ -240,6 +245,7 @@ public class FloppyDrive implements StateSavable {
     public void loadDiskFromFile(File file) throws IOException {
         LOG.log(Level.CONFIG, "Lade Diskettenabbild aus Datei \"{0}\"", file.getName());
         disk = FloppyImageParser.loadDiskFromImageFile(file);
+        disk.setModified(false);
     }
 
     /**

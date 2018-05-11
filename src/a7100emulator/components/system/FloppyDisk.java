@@ -38,6 +38,7 @@
  *   29.07.2016 - IOException beim Speichern von Images hinzugefügt
  *   09.08.2016 - Logger hinzugefügt und Ausgaben umgeleitet
  *   13.10.2016 - Diskettennamen hinzugefügt
+ *   10.05.2018 - Speichern von Modifizierungen hinzugefügt
  */
 package a7100emulator.components.system;
 
@@ -79,6 +80,11 @@ public class FloppyDisk implements StateSavable {
      * genutzt
      */
     private String diskName = "";
+
+    /**
+     * Gibt an, ob der Disketteninhalt verändert wurde
+     */
+    private boolean modified;
 
     /**
      * Erstellt eine leere Diskette
@@ -417,6 +423,7 @@ public class FloppyDisk implements StateSavable {
         }
         dos.writeBoolean(writeProtect);
         dos.writeUTF(diskName);
+        dos.writeBoolean(modified);
     }
 
     /**
@@ -442,6 +449,7 @@ public class FloppyDisk implements StateSavable {
         }
         writeProtect = dis.readBoolean();
         diskName = dis.readUTF();
+        modified = dis.readBoolean();
     }
 
     /**
@@ -460,5 +468,25 @@ public class FloppyDisk implements StateSavable {
      */
     public void setDiskName(String diskName) {
         this.diskName = diskName;
+    }
+
+    /**
+     * Gibt an, ob das Diskettenabbild modifiziert wurde.
+     *
+     * @return <code>true</code> wenn das Abbild modifiziert wurde,
+     * <code>false</code> sonst
+     */
+    public boolean isModified() {
+        return modified;
+    }
+
+    /**
+     * Legt fest, ob das Diskettenabbild modifiziert wurde.
+     *
+     * @param modified <code>true</code> wenn das Abbild modifiziert wurde,
+     * <code>false</code> sonst
+     */
+    public void setModified(boolean modified) {
+        this.modified = modified;
     }
 }
