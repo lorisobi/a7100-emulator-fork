@@ -24,6 +24,8 @@ package a7100emulator.Tools;
 
 /**
  * Enum mit vordefinierte Diskettenformaten für häufig verwendete Formate.
+ * <p>
+ * TODO: Diese Klasse ist für eine spätere Verwendung vorgesehen.
  *
  * @author Dirk Bräuer
  */

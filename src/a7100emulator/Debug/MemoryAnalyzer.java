@@ -24,6 +24,7 @@
  *   01.01.2015 - Speicheranzeige mit Byte-Array hinzugefügt
  *   26.03.2016 - Anzeige von UA880 Subsystemen implementiert
  *   09.08.2016 - Logger hinzugefügt und Ausgaben umgeleitet
+ *   10.05.2018 - getValue mit switch statt if implementiert
  */
 package a7100emulator.Debug;
 
@@ -209,38 +210,39 @@ public class MemoryAnalyzer {
          */
         @Override
         public Object getValueAt(int row, int column) {
-            if (column == 0) {
-                return String.format("%05X", row * 16);
-            } else if (column == 17) {
-                String ascii = "";
-                for (int i = 0; i < 16; i++) {
-                    Integer val;
+            switch (column) {
+                case 0:
+                    return String.format("%05X", row * 16);
+                case 17: 
+                    String ascii = "";
+                    for (int i = 0; i < 16; i++) {
+                        Integer val;
+                        if (memory == null) {
+                            if (ua880module == null) {
+                                val = MMS16Bus.getInstance().readMemoryByte(row * 16 + i);
+                            } else {
+                                val = ua880module.readLocalByte(row * 16 + i);
+                            }
+                        } else {
+                            val = memory.readByte(row * 16 + i);
+                        }
+                        if (val < 0x20 || val == 127) {
+                            ascii += '.';
+                        } else {
+                            ascii += (char) (val & 0xFF);
+                        }
+                    }
+                    return ascii;
+                default: 
                     if (memory == null) {
                         if (ua880module == null) {
-                            val = MMS16Bus.getInstance().readMemoryByte(row * 16 + i);
+                            return String.format("%02X", MMS16Bus.getInstance().readMemoryByte(row * 16 + column - 1));
                         } else {
-                            val = ua880module.readLocalByte(row * 16 + i);
+                            return String.format("%02X", ua880module.readLocalByte(row * 16 + column - 1));
                         }
                     } else {
-                        val = memory.readByte(row * 16 + i);
+                        return String.format("%02X", memory.readByte(row * 16 + column - 1));
                     }
-                    if (val < 0x20 || val == 127) {
-                        ascii += '.';
-                    } else {
-                        ascii += (char) (val & 0xFF);
-                    }
-                }
-                return ascii;
-            } else {
-                if (memory == null) {
-                    if (ua880module == null) {
-                        return String.format("%02X", MMS16Bus.getInstance().readMemoryByte(row * 16 + column - 1));
-                    } else {
-                        return String.format("%02X", ua880module.readLocalByte(row * 16 + column - 1));
-                    }
-                } else {
-                    return String.format("%02X", memory.readByte(row * 16 + column - 1));
-                }
             }
         }
 

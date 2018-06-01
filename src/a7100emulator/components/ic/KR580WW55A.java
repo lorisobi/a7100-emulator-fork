@@ -23,6 +23,7 @@
  *              - Interface IC implementiert
  *   31.07.2016 - Daten Port A hinzugefügt
  *   09.08.2016 - Logger hinzugefügt
+ *   11.05.2018 - Zuweisungsoperatoren verwendet
  */
 package a7100emulator.components.ic;
 
@@ -127,9 +128,9 @@ public class KR580WW55A implements IC {
             boolean newState = BitTest.getBit(control, 0);
 
             if (BitTest.getBit(control, 0)) {
-                bits = bits | (0xFF & (0x01 << bit));
+                bits |= 0xFF & (0x01 << bit);
             } else {
-                bits = bits & (0xFF & (0x00 << bit));
+                bits &= 0xFF & (0x00 << bit);
             }
 
             switch (bit) {

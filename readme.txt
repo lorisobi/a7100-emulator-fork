@@ -1,4 +1,4 @@
-A7100 Emulator - Readme v0.8.90
+A7100 Emulator - Readme v0.9.10
 ===============================
 
 Inhaltsverzeichnis:
@@ -38,15 +38,16 @@ Inhaltsverzeichnis:
 --------------------------------------------------------------------------------
 2. Letzte Änderungen
     
-  vX.X.XX - XX.XX.XXXX
+  v0.9.10 - 12.05.2018
   Neue Features:
-    - Decoder für UA880 ergänzt
+    - Decoder für KGS ergänzt
     - Loggen von Programmabläufen und Fehlern
     - Konfigurationsdatei zur Anpassung des Emulatorverhaltens und des A7100
     - Unterstützung des ZPS
     - KGS Zeichen 24h umschaltbar
+    - Warnung beim Verwerfen modifizierter Diskettenabbilder
   Neuerungen im SCP-Disketten-Tool:
-
+    - Vorhandene Diskettenabbilder lassen sich überschreiben
   Änderungen/Bugfixes:
     - Diskettennamen in Statusleiste werden nach Reset aktualisiert
     - Teledisk Images mit Kommentaren implementiert
@@ -171,17 +172,22 @@ system.dbd sollten nicht verändert werden, da diese ggf. bei einem neuen Releas
 des Emulators überschrieben werden.  
 
 4.3 Konfiguration des A7100
-In der aktuellen Version ist der A7100 mit folgenden Moduln bestückt:
-    - ZVE
-    - KGS + ABG
-    - KES + AFS
-    - 3xOPS
+Seit Version 0.9.10 bietet der Emulator die Möglichkeit die Module des A7100 und
+deren Einstellungen anzupassen. Die Dokumentation der Einstellungen befindet 
+sich als Kommentar in der Konfigurationsdatei. 
+Derzeit sind folgende Modulkonfigurationen vorgesehen:
+    - Wahl zwischen KGS + ABG (Standard) oder ABS (noch nicht unterstützt)
+    - Einsatz des ZPS Moduls (Standard deaktiviert)
+    - Einsatz der ASP (noch nicht unterstützt)
+    - Anzahl der eingesetzten OPS (1-4, Standard 3)
+Die Schalteroptionen der einzelnen Module entsprechen denen der A7100 
+Dokumentation. Gegenwärtig wird allerdings nur S3 3-4 des KGS unterstützt.
 
- 4.4 Tastatur
- Vom Emulator wird aktuell die Tastatur K7637.9x verwendet. Darstellbare Zeichen
- entsprechen weitestgehend denen der PC-Tastatur. Die Sondertasten sind wie
- folgt zugeordnet, wobei noch nicht alle Tasten der K7637.9x verwendet werden
- können:
+4.4 Tastatur
+Vom Emulator wird aktuell die Tastatur K7637.9x verwendet. Darstellbare Zeichen
+entsprechen weitestgehend denen der PC-Tastatur. Die Sondertasten sind wie folgt
+zugeordnet, wobei noch nicht alle Tasten der K7637.9x verwendet werden
+können:
     - F1-F12           ->    PF1-PF12
     - Alt              ->    ALT (Funktioniert noch nicht für alle Tasten)
     - Shift+Einfg      ->    INS LINE

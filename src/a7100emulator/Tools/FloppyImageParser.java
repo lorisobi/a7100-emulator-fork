@@ -34,6 +34,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.text.NumberFormat;
 import java.util.Arrays;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JFormattedTextField;
 import javax.swing.JLabel;
@@ -218,7 +219,7 @@ public class FloppyImageParser {
             int head = buffer[pos++];
             boolean useSectorCylinderMap = BitTest.getBit(head, 7);
             boolean useSectorHeadMap = BitTest.getBit(head, 6);
-            head = head & 0x01;
+            head &= 0x01;
 
             // Lese Anzahl der Sektoren
             int sectorCount = buffer[pos++];
@@ -256,7 +257,7 @@ public class FloppyImageParser {
 
                 switch (sectorDataInfo) {
                     case 0x00: {
-                        System.out.println("Sektordaten konnten nicht gelesen werden!");
+                        LOG.log(Level.INFO, "Sektor {0} ist als fehlerhaft im Image gekennzeichnet und wird übersprungen!", sector);
                     }
                     break;
                     case 0x01:
@@ -360,7 +361,7 @@ public class FloppyImageParser {
                                 sectorData = disk.readData(cylinder, head, sectorNumber, sectorSizeBytes);
 
                                 // Füge Bytes ein
-                                for (int j = 0; j < dataBlockSize - 1; j = j + 4) {
+                                for (int j = 0; j < dataBlockSize - 1; j += 4) {
                                     int size = (buffer[pos] & 0xFF) | ((int) buffer[pos + 1] & 0xFF) << 8;
                                     byte pat1 = buffer[pos + 2];
                                     byte pat2 = buffer[pos + 3];

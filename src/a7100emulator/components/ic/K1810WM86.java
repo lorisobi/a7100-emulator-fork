@@ -54,6 +54,7 @@
  *   09.08.2016 - Ausgaben bei nicht definierten Opcodes hinzugefügt
  *   18.03.2018 - Verzeichnis für Debugger wird aus Konfigurationsdatei geladen
  *              - Rückgabe Debugger-Status implementiert
+ *   11.05.2018 - Zuweisungsoperatoren verwendet
  */
 package a7100emulator.components.ic;
 
@@ -4618,7 +4619,7 @@ public final class K1810WM86 implements CPU {
                         int op2 = getImmediate16(opcode2 & TEST_MOD, opcode2 & TEST_RM);
                         int res = add16(op1, op2, false);
                         setMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM, res & 0xFFFF, true);
-                        ip = ip + 2;
+                        ip += 2;
                         updateTicks(((opcode2 & TEST_MOD) == MOD_REG) ? 4 : 17 + getOpcodeCyclesEA(opcode2 & TEST_MOD, opcode2 & TEST_RM));
                         if (debug) {
                             debugInfo.setCode("ADD " + getMODRM16DebugString(opcode2 & TEST_MOD, opcode2 & TEST_RM, 2) + "," + String.format("%04Xh", op2));
@@ -4631,7 +4632,7 @@ public final class K1810WM86 implements CPU {
                         int op2 = getImmediate16(opcode2 & TEST_MOD, opcode2 & TEST_RM);
                         int res = or16(op1, op2);
                         setMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM, res & 0xFFFF, true);
-                        ip = ip + 2;
+                        ip += 2;
                         updateTicks(((opcode2 & TEST_MOD) == MOD_REG) ? 4 : 17 + getOpcodeCyclesEA(opcode2 & TEST_MOD, opcode2 & TEST_RM));
                         if (debug) {
                             debugInfo.setCode("OR " + getMODRM16DebugString(opcode2 & TEST_MOD, opcode2 & TEST_RM, 2) + "," + String.format("%04Xh", op2));
@@ -4644,7 +4645,7 @@ public final class K1810WM86 implements CPU {
                         int op2 = getImmediate16(opcode2 & TEST_MOD, opcode2 & TEST_RM);
                         int res = add16(op1, op2, true);
                         setMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM, res & 0xFFFF, true);
-                        ip = ip + 2;
+                        ip += 2;
                         updateTicks(((opcode2 & TEST_MOD) == MOD_REG) ? 4 : 17 + getOpcodeCyclesEA(opcode2 & TEST_MOD, opcode2 & TEST_RM));
                         if (debug) {
                             debugInfo.setCode("ADC " + getMODRM16DebugString(opcode2 & TEST_MOD, opcode2 & TEST_RM, 0) + "," + String.format("%04Xh", op2));
@@ -4657,7 +4658,7 @@ public final class K1810WM86 implements CPU {
                         int op2 = getImmediate16(opcode2 & TEST_MOD, opcode2 & TEST_RM);
                         int res = sub16(op1, op2, true);
                         setMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM, res & 0xFFFF, true);
-                        ip = ip + 2;
+                        ip += 2;
                         updateTicks(((opcode2 & TEST_MOD) == MOD_REG) ? 4 : 17 + getOpcodeCyclesEA(opcode2 & TEST_MOD, opcode2 & TEST_RM));
                         if (debug) {
                             debugInfo.setCode("SBB " + getMODRM16DebugString(opcode2 & TEST_MOD, opcode2 & TEST_RM, 2) + "," + String.format("%04Xh", op2));
@@ -4670,7 +4671,7 @@ public final class K1810WM86 implements CPU {
                         int op2 = getImmediate16(opcode2 & TEST_MOD, opcode2 & TEST_RM);
                         int res = and16(op1, op2);
                         setMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM, res & 0xFFFF, true);
-                        ip = ip + 2;
+                        ip += 2;
                         updateTicks(((opcode2 & TEST_MOD) == MOD_REG) ? 4 : 17 + getOpcodeCyclesEA(opcode2 & TEST_MOD, opcode2 & TEST_RM));
                         if (debug) {
                             debugInfo.setCode("AND " + getMODRM16DebugString(opcode2 & TEST_MOD, opcode2 & TEST_RM, 2) + "," + String.format("%04Xh", op2));
@@ -4683,7 +4684,7 @@ public final class K1810WM86 implements CPU {
                         int op2 = getImmediate16(opcode2 & TEST_MOD, opcode2 & TEST_RM);
                         int res = sub16(op1, op2, false);
                         setMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM, res & 0xFFFF, true);
-                        ip = ip + 2;
+                        ip += 2;
                         updateTicks(((opcode2 & TEST_MOD) == MOD_REG) ? 4 : 17 + getOpcodeCyclesEA(opcode2 & TEST_MOD, opcode2 & TEST_RM));
                         if (debug) {
                             debugInfo.setCode("SUB " + getMODRM16DebugString(opcode2 & TEST_MOD, opcode2 & TEST_RM, 2) + "," + String.format("%04Xh", op2));
@@ -4696,7 +4697,7 @@ public final class K1810WM86 implements CPU {
                         int op1 = getMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM, false);
                         int res = xor16(op1, op2);
                         setMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM, res & 0xFFFF, true);
-                        ip = ip + 2;
+                        ip += 2;
                         updateTicks(((opcode2 & TEST_MOD) == MOD_REG) ? 4 : 17 + getOpcodeCyclesEA(opcode2 & TEST_MOD, opcode2 & TEST_RM));
                         if (debug) {
                             debugInfo.setCode("XOR " + getMODRM16DebugString(opcode2 & TEST_MOD, opcode2 & TEST_RM, 2) + "," + String.format("%04Xh", op2));
@@ -4708,7 +4709,7 @@ public final class K1810WM86 implements CPU {
                         int op2 = getImmediate16(opcode2 & TEST_MOD, opcode2 & TEST_RM);
                         int op1 = getMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM, true);
                         sub16(op1, op2, false);
-                        ip = ip + 2;
+                        ip += 2;
                         updateTicks(((opcode2 & TEST_MOD) == MOD_REG) ? 4 : 10 + getOpcodeCyclesEA(opcode2 & TEST_MOD, opcode2 & TEST_RM));
                         if (debug) {
                             debugInfo.setCode("CMP " + getMODRM16DebugString(opcode2 & TEST_MOD, opcode2 & TEST_RM, 2) + "," + String.format("%04Xh", op2));
@@ -5011,7 +5012,7 @@ public final class K1810WM86 implements CPU {
                     case _C7_MOV_IMM_MEM_16: {
                         int data16 = getImmediate16(opcode2 & TEST_MOD, opcode2 & TEST_RM);
                         setMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM, data16 & 0xFFFF, true);
-                        ip = ip + 2;
+                        ip += 2;
                         updateTicks(10 + getOpcodeCyclesEA(opcode2 & TEST_MOD, opcode2 & TEST_RM));
                         if (debug) {
                             debugInfo.setCode("MOV " + getMODRM16DebugString(opcode2 & TEST_MOD, opcode2 & TEST_RM, 2) + "," + String.format("%04Xh", data16));
@@ -5844,7 +5845,7 @@ public final class K1810WM86 implements CPU {
                         int op2 = getImmediate16(opcode2 & TEST_MOD, opcode2 & TEST_RM);
                         int op1 = getMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM, true);
                         int res = and16(op1, op2);
-                        ip = ip + 2;
+                        ip += 2;
                         updateTicks(((opcode2 & TEST_MOD) == MOD_REG) ? 5 : 11 + getOpcodeCyclesEA(opcode2 & TEST_MOD, opcode2 & TEST_RM));
                         if (debug) {
                             debugInfo.setCode("TEST " + getMODRM16DebugString(opcode2 & TEST_MOD, opcode2 & TEST_RM, 2) + "," + String.format("%04Xh", op2));

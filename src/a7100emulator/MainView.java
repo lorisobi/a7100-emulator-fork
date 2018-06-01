@@ -54,6 +54,8 @@
  *              - Menüs für Debugger werden durch Zustand aktualisiert 
  *   23.03.2018 - Menüs für Debugging-ABS ergänzt
  *              - Prüfen ob KGS vorhanden ist
+ *   10.05.2018 - Abfrage beim Überschreiben von Diskettenabbildern
+ *              - Abfrage bei Änderungen an Disketten
  */
 package a7100emulator;
 
@@ -74,6 +76,8 @@ import java.awt.Dimension;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.WindowEvent;
+import java.awt.event.WindowListener;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -582,7 +586,8 @@ public class MainView extends JFrame {
         this.add(statusBar, BorderLayout.SOUTH);
         this.setFocusTraversalKeysEnabled(false);
         this.addKeyListener(Keyboard.getInstance());
-        this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        this.addWindowListener(controller);
+        this.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         this.setIconImage((new ImageIcon(this.getClass().getClassLoader().getResource("Images/Icon.png"))).getImage());
         this.setResizable(true);
     }
@@ -623,8 +628,8 @@ public class MainView extends JFrame {
 
         menuDevicesDrive0WriteProtect.setSelected(disk0Insert && a7100.getKES().getAFS().getFloppy(0).getDisk().isWriteProtect());
         menuDevicesDrive1WriteProtect.setSelected(disk1Insert && a7100.getKES().getAFS().getFloppy(1).getDisk().isWriteProtect());
-        statusDrive0.setText("A:" + (disk0Insert ? a7100.getKES().getAFS().getFloppy(0).getDisk().getDiskName() : "[Keine Diskette]"));
-        statusDrive1.setText("B:" + (disk1Insert ? a7100.getKES().getAFS().getFloppy(1).getDisk().getDiskName() : "[Keine Diskette]"));
+        statusDrive0.setText("A:" + (disk0Insert ? (a7100.getKES().getAFS().getFloppy(0).getDisk().getDiskName() + (a7100.getKES().getAFS().getFloppy(0).getDisk().isModified() ? " *" : "")) : "[Keine Diskette]"));
+        statusDrive1.setText("B:" + (disk1Insert ? (a7100.getKES().getAFS().getFloppy(1).getDisk().getDiskName() + (a7100.getKES().getAFS().getFloppy(1).getDisk().isModified() ? " *" : "")) : "[Keine Diskette]"));
     }
 
     /**
@@ -632,7 +637,7 @@ public class MainView extends JFrame {
      *
      * @author Dirk Bräuer
      */
-    private class MainMenuController implements ActionListener {
+    private class MainMenuController implements ActionListener, WindowListener {
 
         /**
          * Verarbeitet ein Action Event
@@ -642,7 +647,11 @@ public class MainView extends JFrame {
         @Override
         public void actionPerformed(ActionEvent e) {
             if (e.getSource().equals(menuEmulatorReset)) {
-                a7100.reset();
+                boolean disk0Modified = a7100.getKES().getAFS().getFloppy(0).isDiskInsert() && a7100.getKES().getAFS().getFloppy(0).getDisk().isModified();
+                boolean disk1Modified = a7100.getKES().getAFS().getFloppy(1).isDiskInsert() && a7100.getKES().getAFS().getFloppy(1).getDisk().isModified();
+                if ((!disk0Modified && !disk1Modified) || JOptionPane.showConfirmDialog(null, "Sollen die Änderungen an den Diskette verworfen werden?", "Diskette verändert", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION) {
+                    a7100.reset();
+                }
             } else if (e.getSource().equals(menuEmulatorPause)) {
                 if (menuEmulatorPause.isSelected()) {
                     a7100.pause();
@@ -679,28 +688,40 @@ public class MainView extends JFrame {
                     }
                 }
             } else if (e.getSource().equals(menuEmulatorLoad)) {
-                String directory = ConfigurationManager.getInstance().readString("directories", "state", "./state/");
-                try {
-                    a7100.loadState(new File(directory + "state.a7100"));
-                } catch (IOException ex) {
-                    LOG.log(Level.WARNING, "Fehler beim Laden des Emulatorzustands aus der Datei " + directory + "state.a7100!", ex);
-                    JOptionPane.showMessageDialog(null, "Fehler beim Laden der Datei " + directory + "state.a7100!", "Ladefehler", JOptionPane.ERROR_MESSAGE);
+                boolean disk0Modified = a7100.getKES().getAFS().getFloppy(0).isDiskInsert() && a7100.getKES().getAFS().getFloppy(0).getDisk().isModified();
+                boolean disk1Modified = a7100.getKES().getAFS().getFloppy(1).isDiskInsert() && a7100.getKES().getAFS().getFloppy(1).getDisk().isModified();
+                if ((!disk0Modified && !disk1Modified) || JOptionPane.showConfirmDialog(null, "Sollen die Änderungen an den Diskette verworfen werden?", "Diskette verändert", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION) {
+                    String directory = ConfigurationManager.getInstance().readString("directories", "state", "./state/");
+                    try {
+                        a7100.loadState(new File(directory + "state.a7100"));
+                    } catch (IOException ex) {
+                        LOG.log(Level.WARNING, "Fehler beim Laden des Emulatorzustands aus der Datei " + directory + "state.a7100!", ex);
+                        JOptionPane.showMessageDialog(null, "Fehler beim Laden der Datei " + directory + "state.a7100!", "Ladefehler", JOptionPane.ERROR_MESSAGE);
+                    }
                 }
             } else if (e.getSource().equals(menuEmulatorLoadFrom)) {
-                String directory = ConfigurationManager.getInstance().readString("directories", "state", "./state/");
-                JFileChooser loadDialog = new JFileChooser(directory);
-                FileNameExtensionFilter filter = new FileNameExtensionFilter("A7100 Emulatorzustände", "a7100");
-                loadDialog.setFileFilter(filter);
-                if (loadDialog.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
-                    try {
-                        a7100.loadState(loadDialog.getSelectedFile());
-                    } catch (IOException ex) {
-                        LOG.log(Level.WARNING, "Fehler beim Laden des Emulatorzustands aus der Datei " + loadDialog.getSelectedFile().getName() + "!", ex);
-                        JOptionPane.showMessageDialog(null, "Fehler beim Laden der Datei " + loadDialog.getSelectedFile().getName() + "!", "Ladefehler", JOptionPane.ERROR_MESSAGE);
+                boolean disk0Modified = a7100.getKES().getAFS().getFloppy(0).isDiskInsert() && a7100.getKES().getAFS().getFloppy(0).getDisk().isModified();
+                boolean disk1Modified = a7100.getKES().getAFS().getFloppy(1).isDiskInsert() && a7100.getKES().getAFS().getFloppy(1).getDisk().isModified();
+                if ((!disk0Modified && !disk1Modified) || JOptionPane.showConfirmDialog(null, "Sollen die Änderungen an den Diskette verworfen werden?", "Diskette verändert", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION) {
+                    String directory = ConfigurationManager.getInstance().readString("directories", "state", "./state/");
+                    JFileChooser loadDialog = new JFileChooser(directory);
+                    FileNameExtensionFilter filter = new FileNameExtensionFilter("A7100 Emulatorzustände", "a7100");
+                    loadDialog.setFileFilter(filter);
+                    if (loadDialog.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
+                        try {
+                            a7100.loadState(loadDialog.getSelectedFile());
+                        } catch (IOException ex) {
+                            LOG.log(Level.WARNING, "Fehler beim Laden des Emulatorzustands aus der Datei " + loadDialog.getSelectedFile().getName() + "!", ex);
+                            JOptionPane.showMessageDialog(null, "Fehler beim Laden der Datei " + loadDialog.getSelectedFile().getName() + "!", "Ladefehler", JOptionPane.ERROR_MESSAGE);
+                        }
                     }
                 }
             } else if (e.getSource() == menuEmulatorExit) {
-                System.exit(0);
+                boolean disk0Modified = a7100.getKES().getAFS().getFloppy(0).isDiskInsert() && a7100.getKES().getAFS().getFloppy(0).getDisk().isModified();
+                boolean disk1Modified = a7100.getKES().getAFS().getFloppy(1).isDiskInsert() && a7100.getKES().getAFS().getFloppy(1).getDisk().isModified();
+                if ((!disk0Modified && !disk1Modified) || JOptionPane.showConfirmDialog(null, "Sollen die Änderungen an den Diskette verworfen werden?", "Diskette verändert", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION) {
+                    System.exit(0);
+                }
             } else if (e.getSource().equals(menuDebugGlobalDebuggerSwitch)) {
                 Debugger.getGlobalInstance().setDebug(menuDebugGlobalDebuggerSwitch.isSelected());
             } else if (e.getSource().equals(menuDebugSystemMemoryShow)) {
@@ -826,15 +847,18 @@ public class MainView extends JFrame {
             } else if (e.getSource() == menuDebugAFSShowFloppyDisk1) {
                 a7100.getKES().getAFS().showFloppy(1);
             } else if (e.getSource() == menuDevicesDrive0Load) {
-                String directory = ConfigurationManager.getInstance().readString("directories", "disks", "./disks/");
-                JFileChooser loadDialog = new JFileChooser(directory);
-                if (loadDialog.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
-                    File image = loadDialog.getSelectedFile();
-                    try {
-                        a7100.getKES().getAFS().getFloppy(0).loadDiskFromFile(image);
-                    } catch (IOException ex) {
-                        LOG.log(Level.WARNING, "Fehler beim Lesen des Diskettenabbildes aus der Datei " + image.getName() + "!", ex);
-                        JOptionPane.showMessageDialog(null, "Fehler beim Lesen der Datei " + image.getName() + "!", "Image-Lesefehler", JOptionPane.ERROR_MESSAGE);
+                boolean disk0Modified = a7100.getKES().getAFS().getFloppy(0).isDiskInsert() && a7100.getKES().getAFS().getFloppy(0).getDisk().isModified();
+                if (!disk0Modified || JOptionPane.showConfirmDialog(null, "Sollen die Änderungen an der Diskette verworfen werden?", "Diskette verändert", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION) {
+                    String directory = ConfigurationManager.getInstance().readString("directories", "disks", "./disks/");
+                    JFileChooser loadDialog = new JFileChooser(directory);
+                    if (loadDialog.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
+                        File image = loadDialog.getSelectedFile();
+                        try {
+                            a7100.getKES().getAFS().getFloppy(0).loadDiskFromFile(image);
+                        } catch (IOException ex) {
+                            LOG.log(Level.WARNING, "Fehler beim Lesen des Diskettenabbildes aus der Datei " + image.getName() + "!", ex);
+                            JOptionPane.showMessageDialog(null, "Fehler beim Lesen der Datei " + image.getName() + "!", "Image-Lesefehler", JOptionPane.ERROR_MESSAGE);
+                        }
                     }
                 }
             } else if (e.getSource() == menuDevicesDrive0Save) {
@@ -842,29 +866,40 @@ public class MainView extends JFrame {
                 JFileChooser saveDialog = new JFileChooser(directory);
                 if (saveDialog.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
                     File image = saveDialog.getSelectedFile();
-                    try {
-                        a7100.getKES().getAFS().getFloppy(0).saveDiskToFile(image);
-                    } catch (IOException ex) {
-                        LOG.log(Level.WARNING, "Fehler beim Speichern des Diskettenabbildes in die Datei " + image.getName() + "!", ex);
-                        JOptionPane.showMessageDialog(null, "Fehler beim Speichern der Datei " + image.getName() + "!", "Image-Speicherfehler", JOptionPane.ERROR_MESSAGE);
+                    if (!image.exists() || JOptionPane.showConfirmDialog(null, "Soll die vorhandene Datei überschrieben werden?", "Datei existiert", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION) {
+                        try {
+                            a7100.getKES().getAFS().getFloppy(0).saveDiskToFile(image);
+                        } catch (IOException ex) {
+                            LOG.log(Level.WARNING, "Fehler beim Speichern des Diskettenabbildes in die Datei " + image.getName() + "!", ex);
+                            JOptionPane.showMessageDialog(null, "Fehler beim Speichern der Datei " + image.getName() + "!", "Image-Speicherfehler", JOptionPane.ERROR_MESSAGE);
+                        }
                     }
                 }
             } else if (e.getSource() == menuDevicesDrive0Eject) {
-                a7100.getKES().getAFS().getFloppy(0).ejectDisk();
+                boolean disk0Modified = a7100.getKES().getAFS().getFloppy(0).isDiskInsert() && a7100.getKES().getAFS().getFloppy(0).getDisk().isModified();
+                if (!disk0Modified || JOptionPane.showConfirmDialog(null, "Sollen die Änderungen an der Diskette verworfen werden?", "Diskette verändert", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION) {
+                    a7100.getKES().getAFS().getFloppy(0).ejectDisk();
+                }
             } else if (e.getSource() == menuDevicesDrive0Empty) {
-                a7100.getKES().getAFS().getFloppy(0).newDisk();
+                boolean disk0Modified = a7100.getKES().getAFS().getFloppy(0).isDiskInsert() && a7100.getKES().getAFS().getFloppy(0).getDisk().isModified();
+                if (!disk0Modified || JOptionPane.showConfirmDialog(null, "Sollen die Änderungen an der Diskette verworfen werden?", "Diskette verändert", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION) {
+                    a7100.getKES().getAFS().getFloppy(0).newDisk();
+                }
             } else if (e.getSource() == menuDevicesDrive0WriteProtect) {
                 a7100.getKES().getAFS().getFloppy(0).setWriteProtect(menuDevicesDrive0WriteProtect.isSelected());
             } else if (e.getSource() == menuDevicesDrive1Load) {
-                String directory = ConfigurationManager.getInstance().readString("directories", "disks", "./disks/");
-                JFileChooser loadDialog = new JFileChooser(directory);
-                if (loadDialog.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
-                    File image = loadDialog.getSelectedFile();
-                    try {
-                        a7100.getKES().getAFS().getFloppy(1).loadDiskFromFile(image);
-                    } catch (IOException ex) {
-                        LOG.log(Level.WARNING, "Fehler beim Lesen des Diskettenabbildes aus der Datei " + image.getName() + "!", ex);
-                        JOptionPane.showMessageDialog(null, "Fehler beim Lesen der Datei " + image.getName() + "!", "Image-Lesefehler", JOptionPane.ERROR_MESSAGE);
+                boolean disk1Modified = a7100.getKES().getAFS().getFloppy(1).isDiskInsert() && a7100.getKES().getAFS().getFloppy(1).getDisk().isModified();
+                if (!disk1Modified || JOptionPane.showConfirmDialog(null, "Sollen die Änderungen an der Diskette verworfen werden?", "Diskette verändert", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION) {
+                    String directory = ConfigurationManager.getInstance().readString("directories", "disks", "./disks/");
+                    JFileChooser loadDialog = new JFileChooser(directory);
+                    if (loadDialog.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
+                        File image = loadDialog.getSelectedFile();
+                        try {
+                            a7100.getKES().getAFS().getFloppy(1).loadDiskFromFile(image);
+                        } catch (IOException ex) {
+                            LOG.log(Level.WARNING, "Fehler beim Lesen des Diskettenabbildes aus der Datei " + image.getName() + "!", ex);
+                            JOptionPane.showMessageDialog(null, "Fehler beim Lesen der Datei " + image.getName() + "!", "Image-Lesefehler", JOptionPane.ERROR_MESSAGE);
+                        }
                     }
                 }
             } else if (e.getSource() == menuDevicesDrive1Save) {
@@ -872,17 +907,25 @@ public class MainView extends JFrame {
                 JFileChooser saveDialog = new JFileChooser(directory);
                 if (saveDialog.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
                     File image = saveDialog.getSelectedFile();
-                    try {
-                        a7100.getKES().getAFS().getFloppy(1).saveDiskToFile(image);
-                    } catch (IOException ex) {
-                        LOG.log(Level.WARNING, "Fehler beim Speichern des Diskettenabbildes in die Datei " + image.getName() + "!", ex);
-                        JOptionPane.showMessageDialog(null, "Fehler beim Speichern der Datei " + image.getName() + "!", "Image-Speicherfehler", JOptionPane.ERROR_MESSAGE);
+                    if (!image.exists() || JOptionPane.showConfirmDialog(null, "Soll die vorhandene Datei überschrieben werden?", "Datei existiert", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION) {
+                        try {
+                            a7100.getKES().getAFS().getFloppy(1).saveDiskToFile(image);
+                        } catch (IOException ex) {
+                            LOG.log(Level.WARNING, "Fehler beim Speichern des Diskettenabbildes in die Datei " + image.getName() + "!", ex);
+                            JOptionPane.showMessageDialog(null, "Fehler beim Speichern der Datei " + image.getName() + "!", "Image-Speicherfehler", JOptionPane.ERROR_MESSAGE);
+                        }
                     }
                 }
             } else if (e.getSource() == menuDevicesDrive1Eject) {
-                a7100.getKES().getAFS().getFloppy(1).ejectDisk();
+                boolean disk1Modified = a7100.getKES().getAFS().getFloppy(1).isDiskInsert() && a7100.getKES().getAFS().getFloppy(1).getDisk().isModified();
+                if (!disk1Modified || JOptionPane.showConfirmDialog(null, "Sollen die Änderungen an der Diskette verworfen werden?", "Diskette verändert", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION) {
+                    a7100.getKES().getAFS().getFloppy(1).ejectDisk();
+                }
             } else if (e.getSource() == menuDevicesDrive1Empty) {
-                a7100.getKES().getAFS().getFloppy(1).newDisk();
+                boolean disk1Modified = a7100.getKES().getAFS().getFloppy(1).isDiskInsert() && a7100.getKES().getAFS().getFloppy(1).getDisk().isModified();
+                if (!disk1Modified || JOptionPane.showConfirmDialog(null, "Sollen die Änderungen an der Diskette verworfen werden?", "Diskette verändert", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION) {
+                    a7100.getKES().getAFS().getFloppy(1).newDisk();
+                }
             } else if (e.getSource() == menuDevicesDrive1WriteProtect) {
                 a7100.getKES().getAFS().getFloppy(1).setWriteProtect(menuDevicesDrive0WriteProtect.isSelected());
             } else if (e.getSource() == menuToolsSCPDiskTool) {
@@ -937,7 +980,7 @@ public class MainView extends JFrame {
                 JPanel pan_desc = new JPanel();
                 pan_desc.setBorder(BorderFactory.createEmptyBorder(0, 50, 0, 10));
                 pan_desc.setLayout(new GridLayout(2, 1));
-                pan_desc.add(new JLabel("A7100 - Emulator v0.8.90"));
+                pan_desc.add(new JLabel("A7100 - Emulator v0.9.10"));
                 pan_desc.add(new JLabel("Copyright (c) 2011-2018 Dirk Bräuer"));
                 pan_about.add(pan_desc, BorderLayout.CENTER);
                 JTextArea licenseText = new JTextArea();
@@ -978,6 +1021,75 @@ public class MainView extends JFrame {
 
             // Anzeigen aktualisieren
             updateStatus();
+        }
+
+        /**
+         * Bearbeitet das Event, dass das Fenster geöffnet wurde.
+         *
+         * @param e Event
+         */
+        @Override
+        public void windowOpened(WindowEvent e) {
+        }
+
+        /**
+         * Bearbeitet das Event, dass das Fenster geschlossen werden soll.
+         *
+         * @param e Event
+         */
+        @Override
+        public void windowClosing(WindowEvent e) {
+            boolean disk0Modified = a7100.getKES().getAFS().getFloppy(0).isDiskInsert() && a7100.getKES().getAFS().getFloppy(0).getDisk().isModified();
+            boolean disk1Modified = a7100.getKES().getAFS().getFloppy(1).isDiskInsert() && a7100.getKES().getAFS().getFloppy(1).getDisk().isModified();
+            if ((!disk0Modified && !disk1Modified) || JOptionPane.showConfirmDialog(null, "Sollen die Änderungen an den Diskette verworfen werden?", "Diskette verändert", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION) {
+                System.exit(0);
+            }
+        }
+
+        /**
+         * Bearbeitet das Event, dass das Fenster geschlossen wurde.
+         *
+         * @param e Event
+         */
+        @Override
+        public void windowClosed(WindowEvent e) {
+            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        }
+
+        /**
+         * Bearbeitet das Event, dass das Fenster minimiert wurde.
+         *
+         * @param e Event
+         */
+        @Override
+        public void windowIconified(WindowEvent e) {
+        }
+
+        /**
+         * Bearbeitet das Event, dass das Fenster wiederhergestellt wurde.
+         *
+         * @param e Event
+         */
+        @Override
+        public void windowDeiconified(WindowEvent e) {
+        }
+
+        /**
+         * Bearbeitet das Eent, dass das Fenster aktiviert wurde.
+         *
+         * @param e Event
+         */
+        @Override
+        public void windowActivated(WindowEvent e) {
+        }
+
+        /**
+         * Bearbeitet das Event, dass das Fesnter deaktiviert wurde.
+         *
+         * @param e Event
+         */
+        @Override
+        public void windowDeactivated(WindowEvent e) {
         }
     }
 }

@@ -31,6 +31,8 @@
  *   26.07.2016 - Spezifische Exceptions definiert
  *   28.07.2016 - Konstruktor hinzugefügt
  *              - throws für Methoden mit Datenträgerzugriff hinzugefügt
+ *   10.05.2018 - Restliche throws ergänzt
+ *   11.05.2018 - Zuweisungsoperator verwendet
  */
 package a7100emulator.Apps.SCPDiskViewer;
 
@@ -56,6 +58,11 @@ import javax.swing.JOptionPane;
  * @author Dirk Bräuer
  */
 public class SCPDiskModel {
+
+    /**
+     * Logger Instanz
+     */
+    private static final Logger LOG = Logger.getLogger(SCPDiskModel.class.getName());
 
     /**
      * Disketteninhalt
@@ -220,11 +227,8 @@ public class SCPDiskModel {
                 in.close();
 
                 insertFile(filename, extension, false, false, false, 0, data);
-            } else {
-                System.out.println("Verzeichnis " + file.getName() + " wird übersprungen!");
             }
         }
-
         view.updateView();
     }
 
@@ -326,7 +330,7 @@ public class SCPDiskModel {
 
                         int remainUnits = units;
 
-                        for (int i = 16; i < 32 && remainUnits > 0; i = i + 2) {
+                        for (int i = 16; i < 32 && remainUnits > 0; i += 2) {
                             // Lese 16-Bit Blocknummer aus FCB
                             int blockNumber = ((int) (fcb[i + 1] & 0xFF) << 8) | ((int) fcb[i] & 0xFF);
 
@@ -483,33 +487,29 @@ public class SCPDiskModel {
      *
      * @param index Nummer der Datei
      * @param file Ausgabedatei
+     * @throws java.io.IOException Wenn beim Speichern ein Fehler auftritt
      */
-    void saveFile(int index, File file) {
-        try {
-            SCPFile scpFile = files.get(index);
-            OutputStream out;
-            out = new FileOutputStream(file);
-            out.write(scpFile.getData());
-            out.close();
-        } catch (IOException ex) {
-            Logger.getLogger(SCPDiskModel.class.getName()).log(Level.SEVERE, null, ex);
-        }
+    void saveFile(int index, File file) throws IOException {
+        SCPFile scpFile = files.get(index);
+        OutputStream out;
+        out = new FileOutputStream(file);
+        out.write(scpFile.getData());
+        out.close();
     }
 
     /**
      * Speichert alle Dateien des Abbildes
      *
      * @param directory Verzeichniss für Ausgabe
+     * @throws java.io.IOException Wenn beim Speichern ein Fehler auftritt
      */
-    void saveAllFiles(File directory) {
+    void saveAllFiles(File directory) throws IOException {
         for (int i = 0; i < files.size(); i++) {
             SCPFile scpFile = files.get(i);
             String filename = directory.getAbsolutePath() + File.separator + scpFile.getFullName() + (scpFile.getUser() == 0 ? "" : ("_U" + scpFile.getUser()));
             File extractFile = new File(filename);
-            if (!extractFile.exists()) {
+            if (!extractFile.exists() || JOptionPane.showConfirmDialog(null, "Soll die vorhandene Datei " + extractFile.getName() + " überschrieben werden?", "Datei bereits vorhanden", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION) {
                 saveFile(i, extractFile);
-            } else {
-                System.out.println("Datei " + filename + " existiert bereits!");
             }
         }
         saveBootloader(new File(directory.getAbsolutePath() + File.separator + "bootloader"));
@@ -540,16 +540,13 @@ public class SCPDiskModel {
      * Speichert den Bootloader.
      *
      * @param file Ausgabedatei
+     * @throws java.io.IOException Wenn beim Speichern ein Fehler auftritt
      */
-    void saveBootloader(File file) {
-        try {
-            OutputStream out;
-            out = new FileOutputStream(file);
-            out.write(bootloader);
-            out.close();
-        } catch (IOException ex) {
-            Logger.getLogger(SCPDiskModel.class.getName()).log(Level.SEVERE, null, ex);
-        }
+    void saveBootloader(File file) throws IOException {
+        OutputStream out;
+        out = new FileOutputStream(file);
+        out.write(bootloader);
+        out.close();
     }
 
     /**
@@ -596,23 +593,14 @@ public class SCPDiskModel {
      * Speichert das Diskettenabbild in eine Datei.
      *
      * @param file Datei
+     * @throws java.io.IOException Wenn ein Fehler beim Speichern auftritt
      */
-    void saveImage(File file) {
+    void saveImage(File file) throws IOException {
         FileOutputStream out = null;
-        try {
-            out = new FileOutputStream(file);
-            out.write(diskData);
-            out.close();
-            imageName = file.getName();
-        } catch (IOException ex) {
-            Logger.getLogger(SCPDiskModel.class.getName()).log(Level.SEVERE, null, ex);
-        } finally {
-            try {
-                out.close();
-            } catch (IOException ex) {
-                Logger.getLogger(SCPDiskModel.class.getName()).log(Level.SEVERE, null, ex);
-            }
-        }
+        out = new FileOutputStream(file);
+        out.write(diskData);
+        out.close();
+        imageName = file.getName();
     }
 
     /**
@@ -683,7 +671,7 @@ public class SCPDiskModel {
     }
 
     /**
-     * Startfunktion bein Einzelanwendung.
+     * Startfunktion bei Einzelanwendung.
      *
      * @param args Kommandozeilenparameter
      */
@@ -692,8 +680,10 @@ public class SCPDiskModel {
             SCPDiskModel model = new SCPDiskModel();
             SCPDiskViewer view = new SCPDiskViewer(model);
             model.setView(view);
+
         } catch (IOException ex) {
-            Logger.getLogger(SCPDiskModel.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(SCPDiskModel.class
+                    .getName()).log(Level.SEVERE, null, ex);
         }
     }
 }

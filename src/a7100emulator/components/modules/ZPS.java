@@ -26,10 +26,10 @@
  */
 package a7100emulator.components.modules;
 
-import a7100emulator.Tools.Parity;
 import a7100emulator.Tools.AddressSpace;
 import a7100emulator.Tools.BitTest;
 import a7100emulator.Tools.Memory;
+import a7100emulator.Tools.Parity;
 import a7100emulator.components.system.MMS16Bus;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;

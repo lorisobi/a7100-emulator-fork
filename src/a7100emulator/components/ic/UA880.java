@@ -60,6 +60,7 @@
  *              - Decoder ergänzt
  *   08.08.2016 - Logger hinzugefügt und Ausgaben umgeleitet
  *   18.03.2018 - Rückgabe Debugger-Status implementiert
+ *   11.05.2018 - Zuweisungsoperator verwendet
  */
 package a7100emulator.components.ic;
 
@@ -5035,7 +5036,7 @@ public class UA880 implements CPU {
                         setRegister(REG_B, getRegister(REG_B) - 1);
                         setFlag(SUBTRACT_FLAG);
                         if (getRegister(REG_B) != 0) {
-                            pc = pc - 2;
+                            pc -= 2;
                             updateTicks(21);
                         } else {
                             setFlag(ZERO_FLAG);
