@@ -26,6 +26,7 @@
  *              - Laden der EPROMS implentiert
  *              - CPU hinzugefügt
  *              - Debugging-Methoden ergänzt
+ *   01.06.2018 - Initialwert Statusregister
  */
 package a7100emulator.components.modules;
 
@@ -117,7 +118,7 @@ public final class ABS implements IOModule, ClockModule, SubsystemModule {
     /**
      * Lokaler Port CRT-Parameter
      */
-    private final static int LOCAL_PORT_CRT_COMMAND = 0x21;
+    private final static int LOCAL_PORT_CRT_COMMAND_STATUS = 0x21;
     /**
      * Lokaler Port Matrixregister
      */
@@ -162,7 +163,7 @@ public final class ABS implements IOModule, ClockModule, SubsystemModule {
     /**
      * Statusregister
      */
-    private int state = 0x00;
+    private int state = 0x03;
     /**
      * Datenregister für Eingabe
      */
@@ -367,38 +368,52 @@ public final class ABS implements IOModule, ClockModule, SubsystemModule {
     public int readLocalPort(int port) {
         switch (port) {
             case LOCAL_PORT_DMA_CH0_ADDRESS:
+                LOG.log(Level.WARNING, "Lesen von Port {0} noch nicht implementiert!", String.format("0x%02X", port));
                 break;
             case LOCAL_PORT_DMA_CH0_COUNT:
+                LOG.log(Level.WARNING, "Lesen von Port {0} noch nicht implementiert!", String.format("0x%02X", port));
                 break;
             case LOCAL_PORT_DMA_CH1_ADDRESS:
+                LOG.log(Level.WARNING, "Lesen von Port {0} noch nicht implementiert!", String.format("0x%02X", port));
                 break;
             case LOCAL_PORT_DMA_CH1_COUNT:
+                LOG.log(Level.WARNING, "Lesen von Port {0} noch nicht implementiert!", String.format("0x%02X", port));
                 break;
             case LOCAL_PORT_DMA_CH2_ADDRESS:
+                LOG.log(Level.WARNING, "Lesen von Port {0} noch nicht implementiert!", String.format("0x%02X", port));
                 break;
             case LOCAL_PORT_DMA_CH2_COUNT:
+                LOG.log(Level.WARNING, "Lesen von Port {0} noch nicht implementiert!", String.format("0x%02X", port));
                 break;
             case LOCAL_PORT_DMA_CH3_ADDRESS:
+                LOG.log(Level.WARNING, "Lesen von Port {0} noch nicht implementiert!", String.format("0x%02X", port));
                 break;
             case LOCAL_PORT_DMA_CH3_COUNT:
+                LOG.log(Level.WARNING, "Lesen von Port {0} noch nicht implementiert!", String.format("0x%02X", port));
                 break;
             case LOCAL_PORT_DMA_MODE_STATUS:
+                LOG.log(Level.WARNING, "Lesen von Port {0} noch nicht implementiert!", String.format("0x%02X", port));
                 break;
             case LOCAL_PORT_CRT_PARAMETER:
-                break;
-            case LOCAL_PORT_CRT_COMMAND:
-                break;
+                return crt.readParameter();
+            case LOCAL_PORT_CRT_COMMAND_STATUS:
+                return crt.readStatus();
             case LOCAL_PORT_MATRIX:
+                LOG.log(Level.WARNING, "Lesen von Port {0} noch nicht implementiert!", String.format("0x%02X", port));
                 break;
             case LOCAL_PORT_LINE:
+                LOG.log(Level.WARNING, "Lesen von Port {0} noch nicht implementiert!", String.format("0x%02X", port));
                 break;
             case LOCAL_PORT_INT:
+                LOG.log(Level.WARNING, "Lesen von Port {0} noch nicht implementiert!", String.format("0x%02X", port));
                 break;
             case LOCAL_PORT_ERR:
+                LOG.log(Level.WARNING, "Lesen von Port {0} noch nicht implementiert!", String.format("0x%02X", port));
                 break;
             case LOCAL_PORT_STATUS:
-                break;
+                return state;
             case LOCAL_PORT_EA:
+                LOG.log(Level.WARNING, "Lesen von Port {0} noch nicht implementiert!", String.format("0x%02X", port));
                 break;
             default:
                 LOG.log(Level.WARNING, "Lesen von nicht definiertem Port {0}!", String.format("0x%02X", port));
@@ -411,38 +426,55 @@ public final class ABS implements IOModule, ClockModule, SubsystemModule {
     public void writeLocalPort(int port, int data) {
         switch (port) {
             case LOCAL_PORT_DMA_CH0_ADDRESS:
+                LOG.log(Level.WARNING, "Schreiben auf Port {0} noch nicht implementiert!", String.format("0x%02X", port));
                 break;
             case LOCAL_PORT_DMA_CH0_COUNT:
+                LOG.log(Level.WARNING, "Schreiben auf Port {0} noch nicht implementiert!", String.format("0x%02X", port));
                 break;
             case LOCAL_PORT_DMA_CH1_ADDRESS:
+                LOG.log(Level.WARNING, "Schreiben auf Port {0} noch nicht implementiert!", String.format("0x%02X", port));
                 break;
             case LOCAL_PORT_DMA_CH1_COUNT:
+                LOG.log(Level.WARNING, "Schreiben auf Port {0} noch nicht implementiert!", String.format("0x%02X", port));
                 break;
             case LOCAL_PORT_DMA_CH2_ADDRESS:
+                LOG.log(Level.WARNING, "Schreiben auf Port {0} noch nicht implementiert!", String.format("0x%02X", port));
                 break;
             case LOCAL_PORT_DMA_CH2_COUNT:
+                LOG.log(Level.WARNING, "Schreiben auf Port {0} noch nicht implementiert!", String.format("0x%02X", port));
                 break;
             case LOCAL_PORT_DMA_CH3_ADDRESS:
+                LOG.log(Level.WARNING, "Schreiben auf Port {0} noch nicht implementiert!", String.format("0x%02X", port));
                 break;
             case LOCAL_PORT_DMA_CH3_COUNT:
+                LOG.log(Level.WARNING, "Schreiben auf Port {0} noch nicht implementiert!", String.format("0x%02X", port));
                 break;
             case LOCAL_PORT_DMA_MODE_STATUS:
+                LOG.log(Level.WARNING, "Schreiben auf Port {0} noch nicht implementiert!", String.format("0x%02X", port));
                 break;
             case LOCAL_PORT_CRT_PARAMETER:
+                crt.writeParameter(data);
                 break;
-            case LOCAL_PORT_CRT_COMMAND:
+            case LOCAL_PORT_CRT_COMMAND_STATUS:
+                crt.writeCommand(data);
                 break;
             case LOCAL_PORT_MATRIX:
+                LOG.log(Level.WARNING, "Schreiben auf Port {0} noch nicht implementiert!", String.format("0x%02X", port));
                 break;
             case LOCAL_PORT_LINE:
+                LOG.log(Level.WARNING, "Schreiben auf Port {0} noch nicht implementiert!", String.format("0x%02X", port));
                 break;
             case LOCAL_PORT_INT:
+                LOG.log(Level.WARNING, "Schreiben auf Port {0} noch nicht implementiert!", String.format("0x%02X", port));
                 break;
             case LOCAL_PORT_ERR:
+                LOG.log(Level.WARNING, "Schreiben auf Port {0} noch nicht implementiert!", String.format("0x%02X", port));
                 break;
             case LOCAL_PORT_STATUS:
+                LOG.log(Level.WARNING, "Schreiben auf Port {0} noch nicht implementiert!", String.format("0x%02X", port));
                 break;
             case LOCAL_PORT_EA:
+                LOG.log(Level.WARNING, "Schreiben auf Port {0} noch nicht implementiert!", String.format("0x%02X", port));
                 break;
             default:
                 LOG.log(Level.WARNING, "Schreiben auf nicht definiertem Port {0}!", String.format("0x%02X", port));
