@@ -162,18 +162,22 @@ public final class ABG implements Module {
     private static final int ATTRIBUTE_CURSOR = 0x10;
     /**
      * Farbe dunkles Grün
+     * TODO: ggf. nach Screen auslagern
      */
     private static final int DARK_GREEN = new Color(0, 100, 0).getRGB();
     /**
      * Farbe normales Grün
+     * TODO: ggf. nach Screen auslagern
      */
     private static final int GREEN = new Color(0, 150, 0).getRGB();
     /**
      * Farbe intensives Grün
+     * TODO: ggf. nach Screen auslagern
      */
     private static final int INTENSE_GREEN = new Color(0, 255, 0).getRGB();
     /**
      * Farbe Schwarz
+     * TODO: ggf. nach Screen auslagern
      */
     private static final int BLACK = new Color(0, 0, 0).getRGB();
     /**

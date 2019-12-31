@@ -56,6 +56,7 @@
  *              - Prüfen ob KGS vorhanden ist
  *   10.05.2018 - Abfrage beim Überschreiben von Diskettenabbildern
  *              - Abfrage bei Änderungen an Disketten
+ *   31.12.2019 - Anzeige ABS-Bildschirm ergänzt
  */
 package a7100emulator;
 
@@ -339,6 +340,10 @@ public class MainView extends JFrame {
      */
     private final JMenuItem menuDebugABGDumpGraphicsPage2 = new JMenuItem("Dump Grafikspeicher Ebene 2");
     /**
+     * Menüeintrag ABS Zeige Bildschirm
+     */
+    private final JMenuItem menuDebugABSShowScreen = new JMenuItem("Bildschirm zeigen");
+    /**
      * Menüeintrag Zeige ABS Speicher
      */
     private final JMenuItem menuDebugABSMemoryShow = new JMenuItem("Zeige ABS Speicher");
@@ -516,6 +521,7 @@ public class MainView extends JFrame {
         menuDebugABG.add(menuDebugABGDumpGraphicsPage1);
         menuDebugABG.add(menuDebugABGDumpGraphicsPage2);
         menuDebug.add(menuDebugABS);
+        menuDebugABS.add(menuDebugABSShowScreen);
         menuDebugABS.add(menuDebugABSMemoryShow);
         menuDebugABS.add(menuDebugABSMemoryDump);
         menuDebugABS.add(menuDebugABSDebuggerSwitch);
@@ -549,6 +555,7 @@ public class MainView extends JFrame {
         menuDebugABGDumpAlphanumericsPage2.addActionListener(controller);
         menuDebugABGDumpGraphicsPage1.addActionListener(controller);
         menuDebugABGDumpGraphicsPage2.addActionListener(controller);
+        menuDebugABSShowScreen.addActionListener(controller);
         menuDebugABSMemoryShow.addActionListener(controller);
         menuDebugABSMemoryDump.addActionListener(controller);
         menuDebugABSDebuggerSwitch.addActionListener(controller);
@@ -819,6 +826,8 @@ public class MainView extends JFrame {
                     LOG.log(Level.WARNING, "Fehler beim Speichern des ABG Speicherbereichs Grafik 2 in die Datei " + directory + "abg_gr2_user_dump.hex!", ex);
                     JOptionPane.showMessageDialog(null, "Fehler beim Speichern der Datei " + directory + "abg_gr2_user_dump.hex!", "Speicherfehler", JOptionPane.ERROR_MESSAGE);
                 }
+            } else if (e.getSource() == menuDebugABSShowScreen) {
+                a7100.getABS().showScreen();
             } else if (e.getSource() == menuDebugABSMemoryShow) {
                 a7100.getABS().showMemory();
             } else if (e.getSource() == menuDebugABSMemoryDump) {

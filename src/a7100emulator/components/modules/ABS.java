@@ -27,11 +27,14 @@
  *              - CPU hinzugefügt
  *              - Debugging-Methoden ergänzt
  *   01.06.2018 - Initialwert Statusregister
+ *   30.12.2019 - Setzen der Bits ergänzt
+ *   31.12.2019 - Ausgabe Bildschirm hinzugefügt
  */
 package a7100emulator.components.modules;
 
 import a7100emulator.Debug.Decoder;
 import a7100emulator.Debug.MemoryAnalyzer;
+import a7100emulator.Tools.BitTest;
 import a7100emulator.Tools.BitmapGenerator;
 import a7100emulator.Tools.ConfigurationManager;
 import a7100emulator.Tools.Memory;
@@ -40,6 +43,8 @@ import a7100emulator.components.ic.UA880;
 import a7100emulator.components.system.GlobalClock;
 import a7100emulator.components.system.MMS16Bus;
 import a7100emulator.components.system.QuartzCrystal;
+import a7100emulator.components.system.Screen;
+import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.image.BufferedImage;
@@ -161,6 +166,33 @@ public final class ABS implements IOModule, ClockModule, SubsystemModule {
     private static final int OBF_BIT = 0x01;
 
     /**
+     * Farbe dunkles Grün TODO: ggf. nach Screen auslagern
+     */
+    private static final int DARK_GREEN = new Color(0, 100, 0).getRGB();
+    /**
+     * Farbe normales Grün TODO: ggf. nach Screen auslagern
+     */
+    private static final int GREEN = new Color(0, 150, 0).getRGB();
+    /**
+     * Farbe intensives Grün TODO: ggf. nach Screen auslagern
+     */
+    private static final int INTENSE_GREEN = new Color(0, 255, 0).getRGB();
+    /**
+     * Farbe Schwarz TODO: ggf. nach Screen auslagern
+     */
+    private static final int BLACK = new Color(0, 0, 0).getRGB();
+    /**
+     * Farbe Rot um blinkenden Text zu markieren TODO: ggf. nach Screen
+     * auslagern
+     */
+    private static final int BLINK = new Color(255, 0, 0).getRGB();
+
+    /**
+     * Aktuell Dargestellter Bildschirm
+     */
+    private final BufferedImage screenImage = new BufferedImage(640, 400, BufferedImage.TYPE_INT_RGB);
+
+    /**
      * Statusregister
      */
     private int state = 0x03;
@@ -212,6 +244,11 @@ public final class ABS implements IOModule, ClockModule, SubsystemModule {
         registerPorts();
         registerClocks();
         initEPROMS();
+
+        Graphics g = screenImage.getGraphics();
+        g.setColor(new Color(BLACK));
+        g.fillRect(0, 0, 640, 400);
+        Screen.getInstance().setImage(screenImage);
     }
 
     /**
@@ -302,6 +339,7 @@ public final class ABS implements IOModule, ClockModule, SubsystemModule {
         // TODO: Ggf. zusätzliche Adresse 0xYYX0,0xYYX4,0xYYX8,0xYYXC ergänzen
         switch (port) {
             case PORT_ABS_STATE:
+                System.out.println("Status zur ABS:" + String.format("%02X", dataOut));
                 clearBit(INT_BIT);
                 clearBit(ERR_BIT);
                 break;
@@ -339,9 +377,11 @@ public final class ABS implements IOModule, ClockModule, SubsystemModule {
         int result = 0;
         switch (port) {
             case PORT_ABS_STATE:
+                System.out.println("Status von ABS:" + String.format("%02X", dataOut));
                 result = state;
                 break;
             case PORT_ABS_DATA:
+                System.out.println("Daten von ABS:" + String.format("%02X", dataOut));
                 result = dataOut;
                 clearBit(OBF_BIT);
                 clearBit(INT_BIT);
@@ -413,8 +453,8 @@ public final class ABS implements IOModule, ClockModule, SubsystemModule {
             case LOCAL_PORT_STATUS:
                 return state;
             case LOCAL_PORT_EA:
-                LOG.log(Level.WARNING, "Lesen von Port {0} noch nicht implementiert!", String.format("0x%02X", port));
-                break;
+                clearBit(IBF_BIT);
+                return dataIn;
             default:
                 LOG.log(Level.WARNING, "Lesen von nicht definiertem Port {0}!", String.format("0x%02X", port));
                 break;
@@ -465,16 +505,18 @@ public final class ABS implements IOModule, ClockModule, SubsystemModule {
                 LOG.log(Level.WARNING, "Schreiben auf Port {0} noch nicht implementiert!", String.format("0x%02X", port));
                 break;
             case LOCAL_PORT_INT:
-                LOG.log(Level.WARNING, "Schreiben auf Port {0} noch nicht implementiert!", String.format("0x%02X", port));
+                setBit(INT_BIT);
+                MMS16Bus.getInstance().requestInterrupt(7);
                 break;
             case LOCAL_PORT_ERR:
-                LOG.log(Level.WARNING, "Schreiben auf Port {0} noch nicht implementiert!", String.format("0x%02X", port));
+                setBit(ERR_BIT);
                 break;
             case LOCAL_PORT_STATUS:
                 LOG.log(Level.WARNING, "Schreiben auf Port {0} noch nicht implementiert!", String.format("0x%02X", port));
                 break;
             case LOCAL_PORT_EA:
-                LOG.log(Level.WARNING, "Schreiben auf Port {0} noch nicht implementiert!", String.format("0x%02X", port));
+                dataOut = data;
+                setBit(OBF_BIT);
                 break;
             default:
                 LOG.log(Level.WARNING, "Schreiben auf nicht definiertem Port {0}!", String.format("0x%02X", port));
@@ -625,6 +667,65 @@ public final class ABS implements IOModule, ClockModule, SubsystemModule {
         dataIn = dis.readInt();
         dataOut = dis.readInt();
         ram.loadMemory(dis);
+    }
+
+    /**
+     * Zeigt den Inhalt des Alphanumerikspeichers an
+     */
+    public void showScreen() {
+        final BufferedImage image = new BufferedImage(640, 400, BufferedImage.TYPE_INT_RGB);
+
+        boolean intense = false;
+        boolean flash = false;
+        boolean underline = false;
+        boolean invert = false;
+        boolean altCharacter = false;
+
+        for (int row = 0; row < 25; row++) {
+            int charShown = 0;
+            int address = 0x1400 + row * 0x60;
+            while (charShown < 80) {
+                int character = ram.readByte(address++);
+                if (BitTest.getBit(character, 7)) {
+                    // Attributbyte
+                    intense = BitTest.getBit(character, 0);
+                    flash = BitTest.getBit(character, 1);
+                    altCharacter = BitTest.getBit(character, 2);
+                    underline = BitTest.getBit(character, 3);
+                    invert = BitTest.getBit(character, 4);
+                } else {
+                    // Darstellbares Zeichen
+                    byte[] linecode = new byte[16];
+                    for (byte line = 0; line < 16; line++) {
+                        linecode[line] = (byte) (charRom.readByte((character << 4) + line) & 0xFF);
+                    }
+                    BufferedImage characterImage = BitmapGenerator.generateBitmapFromLineCode(linecode, intense, invert, underline, flash);
+                    image.getGraphics().drawImage(characterImage, charShown*8, row*16, null);
+                    charShown++;
+                }
+            }
+        }
+
+        JFrame frame = new JFrame("Bildschirm");
+        frame.setResizable(false);
+        JComponent component = new JComponent() {
+
+            @Override
+            public void paint(Graphics g) {
+                g.drawImage(image, 0, 0, null);
+            }
+        };
+        component.setMinimumSize(new Dimension(640, 400));
+        component.setPreferredSize(new Dimension(640, 400));
+        frame.add(component);
+
+        try {
+            Thread.sleep(100);
+        } catch (InterruptedException ex) {
+            LOG.log(Level.FINEST, null, ex);
+        }
+        frame.setVisible(true);
+        frame.pack();
     }
 
     /**

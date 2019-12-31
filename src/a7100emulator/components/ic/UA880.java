@@ -2,7 +2,7 @@
  * UA880.java
  * 
  * Diese Datei gehört zum Projekt A7100 Emulator 
- * Copyright (c) 2011-2018 Dirk Bräuer
+ * Copyright (c) 2011-2020 Dirk Bräuer
  *
  * Der A7100 Emulator ist Freie Software: Sie können ihn unter den Bedingungen
  * der GNU General Public License, wie von der Free Software Foundation,
@@ -61,6 +61,7 @@
  *   08.08.2016 - Logger hinzugefügt und Ausgaben umgeleitet
  *   18.03.2018 - Rückgabe Debugger-Status implementiert
  *   11.05.2018 - Zuweisungsoperator verwendet
+ *   30.12.2019 - Flags in Operation LD A,I und LD A,R ergänzt
  */
 package a7100emulator.components.ic;
 
@@ -4739,7 +4740,17 @@ public class UA880 implements CPU {
                     }
                     break;
                     case _ED_LD_INT_A: {
-                        setRegister(REG_A, i);
+                        int res = i;
+                        setRegister(REG_A, res);
+                        checkSignFlag8(res);
+                        checkZeroFlag8(res);
+                        clearFlag(HALF_CARRY_FLAG);
+                        clearFlag(SUBTRACT_FLAG);
+                        if (iff2 == 1) {
+                            setFlag(PARITY_OVERFLOW_FLAG);
+                        } else {
+                            clearFlag(PARITY_OVERFLOW_FLAG);
+                        }
                         updateTicks(9);
                         if (debug) {
                             debugInfo.setCode("LD A,I");
@@ -4757,7 +4768,17 @@ public class UA880 implements CPU {
                     }
                     break;
                     case _ED_LD_R_A: {
+                        int res = r;
                         setRegister(REG_A, r);
+                        checkSignFlag8(res);
+                        checkZeroFlag8(res);
+                        clearFlag(HALF_CARRY_FLAG);
+                        clearFlag(SUBTRACT_FLAG);
+                        if (iff2 == 1) {
+                            setFlag(PARITY_OVERFLOW_FLAG);
+                        } else {
+                            clearFlag(PARITY_OVERFLOW_FLAG);
+                        }
                         updateTicks(9);
                         if (debug) {
                             debugInfo.setCode("LD A,R");
