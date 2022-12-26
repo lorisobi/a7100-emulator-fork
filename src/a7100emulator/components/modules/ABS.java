@@ -213,6 +213,10 @@ public final class ABS implements IOModule, ClockModule, SubsystemModule {
      */
     private Memory charRom = new Memory(0x800);
     /**
+     * Zeichensatz - Ram
+     */
+    private Memory charRam = new Memory(0x800);
+    /**
      * Steuerwerk - Rom
      */
     private Memory ctrlRom = new Memory(0x800);
@@ -597,6 +601,10 @@ public final class ABS implements IOModule, ClockModule, SubsystemModule {
 
     @Override
     public void requestInterrupt(int i) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+    
+    public void requestNMI() {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 

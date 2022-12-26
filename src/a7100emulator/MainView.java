@@ -57,6 +57,7 @@
  *   10.05.2018 - Abfrage beim Überschreiben von Diskettenabbildern
  *              - Abfrage bei Änderungen an Disketten
  *   31.12.2019 - Anzeige ABS-Bildschirm ergänzt
+ *   02.01.2020 - Schreibfehler Änderungen an Disketten behoben
  */
 package a7100emulator;
 
@@ -656,7 +657,7 @@ public class MainView extends JFrame {
             if (e.getSource().equals(menuEmulatorReset)) {
                 boolean disk0Modified = a7100.getKES().getAFS().getFloppy(0).isDiskInsert() && a7100.getKES().getAFS().getFloppy(0).getDisk().isModified();
                 boolean disk1Modified = a7100.getKES().getAFS().getFloppy(1).isDiskInsert() && a7100.getKES().getAFS().getFloppy(1).getDisk().isModified();
-                if ((!disk0Modified && !disk1Modified) || JOptionPane.showConfirmDialog(null, "Sollen die Änderungen an den Diskette verworfen werden?", "Diskette verändert", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION) {
+                if ((!disk0Modified && !disk1Modified) || JOptionPane.showConfirmDialog(null, "Sollen die Änderungen an den Disketten verworfen werden?", "Diskette verändert", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION) {
                     a7100.reset();
                 }
             } else if (e.getSource().equals(menuEmulatorPause)) {
@@ -697,7 +698,7 @@ public class MainView extends JFrame {
             } else if (e.getSource().equals(menuEmulatorLoad)) {
                 boolean disk0Modified = a7100.getKES().getAFS().getFloppy(0).isDiskInsert() && a7100.getKES().getAFS().getFloppy(0).getDisk().isModified();
                 boolean disk1Modified = a7100.getKES().getAFS().getFloppy(1).isDiskInsert() && a7100.getKES().getAFS().getFloppy(1).getDisk().isModified();
-                if ((!disk0Modified && !disk1Modified) || JOptionPane.showConfirmDialog(null, "Sollen die Änderungen an den Diskette verworfen werden?", "Diskette verändert", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION) {
+                if ((!disk0Modified && !disk1Modified) || JOptionPane.showConfirmDialog(null, "Sollen die Änderungen an den Disketten verworfen werden?", "Diskette verändert", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION) {
                     String directory = ConfigurationManager.getInstance().readString("directories", "state", "./state/");
                     try {
                         a7100.loadState(new File(directory + "state.a7100"));
@@ -709,7 +710,7 @@ public class MainView extends JFrame {
             } else if (e.getSource().equals(menuEmulatorLoadFrom)) {
                 boolean disk0Modified = a7100.getKES().getAFS().getFloppy(0).isDiskInsert() && a7100.getKES().getAFS().getFloppy(0).getDisk().isModified();
                 boolean disk1Modified = a7100.getKES().getAFS().getFloppy(1).isDiskInsert() && a7100.getKES().getAFS().getFloppy(1).getDisk().isModified();
-                if ((!disk0Modified && !disk1Modified) || JOptionPane.showConfirmDialog(null, "Sollen die Änderungen an den Diskette verworfen werden?", "Diskette verändert", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION) {
+                if ((!disk0Modified && !disk1Modified) || JOptionPane.showConfirmDialog(null, "Sollen die Änderungen an den Disketten verworfen werden?", "Diskette verändert", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION) {
                     String directory = ConfigurationManager.getInstance().readString("directories", "state", "./state/");
                     JFileChooser loadDialog = new JFileChooser(directory);
                     FileNameExtensionFilter filter = new FileNameExtensionFilter("A7100 Emulatorzustände", "a7100");
@@ -726,7 +727,7 @@ public class MainView extends JFrame {
             } else if (e.getSource() == menuEmulatorExit) {
                 boolean disk0Modified = a7100.getKES().getAFS().getFloppy(0).isDiskInsert() && a7100.getKES().getAFS().getFloppy(0).getDisk().isModified();
                 boolean disk1Modified = a7100.getKES().getAFS().getFloppy(1).isDiskInsert() && a7100.getKES().getAFS().getFloppy(1).getDisk().isModified();
-                if ((!disk0Modified && !disk1Modified) || JOptionPane.showConfirmDialog(null, "Sollen die Änderungen an den Diskette verworfen werden?", "Diskette verändert", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION) {
+                if ((!disk0Modified && !disk1Modified) || JOptionPane.showConfirmDialog(null, "Sollen die Änderungen an den Disketten verworfen werden?", "Diskette verändert", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION) {
                     System.exit(0);
                 }
             } else if (e.getSource().equals(menuDebugGlobalDebuggerSwitch)) {
@@ -1050,7 +1051,7 @@ public class MainView extends JFrame {
         public void windowClosing(WindowEvent e) {
             boolean disk0Modified = a7100.getKES().getAFS().getFloppy(0).isDiskInsert() && a7100.getKES().getAFS().getFloppy(0).getDisk().isModified();
             boolean disk1Modified = a7100.getKES().getAFS().getFloppy(1).isDiskInsert() && a7100.getKES().getAFS().getFloppy(1).getDisk().isModified();
-            if ((!disk0Modified && !disk1Modified) || JOptionPane.showConfirmDialog(null, "Sollen die Änderungen an den Diskette verworfen werden?", "Diskette verändert", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION) {
+            if ((!disk0Modified && !disk1Modified) || JOptionPane.showConfirmDialog(null, "Sollen die Änderungen an den Disketten verworfen werden?", "Diskette verändert", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION) {
                 System.exit(0);
             }
         }
