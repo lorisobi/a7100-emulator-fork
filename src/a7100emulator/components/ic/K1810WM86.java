@@ -55,6 +55,7 @@
  *   18.03.2018 - Verzeichnis für Debugger wird aus Konfigurationsdatei geladen
  *              - Rückgabe Debugger-Status implementiert
  *   11.05.2018 - Zuweisungsoperatoren verwendet
+ *   19.12.2024 - Cast fuer checkSignFlag16 in dec16 korrigiert
  */
 package a7100emulator.components.ic;
 
@@ -6301,7 +6302,7 @@ public final class K1810WM86 implements CPU {
     private int dec16(int op) {
         int res = op - 1;
         checkZeroFlag16(res);
-        checkSignFlag16((byte) res);
+        checkSignFlag16((short) res);
         checkOverflowFlagSub16(op, 1, res);
         checkParityFlag(res);
         checkAuxiliaryCarryFlagSub(op, 1);

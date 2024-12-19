@@ -27,6 +27,8 @@
  *   31.07.2016 - Ports für alle Module in Array zusammengefasst
  *              - Parity ausgelagert
  *   07.08.2016 - Logger hinzugefügt und Ausgaben umgeleitet
+ *   19.12.2024 - Firmware-ROM bleibt auch bei 4. OPS sichtbar
+ *              - ACT Parity Hack fuer writeByte() vervollstaendigt
  */
 package a7100emulator.components.modules;
 
@@ -195,6 +197,7 @@ public final class OPS implements IOModule, MemoryModule {
     @Override
     public void registerMemory() {
         ops_offset = (ZPS.zps_count == 1) ? 0x20000 : 0;
+		int rom_size = 0;
 
         switch (ops_id) {
             case 0:
@@ -208,9 +211,12 @@ public final class OPS implements IOModule, MemoryModule {
                 break;
             case 3:
                 ops_offset += 0xC0000;
+				// 32 KiB Firmware-ROM muss auch bei 4. OPS sichtbar bleiben
+				// ROM haengt am lokalen CPU-Bus und hat gegenueber dem MMS-16 OPS Vorrang
+				rom_size = 32768;
                 break;
         }
-        MMS16Bus.getInstance().registerMemoryModule(new AddressSpace(ops_offset, ops_offset + 0x3FFFF), this);
+        MMS16Bus.getInstance().registerMemoryModule(new AddressSpace(ops_offset, ops_offset + 0x3FFFF - rom_size), this);
     }
 
     /**
@@ -264,7 +270,7 @@ public final class OPS implements IOModule, MemoryModule {
     public void writeByte(int address, int data) {
         memory.writeByte(address - ops_offset, data);
         // Parity Hack für A C T
-        if (address == parityCheckAddress[ops_id]) {
+        if (address == parityCheckAddress[ops_id] || (address - 1) == parityCheckAddress[ops_id]) {
             //if ((address - ops_offset) == 0x20000) {
             parityBits[address - ops_offset] = (byte) Parity.calculateParityBit(data, parity);
         }

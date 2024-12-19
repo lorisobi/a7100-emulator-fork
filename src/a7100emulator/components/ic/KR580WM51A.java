@@ -29,6 +29,7 @@
  *   07.08.2016 - Puffer behält Wert bis er überschrieben wird
  *   09.08.2016 - Logger hinzugefügt
  *   18.03.2018 - Loggen des Reset-Hacks implementiert
+ *   19.12.2024 - Unterdruecke Interrupt, falls empfangenes Zeichen 0xff ist
  */
 package a7100emulator.components.ic;
 
@@ -252,7 +253,9 @@ public class KR580WM51A implements IC {
 //            }
         receiveBuffer = data;
         state |= STATE_RXRDY;
-        MMS16Bus.getInstance().requestInterrupt(6);
+		if ((data & 0xff) != 0xff) {
+			MMS16Bus.getInstance().requestInterrupt(6);
+		}
 //        }
     }
 
