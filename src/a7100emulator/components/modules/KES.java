@@ -162,24 +162,24 @@ public final class KES implements IOModule, ClockModule {
                 case 0x01:
                     // START_OPERATION
 //                        System.out.println("START OPERATION");
-					if (readWUB) {
-						// erster Aufruf von START_OPERATION nach RESET_OFF
-						int seg = mms16.readMemoryWord(INIT_WUB_ADDRESS + 4);
-						int off = mms16.readMemoryWord(INIT_WUB_ADDRESS + 2);
-						ccbAddress = (seg << 4) + off;
-						readWUB = false;
-					} else {
-						// nachfolgende Aufrufe von START_OPERATION
-						startOperation();
-					}
-					// setze Busy Byte zurueck
-					mms16.writeMemoryByte(ccbAddress + 0x01, 0x00);
-					interruptWaiting = true;
+                    if (readWUB) {
+                        // erster Aufruf von START_OPERATION nach RESET_OFF
+                        int seg = mms16.readMemoryWord(INIT_WUB_ADDRESS + 4);
+                        int off = mms16.readMemoryWord(INIT_WUB_ADDRESS + 2);
+                        ccbAddress = (seg << 4) + off;
+                        readWUB = false;
+                    } else {
+                        // nachfolgende Aufrufe von START_OPERATION
+                        startOperation();
+                    }
+                    // setze Busy Byte zurueck
+                    mms16.writeMemoryByte(ccbAddress + 0x01, 0x00);
+                    interruptWaiting = true;
                     break;
                 case 0x02:
                     // RESET
 //                        System.out.println("RESET");
-					readWUB = true;
+                    readWUB = true;
                     break;
                 default:
                     throw new IllegalArgumentException("Illegal Command:" + Integer.toHexString(data));
@@ -557,8 +557,8 @@ public final class KES implements IOModule, ClockModule {
     @Override
     public void clockUpdate(int amount) {
         if (interruptWaiting) {
-			interruptWaiting = false;
-			MMS16Bus.getInstance().requestInterrupt(5);
+            interruptWaiting = false;
+            MMS16Bus.getInstance().requestInterrupt(5);
         }
     }
 

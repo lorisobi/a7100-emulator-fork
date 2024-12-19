@@ -103,12 +103,12 @@ public class K580WN59A implements IC {
      * Gibt an ob ICW3 empfangen wurde
      */
     private boolean icw3Send = false;
-	/**
-	 * Workaround: Merkzellen fuer wartende Interrupts
-	 * Dies ist formal kein Bestandteil des PIC
-	 * TODO: Implementiere wartende Interrupts an der Interrupt-Quelle
+    /**
+     * Workaround: Merkzellen fuer wartende Interrupts
+     * Dies ist formal kein Bestandteil des PIC
+     * TODO: Implementiere wartende Interrupts an der Interrupt-Quelle
      */
-	private boolean[] irqPending = new boolean[8];
+    private boolean[] irqPending = new boolean[8];
 
     /**
      * Erstellt einen neuen PIC und initialisiert ihn
@@ -130,14 +130,14 @@ public class K580WN59A implements IC {
      * @return Status
      */
     public int readStatus() {
-		if (BitTest.getBit(ocw3, 1)) {
-			if (BitTest.getBit(ocw3, 0)) {
-				return isr;
-			} else {
-				return irr;
-			}
-		}
-		return 0;
+        if (BitTest.getBit(ocw3, 1)) {
+            if (BitTest.getBit(ocw3, 0)) {
+                return isr;
+            } else {
+                return irr;
+            }
+        }
+        return 0;
     }
 
     /**
@@ -161,9 +161,9 @@ public class K580WN59A implements IC {
             icw1 = data;
             ocw1 = 0x00;
             irr = 0;
-			for (int i = 0; i <= 7; i++) {
-				irqPending[i] = false;
-			}
+            for (int i = 0; i <= 7; i++) {
+                irqPending[i] = false;
+            }
             icw1Send = true;
             // System.out.println("Setze ICW1 " + Integer.toBinaryString(icw1));
         } else {
@@ -171,33 +171,33 @@ public class K580WN59A implements IC {
                 // OCW3
                 ocw3 = data;
                 //System.out.println("Setze OCW3 " + Integer.toBinaryString(ocw3));
-				if (BitTest.getBit(ocw3, 6)) {
-					LOG.log(Level.SEVERE, "OCW3: Special mask mode nicht implementiert");
-					System.exit(0);
-				}
-				if (BitTest.getBit(ocw3, 2)) {
-					LOG.log(Level.SEVERE, "OCW3: Poll command nicht implementiert");
-					System.exit(0);
-				}
+                if (BitTest.getBit(ocw3, 6)) {
+                    LOG.log(Level.SEVERE, "OCW3: Special mask mode nicht implementiert");
+                    System.exit(0);
+                }
+                if (BitTest.getBit(ocw3, 2)) {
+                    LOG.log(Level.SEVERE, "OCW3: Poll command nicht implementiert");
+                    System.exit(0);
+                }
             } else {
                 // OCW2
                 ocw2 = data;
                 //System.out.println("Setze OCW2 " + Integer.toBinaryString(ocw2));
-				// Test auf non-spefific EOI command
-				if (!BitTest.getBit(ocw2, 7) && !BitTest.getBit(ocw2, 6) &&
-					BitTest.getBit(ocw2, 5)) {
-					// Durchlaufe alle ISR Bits, um das hoechste In-Service Level
-					// zu bestimmen (0 = highest, 7 = lowest)
-					for (int i = 0; i <= 7; i++) {
-						if (BitTest.getBit(isr, i)) {
-							// setze hoechstes ISR Bit zurueck
-							isr &= ~(1 << i);
-						}
-					}
-				} else {
-					LOG.log(Level.SEVERE, "OCW2: Nicht implementierte Operation: " + Integer.toBinaryString(ocw2));
-					System.exit(0);
-				}
+                // Test auf non-spefific EOI command
+                if (!BitTest.getBit(ocw2, 7) && !BitTest.getBit(ocw2, 6) &&
+                    BitTest.getBit(ocw2, 5)) {
+                    // Durchlaufe alle ISR Bits, um das hoechste In-Service Level
+                    // zu bestimmen (0 = highest, 7 = lowest)
+                    for (int i = 0; i <= 7; i++) {
+                        if (BitTest.getBit(isr, i)) {
+                            // setze hoechstes ISR Bit zurueck
+                            isr &= ~(1 << i);
+                        }
+                    }
+                } else {
+                    LOG.log(Level.SEVERE, "OCW2: Nicht implementierte Operation: " + Integer.toBinaryString(ocw2));
+                    System.exit(0);
+                }
             }
         }
     }
@@ -233,17 +233,17 @@ public class K580WN59A implements IC {
         }
     }
 
-	/**
-	 * Aktualisiert das Interrupt-Request-Register, falls es wartende IRQs gibt
-	 */
-	private void updateIRR() {
-		for (int i = 0; i <= 7; i++) {
-			if (irqPending[i]) {
-				irr |= (1 << i);
-				irqPending[i] = false;
-			}
-		}
-	}
+    /**
+     * Aktualisiert das Interrupt-Request-Register, falls es wartende IRQs gibt
+     */
+    private void updateIRR() {
+        for (int i = 0; i <= 7; i++) {
+            if (irqPending[i]) {
+                irr |= (1 << i);
+                irqPending[i] = false;
+            }
+        }
+    }
 
     /**
      * Nimmt einer Interrupt-Anfrage eines angeschlossenen Gerätes entgegen
@@ -254,7 +254,7 @@ public class K580WN59A implements IC {
         if (id < 0 || id > 7) {
             throw new IllegalArgumentException("Ungültiger Interrupt " + id);
         }
-		irqPending[id] = true;
+        irqPending[id] = true;
     }
 
     /**
@@ -263,38 +263,38 @@ public class K580WN59A implements IC {
      * @return IRQ oder -1 wenn kein Interrupt vorliegt
      */
     public int getInterrupt() {
-		updateIRR();
+        updateIRR();
 
-		// durchlaufe alle IRQ Level: 0 = highest, 7 = lowest
+        // durchlaufe alle IRQ Level: 0 = highest, 7 = lowest
         for (int i = 0; i <= 7; i++) {
-			if (!BitTest.getBit(isr, i)) {
-				/* IRQ Level i ist derzeit nicht In-Service
-				 * Teste, ob ein Interrupt-Request anliegt,
-				 * der nicht maskiert ist
-				 */
-				if (BitTest.getBit(irr, i) && !BitTest.getBit(ocw1, i)) {
-					// gueltiger Interrupt-Request, loesche IRR Bit
-					irr &= ~(1 << i);
-					// teste auf NON-AUTO-EOI
-					if (!BitTest.getBit(icw4, 1)) {
-						/* setze ISR Bit nur im Falle eines NON-AUTO-EOI,
-						 * da es (derzeit) nur in diesem Fall auch wieder
-						 * sauber zurueckgesetzt werden kann.
-						 * TODO: Implementiere ISR-Handling fuer AUTO-EOI
-						 */
-						isr |= (1 << i);
-					}
-					return i | (icw2 & 0xF8);
-				}
-			} else {
-				/* IRQ Level i ist derzeit In-Service
-				 * und darf nicht unterbrochen werden.
-				 * Niedriger priorisierte IRQs duerfen
+            if (!BitTest.getBit(isr, i)) {
+                /* IRQ Level i ist derzeit nicht In-Service
+                 * Teste, ob ein Interrupt-Request anliegt,
+                 * der nicht maskiert ist
+                 */
+                if (BitTest.getBit(irr, i) && !BitTest.getBit(ocw1, i)) {
+                    // gueltiger Interrupt-Request, loesche IRR Bit
+                    irr &= ~(1 << i);
+                    // teste auf NON-AUTO-EOI
+                    if (!BitTest.getBit(icw4, 1)) {
+                        /* setze ISR Bit nur im Falle eines NON-AUTO-EOI,
+                         * da es (derzeit) nur in diesem Fall auch wieder
+                         * sauber zurueckgesetzt werden kann.
+                         * TODO: Implementiere ISR-Handling fuer AUTO-EOI
+                         */
+                        isr |= (1 << i);
+                    }
+                    return i | (icw2 & 0xF8);
+                }
+            } else {
+                /* IRQ Level i ist derzeit In-Service
+                 * und darf nicht unterbrochen werden.
+                 * Niedriger priorisierte IRQs duerfen
                  * hoeher priorisierte nicht unterbrechen,
                  * daher gebe hier -1 zurueck
-				 */
-				return -1;
-			}
+                 */
+                return -1;
+            }
         }
         return -1;
     }
@@ -320,9 +320,9 @@ public class K580WN59A implements IC {
         dos.writeBoolean(icw1Send);
         dos.writeBoolean(icw2Send);
         dos.writeBoolean(icw3Send);
-		for (int i = 0; i <= 7; i++) {
-			dos.writeBoolean(irqPending[i]);
-		}
+        for (int i = 0; i <= 7; i++) {
+            dos.writeBoolean(irqPending[i]);
+        }
     }
 
     /**
@@ -346,8 +346,8 @@ public class K580WN59A implements IC {
         icw1Send = dis.readBoolean();
         icw2Send = dis.readBoolean();
         icw3Send = dis.readBoolean();
-		for (int i = 0; i <= 7; i++) {
-			irqPending[i] = dis.readBoolean();
-		}
+        for (int i = 0; i <= 7; i++) {
+            irqPending[i] = dis.readBoolean();
+        }
     }
 }

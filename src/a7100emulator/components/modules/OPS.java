@@ -197,7 +197,7 @@ public final class OPS implements IOModule, MemoryModule {
     @Override
     public void registerMemory() {
         ops_offset = (ZPS.zps_count == 1) ? 0x20000 : 0;
-		int rom_size = 0;
+        int rom_size = 0;
 
         switch (ops_id) {
             case 0:
@@ -211,9 +211,9 @@ public final class OPS implements IOModule, MemoryModule {
                 break;
             case 3:
                 ops_offset += 0xC0000;
-				// 32 KiB Firmware-ROM muss auch bei 4. OPS sichtbar bleiben
-				// ROM haengt am lokalen CPU-Bus und hat gegenueber dem MMS-16 OPS Vorrang
-				rom_size = 32768;
+                // 32 KiB Firmware-ROM muss auch bei 4. OPS sichtbar bleiben
+                // ROM haengt am lokalen CPU-Bus und hat gegenueber dem MMS-16 OPS Vorrang
+                rom_size = 32768;
                 break;
         }
         MMS16Bus.getInstance().registerMemoryModule(new AddressSpace(ops_offset, ops_offset + 0x3FFFF - rom_size), this);

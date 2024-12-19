@@ -253,9 +253,9 @@ public class KR580WM51A implements IC {
 //            }
         receiveBuffer = data;
         state |= STATE_RXRDY;
-		if ((data & 0xff) != 0xff) {
-			MMS16Bus.getInstance().requestInterrupt(6);
-		}
+        if ((data & 0xff) != 0xff) {
+            MMS16Bus.getInstance().requestInterrupt(6);
+        }
 //        }
     }
 
