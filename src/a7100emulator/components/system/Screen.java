@@ -20,9 +20,11 @@
  * Letzte Änderungen:
  *   05.04.2014 - Kommentare vervollständigt
  *   09.08.2016 - Logger hinzugefügt
+ *   08.01.2025 - Initiale Skalierung des Ausgabefensters hinzugefuegt
  */
 package a7100emulator.components.system;
 
+import a7100emulator.Tools.ConfigurationManager;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.image.BufferedImage;
@@ -54,8 +56,9 @@ public class Screen extends JComponent {
      * Erzeugt einen neuen Bildschirm
      */
     private Screen() {
+        double winScale = Double.parseDouble(ConfigurationManager.getInstance().readString("General", "WindowScale", "1.0"));
         setMinimumSize(new Dimension(640, 400));
-        setPreferredSize(new Dimension(640, 400));
+        setPreferredSize(new Dimension((int)(640 * winScale), (int)(400 * winScale)));
     }
 
     /**
