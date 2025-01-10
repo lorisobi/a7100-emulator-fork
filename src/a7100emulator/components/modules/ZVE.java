@@ -557,6 +557,7 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
         pti.saveState(dos);
         usart.saveState(dos);
         cpuClock.saveState(dos);
+        busClock.saveState(dos);
     }
 
     /**
@@ -574,6 +575,7 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
         pti.loadState(dis);
         usart.loadState(dis);
         cpuClock.loadState(dis);
+        busClock.loadState(dis);
     }
 
     /**
