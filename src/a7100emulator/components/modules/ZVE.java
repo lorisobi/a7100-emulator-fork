@@ -32,6 +32,7 @@
  *   18.03.2018 - EPROMS Pfad wird aus Konfiguration gelesen
  *              - Rückgabe Debugger-Status implementiert
  *   07.01.2025 - Bus Clock hinzugefuegt
+ *   09.01.2025 - Taktumschaltung fuer V30 IDE Adapter hinzugefuegt
  */
 package a7100emulator.components.modules;
 
@@ -39,6 +40,7 @@ import a7100emulator.Debug.Decoder;
 import a7100emulator.Tools.AddressSpace;
 import a7100emulator.Tools.ConfigurationManager;
 import a7100emulator.Tools.Memory;
+import a7100emulator.Tools.BitTest;
 import a7100emulator.components.ic.K1810WM86;
 import a7100emulator.components.ic.K580WN59A;
 import a7100emulator.components.ic.KR580WI53;
@@ -147,9 +149,29 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
     private final K580WN59A pic = new K580WN59A();
 
     /**
+     * Zeigt an, ob der V30 IDE Adapter verwendet wird
+     */
+    private static boolean useV30IDE = false;
+
+    /**
      * 8086 CPU
      */
     private final K1810WM86 cpu = new K1810WM86();
+
+    /**
+     * Standard CPU Frequenz
+     */
+    private final static double CPUMHzDefault = 4.9152;
+
+    /**
+     * CPU Frequenz des V30 IDE Adapters
+     */
+    private static double CPUMHzFast = 15.0;
+
+    /**
+     * Bus Frequenz
+     */
+    private final static double BusMHZ = 9.832;
 
     /**
      * Parallel-E/A-Schaltkreis
@@ -174,18 +196,24 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
     /**
      * Quartz CPU-Takt
      */
-    private final QuartzCrystal cpuClock = new QuartzCrystal(4.9152);
+    private final QuartzCrystal cpuClock = new QuartzCrystal(CPUMHzDefault);
 
     /**
      * Quartz Bus-Takt
      */
-    private final QuartzCrystal busClock = new QuartzCrystal(9.832);
+    private final QuartzCrystal busClock = new QuartzCrystal(BusMHZ);
 
     /**
      * Erstellt eine neue ZVE
+     *
+     * @param useV30IDE Zeigt an, ob die Emulation des V30 IDE Adapters verwendet wird
      */
-    public ZVE() {
+    public ZVE(boolean useV30IDE) {
         init();
+        this.useV30IDE = useV30IDE;
+        if (useV30IDE) {
+            CPUMHzFast = Double.parseDouble(ConfigurationManager.getInstance().readString("V30IDE", "CPUMHzFast", "15.0"));
+        }
     }
 
     /**
@@ -239,6 +267,21 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
                 break;
             case PORT_ZVE_8255A_PORT_A:
                 ppi.writePortA(data);
+                /**
+                 * Das Umschalten der CPU-Frequenz erfolgt ueber das unbenutzte Bit 4 von Port A.
+                 * Beim Einschalten des A7100 laeuft die CPU mit dem Standard-Takt, um saemtliche
+                 * ACT-Tests fehlerfrei zu durchlaufen. Beim Booten von MUTOS wird dann auf den
+                 * schnellen CPU-Takt von 15 MHZ umgeschaltet.
+                 */
+                if (useV30IDE) {
+                    if (BitTest.getBit(data, 4)) {
+                        LOG.log(Level.INFO, "Setze ZVE CPU Frequenz auf " + CPUMHzDefault + " MHz");
+                        cpuClock.setFrequency(CPUMHzDefault);
+                    } else if (!BitTest.getBit(data, 4)) {
+                        LOG.log(Level.INFO, "Setze ZVE CPU Frequenz auf " + CPUMHzFast + " MHz");
+                        cpuClock.setFrequency(CPUMHzFast);
+                    }
+                }
                 break;
             case PORT_ZVE_8255A_PORT_B:
                 ppi.writePortB(data);
@@ -557,6 +600,9 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
         pti.saveState(dos);
         usart.saveState(dos);
         cpuClock.saveState(dos);
+        busClock.saveState(dos);
+        dos.writeBoolean(useV30IDE);
+        dos.writeDouble(CPUMHzFast);
     }
 
     /**
@@ -574,6 +620,9 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
         pti.loadState(dis);
         usart.loadState(dis);
         cpuClock.loadState(dis);
+        busClock.loadState(dis);
+        useV30IDE = dis.readBoolean();
+        CPUMHzFast = dis.readDouble();
     }
 
     /**

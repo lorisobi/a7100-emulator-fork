@@ -54,6 +54,7 @@
  *              - Menüs für Debugger werden durch Zustand aktualisiert 
  *   10.05.2018 - Abfrage beim Überschreiben von Diskettenabbildern
  *              - Abfrage bei Änderungen an Disketten
+ *   09.01.2025 - Speichern der V30 IDE Festplatten-Images beim Beenden
  */
 package a7100emulator;
 
@@ -69,6 +70,7 @@ import a7100emulator.components.system.GlobalClock;
 import a7100emulator.components.system.Keyboard;
 import a7100emulator.components.system.MMS16Bus;
 import a7100emulator.components.system.Screen;
+import a7100emulator.components.modules.V30IDE;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.GridLayout;
@@ -672,6 +674,9 @@ public class MainView extends JFrame {
                 boolean disk0Modified = a7100.getKES().getAFS().getFloppy(0).isDiskInsert() && a7100.getKES().getAFS().getFloppy(0).getDisk().isModified();
                 boolean disk1Modified = a7100.getKES().getAFS().getFloppy(1).isDiskInsert() && a7100.getKES().getAFS().getFloppy(1).getDisk().isModified();
                 if ((!disk0Modified && !disk1Modified) || JOptionPane.showConfirmDialog(null, "Sollen die Änderungen an den Diskette verworfen werden?", "Diskette verändert", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION) {
+                    if (a7100.getV30IDE() != null) {
+                        a7100.getV30IDE().syncImages();
+                    }
                     System.exit(0);
                 }
             } else if (e.getSource().equals(menuDebugGlobalDebuggerSwitch)) {
@@ -971,6 +976,9 @@ public class MainView extends JFrame {
             boolean disk0Modified = a7100.getKES().getAFS().getFloppy(0).isDiskInsert() && a7100.getKES().getAFS().getFloppy(0).getDisk().isModified();
             boolean disk1Modified = a7100.getKES().getAFS().getFloppy(1).isDiskInsert() && a7100.getKES().getAFS().getFloppy(1).getDisk().isModified();
             if ((!disk0Modified && !disk1Modified) || JOptionPane.showConfirmDialog(null, "Sollen die Änderungen an den Diskette verworfen werden?", "Diskette verändert", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION) {
+                if (a7100.getV30IDE() != null) {
+                    a7100.getV30IDE().syncImages();
+                }
                 System.exit(0);
             }
         }

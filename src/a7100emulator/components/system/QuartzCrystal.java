@@ -22,6 +22,7 @@
  *   23.07.2016 - Kommentare ergänzt
  *   24.07.2016 - Parameter umbenannt
  *   09.08.2016 - Logger hinzugefügt
+ *   10.01.2025 - Methode setFrequency() hinzugefuegt
  */
 package a7100emulator.components.system;
 
@@ -46,7 +47,7 @@ public class QuartzCrystal implements StateSavable {
     /**
      * Frequenz des Quartzes
      */
-    private final double frequency;
+    private double frequency;
     /**
      * Verbleibende, nicht vollständige Takte
      */
@@ -79,6 +80,15 @@ public class QuartzCrystal implements StateSavable {
     }
 
     /**
+     * Setzt die Frequenz des Quartzes auf einen neuen Wert
+     *
+     * @param frequency Neue Frequenz des Quartzes in MHz
+     */
+    public void setFrequency(double frequency) {
+        this.frequency = frequency;
+    }
+
+    /**
      * Speichert den Zustand des Quartzes in einer Datei.
      *
      * @param dos Stream zur Datei
@@ -86,6 +96,7 @@ public class QuartzCrystal implements StateSavable {
      */
     @Override
     public void saveState(DataOutputStream dos) throws IOException {
+        dos.writeDouble(frequency);
         dos.writeDouble(remain);
     }
 
@@ -97,6 +108,7 @@ public class QuartzCrystal implements StateSavable {
      */
     @Override
     public void loadState(DataInputStream dis) throws IOException {
+        frequency = dis.readDouble();
         remain = dis.readDouble();
     }
 }

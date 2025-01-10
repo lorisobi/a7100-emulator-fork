@@ -27,6 +27,7 @@
  *   18.03.2018 - Laden der Modulkonfiguration ergänzt
  *              - Laden und Speichern der Zustände von ZPS, ABS und ASP ergänzt
  *              - Laden der Hacks und Zeitseinstellung ergänzt
+ *   09.01.2025 - V30 IDE Adapter hinzugefuegt
  */
 package a7100emulator.components;
 
@@ -41,6 +42,7 @@ import a7100emulator.components.modules.KGS;
 import a7100emulator.components.modules.OPS;
 import a7100emulator.components.modules.ZPS;
 import a7100emulator.components.modules.ZVE;
+import a7100emulator.components.modules.V30IDE;
 import a7100emulator.components.system.GlobalClock;
 import a7100emulator.components.system.InterruptSystem;
 import a7100emulator.components.system.Keyboard;
@@ -94,6 +96,10 @@ public class A7100 {
      * ABS-Modul
      */
     private ABS abs;
+    /**
+     * V30 IDE Adapter
+     */
+    private V30IDE v30ide;
 
     /**
      * Erstellt einen neuen virtuellen A7100 und startet ihn
@@ -133,13 +139,23 @@ public class A7100 {
     }
 
     /**
-     * Gitb Referenz auf das KES-Modul zurück. Wird für die Verwaltung der
+     * Gibt Referenz auf das KES-Modul zurück. Wird für die Verwaltung der
      * Disketten-Images verwendet.
      *
      * @return KES-Modul
      */
     public KES getKES() {
         return kes;
+    }
+
+    /**
+     * Gibt Referenz auf den V30 IDE Adapter zurück. Wird für die Verwaltung der
+     * IDE Festplatten-Images sowie zur Umschaltung der CPU-Taktfrequenz verwendet
+     *
+     * @return V30IDE-Adapter
+     */
+    public V30IDE getV30IDE() {
+        return v30ide;
     }
 
     /**
@@ -179,6 +195,9 @@ public class A7100 {
             kes.saveState(dos);
             if (asp != null) {
                 asp.saveState(dos);
+            }
+            if (v30ide != null) {
+                v30ide.saveState(dos);
             }
 
             InterruptSystem.getInstance().saveState(dos);
@@ -233,6 +252,9 @@ public class A7100 {
             kes.loadState(dis);
             if (asp != null) {
                 asp.loadState(dis);
+            }
+            if (v30ide != null) {
+                v30ide.loadState(dis);
             }
 
             InterruptSystem.getInstance().loadState(dis);
@@ -309,7 +331,16 @@ public class A7100 {
         boolean debugGlobal = ConfigurationManager.getInstance().readBoolean("Debugger", "Global", false);
         Debugger.getGlobalInstance().setDebug(debugGlobal);
 
-        zve = new ZVE();
+        // V30 IDE Adapter
+        boolean useV30IDE = ConfigurationManager.getInstance().readBoolean("Modules", "V30IDE", false);
+        LOG.log(Level.CONFIG, "Verwendung des V30 IDE Adapters ist {0}", new String[]{(useV30IDE ? "aktiviert" : "deaktiviert")});
+        if (useV30IDE) {
+            v30ide = new V30IDE();
+        } else {
+            v30ide = null;
+        }
+
+        zve = new ZVE(useV30IDE);
         boolean debugZVE = ConfigurationManager.getInstance().readBoolean("Debugger", "ZVE", false);
         zve.setDebug(debugZVE);
 

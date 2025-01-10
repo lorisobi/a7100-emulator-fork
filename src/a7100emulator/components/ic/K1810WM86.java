@@ -58,6 +58,7 @@
  *   19.12.2024 - Cast fuer checkSignFlag16 in dec16 korrigiert
  *   21.12.2024 - Korrektes Setzen des Uebertrags fuer 16-Bit Operationen mit direktem,
  *                negativem vorzeichenbehafteten 2. Operanden (Opcode 0x83)
+ *   08.01.2025 - 80186 Befehle INS8/16 und OUTS8/16 fuer V30 IDE Adapter hinzugefuegt
  */
 package a7100emulator.components.ic;
 
@@ -983,6 +984,24 @@ public final class K1810WM86 implements CPU {
      * Opcode: Setze Richtungs-Flag
      */
     private static final int STD = 0xFD;
+
+    /**
+     * 80186 Opcode: Eingabe 8-bit String von Port
+     */
+    private static final int INS_8 = 0x6C;
+    /**
+     * 80186 Opcode: Eingabe 16-bit String von Port
+     */
+    private static final int INS_16 = 0x6D;
+    /**
+     * 80186 Opcode: Ausgabe 8-bit String auf Port
+     */
+    private static final int OUTS_8 = 0x6E;
+    /**
+     * 80186 Opcode: Ausgabe 16-bit String auf Port
+     */
+    private static final int OUTS_16 = 0x6F;
+
 
     /**
      * (0x80) 2. Opcode: Addiere 8Bit direkten Operanden zu Register
@@ -4288,6 +4307,207 @@ public final class K1810WM86 implements CPU {
                         ascii += (char) (ch1 & 0xFF) + (char) ((ch1 & 0xFF00) >> 8);
                     }
                     debugInfo.setOperands(operand + " (" + ascii + ")," + String.format("%04Xh", getReg16(REG_AL_AX)) + " (" + (char) (getReg16(REG_AL_AX) & 0xFF) + (char) ((getReg16(REG_AL_AX) & 0xFF00) >> 8) + ")" + ((count > 25) ? " ..." : ""));
+                }
+            }
+            break;
+            // TODO: fix ticks
+            case INS_8: {
+                int count = 1;
+                if (string_prefix == NO_PREFIX) {
+                    mms16.writeMemoryByte((getSReg(SREG_ES) << 4) + getReg16(REG_BH_DI), mms16.readIOByte(getReg16(REG_DL_DX)));
+                    if (getFlag(DIRECTION_FLAG)) {
+                        setReg16(REG_BH_DI, getReg16(REG_BH_DI) - 1);
+                    } else {
+                        setReg16(REG_BH_DI, getReg16(REG_BH_DI) + 1);
+                    }
+                    updateTicks(14);
+                } else {
+                    updateTicks(9);
+                    count = getReg16(REG_CL_CX);
+                    while (getReg16(REG_CL_CX) != 0) {
+                        updateTicks(14);
+                        mms16.writeMemoryByte((getSReg(SREG_ES) << 4) + getReg16(REG_BH_DI), mms16.readIOByte(getReg16(REG_DL_DX)));
+                        if (getFlag(DIRECTION_FLAG)) {
+                            setReg16(REG_BH_DI, getReg16(REG_BH_DI) - 1);
+                        } else {
+                            setReg16(REG_BH_DI, getReg16(REG_BH_DI) + 1);
+                        }
+                        setReg16(REG_CL_CX, getReg16(REG_CL_CX) - 1);
+                    }
+                    string_prefix = NO_PREFIX;
+                }
+                if (debug) {
+                    debugInfo.setCode("INSB ES:DI,DX");
+                    String operand = String.format("%04Xh -> ", getReg16(REG_DL_DX));
+                    String ascii = "";
+                    for (int i = 0; i < count; i++) {
+                        if (getFlag(DIRECTION_FLAG)) {
+                            int ch = mms16.readMemoryByte((getSReg(SREG_ES) << 4) + getReg16(REG_BH_DI) + count - i);
+                            operand += String.format("%02Xh ", ch);
+                            ascii += (char) ch;
+                        } else {
+                            int ch = mms16.readMemoryByte((getSReg(SREG_ES) << 4) + getReg16(REG_BH_DI) + i - count);
+                            operand += String.format("%02Xh ", ch);
+                            ascii += (char) ch;
+                        }
+                    }
+                    debugInfo.setOperands(operand + " (" + ascii + ")");
+                }
+            }
+            break;
+            // TODO: fix ticks
+            case INS_16: {
+                int count = 1;
+                if (string_prefix == NO_PREFIX) {
+                    mms16.writeMemoryWord((getSReg(SREG_ES) << 4) + getReg16(REG_BH_DI), mms16.readIOWord(getReg16(REG_DL_DX)));
+                    if (getFlag(DIRECTION_FLAG)) {
+                        setReg16(REG_BH_DI, getReg16(REG_BH_DI) - 2);
+                    } else {
+                        setReg16(REG_BH_DI, getReg16(REG_BH_DI) + 2);
+                    }
+                    updateTicks(14);
+                } else {
+                    updateTicks(9);
+                    count = getReg16(REG_CL_CX);
+                    // Beginn der zusaetzlichen Konsolen-Ausgabe
+                    //System.out.println("Read " + (count * 2) + " Bytes from port " + String.format("%04Xh", getReg16(REG_DL_DX)) +
+                    //                   " to memory address " + String.format("%04X:%04X", getSReg(SREG_ES), getReg16(REG_BH_DI)));
+                    // Die Variablen data, character and ascii werden nur fuer den Hexdump benoetigt
+                    //int data;
+                    //byte character;
+                    //String ascii = "";
+                    while (getReg16(REG_CL_CX) != 0) {
+                        updateTicks(14);
+                        mms16.writeMemoryWord((getSReg(SREG_ES) << 4) + getReg16(REG_BH_DI), mms16.readIOWord(getReg16(REG_DL_DX)));
+                        // Hexdump-Ausgabe auf die Konsole
+                        //data = mms16.readMemoryWord((getSReg(SREG_ES) << 4) + getReg16(REG_BH_DI));
+                        //System.out.print(String.format("%02X %02X", (data & 0xff), ((data & 0xff00) >> 8)) + " ");
+                        //character = (byte) (data & 0xff);
+                        //ascii += ((character < 0x20) || (character == 127)) ? '.' : (char) character;
+                        //character = (byte) ((data & 0xff00) >> 8);
+                        //ascii += ((character < 0x20) || (character == 127)) ? '.' : (char) character;
+                        //if ((getReg16(REG_CL_CX)-1) % 16 == 0) {
+                        //  System.out.println(" " + ascii);
+                        //  ascii = "";
+                        //}
+                        // Ende der zusaetzlichen Konsolen-Ausgabe
+                        if (getFlag(DIRECTION_FLAG)) {
+                            setReg16(REG_BH_DI, getReg16(REG_BH_DI) - 2);
+                        } else {
+                            setReg16(REG_BH_DI, getReg16(REG_BH_DI) + 2);
+                        }
+                        setReg16(REG_CL_CX, getReg16(REG_CL_CX) - 1);
+                    }
+                    string_prefix = NO_PREFIX;
+                }
+                if (debug) {
+                    debugInfo.setCode("INSW ES:DI,DX");
+                    String operand = String.format("%04Xh -> ", getReg16(REG_DL_DX));
+                    String ascii = "";
+                    for (int i = 0; i < count; i++) {
+                        if (getFlag(DIRECTION_FLAG)) {
+                            int ch = mms16.readMemoryWord((getSReg(SREG_ES) << 4) + getReg16(REG_BH_DI) + (count - i) * 2);
+                            operand += String.format("%04Xh ", ch);
+                            ascii += (char) (ch & 0xFF) + "" + (char) ((ch & 0xFF00) >> 8);
+                        } else {
+                            int ch = mms16.readMemoryWord((getSReg(SREG_ES) << 4) + getReg16(REG_BH_DI) + (i - count) * 2);
+                            operand += String.format("%04Xh ", ch);
+                            ascii += (char) (ch & 0xFF) + "" + (char) ((ch & 0xFF00) >> 8);
+                        }
+                    }
+                    debugInfo.setOperands(operand + " (" + ascii + ")");
+                }
+            }
+            break;
+            // TODO: fix ticks
+            case OUTS_8: {
+                int segment = getSegment(ds);
+                int count = 1;
+                if (string_prefix == NO_PREFIX) {
+                    mms16.writeIOByte(getReg16(REG_DL_DX), mms16.readMemoryByte((segment << 4) + getReg16(REG_DH_SI)));
+                    if (getFlag(DIRECTION_FLAG)) {
+                        setReg16(REG_DH_SI, getReg16(REG_DH_SI) - 1);
+                    } else {
+                        setReg16(REG_DH_SI, getReg16(REG_DH_SI) + 1);
+                    }
+                    updateTicks(14);
+                } else {
+                    updateTicks(9);
+                    count = getReg16(REG_CL_CX);
+                    while (getReg16(REG_CL_CX) != 0) {
+                        updateTicks(14);
+                        mms16.writeIOByte(getReg16(REG_DL_DX), mms16.readMemoryByte((segment << 4) + getReg16(REG_DH_SI)));
+                        if (getFlag(DIRECTION_FLAG)) {
+                            setReg16(REG_DH_SI, getReg16(REG_DH_SI) - 1);
+                        } else {
+                            setReg16(REG_DH_SI, getReg16(REG_DH_SI) + 1);
+                        }
+                        setReg16(REG_CL_CX, getReg16(REG_CL_CX) - 1);
+                    }
+                    string_prefix = NO_PREFIX;
+                }
+                if (debug) {
+                    debugInfo.setCode("OUTSB DX," + getSegmentDebugString("DS") + ":SI");
+                    String operand = String.format("%04Xh <- ", getReg16(REG_DL_DX));
+                    String ascii = "";
+                    for (int i = 0; i < count; i++) {
+                        if (getFlag(DIRECTION_FLAG)) {
+                            int ch = mms16.readMemoryByte((segment << 4) + getReg16(REG_DH_SI) + count - i);
+                            operand += String.format("%02Xh ", ch);
+                            ascii += (char) ch;
+                        } else {
+                            int ch = mms16.readMemoryByte((segment << 4) + getReg16(REG_DH_SI) + i - count);
+                            operand += String.format("%02Xh ", ch);
+                            ascii += (char) ch;
+                        }
+                    }
+                    debugInfo.setOperands(operand + " (" + ascii + ")");
+                }
+            }
+            break;
+            // TODO: fix ticks
+            case OUTS_16: {
+                int segment = getSegment(ds);
+                int count = 1;
+                if (string_prefix == NO_PREFIX) {
+                    mms16.writeIOWord(getReg16(REG_DL_DX), mms16.readMemoryWord((segment << 4) + getReg16(REG_DH_SI)));
+                    if (getFlag(DIRECTION_FLAG)) {
+                        setReg16(REG_DH_SI, getReg16(REG_DH_SI) - 2);
+                    } else {
+                        setReg16(REG_DH_SI, getReg16(REG_DH_SI) + 2);
+                    }
+                    updateTicks(14);
+                } else {
+                    updateTicks(9);
+                    count = getReg16(REG_CL_CX);
+                    while (getReg16(REG_CL_CX) != 0) {
+                        updateTicks(14);
+                        mms16.writeIOWord(getReg16(REG_DL_DX), mms16.readMemoryWord((segment << 4) + getReg16(REG_DH_SI)));
+                        if (getFlag(DIRECTION_FLAG)) {
+                            setReg16(REG_DH_SI, getReg16(REG_DH_SI) - 2);
+                        } else {
+                            setReg16(REG_DH_SI, getReg16(REG_DH_SI) + 2);
+                        }
+                        setReg16(REG_CL_CX, getReg16(REG_CL_CX) - 1);
+                    }
+                    string_prefix = NO_PREFIX;
+                }
+                if (debug) {
+                    debugInfo.setCode("OUTSW DX," + getSegmentDebugString("DS") + ":SI");
+                    String operand = String.format("%04Xh <- ", getReg16(REG_DL_DX));
+                    String ascii = "";
+                    for (int i = 0; i < count; i++) {
+                        if (getFlag(DIRECTION_FLAG)) {
+                            int ch = mms16.readMemoryWord((segment << 4) + getReg16(REG_DH_SI) + (count - i) * 2);
+                            operand += String.format("%04Xh ", ch);
+                            ascii += (char) ch;
+                        } else {
+                            int ch = mms16.readMemoryWord((segment << 4) + getReg16(REG_DH_SI) + (i - count) * 2);
+                            operand += String.format("%04Xh ", ch);
+                            ascii += (char) ch;
+                        }
+                    }
+                    debugInfo.setOperands(operand + " (" + ascii + ")");
                 }
             }
             break;
