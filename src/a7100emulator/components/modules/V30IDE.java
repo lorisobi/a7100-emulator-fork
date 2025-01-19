@@ -24,6 +24,9 @@
  *
  * Letzte Änderungen:
  *   10.01.2025 - Initiale Version
+ *   19.01.2025 - Device Control Register hinzugefuegt
+ *              - IDE Software Reset hinzugefuegt
+ *              - Test auf zu grosse Sektornummern hinzugefuegt
  */
 
 package a7100emulator.components.modules;
@@ -226,6 +229,10 @@ public final class V30IDE implements IOModule {
      * Speicher fuer das Alternate Status Register
      */
     private static int[] reg_astat = new int[2];
+    /**
+     * Speicher fuer das Device Control Register
+     */
+    private static int[] reg_dc = new int[2];
 
     /**
      * Merkvariable fuer die aktuelle Unit
@@ -360,6 +367,25 @@ public final class V30IDE implements IOModule {
             case PORT_FR:
                 break;
             case PORT_DC:
+                reg_dc[currUnit] = data;
+                //System.out.println("Write register DC [unit " + currUnit + "] : " + String.format("0x%02X", reg_dc[currUnit]));
+                /**
+                 * Test auf Software Reset
+                 */
+                if (BitTest.getBit(reg_dc[currUnit], 2)) {
+                    //System.out.println("IDE Software Reset");
+                    for (int i = 0; i < 2; i++) {
+                        reg_error[i] = 0;
+                        reg_sc[i] = 0;
+                        reg_sn[i] = 0;
+                        reg_cl[i] = 0;
+                        reg_ch[i] = 0;
+                        reg_dh[i] = 0;
+                        reg_stat[i] = 0;
+                        reg_astat[i] = 0;
+                        reg_dc[i] = 0;
+                    }
+                }
                 break;
             default:
                 LOG.log(Level.WARNING, "Unbekannter Write-Port " + String.format("0x%04X", port));
@@ -480,6 +506,7 @@ public final class V30IDE implements IOModule {
             dos.writeInt(reg_dh[i]);
             dos.writeInt(reg_stat[i]);
             dos.writeInt(reg_astat[i]);
+            dos.writeInt(reg_dc[i]);
             image[i].saveState(dos);
         }
         dos.write(identDev);
@@ -505,6 +532,7 @@ public final class V30IDE implements IOModule {
             reg_dh[i] = dis.readInt();
             reg_stat[i] = dis.readInt();
             reg_astat[i] = dis.readInt();
+            reg_dc[i] = dis.readInt();
             image[i].loadState(dis);
         }
         dis.read(identDev);
@@ -633,7 +661,6 @@ public final class V30IDE implements IOModule {
      * Bereitet das RD_SECT/WR_SECT Kommando vor
      */
     private void setupHarddiskReadWrite() {
-        reg_stat[currUnit] = reg_stat[currUnit] | DRQ;
         buffer = image[currUnit].diskData;
         bytesLeft = reg_sc[currUnit] * 512;
         int snum = ((reg_dh[currUnit] & 0xf) << 24) |
@@ -649,6 +676,13 @@ public final class V30IDE implements IOModule {
         //System.out.println("     bytesLeft = " + bytesLeft);
         //System.out.println("     sector number = " + snum);
         //System.out.println("     bufferIdx = " + bufferIdx);
+
+        if (snum >= image[currUnit].getTotalSectors()) {
+            reg_stat[currUnit] = reg_stat[currUnit] | DF;
+            reg_stat[currUnit] = reg_stat[currUnit] | ERR;
+        } else {
+            reg_stat[currUnit] = reg_stat[currUnit] | DRQ;
+        }
     }
 
     /**
