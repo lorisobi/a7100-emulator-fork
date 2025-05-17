@@ -59,6 +59,7 @@
  *   21.12.2024 - Korrektes Setzen des Uebertrags fuer 16-Bit Operationen mit direktem,
  *                negativem vorzeichenbehafteten 2. Operanden (Opcode 0x83)
  *   08.01.2025 - 80186 Befehle INS8/16 und OUTS8/16 fuer V30 IDE Adapter hinzugefuegt
+ *   17.05.2025 - MOVS_16 Debug Ausgabe korrigiert
  */
 package a7100emulator.components.ic;
 
@@ -3951,7 +3952,7 @@ public final class K1810WM86 implements CPU {
                             operand += String.format("%04Xh ", ch);
                             ascii += (char) (ch & 0xFF) + "" + (char) ((ch & 0xFF00) >> 8);
                         } else {
-                            int ch = mms16.readMemoryWord((getSReg(SREG_ES) << 4) + getReg16(REG_BH_DI) - (count + i) * 2);
+                            int ch = mms16.readMemoryWord((getSReg(SREG_ES) << 4) + getReg16(REG_BH_DI) - (count - i) * 2);
                             operand += String.format("%04Xh ", ch);
                             ascii += (char) (ch & 0xFF) + "" + (char) ((ch & 0xFF00) >> 8);
                         }
