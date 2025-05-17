@@ -55,6 +55,10 @@
  *   18.03.2018 - Verzeichnis für Debugger wird aus Konfigurationsdatei geladen
  *              - Rückgabe Debugger-Status implementiert
  *   11.05.2018 - Zuweisungsoperatoren verwendet
+ *   19.12.2024 - Cast fuer checkSignFlag16 in dec16 korrigiert
+ *   21.12.2024 - Korrektes Setzen des Uebertrags fuer 16-Bit Operationen mit direktem,
+ *                negativem vorzeichenbehafteten 2. Operanden (Opcode 0x83)
+ *   17.05.2025 - MOVS_16 Debug Ausgabe korrigiert
  */
 package a7100emulator.components.ic;
 
@@ -3929,7 +3933,7 @@ public final class K1810WM86 implements CPU {
                             operand += String.format("%04Xh ", ch);
                             ascii += (char) (ch & 0xFF) + "" + (char) ((ch & 0xFF00) >> 8);
                         } else {
-                            int ch = mms16.readMemoryWord((getSReg(SREG_ES) << 4) + getReg16(REG_BH_DI) - (count + i) * 2);
+                            int ch = mms16.readMemoryWord((getSReg(SREG_ES) << 4) + getReg16(REG_BH_DI) - (count - i) * 2);
                             operand += String.format("%04Xh ", ch);
                             ascii += (char) (ch & 0xFF) + "" + (char) ((ch & 0xFF00) >> 8);
                         }
@@ -4803,7 +4807,7 @@ public final class K1810WM86 implements CPU {
                 switch (opcode2 & TEST_REG) {
                     case _83_ADD_IMM_REG_16_SIGN: {
                         int op1 = getMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM, false);
-                        int op2 = (byte) getImmediate8(opcode2 & TEST_MOD, opcode2 & TEST_RM);
+                        int op2 = ((byte) getImmediate8(opcode2 & TEST_MOD, opcode2 & TEST_RM)) & 0xFFFF;
                         int res = add16(op1, op2, false);
                         setMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM, res & 0xFFFF, true);
                         ip++;
@@ -4816,7 +4820,7 @@ public final class K1810WM86 implements CPU {
                     break;
                     case _83_ADC_IMM_REG_16_SIGN: {
                         int op1 = getMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM, false);
-                        int op2 = (byte) getImmediate8(opcode2 & TEST_MOD, opcode2 & TEST_RM);
+                        int op2 = ((byte) getImmediate8(opcode2 & TEST_MOD, opcode2 & TEST_RM)) & 0xFFFF;
                         int res = add16(op1, op2, true);
                         setMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM, res & 0xFFFF, true);
                         ip++;
@@ -4829,7 +4833,7 @@ public final class K1810WM86 implements CPU {
                     break;
                     case _83_SBB_IMM_REG_16_SIGN: {
                         int op1 = getMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM, false);
-                        int op2 = (byte) getImmediate8(opcode2 & TEST_MOD, opcode2 & TEST_RM);
+                        int op2 = ((byte) getImmediate8(opcode2 & TEST_MOD, opcode2 & TEST_RM)) & 0xFFFF;
                         int res = sub16(op1, op2, true);
                         setMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM, res & 0xFFFF, true);
                         ip++;
@@ -4842,7 +4846,7 @@ public final class K1810WM86 implements CPU {
                     break;
                     case _83_SUB_IMM_REG_16_SIGN: {
                         int op1 = getMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM, false);
-                        int op2 = (byte) getImmediate8(opcode2 & TEST_MOD, opcode2 & TEST_RM);
+                        int op2 = ((byte) getImmediate8(opcode2 & TEST_MOD, opcode2 & TEST_RM)) & 0xFFFF;
                         int res = sub16(op1, op2, false);
                         setMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM, res & 0xFFFF, true);
                         ip++;
@@ -4854,7 +4858,7 @@ public final class K1810WM86 implements CPU {
                     }
                     break;
                     case _83_CMP_IMM_REG_16_SIGN: {
-                        int op2 = (byte) getImmediate8(opcode2 & TEST_MOD, opcode2 & TEST_RM);
+                        int op2 = ((byte) getImmediate8(opcode2 & TEST_MOD, opcode2 & TEST_RM)) & 0xFFFF;
                         int op1 = getMODRM16(opcode2 & TEST_MOD, opcode2 & TEST_RM, true);
                         sub16(op1, op2, false);
                         ip++;
@@ -6301,7 +6305,7 @@ public final class K1810WM86 implements CPU {
     private int dec16(int op) {
         int res = op - 1;
         checkZeroFlag16(res);
-        checkSignFlag16((byte) res);
+        checkSignFlag16((short) res);
         checkOverflowFlagSub16(op, 1, res);
         checkParityFlag(res);
         checkAuxiliaryCarryFlagSub(op, 1);

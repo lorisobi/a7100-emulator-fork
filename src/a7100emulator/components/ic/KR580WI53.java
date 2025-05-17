@@ -25,6 +25,7 @@
  *              - Interface IC implementiert
  *   09.08.2016 - Logger hinzugefügt
  *   18.03.2018 - Loggen von nicht implementierten Modi
+ *   07.01.2025 - PIT laeuft mit Bus Clock
  */
 package a7100emulator.components.ic;
 
@@ -134,13 +135,13 @@ public class KR580WI53 implements IC {
         buffer[1] += amount;
         buffer[2] += amount;
 
-        counter[0].update(buffer[0] >> 2);
-        counter[1].update(buffer[1] >> 5);
-        counter[2].update(buffer[2] >> 2);
+        counter[0].update(buffer[0] >> 3);
+        counter[1].update(buffer[1] >> 6);
+        counter[2].update(buffer[2] >> 3);
 
-        buffer[0] -= (buffer[0] >> 2) << 2;
-        buffer[1] -= (buffer[1] >> 5) << 5;
-        buffer[2] -= (buffer[2] >> 2) << 2;
+        buffer[0] -= (buffer[0] >> 3) << 3;
+        buffer[1] -= (buffer[1] >> 6) << 6;
+        buffer[2] -= (buffer[2] >> 3) << 3;
 
         for (int i = 0; i < 3; i++) {
             if (buffer[i] < 0) {

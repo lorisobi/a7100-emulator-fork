@@ -26,6 +26,11 @@
  *                implementiert
  *   25.07.2016 - Erkennen von fehlerhafter Diskettenposition beim Daten lesen
  *   07.08.2016 - Logger hinzugefügt und Ausgaben umgeleitet
+ *   19.12.2024 - Lese beim ersten START_OPERATION nur den WUB, ohne jedoch
+ *                eine Operation auszufuehren
+ *              - Ausbau der IRQ Verzoegerung ueber interruptClock, da dies
+ *                zu Problemen unter SCP in Zusammenhang den Erweiterungen
+ *                der PIC Emulation gefuehrt hat
  */
 package a7100emulator.components.modules;
 
@@ -107,10 +112,6 @@ public final class KES implements IOModule, ClockModule {
      */
     private final AFS afs = new AFS();
     /**
-     * Counter für Interrupt Freigabe
-     */
-    private long interruptClock = 0;
-    /**
      * Gibt an ob auf einen Interrupt der KES gewartet wird
      */
     private boolean interruptWaiting = false;
@@ -156,17 +157,29 @@ public final class KES implements IOModule, ClockModule {
                 case 0x00:
                     // RESET_OFF
 //                        System.out.println("RESET OFF");
-                    readWUB = true;
                     interruptWaiting = false;
                     break;
                 case 0x01:
                     // START_OPERATION
 //                        System.out.println("START OPERATION");
-                    startOperation();
+                    if (readWUB) {
+                        // erster Aufruf von START_OPERATION nach RESET_OFF
+                        int seg = mms16.readMemoryWord(INIT_WUB_ADDRESS + 4);
+                        int off = mms16.readMemoryWord(INIT_WUB_ADDRESS + 2);
+                        ccbAddress = (seg << 4) + off;
+                        readWUB = false;
+                    } else {
+                        // nachfolgende Aufrufe von START_OPERATION
+                        startOperation();
+                    }
+                    // setze Busy Byte zurueck
+                    mms16.writeMemoryByte(ccbAddress + 0x01, 0x00);
+                    interruptWaiting = true;
                     break;
                 case 0x02:
                     // RESET
 //                        System.out.println("RESET");
+                    readWUB = true;
                     break;
                 default:
                     throw new IllegalArgumentException("Illegal Command:" + Integer.toHexString(data));
@@ -218,12 +231,6 @@ public final class KES implements IOModule, ClockModule {
      * Startet ausgelöst durch einen Interrupt die Bearbeitung durch die KES
      */
     private void startOperation() {
-        if (readWUB) {
-            int seg = mms16.readMemoryWord(INIT_WUB_ADDRESS + 4);
-            int off = mms16.readMemoryWord(INIT_WUB_ADDRESS + 2);
-            ccbAddress = (seg << 4) + off;
-            readWUB = false;
-        }
         for (int i = 0; i < 30; i++) {
             if (i < 16) {
                 ccb[i] = (byte) mms16.readMemoryByte(ccbAddress + i);
@@ -232,10 +239,6 @@ public final class KES implements IOModule, ClockModule {
             iopb[i] = (byte) mms16.readMemoryByte(ccbAddress + i + 0x20);
         }
         checkIOPB();
-        mms16.writeMemoryByte(ccbAddress + 0x01, 0x00);
-
-        interruptWaiting = true;
-        interruptClock = 0;
     }
 
     /**
@@ -554,12 +557,8 @@ public final class KES implements IOModule, ClockModule {
     @Override
     public void clockUpdate(int amount) {
         if (interruptWaiting) {
-            interruptClock += amount;
-            // Zeit für Operation auf 2000 Zyklen gesetzt
-            if (interruptClock > 2000) {
-                interruptWaiting = false;
-                MMS16Bus.getInstance().requestInterrupt(5);
-            }
+            interruptWaiting = false;
+            MMS16Bus.getInstance().requestInterrupt(5);
         }
     }
 
@@ -587,7 +586,6 @@ public final class KES implements IOModule, ClockModule {
         dos.write(iopb);
         sram.saveMemory(dos);
         afs.saveState(dos);
-        dos.writeLong(interruptClock);
         dos.writeBoolean(interruptWaiting);
     }
 
@@ -606,7 +604,6 @@ public final class KES implements IOModule, ClockModule {
         dis.read(iopb);
         sram.loadMemory(dis);
         afs.loadState(dis);
-        interruptClock = dis.readLong();
         interruptWaiting = dis.readBoolean();
     }
 }

@@ -31,6 +31,7 @@
  *   09.08.2016 - Fehler beim Laden der EPROMS abgefangen
  *   18.03.2018 - EPROMS Pfad wird aus Konfiguration gelesen
  *              - Rückgabe Debugger-Status implementiert
+ *   07.01.2025 - Bus Clock hinzugefuegt
  */
 package a7100emulator.components.modules;
 
@@ -174,6 +175,11 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
      * Quartz CPU-Takt
      */
     private final QuartzCrystal cpuClock = new QuartzCrystal(4.9152);
+
+    /**
+     * Quartz Bus-Takt
+     */
+    private final QuartzCrystal busClock = new QuartzCrystal(9.832);
 
     /**
      * Erstellt eine neue ZVE
@@ -527,12 +533,13 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
      */
     @Override
     public void clockUpdate(int micros) {
-        int cycles = cpuClock.getCycles(micros);
+        int cpuCycles = cpuClock.getCycles(micros);
+        int busCycles = busClock.getCycles(micros);
 
         //TODO: Ein und Ausgabe zwischen Bausteinen synchronisieren
-        cpu.executeCycles(cycles);
-        pti.updateClock(cycles);
-        usart.updateClock(cycles);
+        cpu.executeCycles(cpuCycles);
+        pti.updateClock(busCycles);
+        usart.updateClock(cpuCycles);
     }
 
     /**
@@ -550,6 +557,7 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
         pti.saveState(dos);
         usart.saveState(dos);
         cpuClock.saveState(dos);
+        busClock.saveState(dos);
     }
 
     /**
@@ -567,6 +575,7 @@ public final class ZVE implements IOModule, MemoryModule, ClockModule {
         pti.loadState(dis);
         usart.loadState(dis);
         cpuClock.loadState(dis);
+        busClock.loadState(dis);
     }
 
     /**
