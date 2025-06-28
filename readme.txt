@@ -1,3 +1,10 @@
+--------------------------------------------------------------------------------
+  Hierbei handelt es sich um einen Fork des A7100 Emulator zu Archivzwecken
+
+              Die originale Repository findet sich auf GitLab:
+            https://gitlab.com/a7100-emulation/a7100-emulator
+--------------------------------------------------------------------------------
+
 A7100 Emulator - Readme v0.9.10
 ===============================
 
